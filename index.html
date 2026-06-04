@@ -21,7 +21,12 @@
     getFirestore,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    collection,
+    getDocs,
+    query,
+    where,
+    deleteDoc
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -48,7 +53,12 @@
     onAuthStateChanged,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    collection,
+    getDocs,
+    query,
+    where,
+    deleteDoc
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -211,6 +221,18 @@
   }
   .btn.danger:hover { background: var(--danger); color: #ffffff; }
 
+  /* ODP 작업용 입장 버튼 (크게, 약간 짙은 하늘색) */
+  #toOdpBtn {
+    background: #4f93c9;
+    color: #ffffff;
+    border: none;
+    font-size: 18px;
+    padding: 18px;
+    margin-top: 14px;
+    border-radius: 12px;
+  }
+  #toOdpBtn:hover { background: #3f82b8; }
+
   .btn-split {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -275,22 +297,22 @@
 
   .menu-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-    margin-top: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
   }
 
   .menu-card {
     background: var(--bg-elev);
     border: 1.5px solid var(--border);
-    border-radius: 20px;
-    padding: 32px 28px;
+    border-radius: 16px;
+    padding: 20px 18px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
     position: relative;
     overflow: hidden;
     text-align: left;
-    min-height: 180px;
+    min-height: 110px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -311,16 +333,34 @@
   }
 
   .menu-icon {
-    font-size: 44px;
+    width: 44px;
+    height: 44px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    font-size: 24px;
     line-height: 1;
-    margin-bottom: 16px;
+    background: var(--accent-soft);
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .menu-card[data-target="todo"]   .menu-icon { background: #ffe3e3; }
+  .menu-card[data-target="bible"]  .menu-icon { background: #ece5ff; }
+  .menu-card[data-target="upc"]    .menu-icon { background: #e1f0ff; }
+  .menu-card[data-target="case"]   .menu-icon { background: #d9f5ec; }
+  .menu-card[data-target="weight"] .menu-icon { background: #ddf3f7; }
+  .menu-card[data-target="calc"]   .menu-icon { background: #ffedd6; }
+  .menu-card[data-target="claude"] .menu-icon { background: #ffe4ef; }
+  .menu-card:hover:not(.disabled) .menu-icon {
+    transform: scale(1.1) rotate(-4deg);
   }
   .menu-card-title {
     font-family: var(--serif);
-    font-size: 26px;
+    font-size: 21px;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     line-height: 1.1;
   }
   .menu-card-desc {
@@ -2279,6 +2319,7 @@
         <button class="btn btn-half" id="loginBtn">들어가기</button>
         <button class="btn btn-half btn-half-light" id="toSignupBtn">사용하기</button>
       </div>
+      <button class="btn" id="toOdpBtn" style="margin-top: 8px;">ODP 작업용</button>
     </div>
 
     <!-- SIGNUP MODE -->
@@ -2302,6 +2343,28 @@
     <div class="err" id="lockErr"></div>
   </div>
 </div>
+
+<!-- ODP 작업용 모드: 변환기 메뉴(UPC·대소문자·용량·계산기)만, 4개를 한 화면에 -->
+<style>
+  .menu-screen.odp-only .menu-card[data-target="todo"],
+  .menu-screen.odp-only .menu-card[data-target="bible"],
+  .menu-screen.odp-only .menu-card[data-target="claude"],
+  .menu-screen.odp-only #menuSaveBtn {
+    display: none !important;
+  }
+  /* 4개를 스크롤 없이 한 화면에: 2×2 압축 배치 */
+  .menu-screen.odp-only { padding-top: 36px; padding-bottom: 32px; }
+  .menu-screen.odp-only .menu-topbar { margin-bottom: 28px; }
+  .menu-screen.odp-only .menu-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .menu-screen.odp-only .menu-card {
+    min-height: 0;
+    padding: 18px 16px;
+  }
+</style>
 
 <!-- MENU SCREEN -->
 <div class="menu-screen" id="menuScreen">
@@ -2329,12 +2392,48 @@
     </div>
   </div>
 
+  <!-- 관리자 승인 패널 (관리자 계정에서만 노출) -->
+  <style>
+    #adminPanel {
+      max-width: 640px;
+      margin: 0 auto 20px;
+      background: var(--bg-elev);
+      border: 1.5px solid var(--accent-warm);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .admin-title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 14px; }
+    .admin-empty { font-size: 14px; color: var(--text-dim); padding: 8px 0; }
+    .admin-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 10px 0; border-top: 1px solid var(--border);
+    }
+    .admin-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .admin-email { font-family: var(--mono); font-size: 14px; color: var(--text); word-break: break-all; }
+    .admin-badge {
+      align-self: flex-start; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px; font-family: var(--mono);
+    }
+    .admin-badge.pending { background: var(--accent-soft); color: #8a6d1f; }
+    .admin-badge.approved { background: #e3f0e3; color: #2f7d32; }
+    .admin-badge.rejected { background: #f3e3e3; color: #b04141; }
+    .admin-acts { display: flex; gap: 8px; flex-shrink: 0; }
+    .admin-approve, .admin-reject, .admin-delete {
+      border: none; border-radius: 8px; padding: 8px 12px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--mono);
+    }
+    .admin-approve { background: var(--accent); color: #fff; }
+    .admin-reject { background: transparent; color: var(--text-dim); border: 1.5px solid var(--border); }
+    .admin-delete { background: transparent; color: #b04141; border: 1.5px solid #d9a3a3; }
+    .admin-approve:active, .admin-reject:active, .admin-delete:active { transform: scale(0.97); }
+  </style>
+  <div id="adminPanel" style="display:none;"></div>
+
   <div class="menu-grid">
     <div class="menu-card" data-target="todo">
       <div>
         <div class="menu-icon">📅</div>
-        <div class="menu-card-title">TO-DO</div>
-        <div class="menu-card-desc">달력으로 일정 관리하기</div>
+        <div class="menu-card-title">일정표</div>
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
@@ -2343,25 +2442,38 @@
       <div>
         <div class="menu-icon">📖</div>
         <div class="menu-card-title">성경찾기</div>
-        <div class="menu-card-desc">개역개정 구절 찾아보기</div>
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
 
     <div class="menu-card" data-target="upc">
       <div>
-        <div class="menu-icon">🔢</div>
+        <div class="menu-icon">🏷️</div>
         <div class="menu-card-title">UPC 변환</div>
-        <div class="menu-card-desc">바코드 일괄 변환하기</div>
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
 
     <div class="menu-card" data-target="case">
       <div>
-        <div class="menu-icon">🔠</div>
+        <div class="menu-icon">🔤</div>
         <div class="menu-card-title">대소문자 변환</div>
-        <div class="menu-card-desc">대문자 ↔ 소문자 변환하기</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="weight">
+      <div>
+        <div class="menu-icon">⚖️</div>
+        <div class="menu-card-title">용량 변환</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="calc">
+      <div>
+        <div class="menu-icon">🧮</div>
+        <div class="menu-card-title">계산기</div>
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
@@ -2370,10 +2482,176 @@
       <div>
         <div class="menu-icon">📝</div>
         <div class="menu-card-title">CLAUDE 작업 지침서</div>
-        <div class="menu-card-desc">새 대화를 위한 메모 모음</div>
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
+  </div>
+</div>
+
+<!-- ODP 작업용 대시보드: 4개 도구를 한 화면(2×2)에서 -->
+<style>
+  #odpDash { display: none; max-width: 1500px; margin: 0 auto; padding: 22px 20px 28px; min-height: 100vh; position: relative; z-index: 1; }
+  #odpDash.active { display: block; }
+  .odp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 12px; }
+  .odp-top h1 { font-family: var(--serif); font-size: 26px; font-weight: 700; color: var(--text); }
+  .odp-grid { display: grid; grid-template-columns: 1fr 1fr 360px; gap: 14px; align-items: start; }
+  .odp-panel {
+    background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  }
+  .odp-panel h2 { font-family: var(--serif); font-size: 16px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .odp-panel h2 .odp-ico {
+    width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .odp-ta { width: 100%; resize: none; overflow-y: auto; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px; font-family: var(--mono); font-size: 13px; line-height: 1.5; background: var(--bg); color: var(--text); }
+  .odp-ta:focus { outline: none; border-color: var(--accent-warm); }
+  .odp-ta[readonly] { background: var(--bg-elev-2); }
+  .odp-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .odp-btn { border: none; border-radius: 9px; padding: 9px 14px; font-weight: 700; font-family: var(--mono); font-size: 13px; cursor: pointer; background: var(--accent); color: #fff; transition: transform 0.1s; }
+  .odp-btn:active { transform: scale(0.97); }
+  .odp-btn.ghost { background: transparent; color: var(--text-dim); border: 1.5px solid var(--border); }
+  .odp-btn.sm { padding: 7px 11px; font-size: 12px; }
+  .odp-hint { font-size: 12px; color: var(--text-dim); }
+
+  /* 용량 변환 미니 */
+  .odp-wgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .odp-wrow { display: flex; align-items: center; gap: 8px; }
+  .odp-wlab { min-width: 50px; display: flex; flex-direction: column; }
+  .odp-wname { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.1; }
+  .odp-wsym { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+  .odp-winput { flex: 1; min-width: 0; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 14px; background: var(--bg); color: var(--text); }
+  .odp-winput:focus { outline: none; border-color: var(--accent-warm); }
+
+  /* 계산기 미니 */
+  .odp-calc-disp { background: var(--bg-elev-2); border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; text-align: right; }
+  .odp-calc-expr { font-family: var(--mono); font-size: 12px; color: var(--text-dim); min-height: 14px; }
+  .odp-calc-res { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--text); word-break: break-all; }
+  .odp-calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .odp-ckey { padding: 11px 0; font-size: 16px; font-weight: 700; border: 1.5px solid var(--border); border-radius: 9px; background: var(--bg-elev); color: var(--text); cursor: pointer; font-family: var(--mono); }
+  .odp-ckey:active { transform: scale(0.96); }
+  .odp-ckey.op { background: var(--accent-soft); }
+  .odp-ckey.op.active { background: var(--accent-warm); color: #fff; }
+  .odp-ckey.equal { background: var(--accent); color: #fff; }
+  .odp-ckey.func { color: var(--text-dim); }
+
+  /* 메모장 (오른쪽, 계산기 아래까지 꽉 채워 길게) */
+  .odp-memo { grid-column: 3; grid-row: 1 / 3; align-self: stretch; }
+  .odp-memo-ta { flex: 1; min-height: 0; overflow-y: auto; }
+  .odp-memo-add {
+    margin-left: auto; border: none; background: var(--accent-soft); color: var(--text);
+    width: 26px; height: 26px; border-radius: 8px; font-size: 18px; line-height: 1; cursor: pointer;
+  }
+  .odp-memo-add:active { transform: scale(0.94); }
+  .odp-memo-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+  .odp-memo-tab {
+    display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+    padding: 6px 9px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: var(--bg); cursor: pointer; font-family: var(--mono); font-size: 12px;
+    color: var(--text-dim); white-space: nowrap; max-width: 130px;
+  }
+  .odp-memo-tab > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+  .odp-memo-tab.active { border-color: var(--accent-warm); background: var(--accent-soft); color: var(--text); font-weight: 700; }
+  .odp-memo-tab .x { color: var(--text-faint); font-weight: 700; }
+  .odp-memo-tab .x:hover { color: #b04141; }
+
+  /* 화면이 좁아지면 도구는 원래 2×2 크기를 유지하고 메모장은 아래로 */
+  @media (max-width: 1180px) {
+    .odp-grid { grid-template-columns: 1fr 1fr; }
+    .odp-memo { grid-column: 1 / 3; grid-row: auto; align-self: auto; }
+    .odp-memo-ta { min-height: 260px; }
+  }
+
+  @media (max-width: 760px) {
+    .odp-grid { grid-template-columns: 1fr; }
+    .odp-memo { grid-column: auto; grid-row: auto; }
+    .odp-memo-ta { min-height: 200px; }
+    #odpDash { padding: 16px 12px 28px; }
+  }
+</style>
+<div id="odpDash">
+  <div class="odp-top">
+    <h1>ODP 작업용</h1>
+    <button class="odp-btn ghost" id="odpLogoutBtn">로그아웃</button>
+  </div>
+  <div class="odp-grid">
+
+    <!-- UPC 변환 -->
+    <div class="odp-panel">
+      <h2><span class="odp-ico" style="background:#e1f0ff;">🏷️</span> UPC 변환</h2>
+      <textarea class="odp-ta" id="odUpcIn" rows="6" placeholder="바코드를 한 줄에 하나씩 입력"></textarea>
+      <div class="odp-row">
+        <button class="odp-btn sm" id="odUpcConvert">변환</button>
+        <button class="odp-btn ghost sm" id="odUpcCopy">결과 복사</button>
+        <button class="odp-btn ghost sm" id="odUpcClear">지우기</button>
+      </div>
+      <textarea class="odp-ta" id="odUpcOut" rows="6" placeholder="결과" readonly></textarea>
+    </div>
+
+    <!-- 대소문자 변환 -->
+    <div class="odp-panel">
+      <h2><span class="odp-ico" style="background:#d9f5ec;">🔤</span> 대소문자 변환</h2>
+      <textarea class="odp-ta" id="odCaseIn" rows="6" placeholder="변환할 텍스트 입력"></textarea>
+      <div class="odp-row">
+        <button class="odp-btn sm" id="odCaseUpper">ABC</button>
+        <button class="odp-btn sm" id="odCaseLower">abc</button>
+        <button class="odp-btn sm" id="odCaseTitle">Abc</button>
+        <button class="odp-btn ghost sm" id="odCaseCopy">복사</button>
+      </div>
+      <textarea class="odp-ta" id="odCaseOut" rows="6" placeholder="결과" readonly></textarea>
+    </div>
+
+    <!-- 용량 변환 -->
+    <div class="odp-panel">
+      <h2><span class="odp-ico" style="background:#ddf3f7;">⚖️</span> 용량 변환</h2>
+      <div class="odp-wgrid">
+        <div class="odp-wrow"><div class="odp-wlab"><span class="odp-wname">온스</span><span class="odp-wsym">OZ</span></div><input class="odp-winput" id="odWOz" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+        <div class="odp-wrow"><div class="odp-wlab"><span class="odp-wname">액량 온스</span><span class="odp-wsym">FL OZ</span></div><input class="odp-winput" id="odWFloz" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+        <div class="odp-wrow"><div class="odp-wlab"><span class="odp-wname">그램</span><span class="odp-wsym">G</span></div><input class="odp-winput" id="odWG" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+        <div class="odp-wrow"><div class="odp-wlab"><span class="odp-wname">킬로그램</span><span class="odp-wsym">KG</span></div><input class="odp-winput" id="odWKg" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+        <div class="odp-wrow"><div class="odp-wlab"><span class="odp-wname">밀리리터</span><span class="odp-wsym">ML</span></div><input class="odp-winput" id="odWMl" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+        <div class="odp-wrow"><div class="odp-wlab"><span class="odp-wname">파운드</span><span class="odp-wsym">LB</span></div><input class="odp-winput" id="odWLb" type="number" inputmode="decimal" step="any" placeholder="0"></div>
+      </div>
+      <div class="odp-row"><button class="odp-btn ghost sm" id="odWClear">지우기</button></div>
+    </div>
+
+    <!-- 계산기 -->
+    <div class="odp-panel">
+      <h2><span class="odp-ico" style="background:#ffedd6;">🧮</span> 계산기</h2>
+      <div class="odp-calc-disp">
+        <div class="odp-calc-expr" id="odCalcExpr"></div>
+        <div class="odp-calc-res" id="odCalcRes">0</div>
+      </div>
+      <div class="odp-calc-grid" id="odCalcKeys">
+        <button class="odp-ckey func" data-k="ac">AC</button>
+        <button class="odp-ckey func" data-k="back">⌫</button>
+        <button class="odp-ckey func" data-k="pct">%</button>
+        <button class="odp-ckey op" data-k="div">÷</button>
+        <button class="odp-ckey" data-k="7">7</button>
+        <button class="odp-ckey" data-k="8">8</button>
+        <button class="odp-ckey" data-k="9">9</button>
+        <button class="odp-ckey op" data-k="mul">×</button>
+        <button class="odp-ckey" data-k="4">4</button>
+        <button class="odp-ckey" data-k="5">5</button>
+        <button class="odp-ckey" data-k="6">6</button>
+        <button class="odp-ckey op" data-k="sub">−</button>
+        <button class="odp-ckey" data-k="1">1</button>
+        <button class="odp-ckey" data-k="2">2</button>
+        <button class="odp-ckey" data-k="3">3</button>
+        <button class="odp-ckey op" data-k="add">+</button>
+        <button class="odp-ckey" data-k="sign">±</button>
+        <button class="odp-ckey" data-k="0">0</button>
+        <button class="odp-ckey" data-k="dot">.</button>
+        <button class="odp-ckey equal" data-k="eq">=</button>
+      </div>
+    </div>
+
+    <!-- 메모장 -->
+    <div class="odp-panel odp-memo">
+      <h2><span class="odp-ico" style="background:#fff3d6;">🗒️</span> <span>메모장</span><button class="odp-memo-add" id="odMemoAdd" title="새 메모 추가">＋</button></h2>
+      <div class="odp-memo-tabs" id="odMemoTabs"></div>
+      <textarea class="odp-ta odp-memo-ta" id="odMemo" placeholder="메모를 자유롭게 적어두세요"></textarea>
+    </div>
+
   </div>
 </div>
 
@@ -2544,15 +2822,136 @@
       <div class="upc-status" id="caseOutputStatus">0자</div>
     </div>
   </div>
+</div>
 
-  <div class="upc-info">
-    <h4 class="upc-info-title">변환 방식</h4>
-    <ul class="upc-info-list">
-      <li><strong>전부 대문자</strong>: hello world → HELLO WORLD</li>
-      <li><strong>전부 소문자</strong>: HELLO WORLD → hello world</li>
-      <li><strong>첫글자 대문자</strong>: hello world → Hello World (각 단어 첫글자)</li>
-      <li>여러 줄도 한번에 변환됩니다</li>
-    </ul>
+<!-- WEIGHT CONVERTER SCREEN (용량 변환) -->
+<style>
+  .weight-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .weight-row { display: flex; align-items: center; gap: 10px; }
+  .weight-label { display: flex; flex-direction: column; min-width: 64px; }
+  .weight-name { font-weight: 700; font-size: 15px; color: var(--text); line-height: 1.2; }
+  .weight-sym { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .weight-input {
+    flex: 1; min-width: 0; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 18px; font-family: var(--mono);
+    background: var(--bg); color: var(--text);
+  }
+  .weight-input:focus { outline: none; border-color: var(--accent-warm); }
+  .weight-input::placeholder { color: var(--text-faint); }
+  .weight-hint { margin-top: 14px; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+</style>
+<div class="upc-screen" id="weightScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="weightBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">⚖️ 용량 변환</h1>
+      <div class="brand-meta">OZ · G · KG · LB · ML · FL OZ 서로 변환</div>
+    </div>
+  </header>
+
+  <div class="upc-box">
+    <div class="weight-rows">
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">온스</span><span class="weight-sym">OZ</span></div>
+        <input class="weight-input" id="wOz" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">액량 온스</span><span class="weight-sym">FL OZ</span></div>
+        <input class="weight-input" id="wFlOz" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">그램</span><span class="weight-sym">G</span></div>
+        <input class="weight-input" id="wG" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">킬로그램</span><span class="weight-sym">KG</span></div>
+        <input class="weight-input" id="wKg" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">밀리리터</span><span class="weight-sym">ML</span></div>
+        <input class="weight-input" id="wMl" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">파운드</span><span class="weight-sym">LB</span></div>
+        <input class="weight-input" id="wLb" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="upc-box-actions" style="margin-top: 16px;">
+      <button class="upc-mini-btn" id="weightClearBtn">지우기</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALCULATOR SCREEN (계산기) -->
+<style>
+  .calc-display {
+    background: var(--bg-elev-2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: right;
+    margin-bottom: 14px;
+    min-height: 64px;
+  }
+  .calc-expr { font-family: var(--mono); font-size: 14px; color: var(--text-dim); min-height: 18px; word-break: break-all; }
+  .calc-result { font-family: var(--mono); font-size: 34px; font-weight: 700; color: var(--text); word-break: break-all; line-height: 1.2; }
+  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .calc-key {
+    padding: 18px 0; font-size: 20px; font-weight: 700;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    background: var(--bg-elev); color: var(--text);
+    cursor: pointer; font-family: var(--mono);
+    transition: transform 0.1s, background 0.15s;
+  }
+  .calc-key:hover { background: var(--bg-elev-2); }
+  .calc-key:active { transform: scale(0.96); }
+  .calc-key.func { color: var(--text-dim); }
+  .calc-key.op { background: var(--accent-soft); color: var(--text); }
+  .calc-key.op.active { background: var(--accent-warm); color: #ffffff; }
+  .calc-key.equal { background: var(--accent); color: #ffffff; }
+  .calc-key.equal:hover { background: #2d2d33; }
+</style>
+<div class="upc-screen" id="calcScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="calcBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">🧮 계산기</h1>
+      <div class="brand-meta">기본 사칙연산 계산기</div>
+    </div>
+  </header>
+
+  <div class="upc-box">
+    <div class="calc-display">
+      <div class="calc-expr" id="calcExpr"></div>
+      <div class="calc-result" id="calcResult">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-key func" data-k="ac">AC</button>
+      <button class="calc-key func" data-k="back">⌫</button>
+      <button class="calc-key func" data-k="pct">%</button>
+      <button class="calc-key op" data-k="div">÷</button>
+
+      <button class="calc-key" data-k="7">7</button>
+      <button class="calc-key" data-k="8">8</button>
+      <button class="calc-key" data-k="9">9</button>
+      <button class="calc-key op" data-k="mul">×</button>
+
+      <button class="calc-key" data-k="4">4</button>
+      <button class="calc-key" data-k="5">5</button>
+      <button class="calc-key" data-k="6">6</button>
+      <button class="calc-key op" data-k="sub">−</button>
+
+      <button class="calc-key" data-k="1">1</button>
+      <button class="calc-key" data-k="2">2</button>
+      <button class="calc-key" data-k="3">3</button>
+      <button class="calc-key op" data-k="add">+</button>
+
+      <button class="calc-key" data-k="sign">±</button>
+      <button class="calc-key" data-k="0">0</button>
+      <button class="calc-key" data-k="dot">.</button>
+      <button class="calc-key equal" data-k="eq">=</button>
+    </div>
   </div>
 </div>
 
@@ -2864,8 +3263,10 @@
     result = lunarToSolar(solarYear - 1, lunarMonth, lunarDay, false);
     if (result && result.year === solarYear) return result;
     // 한 해 후 음력으로 시도
-    result = lunarToSolar(solarYear, lunarMonth, lunarDay, false);
-    return result;
+    result = lunarToSolar(solarYear + 1, lunarMonth, lunarDay, false);
+    if (result && result.year === solarYear) return result;
+    // 셋 다 양력 연도가 안 맞으면, 가장 기본인 해당 연도 변환값을 반환
+    return lunarToSolar(solarYear, lunarMonth, lunarDay, false);
   }
 
   // ========== TOAST ==========
@@ -2918,10 +3319,120 @@
   // 모드 전환 버튼
   $('toSignupBtn').onclick = setSignupMode;
   $('toLoginBtn').onclick = setLoginMode;
+  $('toOdpBtn').onclick = () => enterOdp(); // 확인 화면 없이 바로 메뉴로 입장
 
   // ========== FIREBASE LOGIN ==========
   let currentUser = null;
   let firebaseReady = false;
+
+  // 최종 관리자 계정 / 승인 시스템 상태
+  const ADMIN_EMAIL = 'dreamsoundco@gmail.com';
+  let isAdmin = false;
+  let signingUp = false;
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  // 로그인한 계정이 사용 가능한지 확인 (관리자 / 승인됨만 허용, 미등록·대기·거절·삭제는 차단)
+  async function checkApproval(user) {
+    if ((user.email || '').toLowerCase() === ADMIN_EMAIL) {
+      return { allowed: true, admin: true };
+    }
+    try {
+      const ref = window.firebaseFns.doc(window.firebaseDb, 'registrations', user.uid);
+      const snap = await window.firebaseFns.getDoc(ref);
+      if (!snap.exists()) return { allowed: false, admin: false, status: 'none' }; // 미등록/삭제됨 → 차단
+      const status = snap.data().status;
+      if (status === 'approved') return { allowed: true, admin: false };
+      return { allowed: false, admin: false, status: status || 'pending' };
+    } catch (e) {
+      // 문서 읽기 자체가 실패(네트워크/일시 오류)하면 잠금 방지를 위해 허용
+      return { allowed: true, admin: false };
+    }
+  }
+
+  // 관리자 메뉴: 전체 가입자 목록(상태 포함) 표시 + 승인/거절/삭제
+  const STATUS_LABEL = { pending: '승인 대기', approved: '승인됨', rejected: '거절됨' };
+  const STATUS_ORDER = { pending: 0, rejected: 1, approved: 2 };
+
+  async function refreshAdminPanel() {
+    const panel = $('adminPanel');
+    if (!panel) return;
+    if (!isAdmin) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+    panel.style.display = 'block';
+    try {
+      const snap = await window.firebaseFns.getDocs(
+        window.firebaseFns.collection(window.firebaseDb, 'registrations')
+      );
+      const list = [];
+      snap.forEach(d => {
+        const data = d.data() || {};
+        list.push({ uid: d.id, email: data.email || '(이메일 없음)', status: data.status || 'pending' });
+      });
+      list.sort((a, b) => {
+        const o = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+        return o !== 0 ? o : a.email.localeCompare(b.email);
+      });
+
+      const pendingCount = list.filter(p => p.status === 'pending').length;
+      let html = `<div class="admin-title">가입자 목록 (총 ${list.length}명`
+        + (pendingCount ? ` · 승인 대기 ${pendingCount}명` : '') + `)</div>`;
+
+      if (list.length === 0) {
+        html += '<div class="admin-empty">아직 가입자가 없습니다.</div>';
+      } else {
+        list.forEach(p => {
+          const st = p.status;
+          html += `<div class="admin-row">`
+            + `<span class="admin-info">`
+            + `<span class="admin-email">${escapeHtml(p.email)}</span>`
+            + `<span class="admin-badge ${st}">${STATUS_LABEL[st] || st}</span>`
+            + `</span>`
+            + `<span class="admin-acts">`
+            + (st !== 'approved' ? `<button class="admin-approve" data-uid="${p.uid}">승인</button>` : '')
+            + (st !== 'rejected' ? `<button class="admin-reject" data-uid="${p.uid}">거절</button>` : '')
+            + `<button class="admin-delete" data-uid="${p.uid}" data-email="${escapeHtml(p.email)}">삭제</button>`
+            + `</span></div>`;
+        });
+      }
+      panel.innerHTML = html;
+      panel.querySelectorAll('.admin-approve').forEach(b => b.onclick = () => setRegStatus(b.dataset.uid, 'approved'));
+      panel.querySelectorAll('.admin-reject').forEach(b => b.onclick = () => setRegStatus(b.dataset.uid, 'rejected'));
+      panel.querySelectorAll('.admin-delete').forEach(b => b.onclick = () => deleteReg(b.dataset.uid, b.dataset.email));
+    } catch (e) {
+      panel.innerHTML = '<div class="admin-title">가입자 목록을 불러올 수 없습니다. (Firebase 보안 규칙 설정이 필요합니다)</div>';
+    }
+  }
+
+  async function setRegStatus(uid, status) {
+    try {
+      await window.firebaseFns.setDoc(
+        window.firebaseFns.doc(window.firebaseDb, 'registrations', uid),
+        { status }, { merge: true }
+      );
+      showToast(status === 'approved' ? '승인했습니다' : '거절했습니다', 'success');
+      refreshAdminPanel();
+    } catch (e) {
+      showToast('처리 중 오류가 발생했습니다', 'error');
+    }
+  }
+
+  async function deleteReg(uid, email) {
+    const ok = window.confirm(`'${email}' 가입자를 삭제할까요?\n삭제하면 이 계정은 더 이상 로그인할 수 없습니다.`);
+    if (!ok) return;
+    try {
+      await window.firebaseFns.deleteDoc(
+        window.firebaseFns.doc(window.firebaseDb, 'registrations', uid)
+      );
+      showToast('삭제했습니다', 'success');
+      refreshAdminPanel();
+    } catch (e) {
+      showToast('삭제 중 오류가 발생했습니다', 'error');
+    }
+  }
 
   function getFirebaseErrorMessage(err) {
     const code = err.code || '';
@@ -2950,13 +3461,26 @@
 
     $('signupBtn').disabled = true;
     $('signupBtn').textContent = '계정 만드는 중...';
+    signingUp = true;
     try {
-      await window.firebaseFns.createUserWithEmailAndPassword(window.firebaseAuth, email, pw);
-      // onAuthStateChanged가 자동으로 enterApp 호출
-      showToast('환영합니다!', 'success');
+      const cred = await window.firebaseFns.createUserWithEmailAndPassword(window.firebaseAuth, email, pw);
+      // 가입 신청을 '승인 대기' 상태로 기록
+      try {
+        await window.firebaseFns.setDoc(
+          window.firebaseFns.doc(window.firebaseDb, 'registrations', cred.user.uid),
+          { email: email, status: 'pending', createdAt: Date.now() },
+          { merge: true }
+        );
+      } catch (e) {}
+      // 바로 입장시키지 않고 로그아웃 → 관리자 승인 후 로그인 가능
+      try { await window.firebaseFns.signOut(window.firebaseAuth); } catch (e) {}
+      currentUser = null;
+      setLoginMode();
+      lockErr.textContent = '가입 신청이 접수되었습니다. 관리자 승인 후 로그인할 수 있어요.';
     } catch (err) {
       lockErr.textContent = getFirebaseErrorMessage(err);
     } finally {
+      signingUp = false;
       $('signupBtn').disabled = false;
       $('signupBtn').textContent = '계정 만들기';
     }
@@ -2981,7 +3505,7 @@
     $('loginBtn').textContent = '로그인 중...';
     try {
       await window.firebaseFns.signInWithEmailAndPassword(window.firebaseAuth, email, pw);
-      showToast('환영합니다!', 'success');
+      // 입장 여부(승인 상태)는 onAuthStateChanged에서 판단
     } catch (err) {
       lockErr.textContent = getFirebaseErrorMessage(err);
     } finally {
@@ -2994,15 +3518,30 @@
   function initFirebaseAuth() {
     firebaseReady = true;
     window.firebaseFns.onAuthStateChanged(window.firebaseAuth, async (user) => {
+      if (signingUp) return; // 가입 처리 중에는 자동 입장 방지
       if (user) {
-        // 로그인 성공 (또는 이미 로그인 상태)
+        const res = await checkApproval(user);
+        if (!res.allowed) {
+          // 승인되지 않은 계정 → 로그인 차단
+          try { await window.firebaseFns.signOut(window.firebaseAuth); } catch (e) {}
+          currentUser = null;
+          isAdmin = false;
+          state.mode = null;
+          lockErr.textContent = (res.status === 'pending')
+            ? '관리자 승인 대기 중입니다.'
+            : '승인되지 않은 계정입니다. 관리자에게 문의하세요.';
+          return;
+        }
         currentUser = user;
+        isAdmin = res.admin;
         state.mode = 'cloud';
         await loadFromCloud();
         enterApp();
+        showToast('환영합니다!', 'success');
       } else {
         // 로그아웃 상태
         currentUser = null;
+        isAdmin = false;
       }
     });
   }
@@ -3017,6 +3556,8 @@
   function enterApp() {
     lockScreen.style.display = 'none';
     app.classList.remove('active');
+    $('odpDash').classList.remove('active');
+    menuScreen.classList.remove('odp-only');
     menuScreen.classList.add('active');
     $('loginEmail').value = '';
     $('loginPassword').value = '';
@@ -3024,11 +3565,41 @@
     $('signupPassword').value = '';
     $('signupPasswordConfirm').value = '';
     updateUserInfo();
+    refreshAdminPanel();
+    // 히스토리 기준점 설정: [__base, menu] 상태로 만들어 두면
+    // 메뉴에서 뒤로가기를 눌러도 페이지를 벗어나지 않고 메뉴에 머문다.
+    try {
+      history.replaceState({ shawnScreen: '__base' }, '');
+      history.pushState({ shawnScreen: 'menu' }, '');
+      __currentScreen = 'menu';
+    } catch (e) {}
   }
+
+  // ODP 작업용 입장 (Firebase 없이, 4개 도구를 한 화면 대시보드로)
+  function enterOdp() {
+    state.mode = 'odp';
+    currentUser = null;
+    isAdmin = false;
+    lockScreen.style.display = 'none';
+    app.classList.remove('active');
+    menuScreen.classList.remove('active');
+    $('adminPanel').style.display = 'none';
+    $('odpDash').classList.add('active');
+    if (window.__odpApp) window.__odpApp.init();
+    window.scrollTo(0, 0);
+    try {
+      history.replaceState({ shawnScreen: '__base' }, '');
+      history.pushState({ shawnScreen: 'odp' }, '');
+      __currentScreen = 'odp';
+    } catch (e) {}
+  }
+  $('odpLogoutBtn').onclick = () => lockNow();
 
   function updateUserInfo() {
     const info = $('menuUserInfo');
-    if (state.mode === 'cloud' && currentUser) {
+    if (state.mode === 'odp') {
+      info.textContent = 'ODP 작업용';
+    } else if (state.mode === 'cloud' && currentUser) {
       info.textContent = `${currentUser.email} · 클라우드 동기화`;
     } else {
       info.textContent = '무엇을 하시겠어요?';
@@ -3041,6 +3612,8 @@
     $('bibleScreen').classList.remove('active');
     $('upcScreen').classList.remove('active');
     $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
     $('claudeScreen').classList.remove('active');
     menuScreen.classList.add('active');
     window.scrollTo(0, 0);
@@ -3052,6 +3625,8 @@
     $('bibleScreen').classList.remove('active');
     $('upcScreen').classList.remove('active');
     $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
     $('claudeScreen').classList.remove('active');
     const now = new Date();
     state.viewYear = now.getFullYear();
@@ -3066,6 +3641,8 @@
     app.classList.remove('active');
     $('upcScreen').classList.remove('active');
     $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
     $('claudeScreen').classList.remove('active');
     $('bibleScreen').classList.add('active');
     window.scrollTo(0, 0);
@@ -3080,6 +3657,8 @@
     app.classList.remove('active');
     $('bibleScreen').classList.remove('active');
     $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
     $('claudeScreen').classList.remove('active');
     $('upcScreen').classList.add('active');
     window.scrollTo(0, 0);
@@ -3093,11 +3672,43 @@
     app.classList.remove('active');
     $('bibleScreen').classList.remove('active');
     $('upcScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
     $('claudeScreen').classList.remove('active');
     $('caseScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__caseApp && !window.__caseApp.initialized) {
       window.__caseApp.init();
+    }
+  }
+
+  function showWeight() {
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('weightScreen').classList.add('active');
+    window.scrollTo(0, 0);
+    if (window.__weightApp && !window.__weightApp.initialized) {
+      window.__weightApp.init();
+    }
+  }
+
+  function showCalc() {
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('calcScreen').classList.add('active');
+    window.scrollTo(0, 0);
+    if (window.__calcApp && !window.__calcApp.initialized) {
+      window.__calcApp.init();
     }
   }
 
@@ -3107,6 +3718,8 @@
     $('bibleScreen').classList.remove('active');
     $('upcScreen').classList.remove('active');
     $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
     $('claudeScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__claudeApp && !window.__claudeApp.initialized) {
@@ -3127,33 +3740,23 @@
       else if (target === 'bible') showBible();
       else if (target === 'upc') showUpc();
       else if (target === 'case') showCase();
+      else if (target === 'weight') showWeight();
+      else if (target === 'calc') showCalc();
       else if (target === 'claude') showClaude();
+      else return;
+      pushScreen(target); // 브라우저 뒤로가기로 메뉴에 돌아올 수 있도록 기록
     });
   });
 
-  // TO-DO 화면에서 메뉴로 돌아가기
-  $('backToMenuBtn').onclick = showMenu;
-  // 성경 화면에서 메뉴로 돌아가기
-  $('bibleBackBtn').onclick = () => {
-    $('bibleScreen').classList.remove('active');
-    showMenu();
-  };
-  // UPC 화면에서 메뉴로 돌아가기
-  $('upcBackBtn').onclick = () => {
-    $('upcScreen').classList.remove('active');
-    showMenu();
-  };
-  // 대소문자 화면에서 메뉴로 돌아가기
-  $('caseBackBtn').onclick = () => {
-    $('caseScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    showMenu();
-  };
-  // CLAUDE 지침서 화면에서 메뉴로 돌아가기
-  $('claudeBackBtn').onclick = () => {
-    $('claudeScreen').classList.remove('active');
-    showMenu();
-  };
+  // 화면 안의 "← 메뉴" 버튼들은 브라우저 뒤로가기와 동일하게 동작시킨다.
+  // (popstate 핸들러가 메뉴로 되돌리므로 화면 정리도 거기서 일괄 처리됨)
+  $('backToMenuBtn').onclick = () => history.back();
+  $('bibleBackBtn').onclick = () => history.back();
+  $('upcBackBtn').onclick = () => history.back();
+  $('caseBackBtn').onclick = () => history.back();
+  $('weightBackBtn').onclick = () => history.back();
+  $('calcBackBtn').onclick = () => history.back();
+  $('claudeBackBtn').onclick = () => history.back();
 
   // showMenu에서 bible 화면도 닫기
   const _origShowMenu = showMenu;
@@ -3459,9 +4062,12 @@
     formState.lunar = 'solar';
     formState.color = 'default';
     updateFormUI();
+    const wasOpen = panelBg.classList.contains('show');
     panelBg.classList.add('show');
     setTimeout(() => $('evTitle').focus(), 50);
     renderCalendar();
+    // 패널을 새로 열 때만 히스토리에 기록 → 뒤로가기로 패널만 닫힘
+    if (!wasOpen) pushScreen('panel');
   }
 
   // 카테고리 / 음력 / 색상 UI 업데이트
@@ -3534,12 +4140,13 @@
     renderCalendar();
   }
 
-  $('panelClose').onclick = closeDayPanel;
+  // 닫기 동작은 모두 브라우저 뒤로가기로 통일 (popstate에서 실제로 닫음)
+  $('panelClose').onclick = () => history.back();
   panelBg.addEventListener('click', e => {
-    if (e.target === panelBg) closeDayPanel();
+    if (e.target === panelBg) history.back();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && panelBg.classList.contains('show')) closeDayPanel();
+    if (e.key === 'Escape' && panelBg.classList.contains('show')) history.back();
   });
 
   function renderDayEvents() {
@@ -4118,15 +4725,22 @@
       // 상태 초기화
       state.events = [];
       state.notes = [];
+      state.claudeNotes = [];
       state.isDirty = false;
       state.selectedDate = null;
       state.mode = null;
+      isAdmin = false;
+      $('adminPanel').style.display = 'none';
       panelBg.classList.remove('show');
       app.classList.remove('active');
       menuScreen.classList.remove('active');
+      menuScreen.classList.remove('odp-only');
+      $('odpDash').classList.remove('active');
       $('bibleScreen').classList.remove('active');
       $('upcScreen').classList.remove('active');
       $('caseScreen').classList.remove('active');
+      $('weightScreen').classList.remove('active');
+      $('calcScreen').classList.remove('active');
       $('claudeScreen').classList.remove('active');
       lockScreen.style.display = 'flex';
       setSyncStatus('', '');
@@ -4149,6 +4763,65 @@
       e.preventDefault();
       saveVault();
     }
+  });
+
+  // ========== BROWSER BACK BUTTON (히스토리 연동) ==========
+  // 화면 전환을 브라우저 히스토리와 연결해서, 뒤로가기를 누르면
+  // 페이지를 벗어나지 않고 바로 이전 단계로 돌아가게 한다.
+  //  - 기능 화면(달력/성경/UPC/대소문자/지침서)에서 뒤로가기 → 메뉴
+  //  - 달력 날짜 패널이 열려 있으면 뒤로가기 → 패널만 닫기
+  //  - 메뉴에서 뒤로가기 → 메뉴 유지 (화면이 사라지지 않도록)
+  let __currentScreen = 'menu';
+
+  function pushScreen(name) {
+    __currentScreen = name;
+    try { history.pushState({ shawnScreen: name }, ''); } catch (e) {}
+  }
+
+  function renderScreen(name) {
+    switch (name) {
+      case 'todo':   showTodo();   break;
+      case 'bible':  showBible();  break;
+      case 'upc':    showUpc();    break;
+      case 'case':   showCase();   break;
+      case 'weight': showWeight(); break;
+      case 'calc':   showCalc();   break;
+      case 'claude': showClaude(); break;
+      case 'menu':
+      default:       showMenu();   break;
+    }
+  }
+
+  window.addEventListener('popstate', e => {
+    // 로그인(잠금) 화면 상태에서는 관여하지 않음
+    if (lockScreen.style.display !== 'none') return;
+
+    // ODP 작업용 대시보드는 단일 화면 → 뒤로가기로 벗어나지 않게 유지
+    if (state.mode === 'odp') {
+      try { history.pushState({ shawnScreen: 'odp' }, ''); } catch (err) {}
+      return;
+    }
+
+    // 날짜 패널이 열려 있으면 화면 이동 대신 패널만 닫는다
+    if (panelBg.classList.contains('show')) {
+      closeDayPanel();
+      __currentScreen = 'todo';
+      return;
+    }
+
+    const target = (e.state && e.state.shawnScreen) || '__base';
+
+    // 메뉴 아래(베이스)로 내려가려 하면 메뉴를 다시 쌓아 메뉴에 머문다
+    if (target === '__base') {
+      try { history.pushState({ shawnScreen: 'menu' }, ''); } catch (err) {}
+      renderScreen('menu');
+      __currentScreen = 'menu';
+      return;
+    }
+
+    // 그 외에는 해당 화면을 다시 그린다 (새로 push 하지 않음)
+    renderScreen(target);
+    __currentScreen = target;
   });
 
   // Init
@@ -4737,6 +5410,427 @@ window.__bibleData = {"version":"krv","name":"개역개정","books":[{"n":"창�
   };
 
   window.__caseApp = app;
+})();
+</script>
+
+<script>
+// === WEIGHT CONVERTER (용량 변환: oz · g · kg · lb) ===
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  // 모든 단위를 그램(g) 기준으로 환산 (mL·FL OZ는 물 기준 1 mL = 1 g)
+  const TO_GRAM = {
+    oz: 28.349523125,
+    g: 1,
+    kg: 1000,
+    lb: 453.59237,
+    ml: 1,
+    floz: 29.5735295625
+  };
+  const FIELD = { oz: 'wOz', g: 'wG', kg: 'wKg', lb: 'wLb', ml: 'wMl', floz: 'wFlOz' };
+
+  // 보기 좋게 숫자 포맷 (소수점 2자리로 반올림, 불필요한 0 제거)
+  function fmt(n) {
+    if (!isFinite(n)) return '';
+    if (n === 0) return '0';
+    let rounded = Math.round(n * 100) / 100;
+    let s = String(rounded);
+    if (s.includes('e') || s.includes('E')) {
+      s = rounded.toFixed(2).replace(/\.?0+$/, '');
+    }
+    return s;
+  }
+
+  const app = {
+    initialized: false,
+
+    init() {
+      if (this.initialized) return;
+      this.initialized = true;
+      this.bindEvents();
+    },
+
+    bindEvents() {
+      Object.keys(FIELD).forEach(unit => {
+        $(FIELD[unit]).addEventListener('input', () => this.recompute(unit));
+      });
+      $('weightClearBtn').onclick = () => this.clearAll();
+    },
+
+    // 방금 입력한 단위(source)를 기준으로 나머지 칸을 채운다
+    recompute(source) {
+      const raw = $(FIELD[source]).value.trim();
+      if (raw === '') { this.clearOthers(source); return; }
+
+      const val = parseFloat(raw);
+      if (isNaN(val)) { this.clearOthers(source); return; }
+
+      const grams = val * TO_GRAM[source];
+      Object.keys(FIELD).forEach(unit => {
+        if (unit === source) return;
+        $(FIELD[unit]).value = fmt(grams / TO_GRAM[unit]);
+      });
+    },
+
+    clearOthers(source) {
+      Object.keys(FIELD).forEach(unit => {
+        if (unit !== source) $(FIELD[unit]).value = '';
+      });
+    },
+
+    clearAll() {
+      Object.keys(FIELD).forEach(unit => { $(FIELD[unit]).value = ''; });
+      $(FIELD.oz).focus();
+    }
+  };
+
+  window.__weightApp = app;
+})();
+</script>
+
+<script>
+// === CALCULATOR (계산기) ===
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const OPS = { add: '+', sub: '−', mul: '×', div: '÷' };
+
+  // 부동소수점 오차를 줄이고 보기 좋게 포맷
+  function fmt(n) {
+    if (!isFinite(n)) return '오류';
+    let r = Math.round((n + Number.EPSILON) * 1e10) / 1e10;
+    let s = String(r);
+    // 너무 길면 유효숫자 12자리로 정리
+    if (s.replace('-', '').replace('.', '').length > 14) {
+      s = String(Number(r.toPrecision(12)));
+    }
+    return s;
+  }
+
+  const app = {
+    initialized: false,
+    cur: '0',
+    first: null,
+    op: null,
+    waiting: false,
+
+    init() {
+      if (this.initialized) return;
+      this.initialized = true;
+      const grid = document.querySelector('#calcScreen .calc-grid');
+      grid.addEventListener('click', e => {
+        const btn = e.target.closest('.calc-key');
+        if (!btn) return;
+        this.handle(btn.dataset.k);
+      });
+      document.addEventListener('keydown', e => this.onKey(e));
+      this.render();
+    },
+
+    onKey(e) {
+      if (!$('calcScreen').classList.contains('active')) return;
+      const k = e.key;
+      if (/^[0-9]$/.test(k)) this.handle(k);
+      else if (k === '.') this.handle('dot');
+      else if (k === '+') this.handle('add');
+      else if (k === '-') this.handle('sub');
+      else if (k === '*') this.handle('mul');
+      else if (k === '/') { e.preventDefault(); this.handle('div'); }
+      else if (k === 'Enter' || k === '=') { e.preventDefault(); this.handle('eq'); }
+      else if (k === 'Backspace') this.handle('back');
+      else if (k === 'Escape') this.handle('ac');
+      else if (k === '%') this.handle('pct');
+      else return;
+    },
+
+    handle(k) {
+      // 오류 상태에서 숫자/점/AC 외의 키는 무시
+      if (this.cur === '오류' && !/^[0-9]$/.test(k) && k !== 'ac' && k !== 'dot') {
+        if (k === 'ac') this.clearAll();
+        return;
+      }
+      if (/^[0-9]$/.test(k)) this.inputDigit(k);
+      else if (k === 'dot') this.inputDot();
+      else if (OPS[k]) this.inputOp(k);
+      else if (k === 'eq') this.equals();
+      else if (k === 'ac') this.clearAll();
+      else if (k === 'back') this.backspace();
+      else if (k === 'pct') this.percent();
+      else if (k === 'sign') this.toggleSign();
+      this.render();
+    },
+
+    inputDigit(d) {
+      if (this.cur === '오류') { this.cur = d; this.waiting = false; return; }
+      if (this.waiting) { this.cur = d; this.waiting = false; }
+      else this.cur = (this.cur === '0') ? d : this.cur + d;
+    },
+    inputDot() {
+      if (this.cur === '오류') { this.cur = '0.'; this.waiting = false; return; }
+      if (this.waiting) { this.cur = '0.'; this.waiting = false; return; }
+      if (!this.cur.includes('.')) this.cur += '.';
+    },
+    inputOp(k) {
+      const val = parseFloat(this.cur) || 0;
+      if (this.op && !this.waiting) {
+        const res = this.compute(this.first, val, this.op);
+        this.cur = fmt(res);
+        this.first = isFinite(res) ? res : null;
+      } else {
+        this.first = val;
+      }
+      this.op = k;
+      this.waiting = true;
+    },
+    equals() {
+      if (this.op == null || this.first == null) return;
+      const res = this.compute(this.first, parseFloat(this.cur) || 0, this.op);
+      this.cur = fmt(res);
+      this.first = null;
+      this.op = null;
+      this.waiting = true;
+    },
+    compute(a, b, op) {
+      if (op === 'add') return a + b;
+      if (op === 'sub') return a - b;
+      if (op === 'mul') return a * b;
+      if (op === 'div') return b === 0 ? NaN : a / b;
+      return b;
+    },
+    clearAll() { this.cur = '0'; this.first = null; this.op = null; this.waiting = false; },
+    backspace() {
+      if (this.waiting || this.cur === '오류') return;
+      this.cur = this.cur.length > 1 ? this.cur.slice(0, -1) : '0';
+      if (this.cur === '-') this.cur = '0';
+    },
+    percent() {
+      const v = parseFloat(this.cur);
+      if (isNaN(v)) return;
+      this.cur = fmt(v / 100);
+    },
+    toggleSign() {
+      if (this.cur === '0' || this.cur === '오류') return;
+      this.cur = this.cur.startsWith('-') ? this.cur.slice(1) : '-' + this.cur;
+    },
+
+    render() {
+      $('calcResult').textContent = this.cur;
+      $('calcExpr').textContent = (this.first != null && this.op) ? `${fmt(this.first)} ${OPS[this.op]}` : '';
+      document.querySelectorAll('#calcScreen .calc-key.op').forEach(b => {
+        b.classList.toggle('active', !!(this.op && b.dataset.k === this.op && this.waiting));
+      });
+    }
+  };
+
+  window.__calcApp = app;
+})();
+</script>
+
+<script>
+// === ODP 작업용 대시보드 (4개 도구 통합) ===
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  // ---------- UPC ----------
+  function upcExpandE(u) {
+    const ns=u[0], x1=u[1], x2=u[2], x3=u[3], x4=u[4], x5=u[5], x6=u[6];
+    let man, prod;
+    if (x6==='0'||x6==='1'||x6==='2') { man=x1+x2+x6+'00'; prod='00'+x3+x4+x5; }
+    else if (x6==='3') { man=x1+x2+x3+'00'; prod='000'+x4+x5; }
+    else if (x6==='4') { man=x1+x2+x3+x4+'0'; prod='0000'+x5; }
+    else { man=x1+x2+x3+x4+x5; prod='0000'+x6; }
+    return ns+man+prod;
+  }
+  function upcConvert(raw) {
+    let code='';
+    for (let i=0;i<raw.length;i++){ const c=raw[i]; if(c>='0'&&c<='9') code+=c; }
+    if (code==='') return '';
+    const n=code.length;
+    if (n>=14) return code;
+    switch(n){
+      case 8: return code[0]==='0' ? upcExpandE(code) : code.substring(0,7);
+      case 12: return code.substring(0,11);
+      case 13: return code.substring(0,12);
+      case 10:
+      case 11: { let t=code; if(t[0]==='0') t=t.substring(1); return t.length>1 ? t.substring(0,t.length-1) : t; }
+      default: return code;
+    }
+  }
+
+  // ---------- 용량 ----------
+  const TO_GRAM = { oz:28.349523125, g:1, kg:1000, lb:453.59237, ml:1, floz:29.5735295625 };
+  const WFIELD = { oz:'odWOz', g:'odWG', kg:'odWKg', lb:'odWLb', ml:'odWMl', floz:'odWFloz' };
+  function wfmt(x){ if(!isFinite(x)) return ''; if(x===0) return '0'; let r=Math.round(x*100)/100; let s=String(r); if(s.includes('e')) s=r.toFixed(2).replace(/\.?0+$/,''); return s; }
+
+  // ---------- 계산기 ----------
+  const COPS = { add:'+', sub:'−', mul:'×', div:'÷' };
+  function cfmt(n){ if(!isFinite(n)) return '오류'; if(n===0) return '0'; let r=Math.round((n+Number.EPSILON)*1e10)/1e10; let s=String(r); if(s.replace('-','').replace('.','').length>14) s=String(Number(r.toPrecision(12))); return s; }
+
+  async function copyText(text){
+    if(!text){ window.showToast && window.showToast('복사할 내용이 없습니다','error'); return; }
+    try { await navigator.clipboard.writeText(text); window.showToast && window.showToast('✅ 복사되었습니다!','success'); }
+    catch(e){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); window.showToast && window.showToast('✅ 복사되었습니다!','success'); }
+  }
+
+  const odp = {
+    initialized:false,
+    calc:{ cur:'0', first:null, op:null, waiting:false },
+
+    init(){
+      if(this.initialized) return;
+      this.initialized=true;
+
+      // UPC
+      $('odUpcConvert').onclick = ()=>{
+        const lines=$('odUpcIn').value.split('\n');
+        $('odUpcOut').value = lines.map(l=>upcConvert(l)).join('\n');
+      };
+      $('odUpcCopy').onclick = ()=> copyText($('odUpcOut').value);
+      $('odUpcClear').onclick = ()=>{ $('odUpcIn').value=''; $('odUpcOut').value=''; $('odUpcIn').focus(); };
+
+      // 대소문자
+      $('odCaseUpper').onclick = ()=> $('odCaseOut').value = $('odCaseIn').value.toUpperCase();
+      $('odCaseLower').onclick = ()=> $('odCaseOut').value = $('odCaseIn').value.toLowerCase();
+      $('odCaseTitle').onclick = ()=> $('odCaseOut').value = $('odCaseIn').value.replace(/\b\w/g, c=>c.toUpperCase());
+      $('odCaseCopy').onclick = ()=> copyText($('odCaseOut').value);
+
+      // 용량
+      Object.keys(WFIELD).forEach(unit=>{
+        $(WFIELD[unit]).addEventListener('input', ()=> this.wRecompute(unit));
+      });
+      $('odWClear').onclick = ()=>{ Object.values(WFIELD).forEach(id=>$(id).value=''); $('odWOz').focus(); };
+
+      // 계산기
+      $('odCalcKeys').addEventListener('click', e=>{
+        const b=e.target.closest('.odp-ckey'); if(!b) return; this.cHandle(b.dataset.k);
+      });
+      this.cRender();
+
+      // 메모장 (탭 + 저장)
+      this.memoLoad();
+      $('odMemo').value = this.memoNotes[this.memoActive].body || '';
+      $('odMemo').addEventListener('input', ()=>{ this.memoNotes[this.memoActive].body = $('odMemo').value; this.memoSave(); });
+      $('odMemoAdd').onclick = ()=> this.memoAdd();
+      this.memoRenderTabs();
+    },
+
+    // ---------- 메모장 ----------
+    MEMO_KEY: 'odpMemoTabsV1',
+    memoNotes: [],
+    memoActive: 0,
+
+    memoLoad(){
+      try {
+        const raw = localStorage.getItem(this.MEMO_KEY);
+        if (raw) { const d = JSON.parse(raw); this.memoNotes = d.notes || []; this.memoActive = d.active || 0; }
+      } catch(e) {}
+      if (!Array.isArray(this.memoNotes) || this.memoNotes.length === 0) {
+        this.memoNotes = [{ title: '메모 1', body: '' }];
+        this.memoActive = 0;
+      }
+      if (this.memoActive >= this.memoNotes.length) this.memoActive = 0;
+    },
+    memoSave(){
+      try { localStorage.setItem(this.MEMO_KEY, JSON.stringify({ notes: this.memoNotes, active: this.memoActive })); } catch(e) {}
+    },
+    memoSwitch(i){
+      this.memoActive = i;
+      $('odMemo').value = this.memoNotes[i].body || '';
+      this.memoSave();
+      this.memoRenderTabs();
+    },
+    memoAdd(){
+      this.memoNotes.push({ title: '메모 ' + (this.memoNotes.length + 1), body: '' });
+      this.memoActive = this.memoNotes.length - 1;
+      $('odMemo').value = '';
+      this.memoSave();
+      this.memoRenderTabs();
+      $('odMemo').focus();
+    },
+    memoDelete(i){
+      if (!window.confirm('이 메모를 삭제할까요?')) return;
+      this.memoNotes.splice(i, 1);
+      if (this.memoNotes.length === 0) this.memoNotes.push({ title: '메모 1', body: '' });
+      if (this.memoActive >= this.memoNotes.length) this.memoActive = this.memoNotes.length - 1;
+      $('odMemo').value = this.memoNotes[this.memoActive].body || '';
+      this.memoSave();
+      this.memoRenderTabs();
+    },
+    memoRename(i){
+      const cur = this.memoNotes[i].title || '';
+      const t = window.prompt('메모 이름', cur);
+      if (t === null) return;
+      this.memoNotes[i].title = t.trim() || ('메모 ' + (i + 1));
+      this.memoSave();
+      this.memoRenderTabs();
+    },
+    memoRenderTabs(){
+      const bar = $('odMemoTabs');
+      bar.innerHTML = '';
+      this.memoNotes.forEach((n, i) => {
+        const tab = document.createElement('div');
+        tab.className = 'odp-memo-tab' + (i === this.memoActive ? ' active' : '');
+        const label = document.createElement('span');
+        label.textContent = n.title || ('메모 ' + (i + 1));
+        label.title = '클릭: 전환 · 더블클릭: 이름 변경';
+        label.addEventListener('click', () => this.memoSwitch(i));
+        label.addEventListener('dblclick', () => this.memoRename(i));
+        tab.appendChild(label);
+        const x = document.createElement('span');
+        x.className = 'x';
+        x.textContent = '×';
+        x.addEventListener('click', (e) => { e.stopPropagation(); this.memoDelete(i); });
+        tab.appendChild(x);
+        bar.appendChild(tab);
+      });
+    },
+
+    wRecompute(src){
+      const raw=$(WFIELD[src]).value.trim();
+      if(raw===''){ Object.keys(WFIELD).forEach(u=>{ if(u!==src) $(WFIELD[u]).value=''; }); return; }
+      const val=parseFloat(raw);
+      if(isNaN(val)){ Object.keys(WFIELD).forEach(u=>{ if(u!==src) $(WFIELD[u]).value=''; }); return; }
+      const grams=val*TO_GRAM[src];
+      Object.keys(WFIELD).forEach(u=>{ if(u!==src) $(WFIELD[u]).value = wfmt(grams/TO_GRAM[u]); });
+    },
+
+    cHandle(k){
+      const c=this.calc;
+      if(c.cur==='오류' && !/^[0-9]$/.test(k) && k!=='ac' && k!=='dot') return;
+      if(/^[0-9]$/.test(k)){
+        if(c.cur==='오류'){ c.cur=k; c.waiting=false; }
+        else if(c.waiting){ c.cur=k; c.waiting=false; }
+        else c.cur = (c.cur==='0') ? k : c.cur+k;
+      } else if(k==='dot'){
+        if(c.cur==='오류'||c.waiting){ c.cur='0.'; c.waiting=false; }
+        else if(!c.cur.includes('.')) c.cur+='.';
+      } else if(COPS[k]){
+        const v=parseFloat(c.cur)||0;
+        if(c.op && !c.waiting){ const r=this.cCompute(c.first,v,c.op); c.cur=cfmt(r); c.first=isFinite(r)?r:null; }
+        else c.first=v;
+        c.op=k; c.waiting=true;
+      } else if(k==='eq'){
+        if(c.op!=null && c.first!=null){ const r=this.cCompute(c.first,parseFloat(c.cur)||0,c.op); c.cur=cfmt(r); c.first=null; c.op=null; c.waiting=true; }
+      } else if(k==='ac'){ c.cur='0'; c.first=null; c.op=null; c.waiting=false; }
+      else if(k==='back'){ if(!(c.waiting||c.cur==='오류')){ c.cur=c.cur.length>1?c.cur.slice(0,-1):'0'; if(c.cur==='-') c.cur='0'; } }
+      else if(k==='pct'){ const v=parseFloat(c.cur); if(!isNaN(v)) c.cur=cfmt(v/100); }
+      else if(k==='sign'){ if(c.cur!=='0'&&c.cur!=='오류') c.cur = c.cur.startsWith('-')?c.cur.slice(1):'-'+c.cur; }
+      this.cRender();
+    },
+    cCompute(a,b,op){ if(op==='add')return a+b; if(op==='sub')return a-b; if(op==='mul')return a*b; if(op==='div')return b===0?NaN:a/b; return b; },
+    cRender(){
+      const c=this.calc;
+      $('odCalcRes').textContent = c.cur;
+      $('odCalcExpr').textContent = (c.first!=null && c.op) ? `${cfmt(c.first)} ${COPS[c.op]}` : '';
+      document.querySelectorAll('#odCalcKeys .odp-ckey.op').forEach(b=>{
+        b.classList.toggle('active', !!(c.op && b.dataset.k===c.op && c.waiting));
+      });
+    }
+  };
+
+  window.__odpApp = odp;
 })();
 </script>
 
