@@ -2575,9 +2575,21 @@
   .plu-content-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
 
   /* PLU 목록 화면 */
-  .plu-list-head { margin-bottom: 12px; }
+  .plu-list-head { margin-bottom: 10px; }
   .plu-list-head .plu-content-crumb { margin-bottom: 0; }
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+
+  /* CATE(KOR) 빠른 검색 탭 (가로 스크롤) */
+  .plu-cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+  .plu-cat-tabs:empty { display: none; }
+  .plu-cat-chip {
+    flex: 0 0 auto; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
+    border-radius: 18px; padding: 6px 13px; font-family: var(--mono); font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap; transition: background .12s, border-color .12s, color .12s;
+  }
+  .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
+  .plu-cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+
   .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
   .plu-search {
     flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
@@ -2602,6 +2614,7 @@
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
   .plu-c-no { font-family: var(--code); font-weight: 700; color: var(--accent-warm); white-space: nowrap; }
+  .plu-c-code { font-family: var(--code); color: var(--text-dim); white-space: nowrap; }
   .plu-c-eng { color: var(--text-dim); }
   .plu-c-cat { color: var(--text-dim); font-size: 13px; white-space: nowrap; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
@@ -2615,9 +2628,11 @@
 
   @media (max-width: 600px) {
     .plu-table { font-size: 13px; }
-    .plu-table thead th, .plu-table tbody td { padding: 9px 10px; }
-    .plu-c-eng { display: none; }
-    .plu-table thead th:nth-child(3) { display: none; }
+    .plu-table thead th, .plu-table tbody td { padding: 9px 8px; }
+    /* 좁은 화면: 영문명(5)·분류(6) 숨겨 PLU·로컬·유기농·한글명만 표시 */
+    .plu-c-eng, .plu-c-cat,
+    .plu-table thead th:nth-child(5),
+    .plu-table thead th:nth-child(6) { display: none; }
     .plu-table-wrap { max-height: calc(100vh - 300px); }
   }
 
@@ -3883,15 +3898,16 @@
     renderPluContent();
   }
 
-  // (big,sub) → CSV 필터. 현재는 청과의 야채/과일만 데이터 연결.
+  // (big,sub) → CSV 필터. PLU 번호 범위 기준(1000~1999 야채, 2000~2999 과일)
   function pluCsvFilterFor(bigLabel, subLabel) {
-    if (bigLabel === '청과' && subLabel === '야채') return { prefix: '4-10' };
-    if (bigLabel === '청과' && subLabel === '과일') return { prefix: '4-20' };
+    if (bigLabel === '청과' && subLabel === '야채') return { min: 1000, max: 1999 };
+    if (bigLabel === '청과' && subLabel === '과일') return { min: 2000, max: 2999 };
     return null;
   }
 
   let pluSearchTerm = '';
   let pluHideReserve = false;
+  let pluCatFilter = '';   // 선택된 CATE(KOR), ''이면 전체
 
   function renderPluContent() {
     const big = PLU_TABS[pluBig];
@@ -4008,15 +4024,25 @@
   }
 
   function buildPluListUI(el, crumb, filter) {
-    const all = (pluData || []).filter(r => r.cateNo.startsWith(filter.prefix));
+    const all = (pluData || []).filter(r => {
+      const n = parseInt(r.plu, 10);
+      return !isNaN(n) && n >= filter.min && n <= filter.max;
+    });
     pluSearchTerm = '';
     pluHideReserve = false;
+    pluCatFilter = '';
+
+    // CATE(KOR) 고유 목록 (등장 순서 유지)
+    const cats = [];
+    const seen = {};
+    all.forEach(r => { if (r.cateKor && !seen[r.cateKor]) { seen[r.cateKor] = 1; cats.push(r.cateKor); } });
 
     el.className = 'plu-list';
     el.innerHTML =
       '<div class="plu-list-head">' +
         '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
       '</div>' +
+      '<div class="plu-cat-tabs" id="pluCatTabs"></div>' +
       '<div class="plu-list-bar">' +
         '<input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">' +
         '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"> 빈 슬롯(RESERVE) 숨기기</label>' +
@@ -4024,18 +4050,40 @@
       '</div>' +
       '<div class="plu-table-wrap">' +
         '<table class="plu-table">' +
-          '<thead><tr><th>PLU</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>' +
+          '<thead><tr>' +
+            '<th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th>' +
+          '</tr></thead>' +
           '<tbody id="pluTbody"></tbody>' +
         '</table>' +
       '</div>';
 
+    // 분류 빠른탭 렌더 ('전체' + 각 CATE(KOR))
+    const catBar = $('pluCatTabs');
+    const makeChip = (label, value) => {
+      const b = document.createElement('button');
+      b.className = 'plu-cat-chip' + (pluCatFilter === value ? ' active' : '');
+      b.textContent = label;
+      b.onclick = () => {
+        pluCatFilter = value;
+        catBar.querySelectorAll('.plu-cat-chip').forEach(c => c.classList.remove('active'));
+        b.classList.add('active');
+        render();
+      };
+      return b;
+    };
+    catBar.appendChild(makeChip('전체', ''));
+    cats.forEach(c => catBar.appendChild(makeChip(c, c)));
+
     const render = () => {
       const term = pluSearchTerm.toLowerCase();
       let rows = all;
+      if (pluCatFilter) rows = rows.filter(r => r.cateKor === pluCatFilter);
       if (pluHideReserve) rows = rows.filter(r => !/RESERVE/i.test(r.eng));
       if (term) {
         rows = rows.filter(r =>
           r.plu.toLowerCase().includes(term) ||
+          r.localPlu.toLowerCase().includes(term) ||
+          r.organic.toLowerCase().includes(term) ||
           r.kor.toLowerCase().includes(term) ||
           r.eng.toLowerCase().includes(term) ||
           r.cateKor.toLowerCase().includes(term)
@@ -4045,11 +4093,13 @@
       $('pluTbody').innerHTML = rows.map(r =>
         '<tr>' +
           '<td class="plu-c-no">' + escapeHtml(r.plu) + '</td>' +
+          '<td class="plu-c-code">' + escapeHtml(r.localPlu) + '</td>' +
+          '<td class="plu-c-code">' + escapeHtml(r.organic) + '</td>' +
           '<td>' + escapeHtml(r.kor) + '</td>' +
           '<td class="plu-c-eng">' + escapeHtml(r.eng) + '</td>' +
           '<td class="plu-c-cat">' + escapeHtml(r.cateKor) + '</td>' +
         '</tr>'
-      ).join('') || '<tr><td colspan="4" class="plu-no-result">검색 결과가 없습니다</td></tr>';
+      ).join('') || '<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>';
     };
 
     $('pluSearch').addEventListener('input', e => { pluSearchTerm = e.target.value; render(); });
