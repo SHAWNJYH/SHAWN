@@ -2613,11 +2613,13 @@
   .plu-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
-  .plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
-  .plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
-  .plu-c-organic { font-family: var(--code); font-weight: 700; color: #15803d; white-space: nowrap; }
-  .plu-c-eng { color: var(--text-dim); }
-  .plu-c-cat { color: var(--text-dim); font-size: 13px; }
+  .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
+  .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
+  .plu-table tbody td.plu-c-organic { font-family: var(--code); font-weight: 700; color: #15803d; white-space: nowrap; }
+  .plu-table tbody td.plu-c-eng { color: var(--text-dim); }
+  .plu-table tbody td.plu-c-cat { color: var(--text-dim); font-size: 13px; }
+  /* RESERVE 행: 전체 회색 */
+  .plu-table tbody tr.plu-row-reserve td { color: #a8a8ae; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
 
   .plu-upload-btn {
@@ -4092,7 +4094,7 @@
       }
       $('pluCount').textContent = rows.length + '개 / 전체 ' + all.length + '개';
       $('pluTbody').innerHTML = rows.map(r =>
-        '<tr>' +
+        '<tr class="' + (/RESERVE/i.test(r.eng) ? 'plu-row-reserve' : '') + '">' +
           '<td class="plu-c-no">' + escapeHtml(r.plu) + '</td>' +
           '<td class="plu-c-local">' + escapeHtml(r.localPlu) + '</td>' +
           '<td class="plu-c-organic">' + escapeHtml(r.organic) + '</td>' +
