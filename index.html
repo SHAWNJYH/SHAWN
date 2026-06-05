@@ -2546,6 +2546,34 @@
   .egmm-placeholder-title { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
   .egmm-placeholder-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
 
+  /* PLU 보기 탭 */
+  .plu-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .plu-tab {
+    border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
+    border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 15px;
+    font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+  }
+  .plu-tab:hover { border-color: var(--border-bright); color: var(--text); }
+  .plu-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .plu-subtabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+  .plu-subtabs:empty { display: none; }
+  .plu-subtab {
+    border: 1.5px solid var(--border); background: var(--bg); color: var(--text-dim);
+    border-radius: 20px; padding: 7px 14px; font-family: var(--mono); font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
+  }
+  .plu-subtab:hover { border-color: var(--accent-warm); color: var(--text); }
+  .plu-subtab.active { background: var(--accent-soft); border-color: var(--accent-warm); color: var(--text); font-weight: 700; }
+
+  .plu-content {
+    background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 44px 24px; text-align: center; min-height: 200px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .plu-content-crumb { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .plu-content-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
   @media (max-width: 760px) {
     .egmm-sub-screen { padding: 16px 12px 40px; }
   }
@@ -2584,11 +2612,13 @@
       <button class="egmm-sub-back" id="pluBackBtn">← EGMM</button>
       <h1>🔎 PLU 보기</h1>
     </div>
-    <div class="egmm-placeholder">
-      <div class="egmm-placeholder-ico">🔎</div>
-      <div class="egmm-placeholder-title">PLU 보기</div>
-      <div class="egmm-placeholder-text">화면 준비가 끝났습니다.<br>여기에 표시할 PLU 내용·데이터·기능을 알려주시면 채워 드릴게요.</div>
-    </div>
+
+    <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) -->
+    <div class="plu-tabs" id="pluBigTabs"></div>
+    <!-- 작은 탭 (선택한 큰 탭에 따라 바뀜) -->
+    <div class="plu-subtabs" id="pluSubTabs"></div>
+    <!-- 내용 영역 -->
+    <div class="plu-content" id="pluContent"></div>
   </div>
 </div>
 
@@ -3764,8 +3794,55 @@
     state.mode = 'plu';
     hideEgmmAll();
     $('pluScreen').classList.add('active');
+    renderPluTabs();
     window.scrollTo(0, 0);
     setEgmmHistory('plu');
+  }
+
+  // ===== PLU 보기 탭 구성 =====
+  const PLU_TABS = [
+    { label: '청과',       subs: ['야채', '과일', '로컬', '박스', '글로벌', '유기농'] },
+    { label: '델리',       subs: [] },
+    { label: '수산',       subs: ['수산원육'] },
+    { label: '정육',       subs: ['정육원육'] },
+    { label: '하우스웨어', subs: ['주방용품', '전자제품', '기타'] }
+  ];
+  let pluBig = 0, pluSub = 0;
+
+  function renderPluTabs() {
+    const bar = $('pluBigTabs');
+    bar.innerHTML = '';
+    PLU_TABS.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.className = 'plu-tab' + (i === pluBig ? ' active' : '');
+      b.textContent = t.label;
+      b.onclick = () => { pluBig = i; pluSub = 0; renderPluTabs(); };
+      bar.appendChild(b);
+    });
+    renderPluSubTabs();
+  }
+
+  function renderPluSubTabs() {
+    const bar = $('pluSubTabs');
+    bar.innerHTML = '';
+    const subs = PLU_TABS[pluBig].subs || [];
+    subs.forEach((s, i) => {
+      const b = document.createElement('button');
+      b.className = 'plu-subtab' + (i === pluSub ? ' active' : '');
+      b.textContent = s;
+      b.onclick = () => { pluSub = i; renderPluSubTabs(); };
+      bar.appendChild(b);
+    });
+    renderPluContent();
+  }
+
+  function renderPluContent() {
+    const big = PLU_TABS[pluBig];
+    const subs = big.subs || [];
+    const crumb = subs.length ? (big.label + ' › ' + subs[pluSub]) : big.label;
+    $('pluContent').innerHTML =
+      '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
+      '<div class="plu-content-text">여기에 표시할 PLU 목록·코드를 알려주시면 채워 드릴게요.</div>';
   }
 
   // EGMM 메뉴 → ITEM CODE 보기
