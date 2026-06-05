@@ -2548,6 +2548,15 @@
 
   /* PLU 보기 탭 */
   .plu-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+  /* 큰 탭(왼쪽) + 검색창(오른쪽) 한 줄 */
+  .plu-bigbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .plu-bigbar .plu-tabs { flex: 1 1 auto; margin-bottom: 0; }
+  .plu-bigbar .plu-search { flex: 0 0 250px; max-width: 42%; margin-bottom: 0; }
+  @media (max-width: 700px) {
+    .plu-bigbar { flex-wrap: wrap; }
+    .plu-bigbar .plu-search { flex: 1 1 100%; max-width: 100%; }
+  }
   .plu-tab {
     border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
     border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 15px;
@@ -2579,13 +2588,14 @@
   .plu-list-head .plu-content-crumb { margin-bottom: 0; }
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
-  /* CATE(KOR) 빠른 검색 탭 (전체를 줄바꿈으로 표시) */
-  .plu-cat-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  /* CATE(KOR) 빠른 검색 탭 (균일 크기 격자로 가지런히) */
+  .plu-cat-tabs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-bottom: 14px; }
   .plu-cat-tabs:empty { display: none; }
   .plu-cat-chip {
-    flex: 0 0 auto; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 18px; padding: 6px 13px; font-family: var(--mono); font-size: 13px; font-weight: 600;
-    cursor: pointer; white-space: nowrap; transition: background .12s, border-color .12s, color .12s;
+    width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
+    border-radius: 18px; padding: 7px 8px; font-family: var(--mono); font-size: 13px; font-weight: 600;
+    cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background .12s, border-color .12s, color .12s;
   }
   .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
   .plu-cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
@@ -2678,8 +2688,11 @@
       <h1>🔎 PLU 보기</h1>
     </div>
 
-    <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) -->
-    <div class="plu-tabs" id="pluBigTabs"></div>
+    <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) + 검색창(오른쪽) -->
+    <div class="plu-bigbar">
+      <div class="plu-tabs" id="pluBigTabs"></div>
+      <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off" style="display:none;">
+    </div>
     <!-- 작은 탭 (선택한 큰 탭에 따라 바뀜) -->
     <div class="plu-subtabs" id="pluSubTabs"></div>
     <!-- 내용 영역 -->
@@ -3918,6 +3931,10 @@
     const subLabel = subs.length ? subs[pluSub] : '';
     const filter = pluCsvFilterFor(big.label, subLabel);
 
+    // 검색창은 CSV 목록이 표시될 때만 보이게 (그 외엔 숨김)
+    const searchEl = $('pluSearch');
+    if (searchEl) searchEl.style.display = 'none';
+
     if (filter) {
       renderPluList(big.label, subLabel, filter);
       return;
@@ -4047,7 +4064,6 @@
       '</div>' +
       '<div class="plu-cat-tabs" id="pluCatTabs"></div>' +
       '<div class="plu-list-bar">' +
-        '<input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">' +
         '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"> 빈 슬롯(RESERVE) 숨기기</label>' +
         '<span class="plu-count" id="pluCount"></span>' +
       '</div>' +
@@ -4105,7 +4121,13 @@
       ).join('') || '<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>';
     };
 
-    $('pluSearch').addEventListener('input', e => { pluSearchTerm = e.target.value; render(); });
+    // 헤더(큰 탭 오른쪽) 검색창과 연결 — 표시·초기화 후 oninput으로 바인딩(중복 방지)
+    const searchEl = $('pluSearch');
+    if (searchEl) {
+      searchEl.style.display = '';
+      searchEl.value = '';
+      searchEl.oninput = e => { pluSearchTerm = e.target.value; render(); };
+    }
     $('pluHideRes').addEventListener('change', e => { pluHideReserve = e.target.checked; render(); });
     render();
   }
