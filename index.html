@@ -2579,8 +2579,8 @@
   .plu-list-head .plu-content-crumb { margin-bottom: 0; }
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
-  /* CATE(KOR) 빠른 검색 탭 (가로 스크롤) */
-  .plu-cat-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+  /* CATE(KOR) 빠른 검색 탭 (전체를 줄바꿈으로 표시) */
+  .plu-cat-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   .plu-cat-tabs:empty { display: none; }
   .plu-cat-chip {
     flex: 0 0 auto; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
@@ -2613,10 +2613,11 @@
   .plu-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
-  .plu-c-no { font-family: var(--code); font-weight: 700; color: var(--accent-warm); white-space: nowrap; }
-  .plu-c-code { font-family: var(--code); color: var(--text-dim); white-space: nowrap; }
+  .plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
+  .plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
+  .plu-c-organic { font-family: var(--code); font-weight: 700; color: #15803d; white-space: nowrap; }
   .plu-c-eng { color: var(--text-dim); }
-  .plu-c-cat { color: var(--text-dim); font-size: 13px; white-space: nowrap; }
+  .plu-c-cat { color: var(--text-dim); font-size: 13px; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
 
   .plu-upload-btn {
@@ -4093,11 +4094,11 @@
       $('pluTbody').innerHTML = rows.map(r =>
         '<tr>' +
           '<td class="plu-c-no">' + escapeHtml(r.plu) + '</td>' +
-          '<td class="plu-c-code">' + escapeHtml(r.localPlu) + '</td>' +
-          '<td class="plu-c-code">' + escapeHtml(r.organic) + '</td>' +
+          '<td class="plu-c-local">' + escapeHtml(r.localPlu) + '</td>' +
+          '<td class="plu-c-organic">' + escapeHtml(r.organic) + '</td>' +
           '<td>' + escapeHtml(r.kor) + '</td>' +
           '<td class="plu-c-eng">' + escapeHtml(r.eng) + '</td>' +
-          '<td class="plu-c-cat">' + escapeHtml(r.cateKor) + '</td>' +
+          '<td class="plu-c-cat">' + escapeHtml(r.cateEng ? (r.cateKor + ' (' + r.cateEng + ')') : r.cateKor) + '</td>' +
         '</tr>'
       ).join('') || '<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>';
     };
