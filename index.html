@@ -2319,7 +2319,7 @@
         <button class="btn btn-half" id="loginBtn">들어가기</button>
         <button class="btn btn-half btn-half-light" id="toSignupBtn">사용하기</button>
       </div>
-      <button class="btn" id="toOdpBtn" style="margin-top: 8px;">ODP 작업용</button>
+      <button class="btn" id="toOdpBtn" style="margin-top: 8px;">EGMM</button>
     </div>
 
     <!-- SIGNUP MODE -->
@@ -2488,6 +2488,125 @@
   </div>
 </div>
 
+<!-- ============ EGMM 메뉴 + 하위 화면 (PLU / ITEM CODE) ============ -->
+<style>
+  /* EGMM 영역 공통 */
+  .egmm-screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+  .egmm-screen.active { display: block; }
+
+  /* EGMM 메인 메뉴 (3개 버튼) */
+  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 24px; }
+  #egmmMenu.active { display: flex; }
+  .egmm-card {
+    width: 100%; max-width: 420px; background: var(--bg-elev);
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 40px 28px 28px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
+  }
+  .egmm-title {
+    font-family: var(--serif); font-weight: 700; font-size: 34px; line-height: 1.1;
+    text-align: center; color: var(--text); letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .egmm-sub { text-align: center; font-size: 13px; color: var(--text-dim); margin-bottom: 28px; }
+  .egmm-menu-btn {
+    width: 100%; display: flex; align-items: center; gap: 14px;
+    background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
+    padding: 18px 18px; border-radius: 12px; font-family: var(--mono);
+    font-size: 17px; font-weight: 700; cursor: pointer; margin-bottom: 12px;
+    transition: border-color .15s, background .15s, transform .12s; text-align: left;
+  }
+  .egmm-menu-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
+  .egmm-menu-btn:active { transform: scale(0.985); }
+  .egmm-menu-ico {
+    width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .egmm-menu-arrow { margin-left: auto; color: var(--text-faint); font-size: 20px; font-weight: 700; }
+  .egmm-back-link {
+    display: block; width: 100%; margin-top: 8px; background: transparent; border: none;
+    color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600;
+    cursor: pointer; padding: 10px;
+  }
+  .egmm-back-link:hover { color: var(--text); }
+
+  /* PLU / ITEM CODE 화면 공통 레이아웃 */
+  .egmm-sub-screen { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
+  .egmm-sub-top { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .egmm-sub-top h1 { font-family: var(--serif); font-size: 26px; font-weight: 700; color: var(--text); }
+  .egmm-sub-back {
+    border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
+    border-radius: 9px; padding: 9px 14px; font-weight: 700; font-family: var(--mono);
+    font-size: 13px; cursor: pointer;
+  }
+  .egmm-sub-back:hover { color: var(--text); border-color: var(--border-bright); }
+  .egmm-placeholder {
+    background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 48px 24px; text-align: center;
+  }
+  .egmm-placeholder-ico { font-size: 44px; margin-bottom: 14px; }
+  .egmm-placeholder-title { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .egmm-placeholder-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+  @media (max-width: 760px) {
+    .egmm-sub-screen { padding: 16px 12px 40px; }
+  }
+</style>
+
+<!-- EGMM 메인 메뉴 -->
+<div id="egmmMenu">
+  <div class="egmm-card">
+    <h1 class="egmm-title">EGMM</h1>
+    <div class="egmm-sub">메뉴를 선택하세요</div>
+
+    <button class="egmm-menu-btn" id="egmmToOdpBtn">
+      <span class="egmm-menu-ico" style="background:#e1f0ff;">🧰</span>
+      <span>ODP 작업</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmToPluBtn">
+      <span class="egmm-menu-ico" style="background:#d9f5ec;">🔎</span>
+      <span>PLU 보기</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmToItemBtn">
+      <span class="egmm-menu-ico" style="background:#fff3d6;">📦</span>
+      <span>ITEM CODE 보기</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+
+    <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
+  </div>
+</div>
+
+<!-- PLU 보기 화면 -->
+<div class="egmm-screen" id="pluScreen">
+  <div class="egmm-sub-screen">
+    <div class="egmm-sub-top">
+      <button class="egmm-sub-back" id="pluBackBtn">← EGMM</button>
+      <h1>🔎 PLU 보기</h1>
+    </div>
+    <div class="egmm-placeholder">
+      <div class="egmm-placeholder-ico">🔎</div>
+      <div class="egmm-placeholder-title">PLU 보기</div>
+      <div class="egmm-placeholder-text">화면 준비가 끝났습니다.<br>여기에 표시할 PLU 내용·데이터·기능을 알려주시면 채워 드릴게요.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ITEM CODE 보기 화면 -->
+<div class="egmm-screen" id="itemCodeScreen">
+  <div class="egmm-sub-screen">
+    <div class="egmm-sub-top">
+      <button class="egmm-sub-back" id="itemBackBtn">← EGMM</button>
+      <h1>📦 ITEM CODE 보기</h1>
+    </div>
+    <div class="egmm-placeholder">
+      <div class="egmm-placeholder-ico">📦</div>
+      <div class="egmm-placeholder-title">ITEM CODE 보기</div>
+      <div class="egmm-placeholder-text">화면 준비가 끝났습니다.<br>여기에 표시할 ITEM CODE 내용·데이터·기능을 알려주시면 채워 드릴게요.</div>
+    </div>
+  </div>
+</div>
+
 <!-- ODP 작업용 대시보드: 4개 도구를 한 화면(2×2)에서 -->
 <style>
   #odpDash { display: none; max-width: 1500px; margin: 0 auto; padding: 22px 20px 28px; min-height: 100vh; position: relative; z-index: 1; }
@@ -2514,12 +2633,12 @@
   .odp-hint { font-size: 12px; color: var(--text-dim); }
 
   /* 용량 변환 미니 */
-  .odp-wgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-  .odp-wrow { display: flex; align-items: center; gap: 8px; }
-  .odp-wlab { min-width: 50px; display: flex; flex-direction: column; }
+  .odp-wgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; }
+  .odp-wrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .odp-wlab { flex: 0 0 auto; width: 56px; display: flex; flex-direction: column; }
   .odp-wname { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.1; }
   .odp-wsym { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
-  .odp-winput { flex: 1; min-width: 0; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 14px; background: var(--bg); color: var(--text); }
+  .odp-winput { flex: 1 1 0; min-width: 0; width: 100%; max-width: 100%; padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 8px; font-family: var(--mono); font-size: 14px; background: var(--bg); color: var(--text); }
   .odp-winput:focus { outline: none; border-color: var(--accent-warm); }
 
   /* 계산기 미니 */
@@ -2567,11 +2686,16 @@
     .odp-memo-ta { min-height: 200px; }
     #odpDash { padding: 16px 12px 28px; }
   }
+
+  /* 아주 좁은 화면: 용량 변환을 1열로 내려 넘침 방지 */
+  @media (max-width: 420px) {
+    .odp-wgrid { grid-template-columns: 1fr; }
+  }
 </style>
 <div id="odpDash">
   <div class="odp-top">
     <h1>ODP 작업용</h1>
-    <button class="odp-btn ghost" id="odpLogoutBtn">로그아웃</button>
+    <button class="odp-btn ghost" id="odpLogoutBtn">← EGMM</button>
   </div>
   <div class="odp-grid">
 
@@ -3319,7 +3443,7 @@
   // 모드 전환 버튼
   $('toSignupBtn').onclick = setSignupMode;
   $('toLoginBtn').onclick = setLoginMode;
-  $('toOdpBtn').onclick = () => enterOdp(); // 확인 화면 없이 바로 메뉴로 입장
+  $('toOdpBtn').onclick = () => enterEgmm(); // EGMM 메뉴 열기
 
   // ========== FIREBASE LOGIN ==========
   let currentUser = null;
@@ -3575,6 +3699,50 @@
     } catch (e) {}
   }
 
+  // ===== EGMM 영역 화면 전환 =====
+  // 모든 EGMM 관련 화면 숨기기
+  function hideEgmmAll() {
+    $('egmmMenu').classList.remove('active');
+    $('odpDash').classList.remove('active');
+    $('pluScreen').classList.remove('active');
+    $('itemCodeScreen').classList.remove('active');
+  }
+
+  function setEgmmHistory(name) {
+    try {
+      history.replaceState({ shawnScreen: '__base' }, '');
+      history.pushState({ shawnScreen: name }, '');
+      __currentScreen = name;
+    } catch (e) {}
+  }
+
+  // 로그인 화면 → EGMM 메뉴
+  function enterEgmm() {
+    state.mode = 'egmm';
+    currentUser = null;
+    isAdmin = false;
+    lockScreen.style.display = 'none';
+    app.classList.remove('active');
+    menuScreen.classList.remove('active');
+    $('adminPanel').style.display = 'none';
+    hideEgmmAll();
+    $('egmmMenu').classList.add('active');
+    window.scrollTo(0, 0);
+    setEgmmHistory('egmm');
+  }
+
+  // EGMM 메뉴 → 처음(로그인) 화면
+  function exitEgmm() {
+    state.mode = null;
+    hideEgmmAll();
+    lockScreen.style.display = 'flex';
+    setLoginMode();
+    try {
+      history.replaceState({ shawnScreen: '__base' }, '');
+      __currentScreen = '__base';
+    } catch (e) {}
+  }
+
   // ODP 작업용 입장 (Firebase 없이, 4개 도구를 한 화면 대시보드로)
   function enterOdp() {
     state.mode = 'odp';
@@ -3584,16 +3752,40 @@
     app.classList.remove('active');
     menuScreen.classList.remove('active');
     $('adminPanel').style.display = 'none';
+    hideEgmmAll();
     $('odpDash').classList.add('active');
     if (window.__odpApp) window.__odpApp.init();
     window.scrollTo(0, 0);
-    try {
-      history.replaceState({ shawnScreen: '__base' }, '');
-      history.pushState({ shawnScreen: 'odp' }, '');
-      __currentScreen = 'odp';
-    } catch (e) {}
+    setEgmmHistory('odp');
   }
-  $('odpLogoutBtn').onclick = () => lockNow();
+
+  // EGMM 메뉴 → PLU 보기
+  function showPlu() {
+    state.mode = 'plu';
+    hideEgmmAll();
+    $('pluScreen').classList.add('active');
+    window.scrollTo(0, 0);
+    setEgmmHistory('plu');
+  }
+
+  // EGMM 메뉴 → ITEM CODE 보기
+  function showItemCode() {
+    state.mode = 'itemcode';
+    hideEgmmAll();
+    $('itemCodeScreen').classList.add('active');
+    window.scrollTo(0, 0);
+    setEgmmHistory('itemcode');
+  }
+
+  // EGMM 메뉴 버튼 연결
+  $('egmmToOdpBtn').onclick = () => enterOdp();
+  $('egmmToPluBtn').onclick = () => showPlu();
+  $('egmmToItemBtn').onclick = () => showItemCode();
+  $('egmmExitBtn').onclick = () => exitEgmm();
+  // ODP / PLU / ITEM CODE → EGMM 메뉴로 돌아가기
+  $('odpLogoutBtn').onclick = () => enterEgmm();
+  $('pluBackBtn').onclick = () => enterEgmm();
+  $('itemBackBtn').onclick = () => enterEgmm();
 
   function updateUserInfo() {
     const info = $('menuUserInfo');
@@ -4736,6 +4928,9 @@
       menuScreen.classList.remove('active');
       menuScreen.classList.remove('odp-only');
       $('odpDash').classList.remove('active');
+      $('egmmMenu').classList.remove('active');
+      $('pluScreen').classList.remove('active');
+      $('itemCodeScreen').classList.remove('active');
       $('bibleScreen').classList.remove('active');
       $('upcScreen').classList.remove('active');
       $('caseScreen').classList.remove('active');
@@ -4796,9 +4991,9 @@
     // 로그인(잠금) 화면 상태에서는 관여하지 않음
     if (lockScreen.style.display !== 'none') return;
 
-    // ODP 작업용 대시보드는 단일 화면 → 뒤로가기로 벗어나지 않게 유지
-    if (state.mode === 'odp') {
-      try { history.pushState({ shawnScreen: 'odp' }, ''); } catch (err) {}
+    // ODP/EGMM 계열 화면은 자체 버튼으로 이동 → 뒤로가기로 페이지를 벗어나지 않게 유지
+    if (state.mode === 'odp' || state.mode === 'egmm' || state.mode === 'plu' || state.mode === 'itemcode') {
+      try { history.pushState({ shawnScreen: state.mode }, ''); } catch (err) {}
       return;
     }
 
