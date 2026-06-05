@@ -2574,6 +2574,53 @@
   .plu-content-crumb { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
   .plu-content-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
 
+  /* PLU 목록 화면 */
+  .plu-list-head { margin-bottom: 12px; }
+  .plu-list-head .plu-content-crumb { margin-bottom: 0; }
+  .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+  .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
+  .plu-search {
+    flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-family: var(--mono); font-size: 15px; background: var(--bg-elev); color: var(--text);
+  }
+  .plu-search:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
+  .plu-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+  .plu-toggle input { width: 16px; height: 16px; cursor: pointer; }
+  .plu-count { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-left: auto; white-space: nowrap; }
+
+  .plu-table-wrap {
+    border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
+    max-height: calc(100vh - 320px); background: var(--bg-elev);
+  }
+  .plu-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .plu-table thead th {
+    position: sticky; top: 0; z-index: 1; background: var(--bg-elev-2); color: var(--text-dim);
+    font-family: var(--mono); font-size: 12px; font-weight: 700; text-align: left;
+    padding: 11px 14px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
+  }
+  .plu-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
+  .plu-table tbody tr:hover { background: var(--accent-soft); }
+  .plu-c-no { font-family: var(--code); font-weight: 700; color: var(--accent-warm); white-space: nowrap; }
+  .plu-c-eng { color: var(--text-dim); }
+  .plu-c-cat { color: var(--text-dim); font-size: 13px; white-space: nowrap; }
+  .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
+
+  .plu-upload-btn {
+    border: 1.5px solid var(--border-bright); background: var(--bg-elev); color: var(--text);
+    border-radius: 10px; padding: 11px 18px; font-family: var(--mono); font-size: 14px;
+    font-weight: 700; cursor: pointer;
+  }
+  .plu-upload-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
+
+  @media (max-width: 600px) {
+    .plu-table { font-size: 13px; }
+    .plu-table thead th, .plu-table tbody td { padding: 9px 10px; }
+    .plu-c-eng { display: none; }
+    .plu-table thead th:nth-child(3) { display: none; }
+    .plu-table-wrap { max-height: calc(100vh - 300px); }
+  }
+
   @media (max-width: 760px) {
     .egmm-sub-screen { padding: 16px 12px 40px; }
   }
@@ -3836,13 +3883,178 @@
     renderPluContent();
   }
 
+  // (big,sub) → CSV 필터. 현재는 청과의 야채/과일만 데이터 연결.
+  function pluCsvFilterFor(bigLabel, subLabel) {
+    if (bigLabel === '청과' && subLabel === '야채') return { prefix: '4-10' };
+    if (bigLabel === '청과' && subLabel === '과일') return { prefix: '4-20' };
+    return null;
+  }
+
+  let pluSearchTerm = '';
+  let pluHideReserve = false;
+
   function renderPluContent() {
     const big = PLU_TABS[pluBig];
     const subs = big.subs || [];
-    const crumb = subs.length ? (big.label + ' › ' + subs[pluSub]) : big.label;
+    const subLabel = subs.length ? subs[pluSub] : '';
+    const filter = pluCsvFilterFor(big.label, subLabel);
+
+    if (filter) {
+      renderPluList(big.label, subLabel, filter);
+      return;
+    }
+
+    const crumb = subLabel ? (big.label + ' › ' + subLabel) : big.label;
+    $('pluContent').className = 'plu-content';
     $('pluContent').innerHTML =
       '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
       '<div class="plu-content-text">여기에 표시할 PLU 목록·코드를 알려주시면 채워 드릴게요.</div>';
+  }
+
+  // ===== PLU CSV 데이터 로딩 =====
+  // GitHub에서 index.html과 같은 폴더에 둔 CSV를 직접 불러온다.
+  // (파일명이 공백/언더스코어 어느 쪽이든 되도록 후보를 차례로 시도)
+  const PLU_CSV_CANDIDATES = [
+    'PLU - PRODUCE.csv', 'PLU_-_PRODUCE.csv', 'PLU-PRODUCE.csv',
+    'PLU - PRODUCE.CSV', 'PLU_-_PRODUCE.CSV'
+  ];
+  let pluData = null;        // 파싱된 전체 행
+  let pluLoadPromise = null; // 중복 로딩 방지
+
+  function parsePluCsv(text) {
+    text = text.replace(/^\uFEFF/, '');               // BOM 제거
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+    lines.shift();                                     // 헤더 제거
+    return lines.map(line => {
+      const c = line.split(',');
+      return {
+        plu: (c[0] || '').trim(),
+        itemCode: (c[1] || '').trim(),
+        eng: (c[2] || '').trim(),
+        kor: (c[3] || '').trim(),
+        origin: (c[4] || '').trim(),
+        cateEng: (c[5] || '').trim(),
+        cateKor: (c[6] || '').trim(),
+        cateNo: (c[7] || '').trim(),
+        localPlu: (c[8] || '').trim(),
+        organic: (c[9] || '').trim()
+      };
+    });
+  }
+
+  function loadPluData() {
+    if (pluData) return Promise.resolve(pluData);
+    if (pluLoadPromise) return pluLoadPromise;
+    pluLoadPromise = (async () => {
+      for (const name of PLU_CSV_CANDIDATES) {
+        try {
+          const res = await fetch(encodeURI(name), { cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            const parsed = parsePluCsv(text);
+            if (parsed.length) { pluData = parsed; return pluData; }
+          }
+        } catch (e) { /* 다음 후보 시도 */ }
+      }
+      pluLoadPromise = null; // 실패 시 다시 시도 가능
+      throw new Error('CSV를 불러오지 못했습니다');
+    })();
+    return pluLoadPromise;
+  }
+
+  // 사용자가 직접 CSV를 선택한 경우(로컬 실행 등 대비)
+  function loadPluFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { pluData = parsePluCsv(reader.result); resolve(pluData); }
+        catch (e) { reject(e); }
+      };
+      reader.onerror = () => reject(new Error('파일을 읽지 못했습니다'));
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  // ===== PLU 목록 화면 =====
+  function renderPluList(bigLabel, subLabel, filter) {
+    const crumb = bigLabel + ' › ' + subLabel;
+    const el = $('pluContent');
+    el.className = 'plu-list';
+    el.innerHTML =
+      '<div class="plu-list-head">' +
+        '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
+        '<div class="plu-list-text">CSV 불러오는 중...</div>' +
+      '</div>';
+
+    loadPluData().then(() => {
+      buildPluListUI(el, crumb, filter);
+    }).catch(() => {
+      el.innerHTML =
+        '<div class="plu-list-head"><div class="plu-content-crumb">' + escapeHtml(crumb) + '</div></div>' +
+        '<div class="plu-empty">' +
+          'CSV를 자동으로 불러오지 못했습니다.<br>' +
+          'index.html과 같은 폴더에 CSV 파일이 있는지 확인하거나, 아래에서 직접 선택하세요.' +
+        '</div>' +
+        '<div class="plu-list-bar"><button class="plu-upload-btn" id="pluPickBtn">📂 CSV 직접 선택</button>' +
+        '<input type="file" id="pluFileInput" accept=".csv,text/csv" style="display:none;"></div>';
+      $('pluPickBtn').onclick = () => $('pluFileInput').click();
+      $('pluFileInput').onchange = (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        loadPluFromFile(f).then(() => buildPluListUI(el, crumb, filter))
+          .catch(() => showToast && showToast('CSV 파싱에 실패했습니다', 'error'));
+      };
+    });
+  }
+
+  function buildPluListUI(el, crumb, filter) {
+    const all = (pluData || []).filter(r => r.cateNo.startsWith(filter.prefix));
+    pluSearchTerm = '';
+    pluHideReserve = false;
+
+    el.className = 'plu-list';
+    el.innerHTML =
+      '<div class="plu-list-head">' +
+        '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
+      '</div>' +
+      '<div class="plu-list-bar">' +
+        '<input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">' +
+        '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"> 빈 슬롯(RESERVE) 숨기기</label>' +
+        '<span class="plu-count" id="pluCount"></span>' +
+      '</div>' +
+      '<div class="plu-table-wrap">' +
+        '<table class="plu-table">' +
+          '<thead><tr><th>PLU</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>' +
+          '<tbody id="pluTbody"></tbody>' +
+        '</table>' +
+      '</div>';
+
+    const render = () => {
+      const term = pluSearchTerm.toLowerCase();
+      let rows = all;
+      if (pluHideReserve) rows = rows.filter(r => !/RESERVE/i.test(r.eng));
+      if (term) {
+        rows = rows.filter(r =>
+          r.plu.toLowerCase().includes(term) ||
+          r.kor.toLowerCase().includes(term) ||
+          r.eng.toLowerCase().includes(term) ||
+          r.cateKor.toLowerCase().includes(term)
+        );
+      }
+      $('pluCount').textContent = rows.length + '개 / 전체 ' + all.length + '개';
+      $('pluTbody').innerHTML = rows.map(r =>
+        '<tr>' +
+          '<td class="plu-c-no">' + escapeHtml(r.plu) + '</td>' +
+          '<td>' + escapeHtml(r.kor) + '</td>' +
+          '<td class="plu-c-eng">' + escapeHtml(r.eng) + '</td>' +
+          '<td class="plu-c-cat">' + escapeHtml(r.cateKor) + '</td>' +
+        '</tr>'
+      ).join('') || '<tr><td colspan="4" class="plu-no-result">검색 결과가 없습니다</td></tr>';
+    };
+
+    $('pluSearch').addEventListener('input', e => { pluSearchTerm = e.target.value; render(); });
+    $('pluHideRes').addEventListener('change', e => { pluHideReserve = e.target.checked; render(); });
+    render();
   }
 
   // EGMM 메뉴 → ITEM CODE 보기
