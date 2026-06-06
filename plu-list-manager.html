@@ -241,6 +241,11 @@
 </script>
 <style>
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
+  .plu-col-ops { display:inline-flex; gap:2px; margin-left:4px; vertical-align:middle; }
+  .plu-col-btn { border:1px solid var(--border); background:var(--bg-elev); color:var(--text-dim); cursor:pointer; font-size:10px; line-height:1; padding:2px 4px; border-radius:5px; }
+  .plu-col-btn:hover { border-color:var(--accent-warm); color:var(--text); }
+  .plu-col-btn.del { color:#b04141; }
+  .plu-col-btn.del:hover { border-color:#b04141; }
   .plu-c-extra { color:var(--text-dim); font-size:13px; }
 </style>
 </head>
@@ -377,7 +382,7 @@
   function totalCols(){ return 6 + curFields().length + (editMode?1:0); }
   function headHTML(){
     var f=curFields();
-    var ex=f.map(function(n){ return '<th>'+escapeHtml(n)+(editMode?' <button class="plu-col-del" data-col="'+escapeHtml(n)+'" title="열 삭제">✕</button>':'')+'</th>'; }).join('');
+    var ex=f.map(function(n){ return '<th class="plu-col-th">'+escapeHtml(n)+(editMode?(' <span class="plu-col-ops"><button class="plu-col-btn" data-move="left" data-col="'+escapeHtml(n)+'" title="왼쪽으로">◀</button><button class="plu-col-btn" data-move="right" data-col="'+escapeHtml(n)+'" title="오른쪽으로">▶</button><button class="plu-col-btn" data-ren="'+escapeHtml(n)+'" title="이름 변경">✎</button><button class="plu-col-btn del" data-col="'+escapeHtml(n)+'" title="열 삭제">✕</button></span>'):'')+'</th>'; }).join('');
     return '<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th>'+ex+(editMode?'<th></th>':'')+'</tr></thead>';
   }
   function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
@@ -494,10 +499,10 @@
     var cat=curCat();
     var el=$('pluContent');
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
-    var imp=$('pluImportBtn'); if(imp) imp.onclick=function(){ if(!ensureUnlocked())return; $('pluImportInput').click(); };
+    var imp=$('pluImportBtn'); if(imp) imp.onclick=function(){ $('pluImportInput').click(); };
     var impIn=$('pluImportInput'); if(impIn) impIn.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) importXlsx(f); e.target.value=''; };
     var ed=$('pluEditBtn'); if(ed) ed.onclick=function(){
-      if(!editMode){ if(!ensureUnlocked())return; enterEdit(); }
+      if(!editMode){ enterEdit(); }
       else { if(leaveEditGuard()) renderContent(); }
     };
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
@@ -510,14 +515,34 @@
     };
     var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveCat(cat, work||[], workFields||[]); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
-    // 열 삭제 버튼
-    if(el){ el.querySelectorAll('.plu-col-del').forEach(function(b){ b.onclick=function(){
-      var n=b.getAttribute('data-col');
-      if(!confirm('["'+n+'"] 열을 삭제할까요? (모든 행에서 그 칸이 사라집니다)')) return;
-      workFields=(workFields||[]).filter(function(x){return x!==n;});
-      (work||[]).forEach(function(r){ if(r.extra) delete r.extra[n]; });
-      markDirty(); renderContent();
-    }; }); }
+    // 열 삭제 / 이름변경 / 이동 버튼
+    if(el){
+      el.querySelectorAll('.plu-col-btn.del').forEach(function(b){ b.onclick=function(){
+        var n=b.getAttribute('data-col');
+        if(!confirm('["'+n+'"] 열을 삭제할까요? (모든 행에서 그 칸이 사라집니다)')) return;
+        workFields=(workFields||[]).filter(function(x){return x!==n;});
+        (work||[]).forEach(function(r){ if(r.extra) delete r.extra[n]; });
+        markDirty(); renderContent();
+      }; });
+      el.querySelectorAll('.plu-col-btn[data-ren]').forEach(function(b){ b.onclick=function(){
+        var old=b.getAttribute('data-ren');
+        var nw=(prompt('열 이름 변경', old)||'').trim();
+        if(!nw || nw===old) return;
+        if((workFields||[]).indexOf(nw)>=0){ showToast('이미 있는 열 이름입니다','error'); return; }
+        var i=(workFields||[]).indexOf(old); if(i<0) return;
+        workFields[i]=nw;
+        (work||[]).forEach(function(r){ if(r.extra && (old in r.extra)){ r.extra[nw]=r.extra[old]; delete r.extra[old]; } });
+        markDirty(); renderContent();
+      }; });
+      el.querySelectorAll('.plu-col-btn[data-move]').forEach(function(b){ b.onclick=function(){
+        var n=b.getAttribute('data-col'), dir=b.getAttribute('data-move');
+        var i=(workFields||[]).indexOf(n); if(i<0) return;
+        var j = dir==='left' ? i-1 : i+1;
+        if(j<0 || j>=workFields.length) return;
+        var tmp=workFields[i]; workFields[i]=workFields[j]; workFields[j]=tmp;
+        markDirty(); renderContent();
+      }; });
+    }
     var tb=$('pluTbody');
     if(tb){
       tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var field=t.getAttribute('data-field'); var ex=t.getAttribute('data-extra'); if(work&&work[idx]){ if(ex!=null){ if(!work[idx].extra) work[idx].extra={}; work[idx].extra[ex]=t.value; } else if(field){ work[idx][field]=t.value; } markDirty(); } });
