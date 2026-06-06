@@ -239,6 +239,9 @@
   window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, collection, getDocs };
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
+<style>
+  .plu-table tbody td.plu-c-extra { color:var(--text-dim); font-size:13px; }
+</style>
 </head>
 <body>
 <div class="page-topbar">
@@ -284,7 +287,7 @@
   function labelOf(docId){ for(var k in DOCID){ if(DOCID[k]===docId) return k; } return docId; }
 
   let pluBig=0, pluSub=0, pluSearchTerm='', pluHideReserve=false, pluCatFilter='';
-  let cloud={}, cloudLoaded=false;
+  let cloud={}, fieldsByCat={}, cloudLoaded=false;
   let pluRender=null, visibleCache=[];
 
   function curCat(){ return PLU_TABS[pluBig].label; }
@@ -323,9 +326,9 @@
     if(!window.firebaseFns){ return; }   // Firebase 아직 준비 안 됨 → 다음 기회에 재시도(cloudLoaded 유지 false)
     try{
       var snap=await fns().getDocs(fns().collection(db(), COL));
-      cloud={};
-      snap.forEach(function(ds){ var d=ds.data()||{}; cloud[labelOf(ds.id)]=Array.isArray(d.rows)?d.rows:[]; });
-    }catch(e){ cloud={}; }
+      cloud={}; fieldsByCat={};
+      snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; fieldsByCat[lab]=Array.isArray(d.fields)?d.fields:[]; });
+    }catch(e){ cloud={}; fieldsByCat={}; }
     cloudLoaded=true;
     if(cloud['청과']===undefined){ try{ await loadCsv(); }catch(e){} }
   }
@@ -348,9 +351,29 @@
   }
 
   // ===== 표 =====
+  function curFields(){ return fieldsByCat[curCat()]||[]; }
+  function headHTML(){
+    var f=curFields();
+    var ex=f.map(function(n){ return '<th>'+escapeHtml(n)+'</th>'; }).join('');
+    return '<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th>'+ex+'</tr></thead>';
+  }
   const HEAD='<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>';
   function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
   function rowsHTML(rows){
+    var f=curFields();
+    return rows.map(function(r){
+      var ex=f.map(function(n){ return '<td class="plu-c-extra">'+escapeHtml((r.extra&&r.extra[n])||'')+'</td>'; }).join('');
+      return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+
+        '<td class="plu-c-no">'+escapeHtml(r.plu)+'</td>'+
+        '<td class="plu-c-local">'+escapeHtml(r.local)+'</td>'+
+        '<td class="plu-c-organic">'+escapeHtml(r.organic)+'</td>'+
+        '<td>'+escapeHtml(r.kor)+'</td>'+
+        '<td class="plu-c-eng">'+escapeHtml(r.eng)+'</td>'+
+        '<td class="plu-c-cat">'+escapeHtml(r.cate)+'</td>'+ex+
+      '</tr>';
+    }).join('') || '<tr><td colspan="'+(6+f.length)+'" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
+  }
+  function rowsBaseHTML(rows){
     return rows.map(function(r){
       return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+
         '<td class="plu-c-no">'+escapeHtml(r.plu)+'</td>'+
@@ -360,7 +383,7 @@
         '<td class="plu-c-eng">'+escapeHtml(r.eng)+'</td>'+
         '<td class="plu-c-cat">'+escapeHtml(r.cate)+'</td>'+
       '</tr>';
-    }).join('') || '<tr><td colspan="6" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>';
   }
   function korLabel(cate){ var i=cate.indexOf(' ('); return i>0 ? cate.slice(0,i) : cate; }
 
@@ -376,7 +399,7 @@
         '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
         '<span class="plu-count" id="pluCount"></span>'+
       '</div>'+
-      '<div class="plu-table-wrap"><table class="plu-table">'+HEAD+'<tbody id="pluTbody"></tbody></table></div>';
+      '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>';
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
 
@@ -430,8 +453,9 @@
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     var rows=visibleCache||[];
     if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
-    var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']];
-    rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); });
+    var f=curFields();
+    var aoa=[['PLU','로컬','유기농','한글명','영문명','분류'].concat(f)];
+    rows.forEach(function(r){ var base=[r.plu,r.local,r.organic,r.kor,r.eng,r.cate]; f.forEach(function(n){ base.push((r.extra&&r.extra[n])||''); }); aoa.push(base); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,curCat().substring(0,28));
     var sub=curSub(); var fname='PLU_'+curCat()+(sub?'_'+sub:'')+'.xlsx';
@@ -452,7 +476,7 @@
           '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
           '<span class="plu-count">'+rows.length+'개</span>'+
         '</div>'+
-        '<div class="plu-table-wrap"><table class="plu-table">'+HEAD+'<tbody>'+rowsHTML(rows)+'</tbody></table></div>';
+        '<div class="plu-table-wrap"><table class="plu-table">'+HEAD+'<tbody>'+rowsBaseHTML(rows)+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };
