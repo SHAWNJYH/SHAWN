@@ -34,6 +34,7 @@
     min-height: 100vh;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
+    text-transform: uppercase;
   }
 
   body::before {
@@ -91,9 +92,9 @@
   }
 
   .plu-quiz-card {
-    position: relative; width: 100%; max-width: 600px;
+    position: relative; width: 100%; max-width: 760px;
     background: rgba(255,255,255,0.55); border: 1.5px solid rgba(255,255,255,0.75);
-    border-radius: 20px; padding: 34px 28px 30px;
+    border-radius: 22px; padding: 38px 34px 32px;
     box-shadow: 0 24px 64px rgba(26,26,29,0.18);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   }
@@ -103,7 +104,7 @@
   }
   .plu-quiz-close:hover { color: var(--text); }
   .plu-quiz-title { font-family: var(--serif); font-size: 26px; font-weight: 700; text-align: center; color: var(--text); margin-bottom: 22px; }
-  .plu-quiz-modes { display: flex; flex-direction: column; gap: 12px; }
+  .plu-quiz-modes { display: flex; flex-direction: column; gap: 12px; max-width: 440px; margin: 0 auto; }
   .plu-quiz-mode {
     border: 1.5px solid var(--border); background: rgba(255,255,255,0.7); color: var(--text);
     border-radius: 12px; padding: 16px; font-family: var(--mono); font-size: 16px; font-weight: 700; cursor: pointer;
@@ -112,48 +113,74 @@
   .plu-quiz-mode:hover { border-color: var(--accent-warm); }
   .plu-quiz-mode.active { border-color: var(--accent-warm); background: var(--accent-soft); }
 
-  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 13px; }
+  /* 선택 화면: 이름 입력 */
+  .plu-quiz-name-input {
+    display: block; width: 100%; max-width: 440px; margin: 0 auto 16px; text-align: center;
+    padding: 14px; border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: var(--mono); font-size: 17px; font-weight: 700; letter-spacing: 1px;
+    background: rgba(255,255,255,0.85); color: var(--text); text-transform: uppercase;
+  }
+  .plu-quiz-name-input:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
+  .plu-quiz-name-input::placeholder { color: var(--text-faint); font-weight: 600; }
+
+  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; font-size: 14px; }
   .plu-quiz-cat { font-weight: 700; color: var(--accent-warm); }
-  .plu-quiz-score { color: var(--text-dim); font-family: var(--code); }
+  .plu-quiz-player { color: var(--text); font-weight: 700; font-family: var(--code); }
 
   /* 2단: 문제(왼쪽) + 사진(오른쪽) */
-  .plu-quiz-body { display: flex; gap: 18px; align-items: stretch; }
+  .plu-quiz-body { display: flex; gap: 22px; align-items: stretch; }
   .plu-quiz-main { flex: 1 1 auto; min-width: 0; }
   .plu-quiz-photo {
-    flex: 0 0 190px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+    flex: 0 0 240px; align-self: stretch; display: flex; align-items: center; justify-content: center;
     border: 1.5px dashed var(--border); border-radius: 14px; background: rgba(255,255,255,0.5);
-    overflow: hidden; min-height: 200px;
+    overflow: hidden; min-height: 260px;
   }
   .plu-quiz-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .plu-quiz-photo .ph { color: var(--text-faint); font-size: 13px; text-align: center; line-height: 1.6; padding: 12px; }
 
   .plu-quiz-name {
-    font-family: var(--serif); font-size: 30px; font-weight: 700; text-align: center; color: var(--text);
-    padding: 10px 4px 4px; word-break: break-word; line-height: 1.2; min-height: 40px;
+    font-family: var(--serif); font-size: 38px; font-weight: 700; text-align: center; color: var(--text);
+    padding: 14px 4px 6px; word-break: break-word; line-height: 1.2; min-height: 52px;
   }
   .plu-quiz-kor { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 16px; min-height: 18px; }
   .plu-quiz-input {
-    width: 100%; text-align: center; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px;
-    font-family: var(--code); font-size: 22px; font-weight: 700; background: rgba(255,255,255,0.85); color: var(--text);
+    width: 100%; text-align: center; padding: 17px; border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: var(--code); font-size: 27px; font-weight: 700; background: rgba(255,255,255,0.85); color: var(--text);
   }
   .plu-quiz-input:focus { outline: none; border-color: var(--accent-warm); }
-  .plu-quiz-feedback { min-height: 26px; text-align: center; font-size: 17px; font-weight: 700; margin: 12px 0 6px; }
+  .plu-quiz-feedback { min-height: 30px; text-align: center; font-size: 19px; font-weight: 700; margin: 14px 0 8px; }
   .plu-quiz-feedback.ok { color: var(--success); }
   .plu-quiz-feedback.no { color: var(--danger); }
   .plu-quiz-feedback.hint { color: var(--accent-warm); }
   .plu-quiz-actions { display: flex; gap: 8px; }
-  .plu-quiz-submit { flex: 1; border: none; background: var(--accent); color: #fff; border-radius: 11px; padding: 13px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-submit { flex: 1; border: none; background: var(--accent); color: #fff; border-radius: 11px; padding: 15px; font-family: var(--mono); font-size: 16px; font-weight: 700; cursor: pointer; }
   .plu-quiz-submit:hover { background: #2d2d33; }
-  .plu-quiz-reveal { flex: 0 0 auto; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-reveal { flex: 0 0 auto; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text); border-radius: 11px; padding: 15px 16px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; }
   .plu-quiz-reveal:hover { background: #f0e6cd; }
-  .plu-quiz-skip { flex: 0 0 auto; border: 1.5px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-skip { flex: 0 0 auto; border: 1.5px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 11px; padding: 15px 16px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; }
   .plu-quiz-skip:hover { color: var(--text); border-color: var(--border-bright); }
+
+  /* 통계 패널: 시간 · 전체 · 정답 · 오답 */
+  .plu-quiz-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+    margin-top: 22px; padding-top: 20px; border-top: 1.5px solid var(--border);
+  }
+  .pq-stat {
+    background: rgba(255,255,255,0.6); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 12px 8px; text-align: center;
+  }
+  .pq-stat-label { font-size: 11px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.5px; margin-bottom: 6px; }
+  .pq-stat-value { font-family: var(--code); font-size: 24px; font-weight: 700; color: var(--text); line-height: 1; }
+  .pq-stat-value.ok { color: var(--success); }
+  .pq-stat-value.no { color: var(--danger); }
+
   .plu-quiz-back { display: block; width: 100%; margin-top: 14px; border: none; background: transparent; color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px; }
   .plu-quiz-back:hover { color: var(--text); }
   @media (max-width: 560px) {
     .plu-quiz-body { flex-direction: column-reverse; gap: 14px; }
-    .plu-quiz-photo { flex: none; width: 100%; min-height: 170px; }
-    .plu-quiz-name { font-size: 26px; }
+    .plu-quiz-photo { flex: none; width: 100%; min-height: 200px; }
+    .plu-quiz-name { font-size: 30px; }
+    .plu-quiz-stats { grid-template-columns: repeat(2, 1fr); }
   }
 
   /* 토스트 */
@@ -171,8 +198,7 @@
 <body>
   <div class="pq-topbar">
     <div>
-      <div class="pq-brand">THE SHAWN</div>
-      <div class="pq-brand-sub">PLU 외우기</div>
+      <div class="pq-brand">PLU MEMORIZE</div>
     </div>
     <button class="pq-back" id="pqBack">← 돌아가기</button>
   </div>
@@ -183,7 +209,7 @@
 
       <!-- 선택 화면 -->
       <div id="pluQuizSelect">
-        <h2 class="plu-quiz-title">PLU MEMORIZE</h2>
+        <input class="plu-quiz-name-input" id="pluQuizPlayerInput" type="text" placeholder="YOUR NAME" autocomplete="off" maxlength="20">
         <div class="plu-quiz-modes">
           <button class="plu-quiz-mode" id="pluQuizVeg">🥬 VEGETABLES</button>
           <button class="plu-quiz-mode" id="pluQuizFruit">🍎 FRUITS</button>
@@ -194,12 +220,12 @@
       <div id="pluQuizPlay" style="display:none;">
         <div class="plu-quiz-topline">
           <span class="plu-quiz-cat" id="pluQuizCat"></span>
-          <span class="plu-quiz-score" id="pluQuizScore"></span>
+          <span class="plu-quiz-player" id="pluQuizPlayer"></span>
         </div>
         <div class="plu-quiz-body">
           <div class="plu-quiz-main">
             <div class="plu-quiz-name" id="pluQuizName"></div>
-            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="Enter PLU number" autocomplete="off">
+            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="ENTER PLU NUMBER" autocomplete="off">
             <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
             <div class="plu-quiz-actions">
               <button class="plu-quiz-submit" id="pluQuizSubmit">CHECK</button>
@@ -209,6 +235,27 @@
           </div>
           <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
         </div>
+
+        <!-- 통계: 시간 · 전체 · 정답 · 오답 -->
+        <div class="plu-quiz-stats">
+          <div class="pq-stat">
+            <div class="pq-stat-label">TIME</div>
+            <div class="pq-stat-value" id="pluStatTime">00:00</div>
+          </div>
+          <div class="pq-stat">
+            <div class="pq-stat-label">TOTAL</div>
+            <div class="pq-stat-value" id="pluStatTotal">0</div>
+          </div>
+          <div class="pq-stat">
+            <div class="pq-stat-label">CORRECT</div>
+            <div class="pq-stat-value ok" id="pluStatCorrect">0</div>
+          </div>
+          <div class="pq-stat">
+            <div class="pq-stat-label">WRONG</div>
+            <div class="pq-stat-value no" id="pluStatWrong">0</div>
+          </div>
+        </div>
+
         <button class="plu-quiz-back" id="pluQuizToggle">🍎 FRUITS</button>
       </div>
     </div>
@@ -289,8 +336,43 @@
   let quizCat = 'veg';        // 'veg' | 'fruit'
   let quizPool = [];
   let quizCurrent = null;
-  let quizCorrectCount = 0;
+  let quizCorrect = 0;        // 맞춘 수
+  let quizWrong = 0;          // 틀린 수
   let quizAnswered = false;
+  let quizStartTime = 0;      // 퀴즈 시작 시각(ms)
+  let quizTimerId = null;     // 시간 표시 인터벌
+
+  function getPlayerName() {
+    return ($('pluQuizPlayerInput').value || '').trim();
+  }
+
+  function fmtTime(ms) {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    const pad = n => String(n).padStart(2, '0');
+    return (h > 0 ? pad(h) + ':' : '') + pad(m) + ':' + pad(sec);
+  }
+
+  function updateStats() {
+    $('pluStatTotal').textContent = quizCorrect + quizWrong;
+    $('pluStatCorrect').textContent = quizCorrect;
+    $('pluStatWrong').textContent = quizWrong;
+  }
+
+  function startTimer() {
+    quizStartTime = Date.now();
+    $('pluStatTime').textContent = '00:00';
+    if (quizTimerId) clearInterval(quizTimerId);
+    quizTimerId = setInterval(() => {
+      $('pluStatTime').textContent = fmtTime(Date.now() - quizStartTime);
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (quizTimerId) { clearInterval(quizTimerId); quizTimerId = null; }
+  }
 
   function isQuizSkip(r) {
     const eng = (r.eng || '').trim().toUpperCase();
@@ -315,6 +397,11 @@
   }
 
   function startQuizWith(cat) {
+    if (!getPlayerName()) {
+      showToast('PLEASE ENTER YOUR NAME', 'error');
+      $('pluQuizPlayerInput').focus();
+      return;
+    }
     quizCat = cat;
     startPluQuiz();
   }
@@ -327,8 +414,12 @@
         showToast('No items to quiz', 'error');
         return;
       }
-      quizCorrectCount = 0;
+      quizCorrect = 0;
+      quizWrong = 0;
+      updateStats();
+      startTimer();
       $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 FRUITS' : '🥬 VEGETABLES';
+      $('pluQuizPlayer').textContent = '👤 ' + getPlayerName();
       updateQuizToggleLabel();
       $('pluQuizSelect').style.display = 'none';
       $('pluQuizPlay').style.display = '';
@@ -342,7 +433,6 @@
     quizAnswered = false;
     quizCurrent = quizPool[Math.floor(Math.random() * quizPool.length)];
     $('pluQuizName').textContent = quizCurrent.eng || quizCurrent.kor;
-    $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
     const ans = $('pluQuizAnswer');
     ans.value = '';
     ans.disabled = false;
@@ -396,13 +486,15 @@
     const fb = $('pluQuizFeedback');
     if (correct) {
       quizAnswered = true;
-      quizCorrectCount++;
+      quizCorrect++;
+      updateStats();
       fb.textContent = '✅ Correct!';
       fb.className = 'plu-quiz-feedback ok';
-      $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
       $('pluQuizAnswer').disabled = true;
       setTimeout(nextQuizQuestion, 900);
     } else {
+      quizWrong++;
+      updateStats();
       fb.textContent = '❌ Wrong! Try again';
       fb.className = 'plu-quiz-feedback no';
       const ans = $('pluQuizAnswer');
@@ -432,6 +524,7 @@
 
   // 뒤로가기 / 닫기: 이전 페이지(EGMM PLU 화면)로 복귀, 없으면 메인으로
   function goBack() {
+    stopTimer();
     if (document.referrer && history.length > 1) { history.back(); }
     else { window.location.href = 'index.html'; }
   }
