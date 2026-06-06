@@ -320,6 +320,7 @@
   function db(){ return window.firebaseDb; }
   function onReady(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
   async function loadCloud(){
+    if(!window.firebaseFns){ return; }   // Firebase 아직 준비 안 됨 → 다음 기회에 재시도(cloudLoaded 유지 false)
     try{
       var snap=await fns().getDocs(fns().collection(db(), COL));
       cloud={};
@@ -380,10 +381,13 @@
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
 
     var needCsv = (cat==='청과' && cloud['청과']===undefined && !csvRows);
-    if(!cloudLoaded || needCsv){
+    if(!cloudLoaded){
       $('pluTbody').innerHTML='<tr><td colspan="6" class="plu-no-result">불러오는 중...</td></tr>';
-      var after=function(){ buildList(); };
-      if(!cloudLoaded){ loadCloud().then(after); } else { loadCsv().then(after).catch(function(){ $('pluTbody').innerHTML='<tr><td colspan="6" class="plu-no-result">데이터가 없습니다.</td></tr>'; }); }
+      return;
+    }
+    if(needCsv){
+      $('pluTbody').innerHTML='<tr><td colspan="6" class="plu-no-result">불러오는 중...</td></tr>';
+      loadCsv().then(buildList).catch(function(){ $('pluTbody').innerHTML='<tr><td colspan="6" class="plu-no-result">데이터가 없습니다.</td></tr>'; });
     } else { buildList(); }
   }
 
