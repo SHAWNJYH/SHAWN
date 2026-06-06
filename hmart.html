@@ -55,21 +55,35 @@
     mix-blend-mode: multiply;
   }
 
+  /* 공통 상단 바 (모든 메뉴 동일) */
+  .page-topbar {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    padding: 28px 24px 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  }
+  .page-title { font-family: var(--serif); font-weight: 700; font-size: 26px; line-height: 1.1; color: var(--text); }
+  .page-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
+    padding: 10px 14px; font-family: var(--mono); font-size: 13px; font-weight: 700;
+    border-radius: 10px; cursor: pointer; flex-shrink: 0;
+    transition: border-color .15s, color .15s, transform .12s;
+  }
+  .page-back:hover { border-color: var(--accent-warm); color: var(--text); }
+  .page-back:active { transform: scale(0.98); }
+
   /* H-MART 메뉴 (EGMM 메뉴와 동일 구성) */
   .hmart-menu {
     position: relative; z-index: 1;
-    min-height: 100vh;
+    min-height: calc(100vh - 90px);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
   }
   .egmm-card {
     width: 100%; max-width: 420px; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 16px;
-    padding: 40px 28px 28px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
-  }
-  .egmm-title {
-    font-family: var(--serif); font-weight: 700; font-size: 34px; line-height: 1.1;
-    text-align: center; color: var(--text); letter-spacing: 1px; margin-bottom: 28px;
+    padding: 32px 28px 28px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
   }
   .egmm-menu-btn {
     width: 100%; display: flex; align-items: center; gap: 14px;
@@ -94,17 +108,17 @@
 </style>
 </head>
 <body>
+  <div class="page-topbar">
+    <h1 class="page-title">H-MART</h1>
+    <button class="page-back" id="hmartExitBtn">← 처음으로</button>
+  </div>
   <div class="hmart-menu">
     <div class="egmm-card">
-      <h1 class="egmm-title">H-MART</h1>
-
       <button class="egmm-menu-btn" id="hmartToQuizBtn">
         <span class="egmm-menu-ico" style="background:#fce9f1;">🧠</span>
         <span>PLU 외우기</span>
         <span class="egmm-menu-arrow">›</span>
       </button>
-
-      <button class="egmm-back-link" id="hmartExitBtn">← 처음으로</button>
     </div>
   </div>
 
