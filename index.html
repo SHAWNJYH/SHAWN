@@ -358,6 +358,7 @@
   .menu-card[data-target="weight"] .menu-icon { background: #ddf3f7; }
   .menu-card[data-target="calc"]   .menu-icon { background: #ffedd6; }
   .menu-card[data-target="claude"] .menu-icon { background: #ffe4ef; }
+  .menu-card[data-target="plushawn"] .menu-icon { background: #e9f5e1; }
   .menu-card:hover:not(.disabled) .menu-icon {
     transform: scale(1.1) rotate(-4deg);
   }
@@ -2366,6 +2367,7 @@
   .menu-screen.odp-only .menu-card[data-target="todo"],
   .menu-screen.odp-only .menu-card[data-target="bible"],
   .menu-screen.odp-only .menu-card[data-target="claude"],
+  .menu-screen.odp-only .menu-card[data-target="plushawn"],
   .menu-screen.odp-only #menuSaveBtn {
     display: none !important;
   }
@@ -2499,6 +2501,14 @@
       <div>
         <div class="menu-icon">📝</div>
         <div class="menu-card-title">CLAUDE 작업 지침서</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="plushawn">
+      <div>
+        <div class="menu-icon">🗂️</div>
+        <div class="menu-card-title">PLU 보기</div>
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
@@ -3585,6 +3595,7 @@
       else if (target === 'weight') showWeight();
       else if (target === 'calc') showCalc();
       else if (target === 'claude') showClaude();
+      else if (target === 'plushawn') { window.location.href = 'plu-list-manager.html'; return; }
       else return;
       pushScreen(target); // 브라우저 뒤로가기로 메뉴에 돌아올 수 있도록 기록
     });
