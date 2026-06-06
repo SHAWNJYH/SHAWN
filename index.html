@@ -2542,7 +2542,7 @@
 
   /* PLU / ITEM CODE 화면 공통 레이아웃 */
   .egmm-sub-screen { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
-  .egmm-sub-top { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .egmm-sub-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
   .egmm-sub-top h1 { font-family: var(--serif); font-size: 26px; font-weight: 700; color: var(--text); }
   .egmm-sub-back {
     border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
@@ -2562,13 +2562,13 @@
   .plu-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 
   /* 큰 탭(왼쪽) + 검색창(오른쪽) 한 줄 */
-  .plu-bigbar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .plu-bigbar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
   .plu-bigbar .plu-tabs { flex: 1 1 auto; margin-bottom: 0; }
-  .plu-search-col { flex: 0 0 250px; max-width: 42%; display: flex; flex-direction: column; gap: 8px; }
+  .plu-search-col { flex: 0 0 250px; max-width: 42%; display: flex; flex-direction: column; gap: 6px; }
   .plu-search-col .plu-search { flex: none; margin-bottom: 0; }
   .plu-memorize-btn {
     width: 100%; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text);
-    border-radius: 10px; padding: 10px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700;
+    border-radius: 10px; padding: 8px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700;
     cursor: pointer; transition: background .15s, transform .12s;
   }
   .plu-memorize-btn:hover { background: #f0e6cd; }
@@ -2628,10 +2628,13 @@
   .plu-quiz-feedback { min-height: 26px; text-align: center; font-size: 17px; font-weight: 700; margin: 12px 0 6px; }
   .plu-quiz-feedback.ok { color: var(--success); }
   .plu-quiz-feedback.no { color: var(--danger); }
-  .plu-quiz-actions { display: flex; gap: 10px; }
+  .plu-quiz-feedback.hint { color: var(--accent-warm); }
+  .plu-quiz-actions { display: flex; gap: 8px; }
   .plu-quiz-submit { flex: 1; border: none; background: var(--accent); color: #fff; border-radius: 11px; padding: 13px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; }
   .plu-quiz-submit:hover { background: #2d2d33; }
-  .plu-quiz-skip { flex: 0 0 auto; border: 1.5px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 11px; padding: 13px 16px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-reveal { flex: 0 0 auto; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-reveal:hover { background: #f0e6cd; }
+  .plu-quiz-skip { flex: 0 0 auto; border: 1.5px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
   .plu-quiz-skip:hover { color: var(--text); border-color: var(--border-bright); }
   .plu-quiz-back { display: block; width: 100%; margin-top: 14px; border: none; background: transparent; color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px; }
   .plu-quiz-back:hover { color: var(--text); }
@@ -2643,7 +2646,7 @@
   .plu-tab:hover { border-color: var(--border-bright); color: var(--text); }
   .plu-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-  .plu-subtabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 18px; }
+  .plu-subtabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
   .plu-subtabs:empty { display: none; }
   .plu-subtab {
     border: 1.5px solid var(--border); background: var(--bg); color: var(--text-dim);
@@ -2662,12 +2665,12 @@
   .plu-content-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
 
   /* PLU 목록 화면 */
-  .plu-list-head { margin-bottom: 10px; }
+  .plu-list-head { margin-bottom: 6px; }
   .plu-list-head .plu-content-crumb { margin-bottom: 0; }
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
   /* CATE(KOR) 빠른 검색 탭 (균일 크기 격자로 가지런히) */
-  .plu-cat-tabs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-bottom: 14px; }
+  .plu-cat-tabs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-bottom: 10px; }
   .plu-cat-tabs:empty { display: none; }
   .plu-cat-chip {
     width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
@@ -2678,7 +2681,7 @@
   .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
   .plu-cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
 
-  .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 12px; }
+  .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 8px; }
   .plu-search {
     flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
     border-radius: 10px; font-family: var(--mono); font-size: 15px; background: var(--bg-elev); color: var(--text);
@@ -2690,7 +2693,7 @@
 
   .plu-table-wrap {
     border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
-    max-height: calc(100vh - 320px); background: var(--bg-elev);
+    max-height: calc(100vh - 270px); background: var(--bg-elev);
   }
   .plu-table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .plu-table thead th {
@@ -2815,9 +2818,10 @@
         <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
         <div class="plu-quiz-actions">
           <button class="plu-quiz-submit" id="pluQuizSubmit">확인</button>
+          <button class="plu-quiz-reveal" id="pluQuizReveal">PLU 보기</button>
           <button class="plu-quiz-skip" id="pluQuizSkip">다음 ▷</button>
         </div>
-        <button class="plu-quiz-back" id="pluQuizBack">← 종목 선택</button>
+        <button class="plu-quiz-back" id="pluQuizToggle">🍎 과일 외우기로</button>
       </div>
     </div>
   </div>
@@ -4360,6 +4364,7 @@
       }
       quizCorrectCount = 0;
       $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 과일 외우기' : '🥬 야채 외우기';
+      updateQuizToggleLabel();
       $('pluQuizSelect').style.display = 'none';
       $('pluQuizPlay').style.display = '';
       nextQuizQuestion();
@@ -4407,6 +4412,27 @@
     }
   }
 
+  function updateQuizToggleLabel() {
+    $('pluQuizToggle').textContent = quizCat === 'veg' ? '🍎 과일 외우기로' : '🥬 야채 외우기로';
+  }
+
+  // 종목 전환 (야채 ↔ 과일) 후 새 퀴즈 시작
+  function switchQuizCat() {
+    quizCat = quizCat === 'veg' ? 'fruit' : 'veg';
+    startPluQuiz();
+  }
+
+  // PLU 보기: 현재 상품의 PLU를 1초 보여주고 다음 문제로
+  function revealQuizPlu() {
+    if (!quizCurrent || quizAnswered) return;
+    quizAnswered = true;
+    const fb = $('pluQuizFeedback');
+    fb.textContent = '💡 PLU: ' + quizCurrent.plu;
+    fb.className = 'plu-quiz-feedback hint';
+    $('pluQuizAnswer').disabled = true;
+    setTimeout(nextQuizQuestion, 1000);
+  }
+
   // 퀴즈 이벤트 연결
   $('pluMemorizeBtn').onclick = () => openPluQuiz();
   $('pluQuizClose').onclick = () => closePluQuiz();
@@ -4415,8 +4441,9 @@
   $('pluQuizFruit').onclick = () => selectQuizCat('fruit');
   $('pluQuizStart').onclick = () => startPluQuiz();
   $('pluQuizSubmit').onclick = () => checkQuizAnswer();
+  $('pluQuizReveal').onclick = () => revealQuizPlu();
   $('pluQuizSkip').onclick = () => nextQuizQuestion();
-  $('pluQuizBack').onclick = () => { $('pluQuizPlay').style.display = 'none'; $('pluQuizSelect').style.display = ''; };
+  $('pluQuizToggle').onclick = () => switchQuizCat();
   $('pluQuizAnswer').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkQuizAnswer(); } });
 
   // EGMM 메뉴 → ITEM CODE 보기
