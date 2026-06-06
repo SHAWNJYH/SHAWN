@@ -287,7 +287,7 @@
   function labelOf(docId){ for(var k in DOCID){ if(DOCID[k]===docId) return k; } return docId; }
 
   let pluBig=0, pluSub=0, pluSearchTerm='', pluHideReserve=false, pluCatFilter='';
-  let cloud={}, fieldsByCat={}, cloudLoaded=false;
+  let cloud={}, layoutByCat={}, cloudLoaded=false;
   let pluRender=null, visibleCache=[];
 
   function curCat(){ return PLU_TABS[pluBig].label; }
@@ -326,9 +326,9 @@
     if(!window.firebaseFns){ return; }   // Firebase 아직 준비 안 됨 → 다음 기회에 재시도(cloudLoaded 유지 false)
     try{
       var snap=await fns().getDocs(fns().collection(db(), COL));
-      cloud={}; fieldsByCat={};
-      snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; fieldsByCat[lab]=Array.isArray(d.fields)?d.fields:[]; });
-    }catch(e){ cloud={}; fieldsByCat={}; }
+      cloud={}; layoutByCat={};
+      snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); });
+    }catch(e){ cloud={}; layoutByCat={}; }
     cloudLoaded=true;
     if(cloud['청과']===undefined){ try{ await loadCsv(); }catch(e){} }
   }
@@ -350,28 +350,25 @@
     renderContent();
   }
 
-  // ===== 표 =====
-  function curFields(){ return fieldsByCat[curCat()]||[]; }
-  function headHTML(){
-    var f=curFields();
-    var ex=f.map(function(n){ return '<th>'+escapeHtml(n)+'</th>'; }).join('');
-    return '<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th>'+ex+'</tr></thead>';
-  }
+  // ===== 표 (레이아웃: 순서·이름·숨김 반영) =====
+  const BASE=[{key:'plu',label:'PLU'},{key:'local',label:'로컬'},{key:'organic',label:'유기농'},{key:'kor',label:'한글명'},{key:'eng',label:'영문명'},{key:'cate',label:'분류'}];
+  const BASE_KEYS=BASE.map(function(b){return b.key;});
+  function isBase(key){ return BASE_KEYS.indexOf(key)>=0; }
+  function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden}); }); BASE.forEach(function(b){ if(!seen[b.key]){ L.push({key:b.key,label:b.label,hidden:false}); } }); return L; }
+  function getVal(r,key){ return isBase(key) ? (r[key]||'') : ((r.extra&&r.extra[key])||''); }
+  function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':'plu-c-extra'; }
+  function curLayout(){ return layoutByCat[curCat()] || defaultLayout([]); }
+  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
+  function headHTML(){ var v=visibleCols(); return '<thead><tr>'+v.map(function(c){return '<th>'+escapeHtml(c.label)+'</th>';}).join('')+'</tr></thead>'; }
   const HEAD='<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>';
   function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
   function rowsHTML(rows){
-    var f=curFields();
+    var v=visibleCols();
     return rows.map(function(r){
-      var ex=f.map(function(n){ return '<td class="plu-c-extra">'+escapeHtml((r.extra&&r.extra[n])||'')+'</td>'; }).join('');
-      return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+
-        '<td class="plu-c-no">'+escapeHtml(r.plu)+'</td>'+
-        '<td class="plu-c-local">'+escapeHtml(r.local)+'</td>'+
-        '<td class="plu-c-organic">'+escapeHtml(r.organic)+'</td>'+
-        '<td>'+escapeHtml(r.kor)+'</td>'+
-        '<td class="plu-c-eng">'+escapeHtml(r.eng)+'</td>'+
-        '<td class="plu-c-cat">'+escapeHtml(r.cate)+'</td>'+ex+
-      '</tr>';
-    }).join('') || '<tr><td colspan="'+(6+f.length)+'" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
+      var tds=v.map(function(c){ return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+      return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+tds+'</tr>';
+    }).join('') || '<tr><td colspan="'+v.length+'" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
   }
   function rowsBaseHTML(rows){
     return rows.map(function(r){
@@ -453,9 +450,9 @@
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     var rows=visibleCache||[];
     if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
-    var f=curFields();
-    var aoa=[['PLU','로컬','유기농','한글명','영문명','분류'].concat(f)];
-    rows.forEach(function(r){ var base=[r.plu,r.local,r.organic,r.kor,r.eng,r.cate]; f.forEach(function(n){ base.push((r.extra&&r.extra[n])||''); }); aoa.push(base); });
+    var v=visibleCols();
+    var aoa=[v.map(function(c){return c.label;})];
+    rows.forEach(function(r){ aoa.push(v.map(function(c){return getVal(r,c.key);})); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,curCat().substring(0,28));
     var sub=curSub(); var fname='PLU_'+curCat()+(sub?'_'+sub:'')+'.xlsx';
