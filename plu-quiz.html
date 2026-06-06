@@ -123,17 +123,30 @@
   .plu-quiz-name-input:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
   .plu-quiz-name-input::placeholder { color: var(--text-faint); font-weight: 600; }
 
-  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; font-size: 14px; }
-  .plu-quiz-cat { font-weight: 700; color: var(--accent-warm); }
-  .plu-quiz-player { color: var(--text); font-weight: 700; font-family: var(--code); }
+  /* 상단 카테고리 탭 (현재 풀고 있는 카테고리 = 노란 배경) */
+  .plu-quiz-cattabs { display: flex; gap: 10px; margin-bottom: 20px; }
+  .plu-quiz-cattab {
+    flex: 1; border: 1.5px solid var(--border); background: rgba(255,255,255,0.7); color: var(--text-dim);
+    border-radius: 12px; padding: 13px; font-family: var(--mono); font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+  }
+  .plu-quiz-cattab:hover { border-color: var(--accent-warm); color: var(--text); }
+  .plu-quiz-cattab.active { background: #ffe39a; border-color: var(--accent-warm); color: var(--text); }
+
+  /* 플레이어 이름 (통계 박스 위, 가운데) */
+  .plu-quiz-player {
+    display: block; text-align: center; font-family: var(--code); font-size: 15px;
+    font-weight: 700; color: var(--text); margin: 22px 0 8px;
+  }
 
   /* 2단: 문제(왼쪽) + 사진(오른쪽) */
   .plu-quiz-body { display: flex; gap: 22px; align-items: stretch; }
   .plu-quiz-main { flex: 1 1 auto; min-width: 0; }
   .plu-quiz-photo {
-    flex: 0 0 240px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+    flex: 0 0 300px; align-self: flex-start; width: 300px; height: 300px;
+    display: flex; align-items: center; justify-content: center;
     border: 1.5px dashed var(--border); border-radius: 14px; background: rgba(255,255,255,0.5);
-    overflow: hidden; min-height: 260px;
+    overflow: hidden;
   }
   .plu-quiz-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .plu-quiz-photo .ph { color: var(--text-faint); font-size: 13px; text-align: center; line-height: 1.6; padding: 12px; }
@@ -163,7 +176,7 @@
   /* 통계 패널: 시간 · 전체 · 정답 · 오답 */
   .plu-quiz-stats {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-    margin-top: 22px; padding-top: 20px; border-top: 1.5px solid var(--border);
+    margin-top: 4px;
   }
   .pq-stat {
     background: rgba(255,255,255,0.6); border: 1.5px solid var(--border); border-radius: 12px;
@@ -178,7 +191,7 @@
   .plu-quiz-back:hover { color: var(--text); }
   @media (max-width: 560px) {
     .plu-quiz-body { flex-direction: column-reverse; gap: 14px; }
-    .plu-quiz-photo { flex: none; width: 100%; min-height: 200px; }
+    .plu-quiz-photo { flex: none; width: 100%; height: 280px; align-self: stretch; }
     .plu-quiz-name { font-size: 30px; }
     .plu-quiz-stats { grid-template-columns: repeat(2, 1fr); }
   }
@@ -218,9 +231,9 @@
 
       <!-- 퀴즈 화면 -->
       <div id="pluQuizPlay" style="display:none;">
-        <div class="plu-quiz-topline">
-          <span class="plu-quiz-cat" id="pluQuizCat"></span>
-          <span class="plu-quiz-player" id="pluQuizPlayer"></span>
+        <div class="plu-quiz-cattabs">
+          <button class="plu-quiz-cattab" id="pluCatVeg">🥬 VEGETABLES</button>
+          <button class="plu-quiz-cattab" id="pluCatFruit">🍎 FRUITS</button>
         </div>
         <div class="plu-quiz-body">
           <div class="plu-quiz-main">
@@ -235,6 +248,9 @@
           </div>
           <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
         </div>
+
+        <!-- 이름 (통계 박스 위) -->
+        <div class="plu-quiz-player" id="pluQuizPlayer"></div>
 
         <!-- 통계: 시간 · 전체 · 정답 · 오답 -->
         <div class="plu-quiz-stats">
@@ -255,8 +271,6 @@
             <div class="pq-stat-value no" id="pluStatWrong">0</div>
           </div>
         </div>
-
-        <button class="plu-quiz-back" id="pluQuizToggle">🍎 FRUITS</button>
       </div>
     </div>
   </div>
@@ -341,6 +355,7 @@
   let quizAnswered = false;
   let quizStartTime = 0;      // 퀴즈 시작 시각(ms)
   let quizTimerId = null;     // 시간 표시 인터벌
+  let quizTimerStarted = false; // PLU 첫 입력 시 시작
 
   function getPlayerName() {
     return ($('pluQuizPlayerInput').value || '').trim();
@@ -417,10 +432,12 @@
       quizCorrect = 0;
       quizWrong = 0;
       updateStats();
-      startTimer();
-      $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 FRUITS' : '🥬 VEGETABLES';
+      // 시간은 첫 PLU 입력 순간부터 시작 (여기서는 0으로 대기)
+      stopTimer();
+      quizTimerStarted = false;
+      $('pluStatTime').textContent = '00:00';
+      updateCatTabs();
       $('pluQuizPlayer').textContent = '👤 ' + getPlayerName();
-      updateQuizToggleLabel();
       $('pluQuizSelect').style.display = 'none';
       $('pluQuizPlay').style.display = '';
       nextQuizQuestion();
@@ -503,12 +520,15 @@
     }
   }
 
-  function updateQuizToggleLabel() {
-    $('pluQuizToggle').textContent = quizCat === 'veg' ? '🍎 FRUITS' : '🥬 VEGETABLES';
+  function updateCatTabs() {
+    $('pluCatVeg').classList.toggle('active', quizCat === 'veg');
+    $('pluCatFruit').classList.toggle('active', quizCat === 'fruit');
   }
 
-  function switchQuizCat() {
-    quizCat = quizCat === 'veg' ? 'fruit' : 'veg';
+  // 상단 탭으로 카테고리 전환 (같은 카테고리면 무시)
+  function selectCat(cat) {
+    if (cat === quizCat && $('pluQuizPlay').style.display !== 'none') return;
+    quizCat = cat;
     startPluQuiz();
   }
 
@@ -534,11 +554,19 @@
   $('pluQuizClose').onclick = goBack;
   $('pluQuizVeg').onclick = () => startQuizWith('veg');
   $('pluQuizFruit').onclick = () => startQuizWith('fruit');
+  $('pluCatVeg').onclick = () => selectCat('veg');
+  $('pluCatFruit').onclick = () => selectCat('fruit');
   $('pluQuizSubmit').onclick = () => checkQuizAnswer();
   $('pluQuizReveal').onclick = () => revealQuizPlu();
   $('pluQuizSkip').onclick = () => nextQuizQuestion();
-  $('pluQuizToggle').onclick = () => switchQuizCat();
   $('pluQuizAnswer').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkQuizAnswer(); } });
+  // 시간은 PLU 번호를 입력하는 순간부터 시작
+  $('pluQuizAnswer').addEventListener('input', () => {
+    if (!quizTimerStarted && $('pluQuizAnswer').value.trim() !== '') {
+      quizTimerStarted = true;
+      startTimer();
+    }
+  });
 
   showSelect();
 })();
