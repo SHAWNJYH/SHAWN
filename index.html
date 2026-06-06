@@ -5375,629 +5375,154 @@ window.__bibleData = {"version":"krv","name":"개역개정","books":[{"n":"창�
 })();
 </script>
 
+<!-- ===== 공용 변환 모듈 (로그인 메뉴 / EGMM(ODP) / 추후 H-MART 공통) ===== -->
+<script src="Function-Upc-Converter.js"></script>
+<script src="Function-Case-Converter.js"></script>
+<script src="Function-Unit-Converter.js"></script>
+<script src="Function-Calculator.js"></script>
+
 <script>
-// === UPC CONVERTER ===
+// === UPC CONVERTER (공용 모듈 연결) ===
 (function(){
   'use strict';
-  const $ = id => document.getElementById(id);
-
-  // UPC-E (8자리: 0 + 6자리 + 체크디짓) → 11자리 UPC-A 본체
-  function upcExpandE(upce8) {
-    const ns = upce8.charAt(0);
-    const x1 = upce8.charAt(1);
-    const x2 = upce8.charAt(2);
-    const x3 = upce8.charAt(3);
-    const x4 = upce8.charAt(4);
-    const x5 = upce8.charAt(5);
-    const x6 = upce8.charAt(6);
-    // 8번째 자리(charAt(7))는 체크디짓이므로 무시
-
-    let man, prod;
-    if (x6 === '0' || x6 === '1' || x6 === '2') {
-      man  = x1 + x2 + x6 + '00';
-      prod = '00' + x3 + x4 + x5;
-    } else if (x6 === '3') {
-      man  = x1 + x2 + x3 + '00';
-      prod = '000' + x4 + x5;
-    } else if (x6 === '4') {
-      man  = x1 + x2 + x3 + x4 + '0';
-      prod = '0000' + x5;
-    } else { // 5~9
-      man  = x1 + x2 + x3 + x4 + x5;
-      prod = '0000' + x6;
-    }
-    // NS(1) + MFR(5) + PROD(5) = 11자리
-    return ns + man + prod;
-  }
-
-  // 메인 UPC 변환 함수 (VB 함수와 동일)
-  function upcConvert(rawCode) {
-    // 1) 숫자만 추출
-    let code = '';
-    for (let i = 0; i < rawCode.length; i++) {
-      const ch = rawCode.charAt(i);
-      if (ch >= '0' && ch <= '9') code += ch;
-    }
-    if (code === '') return '';
-
-    const n = code.length;
-
-    // 128 코드(길이가 긴 경우)는 그대로 반환
-    if (n >= 14) return code;
-
-    switch (n) {
-      case 8:
-        // 앞자리가 0이면 UPC-E, 아니면 EAN-8
-        if (code.charAt(0) === '0') {
-          return upcExpandE(code);
-        } else {
-          return code.substring(0, 7);
-        }
-
-      case 12:
-        // UPC-A : 체크디짓 제거 → 앞 11자리
-        return code.substring(0, 11);
-
-      case 13:
-        // EAN-13 : 체크디짓 제거 → 앞 12자리
-        return code.substring(0, 12);
-
-      case 10:
-      case 11: {
-        // 비공식 10~11자리 UPC
-        let tmp = code;
-        if (tmp.charAt(0) === '0') {
-          tmp = tmp.substring(1);
-        }
-        if (tmp.length > 1) {
-          return tmp.substring(0, tmp.length - 1);
-        }
-        return tmp;
-      }
-
-      default:
-        // 그 외 길이는 그대로
-        return code;
-    }
-  }
-
-  // === UI APP ===
-  const app = {
+  // 외부 호출 호환용
+  window.__upcConvert = function(code){ return window.FunctionUpc.convert(code); };
+  window.__upcApp = {
     initialized: false,
-
     init() {
       if (this.initialized) return;
       this.initialized = true;
-      this.bindEvents();
-      this.updateInputStatus();
-    },
-
-    bindEvents() {
-      $('upcConvertBtn').onclick = () => this.convert();
-
-      // 입력 변경 시 줄 수 표시
-      $('upcInput').addEventListener('input', () => this.updateInputStatus());
-
-      // 지우기 버튼
-      $('upcClearInputBtn').onclick = () => {
-        $('upcInput').value = '';
-        this.updateInputStatus();
-        $('upcInput').focus();
-      };
-      $('upcClearOutputBtn').onclick = () => {
-        $('upcOutput').value = '';
-        this.updateOutputStatus();
-      };
-
-      // 붙여넣기 버튼 (클립보드)
-      $('upcPasteBtn').onclick = async () => {
-        try {
-          if (navigator.clipboard && navigator.clipboard.readText) {
-            const text = await navigator.clipboard.readText();
-            $('upcInput').value = text;
-            this.updateInputStatus();
-            window.showToast && window.showToast('붙여넣기 완료', 'success');
-          } else {
-            window.showToast && window.showToast('직접 Ctrl+V 로 붙여넣어 주세요', 'error');
-          }
-        } catch (err) {
-          window.showToast && window.showToast('직접 Ctrl+V 로 붙여넣어 주세요', 'error');
-        }
-      };
-
-      // 모두 복사 버튼
-      $('upcCopyAllBtn').onclick = async () => {
-        const text = $('upcOutput').value;
-        if (!text) {
-          window.showToast && window.showToast('복사할 내용이 없습니다', 'error');
-          return;
-        }
-        try {
-          await navigator.clipboard.writeText(text);
-          window.showToast && window.showToast('✅ 결과가 모두 복사되었습니다!', 'success');
-        } catch (err) {
-          // 폴백
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          window.showToast && window.showToast('✅ 결과가 모두 복사되었습니다!', 'success');
-        }
-      };
-
-      // Ctrl+Enter 로 변환
-      $('upcInput').addEventListener('keydown', e => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          e.preventDefault();
-          this.convert();
-        }
+      window.FunctionUpc.wire({
+        input: 'upcInput',
+        output: 'upcOutput',
+        convertBtn: 'upcConvertBtn',
+        pasteBtn: 'upcPasteBtn',
+        copyBtn: 'upcCopyAllBtn',
+        clearInputBtn: 'upcClearInputBtn',
+        clearOutputBtn: 'upcClearOutputBtn',
+        inputStatus: 'upcInputStatus',
+        outputStatus: 'upcOutputStatus'
       });
-    },
-
-    convert() {
-      const input = $('upcInput').value;
-      if (!input.trim()) {
-        window.showToast && window.showToast('변환할 내용을 입력하세요', 'error');
-        $('upcInput').focus();
-        return;
-      }
-
-      // 줄 단위로 분리하고 각각 변환
-      const lines = input.split(/\r?\n/);
-      const results = lines.map(line => upcConvert(line));
-
-      $('upcOutput').value = results.join('\n');
-      this.updateOutputStatus();
-
-      // 변환된 개수 토스트
-      const nonEmpty = results.filter(r => r !== '').length;
-      window.showToast && window.showToast(`✅ ${nonEmpty}개 변환 완료!`, 'success');
-    },
-
-    updateInputStatus() {
-      const text = $('upcInput').value;
-      const lines = text.split(/\r?\n/);
-      const nonEmpty = lines.filter(l => l.trim() !== '').length;
-      $('upcInputStatus').textContent = `${nonEmpty}줄`;
-    },
-
-    updateOutputStatus() {
-      const text = $('upcOutput').value;
-      const lines = text.split(/\r?\n/);
-      const nonEmpty = lines.filter(l => l.trim() !== '').length;
-      $('upcOutputStatus').textContent = `${nonEmpty}줄`;
     }
   };
-
-  window.__upcApp = app;
-  window.__upcConvert = upcConvert; // 외부에서 호출 가능하게 노출
 })();
 </script>
 
 <script>
-// === CASE CONVERTER (대소문자 변환) ===
+// === CASE CONVERTER (공용 모듈 연결) ===
 (function(){
   'use strict';
-  const $ = id => document.getElementById(id);
-
-  // 첫글자 대문자 (Title Case) - 각 단어의 첫 글자를 대문자로
-  function toTitleCase(text) {
-    return text.replace(/\b\w/g, c => c.toUpperCase());
-  }
-
-  const app = {
+  window.__caseApp = {
     initialized: false,
-
     init() {
       if (this.initialized) return;
       this.initialized = true;
-      this.bindEvents();
-      this.updateInputStatus();
-    },
-
-    bindEvents() {
-      // 변환 버튼 3개
-      $('caseUpperBtn').onclick = () => this.convert('upper');
-      $('caseLowerBtn').onclick = () => this.convert('lower');
-      $('caseTitleBtn').onclick = () => this.convert('title');
-
-      // 입력 변경 시 글자 수 표시
-      $('caseInput').addEventListener('input', () => this.updateInputStatus());
-
-      // 지우기 버튼
-      $('caseClearInputBtn').onclick = () => {
-        $('caseInput').value = '';
-        this.updateInputStatus();
-        $('caseInput').focus();
-      };
-      $('caseClearOutputBtn').onclick = () => {
-        $('caseOutput').value = '';
-        this.updateOutputStatus();
-      };
-
-      // 붙여넣기 버튼
-      $('casePasteBtn').onclick = async () => {
-        try {
-          if (navigator.clipboard && navigator.clipboard.readText) {
-            const text = await navigator.clipboard.readText();
-            $('caseInput').value = text;
-            this.updateInputStatus();
-            window.showToast && window.showToast('붙여넣기 완료', 'success');
-          } else {
-            window.showToast && window.showToast('직접 Ctrl+V 로 붙여넣어 주세요', 'error');
-          }
-        } catch (err) {
-          window.showToast && window.showToast('직접 Ctrl+V 로 붙여넣어 주세요', 'error');
-        }
-      };
-
-      // 복사 버튼
-      $('caseCopyBtn').onclick = async () => {
-        const text = $('caseOutput').value;
-        if (!text) {
-          window.showToast && window.showToast('복사할 내용이 없습니다', 'error');
-          return;
-        }
-        try {
-          await navigator.clipboard.writeText(text);
-          window.showToast && window.showToast('✅ 복사되었습니다!', 'success');
-        } catch (err) {
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          document.execCommand('copy');
-          document.body.removeChild(ta);
-          window.showToast && window.showToast('✅ 복사되었습니다!', 'success');
-        }
-      };
-    },
-
-    convert(mode) {
-      const input = $('caseInput').value;
-      if (!input.trim()) {
-        window.showToast && window.showToast('변환할 텍스트를 입력하세요', 'error');
-        $('caseInput').focus();
-        return;
-      }
-
-      let result;
-      let label;
-      if (mode === 'upper') {
-        result = input.toUpperCase();
-        label = '전부 대문자';
-      } else if (mode === 'lower') {
-        result = input.toLowerCase();
-        label = '전부 소문자';
-      } else { // title
-        result = toTitleCase(input);
-        label = '첫글자 대문자';
-      }
-
-      $('caseOutput').value = result;
-      this.updateOutputStatus();
-      window.showToast && window.showToast(`✅ ${label} 변환 완료!`, 'success');
-    },
-
-    updateInputStatus() {
-      const len = $('caseInput').value.length;
-      $('caseInputStatus').textContent = `${len}자`;
-    },
-
-    updateOutputStatus() {
-      const len = $('caseOutput').value.length;
-      $('caseOutputStatus').textContent = `${len}자`;
+      window.FunctionCase.wire({
+        input: 'caseInput',
+        output: 'caseOutput',
+        upperBtn: 'caseUpperBtn',
+        lowerBtn: 'caseLowerBtn',
+        titleBtn: 'caseTitleBtn',
+        copyBtn: 'caseCopyBtn',
+        pasteBtn: 'casePasteBtn',
+        clearInputBtn: 'caseClearInputBtn',
+        clearOutputBtn: 'caseClearOutputBtn',
+        inputStatus: 'caseInputStatus',
+        outputStatus: 'caseOutputStatus'
+      });
     }
   };
-
-  window.__caseApp = app;
 })();
 </script>
 
 <script>
-// === WEIGHT CONVERTER (용량 변환: oz · g · kg · lb) ===
+// === WEIGHT/UNIT CONVERTER (공용 모듈 연결) — 로그인 화면은 리터 칸 없음 ===
 (function(){
   'use strict';
-  const $ = id => document.getElementById(id);
-
-  // 모든 단위를 그램(g) 기준으로 환산 (mL·FL OZ는 물 기준 1 mL = 1 g)
-  const TO_GRAM = {
-    oz: 28.349523125,
-    g: 1,
-    kg: 1000,
-    lb: 453.59237,
-    ml: 1,
-    floz: 29.5735295625
-  };
-  const FIELD = { oz: 'wOz', g: 'wG', kg: 'wKg', lb: 'wLb', ml: 'wMl', floz: 'wFlOz' };
-
-  // 보기 좋게 숫자 포맷 (소수점 2자리로 반올림, 불필요한 0 제거)
-  function fmt(n) {
-    if (!isFinite(n)) return '';
-    if (n === 0) return '0';
-    let rounded = Math.round(n * 100) / 100;
-    let s = String(rounded);
-    if (s.includes('e') || s.includes('E')) {
-      s = rounded.toFixed(2).replace(/\.?0+$/, '');
-    }
-    return s;
-  }
-
-  const app = {
+  window.__weightApp = {
     initialized: false,
-
     init() {
       if (this.initialized) return;
       this.initialized = true;
-      this.bindEvents();
-    },
-
-    bindEvents() {
-      Object.keys(FIELD).forEach(unit => {
-        $(FIELD[unit]).addEventListener('input', () => this.recompute(unit));
+      window.FunctionUnit.wire({
+        fields: { oz: 'wOz', floz: 'wFlOz', g: 'wG', kg: 'wKg', ml: 'wMl', lb: 'wLb' },
+        clearBtn: 'weightClearBtn',
+        focusUnit: 'oz'
       });
-      $('weightClearBtn').onclick = () => this.clearAll();
-    },
-
-    // 방금 입력한 단위(source)를 기준으로 나머지 칸을 채운다
-    recompute(source) {
-      const raw = $(FIELD[source]).value.trim();
-      if (raw === '') { this.clearOthers(source); return; }
-
-      const val = parseFloat(raw);
-      if (isNaN(val)) { this.clearOthers(source); return; }
-
-      const grams = val * TO_GRAM[source];
-      Object.keys(FIELD).forEach(unit => {
-        if (unit === source) return;
-        $(FIELD[unit]).value = fmt(grams / TO_GRAM[unit]);
-      });
-    },
-
-    clearOthers(source) {
-      Object.keys(FIELD).forEach(unit => {
-        if (unit !== source) $(FIELD[unit]).value = '';
-      });
-    },
-
-    clearAll() {
-      Object.keys(FIELD).forEach(unit => { $(FIELD[unit]).value = ''; });
-      $(FIELD.oz).focus();
     }
   };
-
-  window.__weightApp = app;
 })();
 </script>
 
 <script>
-// === CALCULATOR (계산기) ===
+// === CALCULATOR (공용 모듈 연결) ===
 (function(){
   'use strict';
-  const $ = id => document.getElementById(id);
-  const OPS = { add: '+', sub: '−', mul: '×', div: '÷' };
-
-  // 부동소수점 오차를 줄이고 보기 좋게 포맷
-  function fmt(n) {
-    if (!isFinite(n)) return '오류';
-    let r = Math.round((n + Number.EPSILON) * 1e10) / 1e10;
-    let s = String(r);
-    // 너무 길면 유효숫자 12자리로 정리
-    if (s.replace('-', '').replace('.', '').length > 14) {
-      s = String(Number(r.toPrecision(12)));
-    }
-    return s;
-  }
-
-  const app = {
+  window.__calcApp = {
     initialized: false,
-    cur: '0',
-    first: null,
-    op: null,
-    waiting: false,
-
     init() {
       if (this.initialized) return;
       this.initialized = true;
-      const grid = document.querySelector('#calcScreen .calc-grid');
-      grid.addEventListener('click', e => {
-        const btn = e.target.closest('.calc-key');
-        if (!btn) return;
-        this.handle(btn.dataset.k);
-      });
-      document.addEventListener('keydown', e => this.onKey(e));
-      this.render();
-    },
-
-    onKey(e) {
-      if (!$('calcScreen').classList.contains('active')) return;
-      const k = e.key;
-      if (/^[0-9]$/.test(k)) this.handle(k);
-      else if (k === '.') this.handle('dot');
-      else if (k === '+') this.handle('add');
-      else if (k === '-') this.handle('sub');
-      else if (k === '*') this.handle('mul');
-      else if (k === '/') { e.preventDefault(); this.handle('div'); }
-      else if (k === 'Enter' || k === '=') { e.preventDefault(); this.handle('eq'); }
-      else if (k === 'Backspace') this.handle('back');
-      else if (k === 'Escape') this.handle('ac');
-      else if (k === '%') this.handle('pct');
-      else return;
-    },
-
-    handle(k) {
-      // 오류 상태에서 숫자/점/AC 외의 키는 무시
-      if (this.cur === '오류' && !/^[0-9]$/.test(k) && k !== 'ac' && k !== 'dot') {
-        if (k === 'ac') this.clearAll();
-        return;
-      }
-      if (/^[0-9]$/.test(k)) this.inputDigit(k);
-      else if (k === 'dot') this.inputDot();
-      else if (OPS[k]) this.inputOp(k);
-      else if (k === 'eq') this.equals();
-      else if (k === 'ac') this.clearAll();
-      else if (k === 'back') this.backspace();
-      else if (k === 'pct') this.percent();
-      else if (k === 'sign') this.toggleSign();
-      this.render();
-    },
-
-    inputDigit(d) {
-      if (this.cur === '오류') { this.cur = d; this.waiting = false; return; }
-      if (this.waiting) { this.cur = d; this.waiting = false; }
-      else this.cur = (this.cur === '0') ? d : this.cur + d;
-    },
-    inputDot() {
-      if (this.cur === '오류') { this.cur = '0.'; this.waiting = false; return; }
-      if (this.waiting) { this.cur = '0.'; this.waiting = false; return; }
-      if (!this.cur.includes('.')) this.cur += '.';
-    },
-    inputOp(k) {
-      const val = parseFloat(this.cur) || 0;
-      if (this.op && !this.waiting) {
-        const res = this.compute(this.first, val, this.op);
-        this.cur = fmt(res);
-        this.first = isFinite(res) ? res : null;
-      } else {
-        this.first = val;
-      }
-      this.op = k;
-      this.waiting = true;
-    },
-    equals() {
-      if (this.op == null || this.first == null) return;
-      const res = this.compute(this.first, parseFloat(this.cur) || 0, this.op);
-      this.cur = fmt(res);
-      this.first = null;
-      this.op = null;
-      this.waiting = true;
-    },
-    compute(a, b, op) {
-      if (op === 'add') return a + b;
-      if (op === 'sub') return a - b;
-      if (op === 'mul') return a * b;
-      if (op === 'div') return b === 0 ? NaN : a / b;
-      return b;
-    },
-    clearAll() { this.cur = '0'; this.first = null; this.op = null; this.waiting = false; },
-    backspace() {
-      if (this.waiting || this.cur === '오류') return;
-      this.cur = this.cur.length > 1 ? this.cur.slice(0, -1) : '0';
-      if (this.cur === '-') this.cur = '0';
-    },
-    percent() {
-      const v = parseFloat(this.cur);
-      if (isNaN(v)) return;
-      this.cur = fmt(v / 100);
-    },
-    toggleSign() {
-      if (this.cur === '0' || this.cur === '오류') return;
-      this.cur = this.cur.startsWith('-') ? this.cur.slice(1) : '-' + this.cur;
-    },
-
-    render() {
-      $('calcResult').textContent = this.cur;
-      $('calcExpr').textContent = (this.first != null && this.op) ? `${fmt(this.first)} ${OPS[this.op]}` : '';
-      document.querySelectorAll('#calcScreen .calc-key.op').forEach(b => {
-        b.classList.toggle('active', !!(this.op && b.dataset.k === this.op && this.waiting));
+      window.FunctionCalc.wire({
+        keysSelector: '#calcScreen .calc-grid',
+        keyClass: 'calc-key',
+        expr: 'calcExpr',
+        result: 'calcResult',
+        keyboardActiveSelector: '#calcScreen'
       });
     }
   };
-
-  window.__calcApp = app;
 })();
 </script>
 
 <script>
-// === ODP 작업용 대시보드 (4개 도구 통합) ===
+// === ODP 작업용 대시보드 (UPC·대소문자·용량·계산기: 공용 모듈 + 메모장) ===
 (function(){
   'use strict';
   const $ = id => document.getElementById(id);
-
-  // ---------- UPC ----------
-  function upcExpandE(u) {
-    const ns=u[0], x1=u[1], x2=u[2], x3=u[3], x4=u[4], x5=u[5], x6=u[6];
-    let man, prod;
-    if (x6==='0'||x6==='1'||x6==='2') { man=x1+x2+x6+'00'; prod='00'+x3+x4+x5; }
-    else if (x6==='3') { man=x1+x2+x3+'00'; prod='000'+x4+x5; }
-    else if (x6==='4') { man=x1+x2+x3+x4+'0'; prod='0000'+x5; }
-    else { man=x1+x2+x3+x4+x5; prod='0000'+x6; }
-    return ns+man+prod;
-  }
-  function upcConvert(raw) {
-    let code='';
-    for (let i=0;i<raw.length;i++){ const c=raw[i]; if(c>='0'&&c<='9') code+=c; }
-    if (code==='') return '';
-    const n=code.length;
-    if (n>=14) return code;
-    switch(n){
-      case 8: return code[0]==='0' ? upcExpandE(code) : code.substring(0,7);
-      case 12: return code.substring(0,11);
-      case 13: return code.substring(0,12);
-      case 10:
-      case 11: { let t=code; if(t[0]==='0') t=t.substring(1); return t.length>1 ? t.substring(0,t.length-1) : t; }
-      default: return code;
-    }
-  }
-
-  // ---------- 용량 ----------
-  const TO_GRAM = { oz:28.349523125, g:1, kg:1000, lb:453.59237, ml:1, l:1000, floz:29.5735295625 };
-  const WFIELD = { oz:'odWOz', g:'odWG', kg:'odWKg', lb:'odWLb', ml:'odWMl', l:'odWL', floz:'odWFloz' };
-  function wfmt(x){ if(!isFinite(x)) return ''; if(x===0) return '0'; let r=Math.round(x*100)/100; let s=String(r); if(s.includes('e')) s=r.toFixed(2).replace(/\.?0+$/,''); return s; }
-
-  // ---------- 계산기 ----------
-  const COPS = { add:'+', sub:'−', mul:'×', div:'÷' };
-  function cfmt(n){ if(!isFinite(n)) return '오류'; if(n===0) return '0'; let r=Math.round((n+Number.EPSILON)*1e10)/1e10; let s=String(r); if(s.replace('-','').replace('.','').length>14) s=String(Number(r.toPrecision(12))); return s; }
-
-  async function copyText(text){
-    if(!text){ window.showToast && window.showToast('복사할 내용이 없습니다','error'); return; }
-    try { await navigator.clipboard.writeText(text); window.showToast && window.showToast('✅ 복사되었습니다!','success'); }
-    catch(e){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); window.showToast && window.showToast('✅ 복사되었습니다!','success'); }
-  }
 
   const odp = {
-    initialized:false,
-    calc:{ cur:'0', first:null, op:null, waiting:false },
+    initialized: false,
 
-    init(){
-      if(this.initialized) return;
-      this.initialized=true;
+    init() {
+      if (this.initialized) return;
+      this.initialized = true;
 
-      // UPC
-      $('odUpcConvert').onclick = ()=>{
-        const lines=$('odUpcIn').value.split('\n');
-        $('odUpcOut').value = lines.map(l=>upcConvert(l)).join('\n');
-      };
-      $('odUpcCopy').onclick = ()=> copyText($('odUpcOut').value);
-      $('odUpcClear').onclick = ()=>{ $('odUpcIn').value=''; $('odUpcOut').value=''; $('odUpcIn').focus(); };
-
-      // 대소문자
-      $('odCaseUpper').onclick = ()=> $('odCaseOut').value = $('odCaseIn').value.toUpperCase();
-      $('odCaseLower').onclick = ()=> $('odCaseOut').value = $('odCaseIn').value.toLowerCase();
-      $('odCaseTitle').onclick = ()=> $('odCaseOut').value = $('odCaseIn').value.replace(/\b\w/g, c=>c.toUpperCase());
-      $('odCaseCopy').onclick = ()=> copyText($('odCaseOut').value);
-
-      // 용량
-      Object.keys(WFIELD).forEach(unit=>{
-        $(WFIELD[unit]).addEventListener('input', ()=> this.wRecompute(unit));
+      // UPC (공용)
+      window.FunctionUpc.wire({
+        input: 'odUpcIn',
+        output: 'odUpcOut',
+        convertBtn: 'odUpcConvert',
+        copyBtn: 'odUpcCopy',
+        clearBothBtn: 'odUpcClear'
       });
-      $('odWClear').onclick = ()=>{ Object.values(WFIELD).forEach(id=>$(id).value=''); $('odWOz').focus(); };
 
-      // 계산기
-      $('odCalcKeys').addEventListener('click', e=>{
-        const b=e.target.closest('.odp-ckey'); if(!b) return; this.cHandle(b.dataset.k);
+      // 대소문자 (공용)
+      window.FunctionCase.wire({
+        input: 'odCaseIn',
+        output: 'odCaseOut',
+        upperBtn: 'odCaseUpper',
+        lowerBtn: 'odCaseLower',
+        titleBtn: 'odCaseTitle',
+        copyBtn: 'odCaseCopy'
       });
-      this.cRender();
 
-      // 메모장 (탭 + 저장)
+      // 용량 (공용, 리터 포함)
+      window.FunctionUnit.wire({
+        fields: { oz: 'odWOz', floz: 'odWFloz', g: 'odWG', kg: 'odWKg', ml: 'odWMl', l: 'odWL', lb: 'odWLb' },
+        clearBtn: 'odWClear',
+        focusUnit: 'oz'
+      });
+
+      // 계산기 (공용)
+      window.FunctionCalc.wire({
+        keysId: 'odCalcKeys',
+        keyClass: 'odp-ckey',
+        expr: 'odCalcExpr',
+        result: 'odCalcRes'
+      });
+
+      // 메모장 (탭 + 저장) — 기존 기능 그대로 유지
       this.memoLoad();
       $('odMemo').value = this.memoNotes[this.memoActive].body || '';
       $('odMemo').addEventListener('input', ()=>{ this.memoNotes[this.memoActive].body = $('odMemo').value; this.memoSave(); });
@@ -6073,48 +5598,6 @@ window.__bibleData = {"version":"krv","name":"개역개정","books":[{"n":"창�
         x.addEventListener('click', (e) => { e.stopPropagation(); this.memoDelete(i); });
         tab.appendChild(x);
         bar.appendChild(tab);
-      });
-    },
-
-    wRecompute(src){
-      const raw=$(WFIELD[src]).value.trim();
-      if(raw===''){ Object.keys(WFIELD).forEach(u=>{ if(u!==src) $(WFIELD[u]).value=''; }); return; }
-      const val=parseFloat(raw);
-      if(isNaN(val)){ Object.keys(WFIELD).forEach(u=>{ if(u!==src) $(WFIELD[u]).value=''; }); return; }
-      const grams=val*TO_GRAM[src];
-      Object.keys(WFIELD).forEach(u=>{ if(u!==src) $(WFIELD[u]).value = wfmt(grams/TO_GRAM[u]); });
-    },
-
-    cHandle(k){
-      const c=this.calc;
-      if(c.cur==='오류' && !/^[0-9]$/.test(k) && k!=='ac' && k!=='dot') return;
-      if(/^[0-9]$/.test(k)){
-        if(c.cur==='오류'){ c.cur=k; c.waiting=false; }
-        else if(c.waiting){ c.cur=k; c.waiting=false; }
-        else c.cur = (c.cur==='0') ? k : c.cur+k;
-      } else if(k==='dot'){
-        if(c.cur==='오류'||c.waiting){ c.cur='0.'; c.waiting=false; }
-        else if(!c.cur.includes('.')) c.cur+='.';
-      } else if(COPS[k]){
-        const v=parseFloat(c.cur)||0;
-        if(c.op && !c.waiting){ const r=this.cCompute(c.first,v,c.op); c.cur=cfmt(r); c.first=isFinite(r)?r:null; }
-        else c.first=v;
-        c.op=k; c.waiting=true;
-      } else if(k==='eq'){
-        if(c.op!=null && c.first!=null){ const r=this.cCompute(c.first,parseFloat(c.cur)||0,c.op); c.cur=cfmt(r); c.first=null; c.op=null; c.waiting=true; }
-      } else if(k==='ac'){ c.cur='0'; c.first=null; c.op=null; c.waiting=false; }
-      else if(k==='back'){ if(!(c.waiting||c.cur==='오류')){ c.cur=c.cur.length>1?c.cur.slice(0,-1):'0'; if(c.cur==='-') c.cur='0'; } }
-      else if(k==='pct'){ const v=parseFloat(c.cur); if(!isNaN(v)) c.cur=cfmt(v/100); }
-      else if(k==='sign'){ if(c.cur!=='0'&&c.cur!=='오류') c.cur = c.cur.startsWith('-')?c.cur.slice(1):'-'+c.cur; }
-      this.cRender();
-    },
-    cCompute(a,b,op){ if(op==='add')return a+b; if(op==='sub')return a-b; if(op==='mul')return a*b; if(op==='div')return b===0?NaN:a/b; return b; },
-    cRender(){
-      const c=this.calc;
-      $('odCalcRes').textContent = c.cur;
-      $('odCalcExpr').textContent = (c.first!=null && c.op) ? `${cfmt(c.first)} ${COPS[c.op]}` : '';
-      document.querySelectorAll('#odCalcKeys .odp-ckey.op').forEach(b=>{
-        b.classList.toggle('active', !!(c.op && b.dataset.k===c.op && c.waiting));
       });
     }
   };
