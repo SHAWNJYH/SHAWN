@@ -71,10 +71,11 @@
   }
   .page-title { font-family: var(--serif); font-weight: 700; font-size: 26px; line-height: 1.1; color: var(--text); }
   .page-back {
+    margin-left: auto; flex-shrink: 0;
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
-    padding: 10px 14px; font-family: var(--mono); font-size: 13px; font-weight: 700;
-    border-radius: 10px; cursor: pointer; flex-shrink: 0;
+    padding: 9px 14px; font-family: var(--mono); font-size: 13px; font-weight: 700;
+    border-radius: 9px; cursor: pointer;
     transition: border-color .15s, color .15s, transform .12s;
   }
   .page-back:hover { border-color: var(--accent-warm); color: var(--text); }
