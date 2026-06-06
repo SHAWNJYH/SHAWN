@@ -4315,13 +4315,20 @@
   let quizCorrectCount = 0;
   let quizAnswered = false;   // 현재 문제 정답 처리 완료 여부(자동 넘어가는 중)
 
+  function isQuizSkip(r) {
+    const eng = (r.eng || '').trim().toUpperCase();
+    const kor = (r.kor || '').trim().toUpperCase();
+    if (/RESERVE/.test(eng) || /RESERVE/.test(kor)) return true; // RESERVE 포함 시 제외
+    if (eng === 'ETC' || kor === 'ETC') return true;             // 이름이 정확히 ETC인 채움행만 제외
+    return false;
+  }
+
   function buildQuizPool(cat) {
     const min = cat === 'fruit' ? 2000 : 1000;
     const max = cat === 'fruit' ? 2999 : 1999;
     return (pluData || []).filter(r => {
       const n = parseInt(r.plu, 10);
-      return !isNaN(n) && n >= min && n <= max && r.kor &&
-             !/RESERVE/i.test(r.eng) && !/RESERVE/i.test(r.kor);
+      return !isNaN(n) && n >= min && n <= max && r.kor && !isQuizSkip(r);
     });
   }
 
@@ -4394,6 +4401,9 @@
     } else {
       fb.textContent = '❌ 오답! 다시 시도해보세요';
       fb.className = 'plu-quiz-feedback no';
+      const ans = $('pluQuizAnswer');
+      ans.value = '';   // 엔터 후 처음부터 다시 입력
+      ans.focus();
     }
   }
 
