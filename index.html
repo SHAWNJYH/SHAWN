@@ -2563,122 +2563,10 @@
   .egmm-placeholder-title { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
   .egmm-placeholder-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
 
-  /* PLU 보기 탭 */
-  .plu-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-
-  /* 큰 탭(왼쪽) + 검색창(오른쪽) 한 줄 */
-  .plu-bigbar { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 6px; }
-  .plu-bigbar .plu-tabs { flex: 1 1 auto; margin-bottom: 0; }
-  .plu-search-col { flex: 0 0 250px; max-width: 42%; display: flex; flex-direction: column; gap: 6px; }
-  .plu-search-col .plu-search { flex: none; margin-bottom: 0; }
-  .plu-memorize-btn {
-    width: 100%; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text);
-    border-radius: 10px; padding: 8px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700;
-    cursor: pointer; transition: background .15s, transform .12s;
-  }
-  .plu-memorize-btn:hover { background: #f0e6cd; }
-  .plu-memorize-btn:active { transform: scale(0.98); }
-  @media (max-width: 700px) {
-    .plu-bigbar { flex-wrap: wrap; }
-    .plu-search-col { flex: 1 1 100%; max-width: 100%; }
-  }
-
-  .plu-tab {
-    border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 15px;
-    font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
-  }
-  .plu-tab:hover { border-color: var(--border-bright); color: var(--text); }
-  .plu-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-  .plu-subtabs { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
-  .plu-subtabs:empty { display: none; }
-  .plu-subtab {
-    border: 1.5px solid var(--border); background: var(--bg); color: var(--text-dim);
-    border-radius: 20px; padding: 7px 14px; font-family: var(--mono); font-size: 13px;
-    font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
-  }
-  .plu-subtab:hover { border-color: var(--accent-warm); color: var(--text); }
-  .plu-subtab.active { background: var(--accent-soft); border-color: var(--accent-warm); color: var(--text); font-weight: 700; }
-
-  .plu-content {
-    background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 16px;
-    padding: 44px 24px; text-align: center; min-height: 200px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-  }
-  .plu-content-crumb { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-  .plu-content-text { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
-
-  /* PLU 목록 화면 */
-  .plu-list-head { margin-bottom: 6px; }
-  .plu-list-head .plu-content-crumb { margin-bottom: 0; }
-  .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
-
-  /* CATE(KOR) 빠른 검색 탭 (균일 크기 격자로 가지런히) */
-  .plu-cat-tabs { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-bottom: 10px; }
-  .plu-cat-tabs:empty { display: none; }
-  .plu-cat-chip {
-    width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 18px; padding: 7px 8px; font-family: var(--mono); font-size: 13px; font-weight: 600;
-    cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    transition: background .12s, border-color .12s, color .12s;
-  }
-  .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
-  .plu-cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
-
-  .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 8px; }
-  .plu-search {
-    flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
-    border-radius: 10px; font-family: var(--mono); font-size: 15px; background: var(--bg-elev); color: var(--text);
-  }
-  .plu-search:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
-  .plu-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
-  .plu-toggle input { width: 16px; height: 16px; cursor: pointer; }
-  .plu-count { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-left: auto; white-space: nowrap; }
-
-  .plu-table-wrap {
-    border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
-    max-height: calc(100vh - 270px); background: var(--bg-elev);
-  }
-  .plu-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  .plu-table thead th {
-    position: sticky; top: 0; z-index: 1; background: var(--bg-elev-2); color: var(--text-dim);
-    font-family: var(--mono); font-size: 12px; font-weight: 700; text-align: left;
-    padding: 11px 14px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
-  }
-  .plu-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
-  .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
-  .plu-table tbody tr:hover { background: var(--accent-soft); }
-  .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
-  .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
-  .plu-table tbody td.plu-c-organic { font-family: var(--code); font-weight: 700; color: #15803d; white-space: nowrap; }
-  .plu-table tbody td.plu-c-eng { color: var(--text-dim); }
-  .plu-table tbody td.plu-c-cat { color: var(--text-dim); font-size: 13px; }
-  /* RESERVE 행: 전체 회색 */
-  .plu-table tbody tr.plu-row-reserve td { color: #a8a8ae; font-weight: 400; }
-  .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
-
-  .plu-upload-btn {
-    border: 1.5px solid var(--border-bright); background: var(--bg-elev); color: var(--text);
-    border-radius: 10px; padding: 11px 18px; font-family: var(--mono); font-size: 14px;
-    font-weight: 700; cursor: pointer;
-  }
-  .plu-upload-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
-
   /* 상품명 등록 가이드 (이미지) */
   .guide-body { display: flex; flex-direction: column; align-items: center; }
   .guide-img { max-width: 100%; height: auto; border: 1.5px solid var(--border); border-radius: 14px; box-shadow: 0 6px 24px rgba(26,26,29,0.06); }
   .guide-loading { color: var(--text-dim); font-size: 14px; padding: 40px 0; }
-
-  @media (max-width: 600px) {
-    .plu-table { font-size: 13px; }
-    .plu-table thead th, .plu-table tbody td { padding: 9px 8px; }
-    /* 좁은 화면: 영문명(5)·분류(6) 숨겨 PLU·로컬·유기농·한글명만 표시 */
-    .plu-c-eng, .plu-c-cat,
-    .plu-table thead th:nth-child(5),
-    .plu-table thead th:nth-child(6) { display: none; }
-    .plu-table-wrap { max-height: calc(100vh - 300px); }
-  }
 
   @media (max-width: 760px) {
     .egmm-sub-screen { padding: 16px 12px 40px; }
@@ -2715,28 +2603,7 @@
   </div>
 </div>
 
-<!-- PLU 보기 화면 -->
-<div class="egmm-screen" id="pluScreen">
-  <div class="egmm-sub-screen">
-    <div class="egmm-sub-top">
-      <button class="egmm-sub-back" id="pluBackBtn">← EGMM</button>
-      <h1>🔎 PLU 보기</h1>
-    </div>
-
-    <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) + 검색창(오른쪽) -->
-    <div class="plu-bigbar">
-      <div class="plu-tabs" id="pluBigTabs"></div>
-      <div class="plu-search-col">
-        <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off" style="display:none;">
-        <button class="plu-memorize-btn" id="pluMemorizeBtn">🧠 PLU 외우기</button>
-      </div>
-    </div>
-    <!-- 작은 탭 (선택한 큰 탭에 따라 바뀜) -->
-    <div class="plu-subtabs" id="pluSubTabs"></div>
-    <!-- 내용 영역 -->
-    <div class="plu-content" id="pluContent"></div>
-  </div>
-</div>
+<!-- PLU 보기 화면 → 별도 페이지(plu-list-produce.html)로 분리됨 -->
 
 <!-- ITEM CODE 보기 화면 -->
 <div class="egmm-screen" id="itemCodeScreen">
@@ -3872,7 +3739,6 @@
   function hideEgmmAll() {
     $('egmmMenu').classList.remove('active');
     $('odpDash').classList.remove('active');
-    $('pluScreen').classList.remove('active');
     $('itemCodeScreen').classList.remove('active');
     $('guideScreen').classList.remove('active');
   }
@@ -3928,310 +3794,7 @@
     setEgmmHistory('odp');
   }
 
-  // EGMM 메뉴 → PLU 보기
-  function showPlu() {
-    state.mode = 'plu';
-    hideEgmmAll();
-    $('pluScreen').classList.add('active');
-    // 검색창: 항상 표시 + 전체(청과/델리/수산/정육/하우스웨어) 통합검색 바인딩
-    const se = $('pluSearch');
-    if (se) {
-      se.style.display = '';
-      se.value = '';
-      pluSearchTerm = '';
-      se.oninput = e => { pluSearchTerm = e.target.value; renderPluContent(); };
-    }
-    renderPluTabs();
-    window.scrollTo(0, 0);
-    setEgmmHistory('plu');
-  }
-
-  function clearPluSearch() {
-    pluSearchTerm = '';
-    const se = $('pluSearch');
-    if (se) se.value = '';
-  }
-
-  // ===== PLU 보기 탭 구성 =====
-  const PLU_TABS = [
-    { label: '청과',       subs: ['야채', '과일', '로컬', '박스', '글로벌', '유기농'] },
-    { label: '델리',       subs: [] },
-    { label: '수산',       subs: ['수산원육'] },
-    { label: '정육',       subs: ['정육원육'] },
-    { label: '하우스웨어', subs: ['주방용품', '전자제품', '기타'] }
-  ];
-  let pluBig = 0, pluSub = 0;
-
-  function renderPluTabs() {
-    const bar = $('pluBigTabs');
-    bar.innerHTML = '';
-    PLU_TABS.forEach((t, i) => {
-      const b = document.createElement('button');
-      b.className = 'plu-tab' + (i === pluBig ? ' active' : '');
-      b.textContent = t.label;
-      b.onclick = () => { clearPluSearch(); pluBig = i; pluSub = 0; renderPluTabs(); };
-      bar.appendChild(b);
-    });
-    renderPluSubTabs();
-  }
-
-  function renderPluSubTabs() {
-    const bar = $('pluSubTabs');
-    bar.innerHTML = '';
-    const subs = PLU_TABS[pluBig].subs || [];
-    subs.forEach((s, i) => {
-      const b = document.createElement('button');
-      b.className = 'plu-subtab' + (i === pluSub ? ' active' : '');
-      b.textContent = s;
-      b.onclick = () => { clearPluSearch(); pluSub = i; renderPluSubTabs(); };
-      bar.appendChild(b);
-    });
-    renderPluContent();
-  }
-
-  // (big,sub) → CSV 필터. PLU 번호 범위 기준(1000~1999 야채, 2000~2999 과일)
-  function pluCsvFilterFor(bigLabel, subLabel) {
-    if (bigLabel === '청과' && subLabel === '야채') return { min: 1000, max: 1999 };
-    if (bigLabel === '청과' && subLabel === '과일') return { min: 2000, max: 2999 };
-    return null;
-  }
-
-  let pluSearchTerm = '';
-  let pluHideReserve = false;
-  let pluCatFilter = '';   // 선택된 CATE(KOR), ''이면 전체
-
-  function renderPluContent() {
-    // 검색어가 있으면 전체 통합검색 결과를 우선 표시 (현재 탭 무관)
-    if (pluSearchTerm.trim()) { renderPluSearchResults(pluSearchTerm.trim()); return; }
-
-    const big = PLU_TABS[pluBig];
-    const subs = big.subs || [];
-    const subLabel = subs.length ? subs[pluSub] : '';
-    const filter = pluCsvFilterFor(big.label, subLabel);
-
-    if (filter) {
-      renderPluList(big.label, subLabel, filter);
-      return;
-    }
-
-    const crumb = subLabel ? (big.label + ' › ' + subLabel) : big.label;
-    $('pluContent').className = 'plu-content';
-    $('pluContent').innerHTML =
-      '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
-      '<div class="plu-content-text">여기에 표시할 PLU 목록·코드를 알려주시면 채워 드릴게요.</div>';
-  }
-
-  // ===== PLU CSV 데이터 로딩 =====
-  // GitHub에서 index.html과 같은 폴더에 둔 CSV를 직접 불러온다.
-  // (파일명이 공백/언더스코어 어느 쪽이든 되도록 후보를 차례로 시도)
-  const PLU_CSV_CANDIDATES = [
-    'PLU - PRODUCE.csv', 'PLU_-_PRODUCE.csv', 'PLU-PRODUCE.csv',
-    'PLU - PRODUCE.CSV', 'PLU_-_PRODUCE.CSV'
-  ];
-  let pluData = null;        // 파싱된 전체 행
-  let pluLoadPromise = null; // 중복 로딩 방지
-
-  function parsePluCsv(text) {
-    text = text.replace(/^\uFEFF/, '');               // BOM 제거
-    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
-    lines.shift();                                     // 헤더 제거
-    return lines.map(line => {
-      const c = line.split(',');
-      return {
-        plu: (c[0] || '').trim(),
-        itemCode: (c[1] || '').trim(),
-        eng: (c[2] || '').trim(),
-        kor: (c[3] || '').trim(),
-        origin: (c[4] || '').trim(),
-        cateEng: (c[5] || '').trim(),
-        cateKor: (c[6] || '').trim(),
-        cateNo: (c[7] || '').trim(),
-        localPlu: (c[8] || '').trim(),
-        organic: (c[9] || '').trim()
-      };
-    });
-  }
-
-  function loadPluData() {
-    if (pluData) return Promise.resolve(pluData);
-    if (pluLoadPromise) return pluLoadPromise;
-    pluLoadPromise = (async () => {
-      for (const name of PLU_CSV_CANDIDATES) {
-        try {
-          const res = await fetch(encodeURI(name), { cache: 'no-store' });
-          if (res.ok) {
-            const text = await res.text();
-            const parsed = parsePluCsv(text);
-            if (parsed.length) { pluData = parsed; return pluData; }
-          }
-        } catch (e) { /* 다음 후보 시도 */ }
-      }
-      pluLoadPromise = null; // 실패 시 다시 시도 가능
-      throw new Error('CSV를 불러오지 못했습니다');
-    })();
-    return pluLoadPromise;
-  }
-
-  // 사용자가 직접 CSV를 선택한 경우(로컬 실행 등 대비)
-  function loadPluFromFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        try { pluData = parsePluCsv(reader.result); resolve(pluData); }
-        catch (e) { reject(e); }
-      };
-      reader.onerror = () => reject(new Error('파일을 읽지 못했습니다'));
-      reader.readAsText(file, 'utf-8');
-    });
-  }
-
-  // ===== PLU 목록 화면 =====
-  function renderPluList(bigLabel, subLabel, filter) {
-    const crumb = bigLabel + ' › ' + subLabel;
-    const el = $('pluContent');
-    el.className = 'plu-list';
-    el.innerHTML =
-      '<div class="plu-list-head">' +
-        '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
-        '<div class="plu-list-text">CSV 불러오는 중...</div>' +
-      '</div>';
-
-    loadPluData().then(() => {
-      buildPluListUI(el, crumb, filter);
-    }).catch(() => {
-      el.innerHTML =
-        '<div class="plu-list-head"><div class="plu-content-crumb">' + escapeHtml(crumb) + '</div></div>' +
-        '<div class="plu-empty">' +
-          'CSV를 자동으로 불러오지 못했습니다.<br>' +
-          'index.html과 같은 폴더에 CSV 파일이 있는지 확인하거나, 아래에서 직접 선택하세요.' +
-        '</div>' +
-        '<div class="plu-list-bar"><button class="plu-upload-btn" id="pluPickBtn">📂 CSV 직접 선택</button>' +
-        '<input type="file" id="pluFileInput" accept=".csv,text/csv" style="display:none;"></div>';
-      $('pluPickBtn').onclick = () => $('pluFileInput').click();
-      $('pluFileInput').onchange = (ev) => {
-        const f = ev.target.files && ev.target.files[0];
-        if (!f) return;
-        loadPluFromFile(f).then(() => buildPluListUI(el, crumb, filter))
-          .catch(() => showToast && showToast('CSV 파싱에 실패했습니다', 'error'));
-      };
-    });
-  }
-
-  // 공유 헬퍼: 행 매칭 / 표 헤더 / 표 본문
-  const PLU_TABLE_HEAD =
-    '<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>';
-
-  function pluRowMatches(r, term) {
-    return r.plu.toLowerCase().includes(term) ||
-      r.localPlu.toLowerCase().includes(term) ||
-      r.organic.toLowerCase().includes(term) ||
-      r.kor.toLowerCase().includes(term) ||
-      r.eng.toLowerCase().includes(term) ||
-      r.cateKor.toLowerCase().includes(term) ||
-      (r.cateEng && r.cateEng.toLowerCase().includes(term));
-  }
-
-  function pluRowsHTML(rows) {
-    return rows.map(r =>
-      '<tr class="' + (/RESERVE/i.test(r.eng) ? 'plu-row-reserve' : '') + '">' +
-        '<td class="plu-c-no">' + escapeHtml(r.plu) + '</td>' +
-        '<td class="plu-c-local">' + escapeHtml(r.localPlu) + '</td>' +
-        '<td class="plu-c-organic">' + escapeHtml(r.organic) + '</td>' +
-        '<td>' + escapeHtml(r.kor) + '</td>' +
-        '<td class="plu-c-eng">' + escapeHtml(r.eng) + '</td>' +
-        '<td class="plu-c-cat">' + escapeHtml(r.cateEng ? (r.cateKor + ' (' + r.cateEng + ')') : r.cateKor) + '</td>' +
-      '</tr>'
-    ).join('') || '<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>';
-  }
-
-  function buildPluListUI(el, crumb, filter) {
-    const all = (pluData || []).filter(r => {
-      const n = parseInt(r.plu, 10);
-      return !isNaN(n) && n >= filter.min && n <= filter.max;
-    });
-    pluHideReserve = false;
-    pluCatFilter = '';
-
-    // CATE(KOR) 고유 목록 (등장 순서 유지)
-    const cats = [];
-    const seen = {};
-    all.forEach(r => { if (r.cateKor && !seen[r.cateKor]) { seen[r.cateKor] = 1; cats.push(r.cateKor); } });
-
-    el.className = 'plu-list';
-    el.innerHTML =
-      '<div class="plu-list-head">' +
-        '<div class="plu-content-crumb">' + escapeHtml(crumb) + '</div>' +
-      '</div>' +
-      '<div class="plu-cat-tabs" id="pluCatTabs"></div>' +
-      '<div class="plu-list-bar">' +
-        '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"> 빈 슬롯(RESERVE) 숨기기</label>' +
-        '<span class="plu-count" id="pluCount"></span>' +
-      '</div>' +
-      '<div class="plu-table-wrap">' +
-        '<table class="plu-table">' + PLU_TABLE_HEAD +
-          '<tbody id="pluTbody"></tbody>' +
-        '</table>' +
-      '</div>';
-
-    // 분류 빠른탭 렌더 ('전체' + 각 CATE(KOR))
-    const catBar = $('pluCatTabs');
-    const makeChip = (label, value) => {
-      const b = document.createElement('button');
-      b.className = 'plu-cat-chip' + (pluCatFilter === value ? ' active' : '');
-      b.textContent = label;
-      b.onclick = () => {
-        pluCatFilter = value;
-        catBar.querySelectorAll('.plu-cat-chip').forEach(c => c.classList.remove('active'));
-        b.classList.add('active');
-        render();
-      };
-      return b;
-    };
-    catBar.appendChild(makeChip('전체', ''));
-    cats.forEach(c => catBar.appendChild(makeChip(c, c)));
-
-    const render = () => {
-      let rows = all;
-      if (pluCatFilter) rows = rows.filter(r => r.cateKor === pluCatFilter);
-      if (pluHideReserve) rows = rows.filter(r => !/RESERVE/i.test(r.eng));
-      $('pluCount').textContent = rows.length + '개 / 전체 ' + all.length + '개';
-      $('pluTbody').innerHTML = pluRowsHTML(rows);
-    };
-
-    $('pluHideRes').addEventListener('change', e => { pluHideReserve = e.target.checked; render(); });
-    render();
-  }
-
-  // ===== 전체 통합검색 (청과/델리/수산/정육/하우스웨어 등 로딩된 모든 데이터) =====
-  function renderPluSearchResults(term) {
-    const el = $('pluContent');
-    el.className = 'plu-list';
-    if (!pluData) {
-      el.innerHTML = '<div class="plu-list-head"><div class="plu-content-crumb">통합검색</div></div>' +
-        '<div class="plu-list-text">불러오는 중...</div>';
-    }
-    loadPluData().then(() => {
-      if (pluSearchTerm.trim().toLowerCase() !== term.toLowerCase()) return; // 입력이 바뀌면 무시
-      const t = term.toLowerCase();
-      let rows = (pluData || []).filter(r => pluRowMatches(r, t));
-      if (pluHideReserve) rows = rows.filter(r => !/RESERVE/i.test(r.eng));
-      el.innerHTML =
-        '<div class="plu-list-head"><div class="plu-content-crumb">통합검색: “' + escapeHtml(term) + '”</div></div>' +
-        '<div class="plu-list-bar">' +
-          '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"' + (pluHideReserve ? ' checked' : '') + '> 빈 슬롯(RESERVE) 숨기기</label>' +
-          '<span class="plu-count">' + rows.length + '개</span>' +
-        '</div>' +
-        '<div class="plu-table-wrap"><table class="plu-table">' + PLU_TABLE_HEAD +
-          '<tbody>' + pluRowsHTML(rows) + '</tbody></table></div>';
-      const hr = $('pluHideRes');
-      if (hr) hr.addEventListener('change', e => { pluHideReserve = e.target.checked; renderPluContent(); });
-    }).catch(() => {
-      el.innerHTML = '<div class="plu-empty">CSV를 불러오지 못해 통합검색을 할 수 없습니다.</div>';
-    });
-  }
-
-  // ===== PLU 외우기 퀴즈 → 별도 페이지(plu-quiz.html)로 분리 =====
-  $('pluMemorizeBtn').onclick = () => { window.location.href = 'plu-quiz.html'; };
+  // PLU 보기/외우기 → 별도 페이지(plu-list-produce.html / plu-quiz.html)로 분리됨
 
   // EGMM 메뉴 → ITEM CODE 보기
   function showItemCode() {
@@ -4309,13 +3872,12 @@
 
   // EGMM 메뉴 버튼 연결
   $('egmmToOdpBtn').onclick = () => enterOdp();
-  $('egmmToPluBtn').onclick = () => showPlu();
+  $('egmmToPluBtn').onclick = () => { window.location.href = 'plu-list-produce.html'; };
   $('egmmToItemBtn').onclick = () => showItemCode();
   $('egmmToGuideBtn').onclick = () => showGuide();
   $('egmmExitBtn').onclick = () => exitEgmm();
   // ODP / PLU / ITEM CODE / 가이드 → EGMM 메뉴로 돌아가기
   $('odpLogoutBtn').onclick = () => enterEgmm();
-  $('pluBackBtn').onclick = () => enterEgmm();
   $('itemBackBtn').onclick = () => enterEgmm();
   $('guideBackBtn').onclick = () => enterEgmm();
 
@@ -5461,7 +5023,6 @@
       menuScreen.classList.remove('odp-only');
       $('odpDash').classList.remove('active');
       $('egmmMenu').classList.remove('active');
-      $('pluScreen').classList.remove('active');
       $('itemCodeScreen').classList.remove('active');
       $('guideScreen').classList.remove('active');
       $('bibleScreen').classList.remove('active');
