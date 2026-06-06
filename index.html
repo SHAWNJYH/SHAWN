@@ -2587,7 +2587,7 @@
   }
   .plu-quiz-overlay.show { display: flex; }
   .plu-quiz-card {
-    position: relative; width: 100%; max-width: 420px;
+    position: relative; width: 100%; max-width: 600px;
     background: rgba(255,255,255,0.55); border: 1.5px solid rgba(255,255,255,0.75);
     border-radius: 20px; padding: 34px 28px 30px;
     box-shadow: 0 24px 64px rgba(26,26,29,0.18);
@@ -2613,13 +2613,26 @@
   .plu-quiz-mode:hover { border-color: var(--accent-warm); }
   .plu-quiz-mode.active { border-color: var(--accent-warm); background: var(--accent-soft); }
 
-  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; font-size: 13px; }
+  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 13px; }
   .plu-quiz-cat { font-weight: 700; color: var(--accent-warm); }
   .plu-quiz-score { color: var(--text-dim); font-family: var(--code); }
-  .plu-quiz-name {
-    font-family: var(--serif); font-size: 40px; font-weight: 700; text-align: center; color: var(--text);
-    padding: 18px 8px 22px; word-break: keep-all; line-height: 1.2;
+
+  /* 2단: 문제(왼쪽) + 사진(오른쪽) */
+  .plu-quiz-body { display: flex; gap: 18px; align-items: stretch; }
+  .plu-quiz-main { flex: 1 1 auto; min-width: 0; }
+  .plu-quiz-photo {
+    flex: 0 0 190px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+    border: 1.5px dashed var(--border); border-radius: 14px; background: rgba(255,255,255,0.5);
+    overflow: hidden; min-height: 200px;
   }
+  .plu-quiz-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .plu-quiz-photo .ph { color: var(--text-faint); font-size: 13px; text-align: center; line-height: 1.6; padding: 12px; }
+
+  .plu-quiz-name {
+    font-family: var(--serif); font-size: 30px; font-weight: 700; text-align: center; color: var(--text);
+    padding: 10px 4px 4px; word-break: break-word; line-height: 1.2; min-height: 40px;
+  }
+  .plu-quiz-kor { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 16px; min-height: 18px; }
   .plu-quiz-input {
     width: 100%; text-align: center; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px;
     font-family: var(--code); font-size: 22px; font-weight: 700; background: rgba(255,255,255,0.85); color: var(--text);
@@ -2638,6 +2651,11 @@
   .plu-quiz-skip:hover { color: var(--text); border-color: var(--border-bright); }
   .plu-quiz-back { display: block; width: 100%; margin-top: 14px; border: none; background: transparent; color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px; }
   .plu-quiz-back:hover { color: var(--text); }
+  @media (max-width: 560px) {
+    .plu-quiz-body { flex-direction: column-reverse; gap: 14px; }
+    .plu-quiz-photo { flex: none; width: 100%; min-height: 170px; }
+    .plu-quiz-name { font-size: 26px; }
+  }
   .plu-tab {
     border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
     border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 15px;
@@ -2813,13 +2831,19 @@
           <span class="plu-quiz-cat" id="pluQuizCat"></span>
           <span class="plu-quiz-score" id="pluQuizScore"></span>
         </div>
-        <div class="plu-quiz-name" id="pluQuizName"></div>
-        <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="PLU 번호 입력" autocomplete="off">
-        <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
-        <div class="plu-quiz-actions">
-          <button class="plu-quiz-submit" id="pluQuizSubmit">확인</button>
-          <button class="plu-quiz-reveal" id="pluQuizReveal">PLU 보기</button>
-          <button class="plu-quiz-skip" id="pluQuizSkip">다음 ▷</button>
+        <div class="plu-quiz-body">
+          <div class="plu-quiz-main">
+            <div class="plu-quiz-name" id="pluQuizName"></div>
+            <div class="plu-quiz-kor" id="pluQuizKor"></div>
+            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="PLU 번호 입력" autocomplete="off">
+            <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
+            <div class="plu-quiz-actions">
+              <button class="plu-quiz-submit" id="pluQuizSubmit">확인</button>
+              <button class="plu-quiz-reveal" id="pluQuizReveal">PLU 보기</button>
+              <button class="plu-quiz-skip" id="pluQuizSkip">다음 ▷</button>
+            </div>
+          </div>
+          <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
         </div>
         <button class="plu-quiz-back" id="pluQuizToggle">🍎 과일 외우기로</button>
       </div>
@@ -4376,7 +4400,8 @@
   function nextQuizQuestion() {
     quizAnswered = false;
     quizCurrent = quizPool[Math.floor(Math.random() * quizPool.length)];
-    $('pluQuizName').textContent = quizCurrent.kor;
+    $('pluQuizName').textContent = quizCurrent.eng || quizCurrent.kor;  // 상품명: 영어
+    $('pluQuizKor').textContent = quizCurrent.kor || '';                // 한글 보조
     $('pluQuizScore').textContent = '맞힌 개수: ' + quizCorrectCount;
     const ans = $('pluQuizAnswer');
     ans.value = '';
@@ -4384,7 +4409,42 @@
     const fb = $('pluQuizFeedback');
     fb.textContent = '';
     fb.className = 'plu-quiz-feedback';
+    loadQuizPhoto(quizCurrent.plu);
     setTimeout(() => ans.focus(), 50);
+  }
+
+  // PLU 번호로 사진 찾기 (파일명 = PLU 번호). 추후 사진을 같은 규칙으로 올리면 자동 표시됨.
+  const QUIZ_PHOTO_DIRS = ['images/', 'photos/', 'plu/', ''];
+  const QUIZ_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
+  let quizPhotoToken = 0;
+
+  function loadQuizPhoto(plu) {
+    const box = $('pluQuizPhoto');
+    const myToken = ++quizPhotoToken;
+    box.innerHTML = '<div class="ph">사진 불러오는 중...</div>';
+    const cands = [];
+    QUIZ_PHOTO_DIRS.forEach(d => QUIZ_PHOTO_EXTS.forEach(e => cands.push(d + plu + '.' + e)));
+    let i = 0;
+    const tryNext = () => {
+      if (myToken !== quizPhotoToken) return;       // 다음 문제로 넘어갔으면 중단
+      if (i >= cands.length) {
+        box.innerHTML = '<div class="ph">📷<br>사진 없음<br>(' + escapeHtml(plu) + ')</div>';
+        return;
+      }
+      const src = encodeURI(cands[i]);
+      const probe = new Image();
+      probe.onload = () => {
+        if (myToken !== quizPhotoToken) return;
+        box.innerHTML = '';
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = src;
+        box.appendChild(img);
+      };
+      probe.onerror = () => { i++; tryNext(); };
+      probe.src = src;
+    };
+    tryNext();
   }
 
   function checkQuizAnswer() {
