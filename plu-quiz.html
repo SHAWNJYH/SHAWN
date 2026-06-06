@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>PLU 외우기 · THE SHAWN</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #f3f3ee;
+    --border: #e5e5e0;
+    --border-bright: #c8c8c0;
+    --text: #1a1a1d;
+    --text-dim: #6b6b72;
+    --text-faint: #9a9aa0;
+    --accent: #1a1a1d;
+    --accent-soft: #f0eee5;
+    --accent-warm: #c9a961;
+    --danger: #c83a3a;
+    --success: #2a8a4a;
+    --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+    --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+    --code: 'Pretendard', ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201, 169, 97, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(26, 26, 29, 0.03) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: multiply;
+  }
+
+  /* 상단 바 */
+  .pq-topbar {
+    position: relative;
+    z-index: 1;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .pq-brand { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--text); }
+  .pq-brand-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .pq-back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
+    padding: 10px 14px; font-family: var(--mono); font-size: 13px; font-weight: 700;
+    border-radius: 10px; cursor: pointer; flex-shrink: 0;
+    transition: border-color .15s, color .15s, transform .12s;
+  }
+  .pq-back:hover { border-color: var(--accent-warm); color: var(--text); }
+  .pq-back:active { transform: scale(0.98); }
+
+  /* 퀴즈 무대: 카드 가운데 정렬 */
+  .plu-quiz-stage {
+    position: relative; z-index: 1;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 28px 24px 48px;
+    min-height: calc(100vh - 90px);
+  }
+
+  .plu-quiz-card {
+    position: relative; width: 100%; max-width: 600px;
+    background: rgba(255,255,255,0.55); border: 1.5px solid rgba(255,255,255,0.75);
+    border-radius: 20px; padding: 34px 28px 30px;
+    box-shadow: 0 24px 64px rgba(26,26,29,0.18);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
+  .plu-quiz-close {
+    position: absolute; top: 12px; right: 14px; border: none; background: transparent;
+    color: var(--text-dim); font-size: 26px; line-height: 1; cursor: pointer; padding: 4px;
+  }
+  .plu-quiz-close:hover { color: var(--text); }
+  .plu-quiz-title { font-family: var(--serif); font-size: 26px; font-weight: 700; text-align: center; color: var(--text); margin-bottom: 22px; }
+  .plu-quiz-modes { display: flex; flex-direction: column; gap: 12px; }
+  .plu-quiz-mode {
+    border: 1.5px solid var(--border); background: rgba(255,255,255,0.7); color: var(--text);
+    border-radius: 12px; padding: 16px; font-family: var(--mono); font-size: 16px; font-weight: 700; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .plu-quiz-mode:hover { border-color: var(--accent-warm); }
+  .plu-quiz-mode.active { border-color: var(--accent-warm); background: var(--accent-soft); }
+
+  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 13px; }
+  .plu-quiz-cat { font-weight: 700; color: var(--accent-warm); }
+  .plu-quiz-score { color: var(--text-dim); font-family: var(--code); }
+
+  /* 2단: 문제(왼쪽) + 사진(오른쪽) */
+  .plu-quiz-body { display: flex; gap: 18px; align-items: stretch; }
+  .plu-quiz-main { flex: 1 1 auto; min-width: 0; }
+  .plu-quiz-photo {
+    flex: 0 0 190px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+    border: 1.5px dashed var(--border); border-radius: 14px; background: rgba(255,255,255,0.5);
+    overflow: hidden; min-height: 200px;
+  }
+  .plu-quiz-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .plu-quiz-photo .ph { color: var(--text-faint); font-size: 13px; text-align: center; line-height: 1.6; padding: 12px; }
+
+  .plu-quiz-name {
+    font-family: var(--serif); font-size: 30px; font-weight: 700; text-align: center; color: var(--text);
+    padding: 10px 4px 4px; word-break: break-word; line-height: 1.2; min-height: 40px;
+  }
+  .plu-quiz-kor { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 16px; min-height: 18px; }
+  .plu-quiz-input {
+    width: 100%; text-align: center; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: var(--code); font-size: 22px; font-weight: 700; background: rgba(255,255,255,0.85); color: var(--text);
+  }
+  .plu-quiz-input:focus { outline: none; border-color: var(--accent-warm); }
+  .plu-quiz-feedback { min-height: 26px; text-align: center; font-size: 17px; font-weight: 700; margin: 12px 0 6px; }
+  .plu-quiz-feedback.ok { color: var(--success); }
+  .plu-quiz-feedback.no { color: var(--danger); }
+  .plu-quiz-feedback.hint { color: var(--accent-warm); }
+  .plu-quiz-actions { display: flex; gap: 8px; }
+  .plu-quiz-submit { flex: 1; border: none; background: var(--accent); color: #fff; border-radius: 11px; padding: 13px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-submit:hover { background: #2d2d33; }
+  .plu-quiz-reveal { flex: 0 0 auto; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-reveal:hover { background: #f0e6cd; }
+  .plu-quiz-skip { flex: 0 0 auto; border: 1.5px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plu-quiz-skip:hover { color: var(--text); border-color: var(--border-bright); }
+  .plu-quiz-back { display: block; width: 100%; margin-top: 14px; border: none; background: transparent; color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px; }
+  .plu-quiz-back:hover { color: var(--text); }
+  @media (max-width: 560px) {
+    .plu-quiz-body { flex-direction: column-reverse; gap: 14px; }
+    .plu-quiz-photo { flex: none; width: 100%; min-height: 170px; }
+    .plu-quiz-name { font-size: 26px; }
+  }
+
+  /* 토스트 */
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: #fff; padding: 12px 20px; border-radius: 10px;
+    font-family: var(--mono); font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s; z-index: 300; max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--danger); }
+  .toast.success { background: var(--success); }
+</style>
+</head>
+<body>
+  <div class="pq-topbar">
+    <div>
+      <div class="pq-brand">THE SHAWN</div>
+      <div class="pq-brand-sub">PLU 외우기</div>
+    </div>
+    <button class="pq-back" id="pqBack">← 돌아가기</button>
+  </div>
+
+  <div class="plu-quiz-stage">
+    <div class="plu-quiz-card">
+      <button class="plu-quiz-close" id="pluQuizClose" title="닫기">×</button>
+
+      <!-- 선택 화면 -->
+      <div id="pluQuizSelect">
+        <h2 class="plu-quiz-title">PLU MEMORIZE</h2>
+        <div class="plu-quiz-modes">
+          <button class="plu-quiz-mode" id="pluQuizVeg">🥬 VEGETABLES</button>
+          <button class="plu-quiz-mode" id="pluQuizFruit">🍎 FRUITS</button>
+        </div>
+      </div>
+
+      <!-- 퀴즈 화면 -->
+      <div id="pluQuizPlay" style="display:none;">
+        <div class="plu-quiz-topline">
+          <span class="plu-quiz-cat" id="pluQuizCat"></span>
+          <span class="plu-quiz-score" id="pluQuizScore"></span>
+        </div>
+        <div class="plu-quiz-body">
+          <div class="plu-quiz-main">
+            <div class="plu-quiz-name" id="pluQuizName"></div>
+            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="Enter PLU number" autocomplete="off">
+            <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
+            <div class="plu-quiz-actions">
+              <button class="plu-quiz-submit" id="pluQuizSubmit">CHECK</button>
+              <button class="plu-quiz-reveal" id="pluQuizReveal">SHOW PLU</button>
+              <button class="plu-quiz-skip" id="pluQuizSkip">NEXT ▷</button>
+            </div>
+          </div>
+          <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
+        </div>
+        <button class="plu-quiz-back" id="pluQuizToggle">🍎 FRUITS</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  }
+
+  // ---------- 토스트 ----------
+  let toastTimer;
+  function showToast(msg, type) {
+    const toast = $('toast');
+    clearTimeout(toastTimer);
+    toast.textContent = msg;
+    toast.className = 'toast show ' + (type || '');
+    toastTimer = setTimeout(() => { toast.className = 'toast ' + (type || ''); }, 2500);
+  }
+
+  // ===== PLU CSV 데이터 로딩 =====
+  // index.html과 같은 폴더에 둔 CSV를 직접 불러온다.
+  const PLU_CSV_CANDIDATES = [
+    'PLU - PRODUCE.csv', 'PLU_-_PRODUCE.csv', 'PLU-PRODUCE.csv',
+    'PLU - PRODUCE.CSV', 'PLU_-_PRODUCE.CSV'
+  ];
+  let pluData = null;
+  let pluLoadPromise = null;
+
+  function parsePluCsv(text) {
+    text = text.replace(/^\uFEFF/, '');                // BOM 제거
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+    lines.shift();                                     // 헤더 제거
+    return lines.map(line => {
+      const c = line.split(',');
+      return {
+        plu: (c[0] || '').trim(),
+        itemCode: (c[1] || '').trim(),
+        eng: (c[2] || '').trim(),
+        kor: (c[3] || '').trim(),
+        origin: (c[4] || '').trim(),
+        cateEng: (c[5] || '').trim(),
+        cateKor: (c[6] || '').trim(),
+        cateNo: (c[7] || '').trim(),
+        localPlu: (c[8] || '').trim(),
+        organic: (c[9] || '').trim()
+      };
+    });
+  }
+
+  function loadPluData() {
+    if (pluData) return Promise.resolve(pluData);
+    if (pluLoadPromise) return pluLoadPromise;
+    pluLoadPromise = (async () => {
+      for (const name of PLU_CSV_CANDIDATES) {
+        try {
+          const res = await fetch(encodeURI(name), { cache: 'no-store' });
+          if (res.ok) {
+            const text = await res.text();
+            const parsed = parsePluCsv(text);
+            if (parsed.length) { pluData = parsed; return pluData; }
+          }
+        } catch (e) { /* 다음 후보 시도 */ }
+      }
+      pluLoadPromise = null;
+      throw new Error('CSV를 불러오지 못했습니다');
+    })();
+    return pluLoadPromise;
+  }
+
+  // ===== PLU 외우기 퀴즈 =====
+  let quizCat = 'veg';        // 'veg' | 'fruit'
+  let quizPool = [];
+  let quizCurrent = null;
+  let quizCorrectCount = 0;
+  let quizAnswered = false;
+
+  function isQuizSkip(r) {
+    const eng = (r.eng || '').trim().toUpperCase();
+    const kor = (r.kor || '').trim().toUpperCase();
+    if (/RESERVE/.test(eng) || /RESERVE/.test(kor)) return true;
+    if (eng === 'ETC' || kor === 'ETC') return true;
+    return false;
+  }
+
+  function buildQuizPool(cat) {
+    const min = cat === 'fruit' ? 2000 : 1000;
+    const max = cat === 'fruit' ? 2999 : 1999;
+    return (pluData || []).filter(r => {
+      const n = parseInt(r.plu, 10);
+      return !isNaN(n) && n >= min && n <= max && r.kor && !isQuizSkip(r);
+    });
+  }
+
+  function showSelect() {
+    $('pluQuizSelect').style.display = '';
+    $('pluQuizPlay').style.display = 'none';
+  }
+
+  function startQuizWith(cat) {
+    quizCat = cat;
+    startPluQuiz();
+  }
+
+  function startPluQuiz() {
+    $('pluQuizFeedback').textContent = '';
+    loadPluData().then(() => {
+      quizPool = buildQuizPool(quizCat);
+      if (!quizPool.length) {
+        showToast('No items to quiz', 'error');
+        return;
+      }
+      quizCorrectCount = 0;
+      $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 FRUITS' : '🥬 VEGETABLES';
+      updateQuizToggleLabel();
+      $('pluQuizSelect').style.display = 'none';
+      $('pluQuizPlay').style.display = '';
+      nextQuizQuestion();
+    }).catch(() => {
+      showToast('Failed to load CSV', 'error');
+    });
+  }
+
+  function nextQuizQuestion() {
+    quizAnswered = false;
+    quizCurrent = quizPool[Math.floor(Math.random() * quizPool.length)];
+    $('pluQuizName').textContent = quizCurrent.eng || quizCurrent.kor;
+    $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
+    const ans = $('pluQuizAnswer');
+    ans.value = '';
+    ans.disabled = false;
+    const fb = $('pluQuizFeedback');
+    fb.textContent = '';
+    fb.className = 'plu-quiz-feedback';
+    loadQuizPhoto(quizCurrent.plu);
+    setTimeout(() => ans.focus(), 50);
+  }
+
+  // PLU 번호로 사진 찾기 (파일명 = PLU 번호)
+  const QUIZ_PHOTO_DIRS = ['images/', 'photos/', 'plu/', ''];
+  const QUIZ_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
+  let quizPhotoToken = 0;
+
+  function loadQuizPhoto(plu) {
+    const box = $('pluQuizPhoto');
+    const myToken = ++quizPhotoToken;
+    box.innerHTML = '<div class="ph">Loading...</div>';
+    const cands = [];
+    QUIZ_PHOTO_DIRS.forEach(d => QUIZ_PHOTO_EXTS.forEach(e => cands.push(d + plu + '.' + e)));
+    let i = 0;
+    const tryNext = () => {
+      if (myToken !== quizPhotoToken) return;
+      if (i >= cands.length) {
+        box.innerHTML = '<div class="ph">📷<br>No photo<br>(' + escapeHtml(plu) + ')</div>';
+        return;
+      }
+      const src = encodeURI(cands[i]);
+      const probe = new Image();
+      probe.onload = () => {
+        if (myToken !== quizPhotoToken) return;
+        box.innerHTML = '';
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = src;
+        box.appendChild(img);
+      };
+      probe.onerror = () => { i++; tryNext(); };
+      probe.src = src;
+    };
+    tryNext();
+  }
+
+  function checkQuizAnswer() {
+    if (quizAnswered || !quizCurrent) return;
+    const raw = $('pluQuizAnswer').value.trim();
+    if (raw === '') return;
+    const entered = parseInt(raw, 10);
+    const correct = quizPool.some(r => r.kor === quizCurrent.kor && parseInt(r.plu, 10) === entered);
+    const fb = $('pluQuizFeedback');
+    if (correct) {
+      quizAnswered = true;
+      quizCorrectCount++;
+      fb.textContent = '✅ Correct!';
+      fb.className = 'plu-quiz-feedback ok';
+      $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
+      $('pluQuizAnswer').disabled = true;
+      setTimeout(nextQuizQuestion, 900);
+    } else {
+      fb.textContent = '❌ Wrong! Try again';
+      fb.className = 'plu-quiz-feedback no';
+      const ans = $('pluQuizAnswer');
+      ans.value = '';
+      ans.focus();
+    }
+  }
+
+  function updateQuizToggleLabel() {
+    $('pluQuizToggle').textContent = quizCat === 'veg' ? '🍎 FRUITS' : '🥬 VEGETABLES';
+  }
+
+  function switchQuizCat() {
+    quizCat = quizCat === 'veg' ? 'fruit' : 'veg';
+    startPluQuiz();
+  }
+
+  function revealQuizPlu() {
+    if (!quizCurrent || quizAnswered) return;
+    quizAnswered = true;
+    const fb = $('pluQuizFeedback');
+    fb.textContent = '💡 PLU: ' + quizCurrent.plu;
+    fb.className = 'plu-quiz-feedback hint';
+    $('pluQuizAnswer').disabled = true;
+    setTimeout(nextQuizQuestion, 1000);
+  }
+
+  // 뒤로가기 / 닫기: 이전 페이지(EGMM PLU 화면)로 복귀, 없으면 메인으로
+  function goBack() {
+    if (document.referrer && history.length > 1) { history.back(); }
+    else { window.location.href = 'index.html'; }
+  }
+
+  // ===== 이벤트 연결 =====
+  $('pqBack').onclick = goBack;
+  $('pluQuizClose').onclick = goBack;
+  $('pluQuizVeg').onclick = () => startQuizWith('veg');
+  $('pluQuizFruit').onclick = () => startQuizWith('fruit');
+  $('pluQuizSubmit').onclick = () => checkQuizAnswer();
+  $('pluQuizReveal').onclick = () => revealQuizPlu();
+  $('pluQuizSkip').onclick = () => nextQuizQuestion();
+  $('pluQuizToggle').onclick = () => switchQuizCat();
+  $('pluQuizAnswer').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkQuizAnswer(); } });
+
+  showSelect();
+})();
+</script>
+</body>
+</html>

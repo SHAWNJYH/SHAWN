@@ -2353,6 +2353,11 @@
     <div class="lock-card lock-card-egmm" id="toOdpBtn" role="button" tabindex="0">
       <h1 class="lock-title">EGMM</h1>
     </div>
+
+    <!-- H-MART 박스 (EGMM 옆, 같은 크기) — 박스 전체 클릭 -->
+    <div class="lock-card lock-card-egmm" id="toHmartBtn" role="button" tabindex="0">
+      <h1 class="lock-title">H-MART</h1>
+    </div>
   </div>
 </div>
 
@@ -2578,79 +2583,6 @@
     .plu-search-col { flex: 1 1 100%; max-width: 100%; }
   }
 
-  /* PLU 외우기 퀴즈: 투명 창 + 뒤 배경 BLUR */
-  .plu-quiz-overlay {
-    position: fixed; inset: 0; z-index: 200; display: none;
-    align-items: center; justify-content: center; padding: 24px;
-    background: rgba(250,250,247,0.45);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  }
-  .plu-quiz-overlay.show { display: flex; }
-  .plu-quiz-card {
-    position: relative; width: 100%; max-width: 600px;
-    background: rgba(255,255,255,0.55); border: 1.5px solid rgba(255,255,255,0.75);
-    border-radius: 20px; padding: 34px 28px 30px;
-    box-shadow: 0 24px 64px rgba(26,26,29,0.18);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  }
-  .plu-quiz-close {
-    position: absolute; top: 12px; right: 14px; border: none; background: transparent;
-    color: var(--text-dim); font-size: 26px; line-height: 1; cursor: pointer; padding: 4px;
-  }
-  .plu-quiz-close:hover { color: var(--text); }
-  .plu-quiz-title { font-family: var(--serif); font-size: 26px; font-weight: 700; text-align: center; color: var(--text); margin-bottom: 22px; }
-  .plu-quiz-modes { display: flex; flex-direction: column; gap: 12px; }
-  .plu-quiz-mode {
-    border: 1.5px solid var(--border); background: rgba(255,255,255,0.7); color: var(--text);
-    border-radius: 12px; padding: 16px; font-family: var(--mono); font-size: 16px; font-weight: 700; cursor: pointer;
-    transition: border-color .15s, background .15s;
-  }
-  .plu-quiz-mode:hover { border-color: var(--accent-warm); }
-  .plu-quiz-mode.active { border-color: var(--accent-warm); background: var(--accent-soft); }
-
-  .plu-quiz-topline { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 13px; }
-  .plu-quiz-cat { font-weight: 700; color: var(--accent-warm); }
-  .plu-quiz-score { color: var(--text-dim); font-family: var(--code); }
-
-  /* 2단: 문제(왼쪽) + 사진(오른쪽) */
-  .plu-quiz-body { display: flex; gap: 18px; align-items: stretch; }
-  .plu-quiz-main { flex: 1 1 auto; min-width: 0; }
-  .plu-quiz-photo {
-    flex: 0 0 190px; align-self: stretch; display: flex; align-items: center; justify-content: center;
-    border: 1.5px dashed var(--border); border-radius: 14px; background: rgba(255,255,255,0.5);
-    overflow: hidden; min-height: 200px;
-  }
-  .plu-quiz-photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .plu-quiz-photo .ph { color: var(--text-faint); font-size: 13px; text-align: center; line-height: 1.6; padding: 12px; }
-
-  .plu-quiz-name {
-    font-family: var(--serif); font-size: 30px; font-weight: 700; text-align: center; color: var(--text);
-    padding: 10px 4px 4px; word-break: break-word; line-height: 1.2; min-height: 40px;
-  }
-  .plu-quiz-kor { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 16px; min-height: 18px; }
-  .plu-quiz-input {
-    width: 100%; text-align: center; padding: 14px; border: 1.5px solid var(--border); border-radius: 12px;
-    font-family: var(--code); font-size: 22px; font-weight: 700; background: rgba(255,255,255,0.85); color: var(--text);
-  }
-  .plu-quiz-input:focus { outline: none; border-color: var(--accent-warm); }
-  .plu-quiz-feedback { min-height: 26px; text-align: center; font-size: 17px; font-weight: 700; margin: 12px 0 6px; }
-  .plu-quiz-feedback.ok { color: var(--success); }
-  .plu-quiz-feedback.no { color: var(--danger); }
-  .plu-quiz-feedback.hint { color: var(--accent-warm); }
-  .plu-quiz-actions { display: flex; gap: 8px; }
-  .plu-quiz-submit { flex: 1; border: none; background: var(--accent); color: #fff; border-radius: 11px; padding: 13px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; }
-  .plu-quiz-submit:hover { background: #2d2d33; }
-  .plu-quiz-reveal { flex: 0 0 auto; border: 1.5px solid var(--accent-warm); background: var(--accent-soft); color: var(--text); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
-  .plu-quiz-reveal:hover { background: #f0e6cd; }
-  .plu-quiz-skip { flex: 0 0 auto; border: 1.5px solid var(--border); background: transparent; color: var(--text-dim); border-radius: 11px; padding: 13px 14px; font-family: var(--mono); font-size: 14px; font-weight: 700; cursor: pointer; }
-  .plu-quiz-skip:hover { color: var(--text); border-color: var(--border-bright); }
-  .plu-quiz-back { display: block; width: 100%; margin-top: 14px; border: none; background: transparent; color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px; }
-  .plu-quiz-back:hover { color: var(--text); }
-  @media (max-width: 560px) {
-    .plu-quiz-body { flex-direction: column-reverse; gap: 14px; }
-    .plu-quiz-photo { flex: none; width: 100%; min-height: 170px; }
-    .plu-quiz-name { font-size: 26px; }
-  }
   .plu-tab {
     border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
     border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 15px;
@@ -2803,44 +2735,6 @@
     <div class="plu-subtabs" id="pluSubTabs"></div>
     <!-- 내용 영역 -->
     <div class="plu-content" id="pluContent"></div>
-  </div>
-
-  <!-- PLU 외우기 퀴즈 (투명 창 + 뒤 배경 BLUR) -->
-  <div class="plu-quiz-overlay" id="pluQuizOverlay">
-    <div class="plu-quiz-card">
-      <button class="plu-quiz-close" id="pluQuizClose" title="닫기">×</button>
-
-      <!-- 선택 화면 -->
-      <div id="pluQuizSelect">
-        <h2 class="plu-quiz-title">PLU MEMORIZE</h2>
-        <div class="plu-quiz-modes">
-          <button class="plu-quiz-mode" id="pluQuizVeg">🥬 VEGETABLES</button>
-          <button class="plu-quiz-mode" id="pluQuizFruit">🍎 FRUITS</button>
-        </div>
-      </div>
-
-      <!-- 퀴즈 화면 -->
-      <div id="pluQuizPlay" style="display:none;">
-        <div class="plu-quiz-topline">
-          <span class="plu-quiz-cat" id="pluQuizCat"></span>
-          <span class="plu-quiz-score" id="pluQuizScore"></span>
-        </div>
-        <div class="plu-quiz-body">
-          <div class="plu-quiz-main">
-            <div class="plu-quiz-name" id="pluQuizName"></div>
-            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="Enter PLU number" autocomplete="off">
-            <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
-            <div class="plu-quiz-actions">
-              <button class="plu-quiz-submit" id="pluQuizSubmit">CHECK</button>
-              <button class="plu-quiz-reveal" id="pluQuizReveal">SHOW PLU</button>
-              <button class="plu-quiz-skip" id="pluQuizSkip">NEXT ▷</button>
-            </div>
-          </div>
-          <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
-        </div>
-        <button class="plu-quiz-back" id="pluQuizToggle">🍎 FRUITS</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -3712,6 +3606,13 @@
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
   });
 
+  // H-MART 버튼 → 별도 페이지(hmart.html)로 이동
+  const enterHmart = () => { window.location.href = 'hmart.html'; };
+  $('toHmartBtn').onclick = () => enterHmart();
+  $('toHmartBtn').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterHmart(); }
+  });
+
   // ========== FIREBASE LOGIN ==========
   let currentUser = null;
   let firebaseReady = false;
@@ -4329,170 +4230,8 @@
     });
   }
 
-  // ===== PLU 외우기 퀴즈 =====
-  let quizCat = 'veg';        // 'veg' | 'fruit'
-  let quizPool = [];
-  let quizCurrent = null;
-  let quizCorrectCount = 0;
-  let quizAnswered = false;   // 현재 문제 정답 처리 완료 여부(자동 넘어가는 중)
-
-  function isQuizSkip(r) {
-    const eng = (r.eng || '').trim().toUpperCase();
-    const kor = (r.kor || '').trim().toUpperCase();
-    if (/RESERVE/.test(eng) || /RESERVE/.test(kor)) return true; // RESERVE 포함 시 제외
-    if (eng === 'ETC' || kor === 'ETC') return true;             // 이름이 정확히 ETC인 채움행만 제외
-    return false;
-  }
-
-  function buildQuizPool(cat) {
-    const min = cat === 'fruit' ? 2000 : 1000;
-    const max = cat === 'fruit' ? 2999 : 1999;
-    return (pluData || []).filter(r => {
-      const n = parseInt(r.plu, 10);
-      return !isNaN(n) && n >= min && n <= max && r.kor && !isQuizSkip(r);
-    });
-  }
-
-  function openPluQuiz() {
-    $('pluQuizSelect').style.display = '';
-    $('pluQuizPlay').style.display = 'none';
-    $('pluQuizOverlay').classList.add('show');
-  }
-  function closePluQuiz() {
-    $('pluQuizOverlay').classList.remove('show');
-  }
-
-  // 야채/과일 버튼 → 해당 종목으로 바로 시작
-  function startQuizWith(cat) {
-    quizCat = cat;
-    startPluQuiz();
-  }
-
-  function startPluQuiz() {
-    $('pluQuizFeedback').textContent = '';
-    loadPluData().then(() => {
-      quizPool = buildQuizPool(quizCat);
-      if (!quizPool.length) {
-        window.showToast && window.showToast('No items to quiz', 'error');
-        return;
-      }
-      quizCorrectCount = 0;
-      $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 FRUITS' : '🥬 VEGETABLES';
-      updateQuizToggleLabel();
-      $('pluQuizSelect').style.display = 'none';
-      $('pluQuizPlay').style.display = '';
-      nextQuizQuestion();
-    }).catch(() => {
-      window.showToast && window.showToast('Failed to load CSV', 'error');
-    });
-  }
-
-  function nextQuizQuestion() {
-    quizAnswered = false;
-    quizCurrent = quizPool[Math.floor(Math.random() * quizPool.length)];
-    $('pluQuizName').textContent = quizCurrent.eng || quizCurrent.kor;  // 상품명: 영어
-    $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
-    const ans = $('pluQuizAnswer');
-    ans.value = '';
-    ans.disabled = false;
-    const fb = $('pluQuizFeedback');
-    fb.textContent = '';
-    fb.className = 'plu-quiz-feedback';
-    loadQuizPhoto(quizCurrent.plu);
-    setTimeout(() => ans.focus(), 50);
-  }
-
-  // PLU 번호로 사진 찾기 (파일명 = PLU 번호). 추후 사진을 같은 규칙으로 올리면 자동 표시됨.
-  const QUIZ_PHOTO_DIRS = ['images/', 'photos/', 'plu/', ''];
-  const QUIZ_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
-  let quizPhotoToken = 0;
-
-  function loadQuizPhoto(plu) {
-    const box = $('pluQuizPhoto');
-    const myToken = ++quizPhotoToken;
-    box.innerHTML = '<div class="ph">Loading...</div>';
-    const cands = [];
-    QUIZ_PHOTO_DIRS.forEach(d => QUIZ_PHOTO_EXTS.forEach(e => cands.push(d + plu + '.' + e)));
-    let i = 0;
-    const tryNext = () => {
-      if (myToken !== quizPhotoToken) return;       // 다음 문제로 넘어갔으면 중단
-      if (i >= cands.length) {
-        box.innerHTML = '<div class="ph">📷<br>No photo<br>(' + escapeHtml(plu) + ')</div>';
-        return;
-      }
-      const src = encodeURI(cands[i]);
-      const probe = new Image();
-      probe.onload = () => {
-        if (myToken !== quizPhotoToken) return;
-        box.innerHTML = '';
-        const img = document.createElement('img');
-        img.alt = '';
-        img.src = src;
-        box.appendChild(img);
-      };
-      probe.onerror = () => { i++; tryNext(); };
-      probe.src = src;
-    };
-    tryNext();
-  }
-
-  function checkQuizAnswer() {
-    if (quizAnswered || !quizCurrent) return;
-    const raw = $('pluQuizAnswer').value.trim();
-    if (raw === '') return;
-    const entered = parseInt(raw, 10);
-    // 같은 한글명을 가진 항목 중 PLU가 일치하면 정답 (동일 이름 중복 대비)
-    const correct = quizPool.some(r => r.kor === quizCurrent.kor && parseInt(r.plu, 10) === entered);
-    const fb = $('pluQuizFeedback');
-    if (correct) {
-      quizAnswered = true;
-      quizCorrectCount++;
-      fb.textContent = '✅ Correct!';
-      fb.className = 'plu-quiz-feedback ok';
-      $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
-      $('pluQuizAnswer').disabled = true;
-      setTimeout(nextQuizQuestion, 900); // 정답이면 계속 다음 문제로
-    } else {
-      fb.textContent = '❌ Wrong! Try again';
-      fb.className = 'plu-quiz-feedback no';
-      const ans = $('pluQuizAnswer');
-      ans.value = '';   // 엔터 후 처음부터 다시 입력
-      ans.focus();
-    }
-  }
-
-  function updateQuizToggleLabel() {
-    $('pluQuizToggle').textContent = quizCat === 'veg' ? '🍎 FRUITS' : '🥬 VEGETABLES';
-  }
-
-  // 종목 전환 (야채 ↔ 과일) 후 새 퀴즈 시작
-  function switchQuizCat() {
-    quizCat = quizCat === 'veg' ? 'fruit' : 'veg';
-    startPluQuiz();
-  }
-
-  // PLU 보기: 현재 상품의 PLU를 1초 보여주고 다음 문제로
-  function revealQuizPlu() {
-    if (!quizCurrent || quizAnswered) return;
-    quizAnswered = true;
-    const fb = $('pluQuizFeedback');
-    fb.textContent = '💡 PLU: ' + quizCurrent.plu;
-    fb.className = 'plu-quiz-feedback hint';
-    $('pluQuizAnswer').disabled = true;
-    setTimeout(nextQuizQuestion, 1000);
-  }
-
-  // 퀴즈 이벤트 연결
-  $('pluMemorizeBtn').onclick = () => openPluQuiz();
-  $('pluQuizClose').onclick = () => closePluQuiz();
-  $('pluQuizOverlay').addEventListener('click', e => { if (e.target === $('pluQuizOverlay')) closePluQuiz(); });
-  $('pluQuizVeg').onclick = () => startQuizWith('veg');
-  $('pluQuizFruit').onclick = () => startQuizWith('fruit');
-  $('pluQuizSubmit').onclick = () => checkQuizAnswer();
-  $('pluQuizReveal').onclick = () => revealQuizPlu();
-  $('pluQuizSkip').onclick = () => nextQuizQuestion();
-  $('pluQuizToggle').onclick = () => switchQuizCat();
-  $('pluQuizAnswer').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); checkQuizAnswer(); } });
+  // ===== PLU 외우기 퀴즈 → 별도 페이지(plu-quiz.html)로 분리 =====
+  $('pluMemorizeBtn').onclick = () => { window.location.href = 'plu-quiz.html'; };
 
   // EGMM 메뉴 → ITEM CODE 보기
   function showItemCode() {
