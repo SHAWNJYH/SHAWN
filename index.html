@@ -2598,12 +2598,7 @@
     color: var(--text-dim); font-size: 26px; line-height: 1; cursor: pointer; padding: 4px;
   }
   .plu-quiz-close:hover { color: var(--text); }
-  .plu-quiz-title { font-family: var(--serif); font-size: 26px; font-weight: 700; text-align: center; color: var(--text); }
-  .plu-quiz-start {
-    display: block; margin: 10px auto 22px; border: none; background: var(--accent); color: #fff;
-    border-radius: 9px; padding: 7px 18px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
-  }
-  .plu-quiz-start:hover { background: #2d2d33; }
+  .plu-quiz-title { font-family: var(--serif); font-size: 26px; font-weight: 700; text-align: center; color: var(--text); margin-bottom: 22px; }
   .plu-quiz-modes { display: flex; flex-direction: column; gap: 12px; }
   .plu-quiz-mode {
     border: 1.5px solid var(--border); background: rgba(255,255,255,0.7); color: var(--text);
@@ -2817,11 +2812,10 @@
 
       <!-- 선택 화면 -->
       <div id="pluQuizSelect">
-        <h2 class="plu-quiz-title">PLU 외우기</h2>
-        <button class="plu-quiz-start" id="pluQuizStart">시작하기</button>
+        <h2 class="plu-quiz-title">PLU MEMORIZE</h2>
         <div class="plu-quiz-modes">
-          <button class="plu-quiz-mode active" id="pluQuizVeg">🥬 야채 PLU 외우기</button>
-          <button class="plu-quiz-mode" id="pluQuizFruit">🍎 과일 PLU 외우기</button>
+          <button class="plu-quiz-mode" id="pluQuizVeg">🥬 VEGETABLES</button>
+          <button class="plu-quiz-mode" id="pluQuizFruit">🍎 FRUITS</button>
         </div>
       </div>
 
@@ -2834,18 +2828,17 @@
         <div class="plu-quiz-body">
           <div class="plu-quiz-main">
             <div class="plu-quiz-name" id="pluQuizName"></div>
-            <div class="plu-quiz-kor" id="pluQuizKor"></div>
-            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="PLU 번호 입력" autocomplete="off">
+            <input class="plu-quiz-input" id="pluQuizAnswer" type="number" inputmode="numeric" placeholder="Enter PLU number" autocomplete="off">
             <div class="plu-quiz-feedback" id="pluQuizFeedback"></div>
             <div class="plu-quiz-actions">
-              <button class="plu-quiz-submit" id="pluQuizSubmit">확인</button>
-              <button class="plu-quiz-reveal" id="pluQuizReveal">PLU 보기</button>
-              <button class="plu-quiz-skip" id="pluQuizSkip">다음 ▷</button>
+              <button class="plu-quiz-submit" id="pluQuizSubmit">CHECK</button>
+              <button class="plu-quiz-reveal" id="pluQuizReveal">SHOW PLU</button>
+              <button class="plu-quiz-skip" id="pluQuizSkip">NEXT ▷</button>
             </div>
           </div>
           <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
         </div>
-        <button class="plu-quiz-back" id="pluQuizToggle">🍎 과일 외우기로</button>
+        <button class="plu-quiz-back" id="pluQuizToggle">🍎 FRUITS</button>
       </div>
     </div>
   </div>
@@ -4361,9 +4354,6 @@
   }
 
   function openPluQuiz() {
-    quizCat = 'veg';
-    $('pluQuizVeg').classList.add('active');
-    $('pluQuizFruit').classList.remove('active');
     $('pluQuizSelect').style.display = '';
     $('pluQuizPlay').style.display = 'none';
     $('pluQuizOverlay').classList.add('show');
@@ -4372,10 +4362,10 @@
     $('pluQuizOverlay').classList.remove('show');
   }
 
-  function selectQuizCat(cat) {
+  // 야채/과일 버튼 → 해당 종목으로 바로 시작
+  function startQuizWith(cat) {
     quizCat = cat;
-    $('pluQuizVeg').classList.toggle('active', cat === 'veg');
-    $('pluQuizFruit').classList.toggle('active', cat === 'fruit');
+    startPluQuiz();
   }
 
   function startPluQuiz() {
@@ -4383,17 +4373,17 @@
     loadPluData().then(() => {
       quizPool = buildQuizPool(quizCat);
       if (!quizPool.length) {
-        window.showToast && window.showToast('외울 항목이 없습니다', 'error');
+        window.showToast && window.showToast('No items to quiz', 'error');
         return;
       }
       quizCorrectCount = 0;
-      $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 과일 외우기' : '🥬 야채 외우기';
+      $('pluQuizCat').textContent = quizCat === 'fruit' ? '🍎 FRUITS' : '🥬 VEGETABLES';
       updateQuizToggleLabel();
       $('pluQuizSelect').style.display = 'none';
       $('pluQuizPlay').style.display = '';
       nextQuizQuestion();
     }).catch(() => {
-      window.showToast && window.showToast('CSV를 불러오지 못했습니다', 'error');
+      window.showToast && window.showToast('Failed to load CSV', 'error');
     });
   }
 
@@ -4401,8 +4391,7 @@
     quizAnswered = false;
     quizCurrent = quizPool[Math.floor(Math.random() * quizPool.length)];
     $('pluQuizName').textContent = quizCurrent.eng || quizCurrent.kor;  // 상품명: 영어
-    $('pluQuizKor').textContent = quizCurrent.kor || '';                // 한글 보조
-    $('pluQuizScore').textContent = '맞힌 개수: ' + quizCorrectCount;
+    $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
     const ans = $('pluQuizAnswer');
     ans.value = '';
     ans.disabled = false;
@@ -4421,14 +4410,14 @@
   function loadQuizPhoto(plu) {
     const box = $('pluQuizPhoto');
     const myToken = ++quizPhotoToken;
-    box.innerHTML = '<div class="ph">사진 불러오는 중...</div>';
+    box.innerHTML = '<div class="ph">Loading...</div>';
     const cands = [];
     QUIZ_PHOTO_DIRS.forEach(d => QUIZ_PHOTO_EXTS.forEach(e => cands.push(d + plu + '.' + e)));
     let i = 0;
     const tryNext = () => {
       if (myToken !== quizPhotoToken) return;       // 다음 문제로 넘어갔으면 중단
       if (i >= cands.length) {
-        box.innerHTML = '<div class="ph">📷<br>사진 없음<br>(' + escapeHtml(plu) + ')</div>';
+        box.innerHTML = '<div class="ph">📷<br>No photo<br>(' + escapeHtml(plu) + ')</div>';
         return;
       }
       const src = encodeURI(cands[i]);
@@ -4458,13 +4447,13 @@
     if (correct) {
       quizAnswered = true;
       quizCorrectCount++;
-      fb.textContent = '✅ 정답!';
+      fb.textContent = '✅ Correct!';
       fb.className = 'plu-quiz-feedback ok';
-      $('pluQuizScore').textContent = '맞힌 개수: ' + quizCorrectCount;
+      $('pluQuizScore').textContent = 'Correct: ' + quizCorrectCount;
       $('pluQuizAnswer').disabled = true;
       setTimeout(nextQuizQuestion, 900); // 정답이면 계속 다음 문제로
     } else {
-      fb.textContent = '❌ 오답! 다시 시도해보세요';
+      fb.textContent = '❌ Wrong! Try again';
       fb.className = 'plu-quiz-feedback no';
       const ans = $('pluQuizAnswer');
       ans.value = '';   // 엔터 후 처음부터 다시 입력
@@ -4473,7 +4462,7 @@
   }
 
   function updateQuizToggleLabel() {
-    $('pluQuizToggle').textContent = quizCat === 'veg' ? '🍎 과일 외우기로' : '🥬 야채 외우기로';
+    $('pluQuizToggle').textContent = quizCat === 'veg' ? '🍎 FRUITS' : '🥬 VEGETABLES';
   }
 
   // 종목 전환 (야채 ↔ 과일) 후 새 퀴즈 시작
@@ -4497,9 +4486,8 @@
   $('pluMemorizeBtn').onclick = () => openPluQuiz();
   $('pluQuizClose').onclick = () => closePluQuiz();
   $('pluQuizOverlay').addEventListener('click', e => { if (e.target === $('pluQuizOverlay')) closePluQuiz(); });
-  $('pluQuizVeg').onclick = () => selectQuizCat('veg');
-  $('pluQuizFruit').onclick = () => selectQuizCat('fruit');
-  $('pluQuizStart').onclick = () => startPluQuiz();
+  $('pluQuizVeg').onclick = () => startQuizWith('veg');
+  $('pluQuizFruit').onclick = () => startQuizWith('fruit');
   $('pluQuizSubmit').onclick = () => checkQuizAnswer();
   $('pluQuizReveal').onclick = () => revealQuizPlu();
   $('pluQuizSkip').onclick = () => nextQuizQuestion();
