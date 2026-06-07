@@ -3180,8 +3180,14 @@
   // 모드 전환 버튼
   $('toSignupBtn').onclick = setSignupMode;
   $('toLoginBtn').onclick = setLoginMode;
-  // EGMM 박스 → 별도 페이지(egmm.html)로 이동
-  const enterEgmm = () => { window.location.href = 'egmm.html'; };
+  // EGMM 박스 → 비밀번호 확인 후 별도 페이지(egmm.html)로 이동
+  const EGMM_PASSWORD = '98001';
+  const enterEgmm = () => {
+    const p = prompt('EGMM 비밀번호를 입력하세요');
+    if (p === null) return;
+    if (p === EGMM_PASSWORD) { window.location.href = 'egmm.html'; }
+    else { try { showToast('비밀번호가 올바르지 않습니다', 'error'); } catch (e) { alert('비밀번호가 올바르지 않습니다'); } }
+  };
   $('toOdpBtn').onclick = () => enterEgmm();
   $('toOdpBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
