@@ -567,7 +567,7 @@
     const tryNext = () => {
       if (myToken !== quizPhotoToken) return;
       if (i >= cands.length) {
-        box.innerHTML = '<div class="ph">📷<br>No photo<br>(' + escapeHtml(plu) + ')</div>';
+        box.innerHTML = '<div class="ph">NO PHOTO</div>';
         return;
       }
       const src = encodeURI(cands[i]);
