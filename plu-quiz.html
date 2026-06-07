@@ -245,7 +245,7 @@
     <div>
       <div class="pq-brand">PLU MEMORIZE</div>
     </div>
-    <button class="pq-back" id="pqBack">← 돌아가기</button>
+    <button class="pq-back" id="pqBack">돌아가기</button>
   </div>
 
   <div class="plu-quiz-stage">
@@ -280,8 +280,8 @@
       <!-- 퀴즈 화면 -->
       <div id="pluQuizPlay" style="display:none;">
         <div class="plu-quiz-cattabs">
-          <button class="plu-quiz-cattab" id="pluCatVeg">🥬 VEGETABLES</button>
-          <button class="plu-quiz-cattab" id="pluCatFruit">🍎 FRUITS</button>
+          <button class="plu-quiz-cattab" id="pluCatVeg">VEGETABLES</button>
+          <button class="plu-quiz-cattab" id="pluCatFruit">FRUITS</button>
         </div>
         <div class="plu-quiz-body">
           <div class="plu-quiz-main">
@@ -291,7 +291,7 @@
             <div class="plu-quiz-actions">
               <button class="plu-quiz-submit" id="pluQuizSubmit">CHECK</button>
               <button class="plu-quiz-reveal" id="pluQuizReveal">SHOW PLU</button>
-              <button class="plu-quiz-skip" id="pluQuizSkip">NEXT ▷</button>
+              <button class="plu-quiz-skip" id="pluQuizSkip">NEXT</button>
             </div>
           </div>
           <div class="plu-quiz-photo" id="pluQuizPhoto"></div>
@@ -529,7 +529,7 @@
       quizTimerStarted = false;
       $('pluStatTime').textContent = '00:00';
       updateCatTabs();
-      $('pluQuizPlayer').textContent = '🏬 ' + getStoreName() + '  ·  👤 ' + getPlayerName();
+      $('pluQuizPlayer').textContent = getStoreName() + '  ·  ' + getPlayerName();
       $('pluQuizSelect').style.display = 'none';
       $('pluQuizPlay').style.display = '';
       nextQuizQuestion();
@@ -597,7 +597,7 @@
       quizAnswered = true;
       quizCorrect++;
       updateStats();
-      fb.textContent = '✅ Correct!';
+      fb.textContent = 'Correct!';
       fb.className = 'plu-quiz-feedback ok';
       $('pluQuizAnswer').disabled = true;
       setTimeout(nextQuizQuestion, 900);
@@ -628,7 +628,7 @@
     if (!quizCurrent || quizAnswered) return;
     quizAnswered = true;
     const fb = $('pluQuizFeedback');
-    fb.textContent = '💡 PLU: ' + quizCurrent.plu;
+    fb.textContent = 'PLU: ' + quizCurrent.plu;
     fb.className = 'plu-quiz-feedback hint';
     $('pluQuizAnswer').disabled = true;
     setTimeout(nextQuizQuestion, 1000);
