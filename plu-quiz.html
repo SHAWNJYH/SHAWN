@@ -115,12 +115,28 @@
   /* 선택 화면: 이름 입력 */
   .plu-quiz-name-input {
     display: block; width: 100%; max-width: 440px; margin: 0 auto 16px; text-align: center;
-    padding: 14px; border: 1.5px solid var(--border); border-radius: 12px;
-    font-family: var(--mono); font-size: 17px; font-weight: 700; letter-spacing: 1px;
+    padding: 13px 10px; border: 1.5px solid var(--border); border-radius: 12px;
+    font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
     background: rgba(255,255,255,0.85); color: var(--text); text-transform: uppercase;
   }
   .plu-quiz-name-input:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
   .plu-quiz-name-input::placeholder { color: var(--text-faint); font-weight: 600; }
+  .plu-quiz-store-select {
+    display: block; width: 100%; max-width: 440px; margin: 0 auto 12px; box-sizing: border-box;
+    border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 8px;
+    font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text);
+    background: #fff; cursor: pointer; text-align: center; text-align-last: center;
+  }
+  .plu-quiz-store-select:focus { outline: none; border-color: var(--accent-warm); }
+  /* 매장 + 이름 같은 줄 배치 */
+  .plu-quiz-entry-row { display: flex; flex-wrap: nowrap; gap: 10px; max-width: 560px; margin: 0 auto 12px; }
+  .plu-quiz-entry-row .plu-quiz-store-select,
+  .plu-quiz-entry-row .plu-quiz-name-input { flex: 1 1 0; min-width: 0; max-width: none; margin: 0; }
+  .plu-quiz-entry-hint {
+    text-align: center; font-family: var(--mono); font-size: 10px; font-weight: 700;
+    color: var(--text-dim); text-transform: uppercase; line-height: 1.4;
+    max-width: 560px; margin: 0 auto 20px;
+  }
 
   /* 상단 카테고리 탭 (현재 풀고 있는 카테고리 = 노란 배경) */
   .plu-quiz-cattabs { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -238,7 +254,23 @@
 
       <!-- 선택 화면 -->
       <div id="pluQuizSelect">
-        <input class="plu-quiz-name-input" id="pluQuizPlayerInput" type="text" placeholder="YOUR NAME" autocomplete="off" maxlength="20">
+        <div class="plu-quiz-entry-row">
+          <select class="plu-quiz-store-select" id="pluQuizStore">
+            <option value="">SELECT STORE</option>
+            <option value="TACOMA">TACOMA</option>
+            <option value="FEDERAL WAY">FEDERAL WAY</option>
+            <option value="BELLEVUE">BELLEVUE</option>
+            <option value="BALLARD">BALLARD</option>
+            <option value="REDMOND">REDMOND</option>
+            <option value="LYNNWOOD">LYNNWOOD</option>
+            <option value="G-MART(LYNNWOOD)">G-MART(LYNNWOOD)</option>
+            <option value="MELLOW WAY">MELLOW WAY</option>
+            <option value="DISTRICT-H">DISTRICT-H</option>
+            <option value="M2M">M2M</option>
+          </select>
+          <input class="plu-quiz-name-input" id="pluQuizPlayerInput" type="text" placeholder="YOUR NAME" autocomplete="off" maxlength="20">
+        </div>
+        <div class="plu-quiz-entry-hint">SELECT STORE AND ENTER YOUR NAME, THEN PRESS VEGETABLES OR FRUITS</div>
         <div class="plu-quiz-modes">
           <button class="plu-quiz-mode" id="pluQuizVeg">🥬 VEGETABLES</button>
           <button class="plu-quiz-mode" id="pluQuizFruit">🍎 FRUITS</button>
@@ -412,6 +444,9 @@
   function getPlayerName() {
     return ($('pluQuizPlayerInput').value || '').trim();
   }
+  function getStoreName() {
+    return ($('pluQuizStore') && $('pluQuizStore').value || '').trim();
+  }
 
   function fmtTime(ms) {
     const s = Math.max(0, Math.floor(ms / 1000));
@@ -464,6 +499,11 @@
   }
 
   function startQuizWith(cat) {
+    if (!getStoreName()) {
+      showToast('매장을 선택하세요 (SELECT STORE)', 'error');
+      if ($('pluQuizStore')) $('pluQuizStore').focus();
+      return;
+    }
     if (!getPlayerName()) {
       showToast('PLEASE ENTER YOUR NAME', 'error');
       $('pluQuizPlayerInput').focus();
@@ -489,7 +529,7 @@
       quizTimerStarted = false;
       $('pluStatTime').textContent = '00:00';
       updateCatTabs();
-      $('pluQuizPlayer').textContent = '👤 ' + getPlayerName();
+      $('pluQuizPlayer').textContent = '🏬 ' + getStoreName() + '  ·  👤 ' + getPlayerName();
       $('pluQuizSelect').style.display = 'none';
       $('pluQuizPlay').style.display = '';
       nextQuizQuestion();
