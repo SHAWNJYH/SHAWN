@@ -309,6 +309,7 @@
       <div class="plu-search-col">
         <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
         </div>
+      <button class="plu-req-notify" id="pluReqNotify">🔔 PLU 신청 <span id="pluReqNotifyCount">0</span></button>
     </div>
     <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
     <!-- 작은 탭 + 툴바(오른쪽 끝) 한 줄 -->
@@ -702,6 +703,86 @@
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
     catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
+  });
+})();
+</script>
+<style>
+  .plu-req-notify { display: none; align-self: center; border: 1.5px solid #c0392b; background: #fdecec; color: #b03030; border-radius: 12px; padding: 10px 14px; font-family: var(--mono); font-size: 13px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+  .plu-req-notify.on { display: inline-block; animation: plureqblink 1s ease-in-out infinite; }
+  @keyframes plureqblink { 0%,100% { background:#fdecec; border-color:#c0392b; } 50% { background:#c0392b; color:#fff; border-color:#c0392b; } }
+  .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; }
+  .plureq-ov.show { display: flex; }
+  .plureq-modal { background: #fff; border-radius: 16px; padding: 22px; width: 94%; max-width: 560px; max-height: 88vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .plureq-modal h3 { margin: 0 0 14px; font-size: 18px; color: #1a1a1d; }
+  .plureq-list { display: flex; flex-direction: column; gap: 10px; }
+  .plureq-row { border: 1.5px solid #e5e5e0; border-radius: 12px; padding: 12px 14px; font-size: 13px; }
+  .plureq-row.pending { border-color: #e3a3a3; background: #fffafa; }
+  .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .plureq-row .name { font-weight: 700; color: #1a1a1d; font-size: 14px; }
+  .plureq-row .meta { color: #6b6b72; font-size: 12px; margin-top: 4px; }
+  .plureq-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
+  .plureq-badge.done { background: #e2f3e6; color: #15803d; }
+  .plureq-mgr { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; margin-top: 10px; align-items: center; }
+  .plureq-mgr input { border: 1.5px solid #e5e5e0; border-radius: 8px; padding: 8px 9px; font-family: var(--mono); font-size: 13px; min-width: 0; }
+  .plureq-mgr input:focus { outline: none; border-color: #1e40af; }
+  .plureq-approve { border: none; background: #15803d; color: #fff; border-radius: 9px; padding: 9px 14px; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .plureq-empty { text-align: center; color: #6b6b72; padding: 22px; }
+  .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
+  @media (max-width: 700px){ .plureq-mgr { grid-template-columns: 1fr 1fr; } }
+</style>
+<div class="plureq-ov" id="plureqMgrOv"><div class="plureq-modal">
+  <h3>PLU 신청 내역</h3>
+  <div class="plureq-list" id="rqMgrList"></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqMgrClose">닫기</button></div>
+</div></div>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var REQ_COL = 'plu-requests';
+  var reqs = [];
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function pendingCount(){ var n=0; reqs.forEach(function(r){ if(r.status!=='done') n++; }); return n; }
+  function refreshNotify(){ var b=$('pluReqNotify'), c=$('pluReqNotifyCount'); if(!b) return; var p=pendingCount(); if(c) c.textContent=p; if(p>0) b.classList.add('on'); else b.classList.remove('on'); }
+  function badge(st){ return st==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
+  function renderList(){
+    var el=$('rqMgrList');
+    var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.createdAt||0)-(a.createdAt||0); });
+    el.innerHTML = sorted.length ? sorted.map(function(r){
+      var done=r.status==='done', id=esc(r.__id);
+      var mgr = done ? '<div class="meta">✅ PLU '+esc(r.plu)+(r.mgrKor?(' · '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'
+        : '<div class="plureq-mgr"><input placeholder="PLU 번호" data-f="plu" data-id="'+id+'" value="'+esc(r.plu)+'"><input placeholder="KOR DESC" data-f="mgrKor" data-id="'+id+'" value="'+esc(r.mgrKor||r.kor)+'"><input placeholder="ENG DESC" data-f="mgrEng" data-id="'+id+'" value="'+esc(r.mgrEng||r.eng)+'"><button class="plureq-approve" data-approve="'+id+'">승인</button></div>';
+      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+badge(r.status)+'</div>'+
+        '<div class="meta">🏬 '+esc(r.store)+' · 👤 '+esc(r.requester)+(r.eng?(' · '+esc(r.eng)):'')+(r.origin?(' · 원산지 '+esc(r.origin)):'')+(r.vender?(' · '+esc(r.vender)):'')+(r.price?(' · '+esc(r.price)):'')+'</div>'+
+        mgr+'</div>';
+    }).join('') : '<div class="plureq-empty">신청 내역이 없습니다.</div>';
+  }
+  function openMgr(){ renderList(); $('plureqMgrOv').classList.add('show'); }
+  function closeMgr(){ $('plureqMgrOv').classList.remove('show'); }
+  function approve(id){
+    var r=null; for(var i=0;i<reqs.length;i++){ if(reqs[i].__id===id){ r=reqs[i]; break; } } if(!r) return;
+    var box=$('rqMgrList');
+    var gv=function(fld){ var el=box.querySelector('input[data-id="'+id+'"][data-f="'+fld+'"]'); return el?el.value.trim():''; };
+    var plu=gv('plu'); if(!plu){ alert('PLU 번호를 입력하세요'); return; }
+    var data={ store:r.store||'', requester:r.requester||'', kor:r.kor||'', eng:r.eng||'', origin:r.origin||'', vender:r.vender||'', price:r.price||'', status:'done', plu:plu, mgrKor:gv('mgrKor'), mgrEng:gv('mgrEng'), createdAt:r.createdAt||Date.now(), updatedAt:Date.now() };
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, id), data).then(function(){ if(window.showToast){try{showToast('승인 완료 (DONE)','success');}catch(e){}} }).catch(function(){ alert('승인 실패 — THE SHAWN 로그인/권한을 확인하세요'); }); }
+    catch(e){ alert('승인 실패'); }
+  }
+  document.addEventListener('click', function(e){
+    var t=e.target;
+    if(t.closest && t.closest('#pluReqNotify')){ openMgr(); return; }
+    if(t===$('rqMgrClose')){ closeMgr(); return; }
+    if(t===$('plureqMgrOv')){ closeMgr(); return; }
+    var ap=t.getAttribute && t.getAttribute('data-approve'); if(ap){ approve(ap); }
+  });
+  ready(function(){
+    try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); refreshNotify(); var ov=$('plureqMgrOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
   });
 })();
 </script>

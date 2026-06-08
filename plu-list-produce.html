@@ -443,7 +443,7 @@
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
     var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-list-bar">'+
-        '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
+        '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+
         '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
         '<span class="plu-count" id="pluCount"></span>'+
       '</div>';
@@ -452,6 +452,7 @@
         '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>'+
       '</div>';
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
+    if(window.__reqApply) window.__reqApply();
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
 
     var needCsv = (cat==='청과' && cloud['청과']===undefined && !csvRows);
@@ -522,12 +523,14 @@
       if(pluHideReserve) rows=rows.filter(function(r){ return !/RESERVE/i.test(r.eng); });
       visibleCache=rows;
       var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-list-bar">'+
-          '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
+          '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+
           '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
           '<span class="plu-count">'+rows.length+'개</span>'+
         '</div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+HEAD+'<tbody>'+rowsBaseHTML(rows)+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
+      if(window.__reqApply) window.__reqApply();
+    if(window.__reqApply) window.__reqApply();
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };
     if(!cloudLoaded){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCloud().then(run); }
@@ -544,6 +547,107 @@
   renderTabs();
   onReady(function(){ subscribe(); });
   setTimeout(function(){ if(!cloudLoaded) loadCloud().then(renderContent); }, 2500);
+})();
+</script>
+<style>
+  .plu-req-btn { border-color: #1e40af !important; color: #1e40af; }
+  .plu-req-btn:hover { background: #eaf1fb; }
+  .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; }
+  .plureq-ov.show { display: flex; }
+  .plureq-modal { background: #fff; border-radius: 16px; padding: 22px; width: 94%; max-width: 460px; max-height: 86vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .plureq-modal h3 { margin: 0 0 14px; font-size: 18px; color: #1a1a1d; }
+  .plureq-field { margin-bottom: 10px; }
+  .plureq-field label { display: block; font-size: 12px; font-weight: 700; color: #6b6b72; margin-bottom: 4px; }
+  .plureq-field input, .plureq-field select { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 14px; color: #1a1a1d; background: #fff; }
+  .plureq-field input:focus, .plureq-field select:focus { outline: none; border-color: #1e40af; }
+  .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .plureq-btn.primary { background: #1e40af; color: #fff; }
+  .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
+  .plureq-list { display: flex; flex-direction: column; gap: 8px; }
+  .plureq-row { border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .plureq-row .name { font-weight: 700; color: #1a1a1d; }
+  .plureq-row .meta { color: #6b6b72; font-size: 12px; margin-top: 3px; }
+  .plureq-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
+  .plureq-badge.done { background: #e2f3e6; color: #15803d; }
+  .plureq-empty { text-align: center; color: #6b6b72; padding: 20px; }
+</style>
+<div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
+  <h3>PLU 요청하기</h3>
+  <div class="plureq-field"><label>SELECT STORE</label><select id="rqStore"></select></div>
+  <div class="plureq-field"><label>요청인 (REQUESTER)</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+  <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
+  <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
+  <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
+  <div class="plureq-field"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
+  <div class="plureq-field"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqCancel">취소</button><button class="plureq-btn primary" id="rqSubmit">신청하기</button></div>
+</div></div>
+<div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
+  <h3>요청한 PLU 결과</h3>
+  <div class="plureq-list" id="rqList"></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">닫기</button></div>
+</div></div>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var REQ_COL = 'plu-requests';
+  var STORES = ['TACOMA','FEDERAL WAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART(LYNNWOOD)','MELLOW WAY','DISTRICT-H','M2M'];
+  var reqs = [];
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function applyCount(){ var c=$('pluReqCount'); if(c) c.textContent = reqs.length; }
+  window.__reqApply = applyCount;
+  function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+  function fillStores(){ var sel=$('rqStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
+  function openForm(){ fillStores(); ['rqRequester','rqKor','rqEng','rqOrigin','rqVender','rqPrice'].forEach(function(id){ if($(id)) $(id).value=''; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
+  function closeForm(){ $('plureqFormOv').classList.remove('show'); }
+  function submitReq(){
+    var store=($('rqStore').value||'').trim(), requester=($('rqRequester').value||'').trim();
+    if(!store){ alert('매장을 선택하세요 (SELECT STORE)'); return; }
+    if(!requester){ alert('요청인을 입력하세요'); return; }
+    var data={ store:store, requester:requester, kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(), status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); if(window.showToast){ try{showToast('PLU 요청이 접수되었습니다','success');}catch(e){} } else alert('PLU 요청이 접수되었습니다'); }).catch(function(){ alert('요청 전송 실패 (네트워크/권한 확인)'); }); }
+    catch(e){ alert('요청 전송 실패'); }
+  }
+  function statusBadge(st){ return st==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
+  function openView(){
+    var el=$('rqList');
+    var sorted=reqs.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    el.innerHTML = sorted.length ? sorted.map(function(r){
+      var done=r.status==='done';
+      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
+        '<div class="meta">🏬 '+esc(r.store)+' · 👤 '+esc(r.requester)+(r.eng?(' · '+esc(r.eng)):'')+'</div>'+
+        (done?('<div class="meta">✅ PLU '+esc(r.plu)+(r.mgrKor?(' · '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'):'')+
+      '</div>';
+    }).join('') : '<div class="plureq-empty">요청 내역이 없습니다.</div>';
+    $('plureqViewOv').classList.add('show');
+  }
+  function closeView(){ $('plureqViewOv').classList.remove('show'); }
+
+  // 이벤트 위임 (툴바는 재렌더되므로)
+  document.addEventListener('click', function(e){
+    var t=e.target;
+    if(t.closest && t.closest('#pluReqBtn')){ openForm(); return; }
+    if(t.closest && t.closest('#pluReqViewBtn')){ openView(); return; }
+    if(t===$('rqCancel')){ closeForm(); }
+    if(t===$('rqSubmit')){ submitReq(); }
+    if(t===$('rqViewClose')){ closeView(); }
+    if(t===$('plureqFormOv')){ closeForm(); }
+    if(t===$('plureqViewOv')){ closeView(); }
+  });
+
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); applyCount(); var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+    }catch(e){}
+  });
 })();
 </script>
 </body>
