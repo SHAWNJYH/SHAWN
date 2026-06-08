@@ -157,7 +157,8 @@
     .plu-main-row { flex-direction: column; }
     .plu-cat-side { display: flex; flex: 1 1 auto; flex-direction: row; flex-wrap: wrap; max-height: none; width: 100%; }
     .plu-cat-side .plu-cat-chip { width: auto; }
-    .plu-photo-panel { flex: 1 1 auto; width: 100%; align-items: flex-start; }
+    .plu-screen-row { flex-direction: column; }
+    .plu-photo-panel { flex: 1 1 auto; width: 100%; align-items: flex-start; position: static; }
   }
 
   .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 8px; }
@@ -198,7 +199,10 @@
   .plu-photo-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
   .plu-table td { word-break: break-word; overflow-wrap: anywhere; vertical-align: top; }
   .plu-table td:not(.plu-c-no):not(.plu-c-check):not(.plu-c-photo):not(.plu-c-local):not(.plu-c-organic) { max-width: 130px; }
-  .plu-photo-panel { flex: 0 0 200px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .plu-screen-row { display: flex; align-items: flex-start; gap: 14px; }
+  .plu-main-col { flex: 1 1 auto; min-width: 0; }
+  .plu-photo-panel { flex: 0 0 200px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
+  @media (min-width: 821px) { .page-topbar { padding-right: 246px; } }
   .plu-photo-cap { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text-dim); }
   .plu-photo-frame { width: 200px; height: 200px; max-width: 100%; border: 1.5px solid var(--border); border-radius: 12px; background: var(--bg-elev); display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .plu-photo-frame img { width: 200px; height: 200px; object-fit: cover; display: none; }
@@ -290,6 +294,8 @@
 <div class="egmm-screen">
   <div class="egmm-sub-screen">
 
+    <div class="plu-screen-row">
+      <div class="plu-main-col">
     <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) + 검색창(오른쪽) -->
     <div class="plu-bigbar">
       <div class="plu-tabs" id="pluBigTabs"></div>
@@ -305,6 +311,9 @@
     </div>
     <!-- 내용 영역 -->
     <div class="plu-content" id="pluContent"></div>
+      </div>
+      <div class="plu-photo-panel" id="pluPhotoPanel"><div class="plu-photo-cap" id="pluPhotoCap">사진</div><div class="plu-photo-frame"><img id="pluPhotoImg" alt=""><div class="plu-photo-ph" id="pluPhotoPlaceholder">사진보기 버튼을 누르면<br>여기에 표시됩니다</div></div></div>
+    </div>
   </div>
 </div>
 
@@ -479,7 +488,6 @@
     el.innerHTML='<div class="plu-main-row">'+
         '<div class="plu-cat-side" id="pluCatTabs"></div>'+
         '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>'+
-        '<div class="plu-photo-panel" id="pluPhotoPanel"><div class="plu-photo-cap" id="pluPhotoCap">사진</div><div class="plu-photo-frame"><img id="pluPhotoImg" alt=""><div class="plu-photo-ph" id="pluPhotoPlaceholder">사진보기 버튼을 누르면<br>여기에 표시됩니다</div></div></div>'+
       '</div>';
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
     if(window.__reqApply) window.__reqApply();
