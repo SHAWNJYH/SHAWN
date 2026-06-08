@@ -368,7 +368,7 @@
   function showToast(msg,type){ var t=$('toast'); clearTimeout(toastTimer); t.textContent=msg; t.className='toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='toast '+(type||''); },2500); }
 
   const PLU_TABS=[
-    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시']},
+    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
     {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체']},
     {label:'수산',       subs:['수산원육']},
     {label:'정육',       subs:['정육원육']},
@@ -379,11 +379,11 @@
   function labelOf(docId){ for(var k in DOCID){ if(DOCID[k]===docId) return k; } return docId; }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
-  const BASE=[{key:'plu',label:'PLU'},{key:'local',label:'로컬'},{key:'organic',label:'유기농'},{key:'kor',label:'한글명'},{key:'eng',label:'영문명'},{key:'cate',label:'분류'}];
+  const BASE=[{key:'plu',label:'PLU'},{key:'itemCode1',label:'CODE #1'},{key:'itemCode2',label:'CODE #2'},{key:'local',label:'로컬'},{key:'organic',label:'유기농'},{key:'kor',label:'한글명'},{key:'eng',label:'영문명'},{key:'cate',label:'분류'}];
   const BASE_KEYS=BASE.map(function(b){return b.key;});
   function isBase(key){ return BASE_KEYS.indexOf(key)>=0; }
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); BASE.forEach(function(b){ if(!seen[b.key]){ L.push({key:b.key,label:b.label,hidden:false,type:'text'}); } }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); BASE.forEach(function(b,bi){ if(seen[b.key])return; var pos=L.length, prev=null; for(var k=bi-1;k>=0;k--){ if(seen[BASE[k].key]){ prev=BASE[k].key; break; } } if(prev!=null){ for(var x=0;x<L.length;x++){ if(L[x].key===prev){ pos=x+1; break; } } } else { pos=0; } L.splice(pos,0,{key:b.key,label:b.label,hidden:false,type:'text'}); seen[b.key]=1; }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ return isBase(key) ? (r[key]||'') : ((r.extra&&r.extra[key])||''); }
 
@@ -396,7 +396,7 @@
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : (layoutByCat[curCat()] || defaultLayout([])); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
-  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } return {plu:(r&&r.plu)||'',local:(r&&r.local)||'',organic:(r&&r.organic)||'',kor:(r&&r.kor)||'',eng:(r&&r.eng)||'',cate:(r&&r.cate)||'',extra:e}; }
+  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE_KEYS.forEach(function(k){ o[k]=(r&&r[k])||''; }); return o; }
 
   // ===== CSV (청과 fallback) =====
   let csvRows=null, csvPromise=null;
@@ -729,13 +729,14 @@
         var aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         var header=aoa.length?aoa[0]:[];
         var hasHeader = /plu/i.test(String(header[0]||''));
-        var extraNames = hasHeader ? header.slice(6).map(function(s){return String(s).trim();}).filter(Boolean) : [];
+        var nb=BASE_KEYS.length;
+        var extraNames = hasHeader ? header.slice(nb).map(function(s){return String(s).trim();}).filter(Boolean) : [];
         var start = hasHeader?1:0;
         var rows=[];
         for(var i=start;i<aoa.length;i++){ var c=aoa[i]; if(!c) continue;
           var empty=true; for(var k=0;k<c.length;k++){ if(String(c[k]==null?'':c[k]).trim()!==''){ empty=false; break; } } if(empty) continue;
-          var extra={}; extraNames.forEach(function(n,j){ extra[n]=String(c[6+j]==null?'':c[6+j]).trim(); });
-          rows.push({ plu:String(c[0]==null?'':c[0]).trim(), local:String(c[1]==null?'':c[1]).trim(), organic:String(c[2]==null?'':c[2]).trim(), kor:String(c[3]==null?'':c[3]).trim(), eng:String(c[4]==null?'':c[4]).trim(), cate:String(c[5]==null?'':c[5]).trim(), extra:extra }); }
+          var extra={}; extraNames.forEach(function(n,j){ extra[n]=String(c[nb+j]==null?'':c[nb+j]).trim(); });
+          var row={extra:extra}; BASE_KEYS.forEach(function(k,bi){ row[k]=String(c[bi]==null?'':c[bi]).trim(); }); rows.push(row); }
         if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
         if(!confirm('['+cat+'] 카테고리를 가져온 '+rows.length+'개 행으로 교체하고 Firebase에 저장할까요?'+(extraNames.length?('\n추가 열: '+extraNames.join(', ')):'')+'\n(가져오기 시 열 순서·이름·숨김은 기본값으로 초기화됩니다)')) return;
         var lay=defaultLayout(extraNames);
