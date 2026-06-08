@@ -383,7 +383,7 @@
   const BASE_KEYS=BASE.map(function(b){return b.key;});
   function isBase(key){ return BASE_KEYS.indexOf(key)>=0; }
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); BASE.forEach(function(b,bi){ if(seen[b.key])return; var pos=L.length, prev=null; for(var k=bi-1;k>=0;k--){ if(seen[BASE[k].key]){ prev=BASE[k].key; break; } } if(prev!=null){ for(var x=0;x<L.length;x++){ if(L[x].key===prev){ pos=x+1; break; } } } else { pos=0; } L.splice(pos,0,{key:b.key,label:b.label,hidden:false,type:'text'}); seen[b.key]=1; }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ return isBase(key) ? (r[key]||'') : ((r.extra&&r.extra[key])||''); }
 
@@ -507,7 +507,7 @@
           '<button class="plu-col-btn" data-act="right" data-key="'+escapeHtml(c.key)+'" title="오른쪽으로">▶</button>'+
           '<button class="plu-col-btn" data-act="ren" data-key="'+escapeHtml(c.key)+'" title="이름 변경">✎</button>'+
           '<button class="plu-col-btn" data-act="hide" data-key="'+escapeHtml(c.key)+'" title="'+(c.hidden?'보이기':'숨기기')+'">'+(c.hidden?'🚫':'👁')+'</button>'+
-          (isBase(c.key)?'':'<button class="plu-col-btn del" data-act="del" data-key="'+escapeHtml(c.key)+'" title="열 삭제">✕</button>')+
+          '<button class="plu-col-btn del" data-act="del" data-key="'+escapeHtml(c.key)+'" title="열 삭제">✕</button>'+
         '</span>';
         return '<th class="'+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+'">'+escapeHtml(c.label)+' '+ops+'</th>';
       }).join('');
@@ -696,7 +696,7 @@
       if(act==='left'||act==='right'){ var j=act==='left'?i-1:i+1; if(j<0||j>=workLayout.length) return; var tmp=workLayout[i]; workLayout[i]=workLayout[j]; workLayout[j]=tmp; markDirty(); renderContent(); }
       else if(act==='ren'){ var nw=(prompt('열 이름 변경', workLayout[i].label)||'').trim(); if(!nw||nw===workLayout[i].label) return; workLayout[i].label=nw; markDirty(); renderContent(); }
       else if(act==='hide'){ workLayout[i].hidden=!workLayout[i].hidden; markDirty(); renderContent(); }
-      else if(act==='del'){ if(isBase(key)) return; if(!confirm('["'+workLayout[i].label+'"] 열을 삭제할까요? (모든 행에서 그 칸이 사라집니다)')) return; workLayout.splice(i,1); (work||[]).forEach(function(r){ if(r.extra) delete r.extra[key]; }); markDirty(); renderContent(); }
+      else if(act==='del'){ var __lbl=workLayout[i].label; if(!confirm('["'+__lbl+'"] 열을 삭제하시겠습니까?\n목록에서 이 열이 사라집니다.')) return; if(!confirm('한 번 더 확인합니다.\n정말 ["'+__lbl+'"] 열을 삭제할까요?')) return; workLayout.splice(i,1); if(!isBase(key)){ (work||[]).forEach(function(r){ if(r&&r.extra) delete r.extra[key]; }); } markDirty(); renderContent(); }
     }; }); }
     var tb=$('pluTbody');
     if(tb){
