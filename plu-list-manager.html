@@ -546,23 +546,41 @@
     var img=document.getElementById('pluPhotoImg'), cap=document.getElementById('pluPhotoCap'), ph=document.getElementById('pluPhotoPlaceholder');
     if(!img) return;
     if(cap) cap.textContent='PLU '+plu;
-    img.onerror=function(){ img.style.display='none'; if(ph){ ph.style.display='block'; ph.innerHTML='이미지를 찾을 수 없습니다<br>('+plu+'.jpg)'; } };
-    img.onload=function(){ img.style.display='block'; if(ph) ph.style.display='none'; };
+    var url='image_produce/'+encodeURIComponent(plu)+'.jpg';
+    function ok(){ img.style.display='block'; if(ph) ph.style.display='none'; }
+    function err(){ img.style.display='none'; if(ph){ ph.style.display='block'; ph.innerHTML='이미지를 찾을 수 없습니다<br>('+plu+'.jpg)'; } }
+    img.onload=ok; img.onerror=err;
+    img.style.display='none'; if(ph){ ph.style.display='block'; ph.innerHTML='불러오는 중...'; }
+    img.removeAttribute('src'); img.src=url;
+    if(img.complete){ if(img.naturalWidth>0) ok(); else err(); }
   };
-  var __photoCache={};
+  var __photoCache={}, __photoQueue=[], __photoActive=0, __PHOTO_MAX=3;
+  function __photoPump(){
+    while(__photoActive<__PHOTO_MAX && __photoQueue.length){
+      (function(plu){
+        __photoActive++;
+        var im=new Image();
+        var fin=function(okk){ __photoCache[plu]=okk; __photoActive--;
+          var all=document.querySelectorAll('.plu-photo-btn[data-plu="'+plu+'"]');
+          for(var k=0;k<all.length;k++){ if(okk) all[k].classList.add('has-photo'); all[k].removeAttribute('data-probing'); }
+          __photoPump();
+        };
+        im.onload=function(){ fin(true); };
+        im.onerror=function(){ fin(false); };
+        im.src='image_produce/'+encodeURIComponent(plu)+'.jpg';
+      })(__photoQueue.shift());
+    }
+  }
   function refreshPhotoIcons(){
     var btns=document.querySelectorAll('.plu-photo-btn[data-plu]');
-    for(var i=0;i<btns.length;i++){ (function(b){
-      var plu=b.getAttribute('data-plu'); if(!plu) return;
-      if(__photoCache[plu]===true){ b.classList.add('has-photo'); return; }
-      if(__photoCache[plu]===false){ b.classList.remove('has-photo'); return; }
-      if(b.getAttribute('data-probing')) return;
-      b.setAttribute('data-probing','1');
-      var im=new Image();
-      im.onload=function(){ __photoCache[plu]=true; var all=document.querySelectorAll('.plu-photo-btn[data-plu="'+plu+'"]'); for(var k=0;k<all.length;k++){ all[k].classList.add('has-photo'); all[k].removeAttribute('data-probing'); } };
-      im.onerror=function(){ __photoCache[plu]=false; var all=document.querySelectorAll('.plu-photo-btn[data-plu="'+plu+'"]'); for(var k=0;k<all.length;k++){ all[k].removeAttribute('data-probing'); } };
-      im.src='image_produce/'+encodeURIComponent(plu)+'.jpg';
-    })(btns[i]); }
+    for(var i=0;i<btns.length;i++){
+      var b=btns[i], plu=b.getAttribute('data-plu'); if(!plu) continue;
+      if(__photoCache[plu]===true){ b.classList.add('has-photo'); continue; }
+      if(__photoCache[plu]===false){ b.classList.remove('has-photo'); continue; }
+      if(b.getAttribute('data-probing')) continue;
+      b.setAttribute('data-probing','1'); __photoQueue.push(plu);
+    }
+    __photoPump();
   }
   (function(){
     function setup(){ var root=document.getElementById('pluContent'); if(!root){ return; } try{ new MutationObserver(function(){ refreshPhotoIcons(); }).observe(root,{childList:true,subtree:true}); }catch(e){} refreshPhotoIcons(); }
