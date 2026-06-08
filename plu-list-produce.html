@@ -573,15 +573,11 @@
   .plureq-section-title { font-size: 14px; font-weight: 800; color: #1e40af; margin-bottom: 10px; letter-spacing: .2px; }
   #plureqFormOv .plureq-modal { text-transform: uppercase; }
   #plureqFormOv .plureq-modal input, #plureqFormOv .plureq-modal select, #plureqFormOv .plureq-modal textarea { text-transform: none; }
-  .plureq-storage-row { display: flex; align-items: flex-end; gap: 10px; }
-  .plureq-checks { display: flex; gap: 8px; flex: 1 1 auto; }
-  .plureq-check { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 700; color: #1a1a1d; cursor: pointer; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 8px; }
-  .plureq-check input { width: 18px; height: 18px; cursor: pointer; }
-  .plureq-tare-inline { flex: 0 0 132px; }
-  .plureq-tare-inline label { display: block; font-size: 13px; font-weight: 700; color: #6b6b72; margin-bottom: 4px; }
-  .plureq-inline { display: flex; align-items: center; gap: 10px; }
-  .plureq-inline label { margin-bottom: 0; flex: 0 0 116px; }
-  .plureq-inline input { flex: 1 1 auto; width: auto; }
+  .plureq-checks { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 0 6px; }
+  .plureq-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #1a1a1d; cursor: pointer; }
+  .plureq-check input { width: 16px; height: 16px; cursor: pointer; }
+  .plureq-3col { display: flex; gap: 10px; }
+  .plureq-col { flex: 1 1 0; min-width: 0; }
   .plureq-memo { resize: vertical; min-height: 84px; line-height: 1.5; }
   .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
   .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 14px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
@@ -610,18 +606,16 @@
   <hr class="plureq-divider">
   <div class="plureq-section-title">Additional info for DELI PLU requests</div>
   <div class="plureq-field"><label>INGREDIENTS (English only)</label><input id="rqIngredients" maxlength="200" autocomplete="off"></div>
-  <div class="plureq-field">
-    <div class="plureq-storage-row">
-      <div class="plureq-checks">
-        <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
-        <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
-        <label class="plureq-check"><input type="checkbox" id="rqAmbient"> AMBIENT</label>
-      </div>
-      <div class="plureq-tare-inline"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
-    </div>
+  <div class="plureq-checks">
+    <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
+    <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
+    <label class="plureq-check"><input type="checkbox" id="rqAmbient"> AMBIENT</label>
   </div>
-  <div class="plureq-field plureq-inline"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
-  <div class="plureq-field plureq-inline"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+  <div class="plureq-3col">
+    <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
+    <div class="plureq-field plureq-col"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
+    <div class="plureq-field plureq-col"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+  </div>
 
   <hr class="plureq-divider">
   <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="4" autocomplete="off"></textarea></div>
