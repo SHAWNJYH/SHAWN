@@ -118,6 +118,9 @@
   }
   .plu-subtab:hover { border-color: var(--accent-warm); color: var(--text); }
   .plu-subtab.active { background: #1e40af; border-color: #1e40af; color: #fff; font-weight: 700; }
+  .plu-subtab-temp { background: #fdecec; border-color: #e3a3a3; color: #b04141; }
+  .plu-subtab-temp:hover { border-color: #c0392b; color: #c0392b; }
+  .plu-subtab-temp.active { background: #c0392b; border-color: #c0392b; color: #fff; }
 
   .plu-content {
     background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 16px;
@@ -341,8 +344,8 @@
   function showToast(msg,type){ var t=$('toast'); clearTimeout(toastTimer); t.textContent=msg; t.className='toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='toast '+(type||''); },2500); }
 
   const PLU_TABS=[
-    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농']},
-    {label:'델리',       subs:[]},
+    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시']},
+    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체']},
     {label:'수산',       subs:['수산원육']},
     {label:'정육',       subs:['정육원육']},
     {label:'하우스웨어', subs:['주방용품','전자제품','기타']}
@@ -447,7 +450,7 @@
   function rowsFor(cat){ return cloud[cat]!==undefined ? cloud[cat] : baseRows(cat); }
   function rangeFor(big,sub){
     if(big!=='청과') return null;
-    var R={ '야채':[1000,1999], '과일':[2000,2999], '로컬':[10000,12999], '글로벌':[3000,4999], '박스':[80000,82999], '유기농':[90000,94999] };
+    var R={ '야채':[1000,1999], '과일':[2000,2999], '로컬':[10000,12999], '글로벌':[3000,4999], '박스':[80000,82999], '유기농':[90000,94999], '임시':[13000,14000] };
     var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
   }
 
@@ -461,7 +464,7 @@
   }
   function renderSubTabs(){
     var bar=$('pluSubTabs'); bar.innerHTML='';
-    (PLU_TABS[pluBig].subs||[]).forEach(function(s,i){ var b=document.createElement('button'); b.className='plu-subtab'+(i===pluSub?' active':''); b.textContent=s; b.onclick=function(){ if(!leaveEditGuard())return; clearSearch(); pluSub=i; pluCatFilter=''; renderSubTabs(); }; bar.appendChild(b); });
+    (PLU_TABS[pluBig].subs||[]).forEach(function(s,i){ var b=document.createElement('button'); b.className='plu-subtab'+(i===pluSub?' active':'')+(s==='임시'?' plu-subtab-temp':''); b.textContent=s; b.onclick=function(){ if(!leaveEditGuard())return; clearSearch(); pluSub=i; pluCatFilter=''; renderSubTabs(); }; bar.appendChild(b); });
     renderContent();
   }
 
