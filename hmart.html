@@ -110,13 +110,16 @@
 <body>
   <div class="page-topbar">
     <h1 class="page-title">H-MART</h1>
-    <button class="page-back" id="hmartExitBtn">← 처음으로</button>
+    <button class="page-back" id="hmartExitBtn">← BACK</button>
   </div>
   <div class="hmart-menu">
     <div class="egmm-card">
+      <button class="egmm-menu-btn" id="hmartToListBtn">
+        <span>PLU LIST</span>
+        <span class="egmm-menu-arrow">›</span>
+      </button>
       <button class="egmm-menu-btn" id="hmartToQuizBtn">
-        <span class="egmm-menu-ico" style="background:#fce9f1;">🧠</span>
-        <span>PLU 외우기</span>
+        <span>PLU MEMORIZE</span>
         <span class="egmm-menu-arrow">›</span>
       </button>
     </div>
@@ -126,6 +129,7 @@
 (function(){
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
+  $('hmartToListBtn').onclick = function(){ window.location.href = 'plu-list-produce.html'; };
   $('hmartToQuizBtn').onclick = function(){ window.location.href = 'plu-quiz.html'; };
   $('hmartExitBtn').onclick = function(){ window.location.href = 'index.html'; };
 })();
