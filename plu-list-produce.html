@@ -521,7 +521,7 @@
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
     var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-list-bar">'+
-        '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+
+        '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+/* === PLU 요청/요청결과 버튼 임시 숨김 (복구: 이 주석 기호만 제거) === '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+ */
         '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
         '<span class="plu-count" id="pluCount"></span>'+
       '</div>';
@@ -601,7 +601,7 @@
       if(pluHideReserve) rows=rows.filter(function(r){ return !/RESERVE/i.test(r.eng); });
       visibleCache=rows;
       var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-list-bar">'+
-          '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+
+          '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+/* === PLU 요청/요청결과 버튼 임시 숨김 (복구: 이 주석 기호만 제거) === '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+'<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+ */
           '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
           '<span class="plu-count">'+rows.length+'개</span>'+
         '</div>';
