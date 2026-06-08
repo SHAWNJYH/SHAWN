@@ -268,7 +268,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -281,7 +281,7 @@
   const app = initializeApp(firebaseConfig);
   window.firebaseAuth = getAuth(app);
   window.firebaseDb = getFirestore(app);
-  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, collection, getDocs, onSnapshot };
+  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 <style>
@@ -774,6 +774,16 @@
     try{ fns().setDoc(fns().doc(db(), REQ_COL, id), data).then(function(){ if(window.showToast){try{showToast('승인 완료 (DONE)','success');}catch(e){}} }).catch(function(){ alert('승인 실패 — THE SHAWN 로그인/권한을 확인하세요'); }); }
     catch(e){ alert('승인 실패'); }
   }
+  var purgeTried = {};
+  function purgeOld(){
+    var now=Date.now(), DAY=86400000;
+    reqs.forEach(function(r){
+      if(r.status==='done' && r.updatedAt && (now-r.updatedAt)>DAY && !purgeTried[r.__id]){
+        purgeTried[r.__id]=1;
+        try{ if(fns().deleteDoc) fns().deleteDoc(fns().doc(db(), REQ_COL, r.__id)); }catch(e){}
+      }
+    });
+  }
   document.addEventListener('click', function(e){
     var t=e.target;
     if(t.closest && t.closest('#pluReqNotify')){ openMgr(); return; }
@@ -782,7 +792,7 @@
     var ap=t.getAttribute && t.getAttribute('data-approve'); if(ap){ approve(ap); }
   });
   ready(function(){
-    try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); refreshNotify(); var ov=$('plureqMgrOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
+    try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); refreshNotify(); purgeOld(); var ov=$('plureqMgrOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
   });
 })();
 </script>

@@ -251,7 +251,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -264,7 +264,7 @@
   const app = initializeApp(firebaseConfig);
   window.firebaseAuth = getAuth(app);
   window.firebaseDb = getFirestore(app);
-  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, collection, getDocs, onSnapshot };
+  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 <style>
@@ -552,6 +552,8 @@
 <style>
   .plu-req-btn { border-color: #1e40af !important; color: #1e40af; }
   .plu-req-btn:hover { background: #eaf1fb; }
+  .plu-req-blink { animation: plureqblink2 1s ease-in-out infinite; }
+  @keyframes plureqblink2 { 0%,100% { background:#eaf1fb; } 50% { background:#1e40af; color:#fff; } }
   .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; }
   .plureq-ov.show { display: flex; }
   .plureq-modal { background: #fff; border-radius: 16px; padding: 22px; width: 94%; max-width: 460px; max-height: 86vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
@@ -597,11 +599,12 @@
   var REQ_COL = 'plu-requests';
   var STORES = ['TACOMA','FEDERAL WAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART(LYNNWOOD)','MELLOW WAY','DISTRICT-H','M2M'];
   var reqs = [];
+  var seenDone = {}, hasNew = false, firstSnap = true;
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
   function fns(){ return window.firebaseFns; }
   function db(){ return window.firebaseDb; }
   function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
-  function applyCount(){ var c=$('pluReqCount'); if(c) c.textContent = reqs.length; }
+  function applyCount(){ var c=$('pluReqCount'); if(c) c.textContent = reqs.length; var vb=$('pluReqViewBtn'); if(vb){ if(hasNew) vb.classList.add('plu-req-blink'); else vb.classList.remove('plu-req-blink'); } }
   window.__reqApply = applyCount;
   function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
@@ -618,8 +621,10 @@
   }
   function statusBadge(st){ return st==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
   function openView(){
+    reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
+    hasNew=false; applyCount();
     var el=$('rqList');
-    var sorted=reqs.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
       var done=r.status==='done';
       return '<div class="plureq-row"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
@@ -645,7 +650,10 @@
 
   ready(function(){
     try{
-      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); applyCount(); var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
+        if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
+        else { reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]) hasNew=true; }); }
+        applyCount(); var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
     }catch(e){}
   });
 })();
