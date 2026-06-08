@@ -177,6 +177,23 @@
   .plu-table th.plu-col-check { font-size: 10px; }
   .plu-table td.plu-c-check { color: #15803d; font-weight: 700; }
   .plu-edit-check { width: 16px; height: 16px; cursor: pointer; }
+  /* 일반 열 가로 간격 더 축소 (체크박스 열 제외) */
+  .plu-table thead th:not(.plu-col-check) { padding-left: 6px; padding-right: 6px; }
+  .plu-table tbody td:not(.plu-c-check) { padding-left: 6px; padding-right: 6px; }
+  /* 체크박스 열: 보기 화면에서 빈/체크 모두 박스로 표시 */
+  .plu-table td.plu-c-check .pluchk { font-size: 15px; line-height: 1; color: #15803d; }
+  .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
+  /* 열 추가 형태 선택 팝업 */
+  .plu-modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .plu-modal-ov.show { display: flex; }
+  .plu-modal { background: #fff; border-radius: 16px; padding: 22px; width: 92%; max-width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+  .plu-modal h3 { margin: 0 0 4px; font-size: 17px; color: var(--text); }
+  .plu-modal p { margin: 0 0 16px; font-size: 13px; color: var(--text-dim); }
+  .plu-modal-btns { display: flex; flex-direction: column; gap: 10px; }
+  .plu-modal-choice { border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text); border-radius: 12px; padding: 14px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; text-align: left; }
+  .plu-modal-choice:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
+  .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
   /* RESERVE 행: 전체 회색 */
   .plu-table tbody tr.plu-row-reserve td { color: #a8a8ae; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
@@ -278,6 +295,18 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="plu-modal-ov" id="pluColModal">
+  <div class="plu-modal">
+    <h3>새 열 추가</h3>
+    <p>어떤 형태의 열을 추가할까요?</p>
+    <div class="plu-modal-btns">
+      <button class="plu-modal-choice" id="pluColCheck">☑ 체크박스 열<small>매장 보유 여부 등 O/X 표시 (예: BD·BV·FW)</small></button>
+      <button class="plu-modal-choice" id="pluColText">📝 일반정보 열<small>글자 입력 (예: 원산지, 비고)</small></button>
+    </div>
+    <button class="plu-modal-cancel" id="pluColCancel">취소</button>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -385,7 +414,7 @@
       var docId=DOCID[cat]||cat;
       var lay=normLayout(layout||defaultLayout([]));
       await fns().setDoc(fns().doc(db(), COL, docId), { rows: rows, layout: lay, fields: extraKeysOf(lay), updatedAt: Date.now() });
-      cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden};});
+      cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':'text')};});
       return true;
     }catch(e){ showToast('저장 실패 — 권한(보안규칙)을 확인하세요','error'); return false; }
   }
@@ -429,10 +458,10 @@
     return '<thead><tr>'+v.map(function(c){ return '<th'+(c.type==='check'?' class="plu-col-check"':'')+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'</tr></thead>';
   }
   function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
-  function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':'plu-c-extra'; }
+  function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':key==='kor'?'':'plu-c-extra'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check">'+(getVal(r,c.key)?'✓':'')+'</td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+    var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check"><span class="pluchk'+(getVal(r,c.key)?'':' off')+'">'+(getVal(r,c.key)?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
     return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+tds+'</tr>';
   }
   function viewRowBaseHTML(r){
@@ -527,6 +556,23 @@
   }
   function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
   function colIndex(key){ for(var i=0;i<workLayout.length;i++){ if(workLayout[i].key===key) return i; } return -1; }
+  function addColumnOfType(type){
+    var name=(prompt('추가할 열 이름을 입력하세요'+(type==='check'?' (예: BD, BV, FW)':' (예: 원산지, 비고)'))||'').trim();
+    if(!name) return;
+    if(colIndex(name)>=0 || isBase(name)){ showToast('이미 있는 열입니다','error'); return; }
+    if(!workLayout) workLayout=[];
+    workLayout.push({key:name,label:name,hidden:false,type:(type==='check'?'check':'text')});
+    markDirty(); renderContent();
+  }
+  function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
+  function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
+  (function wireColModal(){
+    var c=$('pluColCheck'), t=$('pluColText'), x=$('pluColCancel'), ov=$('pluColModal');
+    if(c) c.onclick=function(){ closeColModal(); addColumnOfType('check'); };
+    if(t) t.onclick=function(){ closeColModal(); addColumnOfType('text'); };
+    if(x) x.onclick=function(){ closeColModal(); };
+    if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) closeColModal(); });
+  })();
 
   function bindToolbar(){
     var cat=curCat(); var el=$('pluContent');
@@ -535,13 +581,7 @@
     var impIn=$('pluImportInput'); if(impIn) impIn.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) importXlsx(f); e.target.value=''; };
     var ed=$('pluEditBtn'); if(ed) ed.onclick=function(){ if(!editMode){ enterEdit(); } else { if(leaveEditGuard()) renderContent(); } };
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
-    var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){
-      var name=(prompt('추가할 열(필드) 이름을 입력하세요 (예: 원산지, BD, BV, FW)')||'').trim();
-      if(!name) return;
-      if(colIndex(name)>=0 || isBase(name)){ showToast('이미 있는 열입니다','error'); return; }
-      var isChk=confirm('체크박스(O/X) 열로 만들까요?\n\n[확인] = 체크박스 열 (매장 보유 여부 등)\n[취소] = 일반 텍스트 열');
-      workLayout.push({key:name,label:name,hidden:false,type:(isChk?'check':'text')}); markDirty(); renderContent();
-    };
+    var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
     var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveCat(cat, work||[], workLayout||[]); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
     // 열 조작 버튼 (이동/이름변경/숨김/삭제)

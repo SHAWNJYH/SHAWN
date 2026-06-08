@@ -175,6 +175,10 @@
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width: 30px; padding: 6px 3px; text-align: center; white-space: nowrap; }
   .plu-table th.plu-col-check { font-size: 10px; }
   .plu-table td.plu-c-check { color: #15803d; font-weight: 700; }
+  .plu-table thead th:not(.plu-col-check) { padding-left: 6px; padding-right: 6px; }
+  .plu-table tbody td:not(.plu-c-check) { padding-left: 6px; padding-right: 6px; }
+  .plu-table td.plu-c-check .pluchk { font-size: 15px; line-height: 1; color: #15803d; }
+  .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
   /* RESERVE 행: 전체 회색 */
   .plu-table tbody tr.plu-row-reserve td { color: #a8a8ae; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
@@ -377,7 +381,7 @@
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
   function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); BASE.forEach(function(b){ if(!seen[b.key]){ L.push({key:b.key,label:b.label,hidden:false,type:'text'}); } }); return L; }
   function getVal(r,key){ return isBase(key) ? (r[key]||'') : ((r.extra&&r.extra[key])||''); }
-  function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':'plu-c-extra'; }
+  function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':key==='kor'?'':'plu-c-extra'; }
   function curLayout(){ return layoutByCat[curCat()] || defaultLayout([]); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
   function headHTML(){ var v=visibleCols(); return '<thead><tr>'+v.map(function(c){return '<th'+(c.type==='check'?' class="plu-col-check"':'')+'>'+escapeHtml(c.label)+'</th>';}).join('')+'</tr></thead>'; }
@@ -386,7 +390,7 @@
   function rowsHTML(rows){
     var v=visibleCols();
     return rows.map(function(r){
-      var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check">'+(getVal(r,c.key)?'✓':'')+'</td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+      var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check"><span class="pluchk'+(getVal(r,c.key)?'':' off')+'">'+(getVal(r,c.key)?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
       return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+tds+'</tr>';
     }).join('') || '<tr><td colspan="'+v.length+'" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
   }
