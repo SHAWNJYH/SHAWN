@@ -117,7 +117,7 @@
     font-weight: 600; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
   }
   .plu-subtab:hover { border-color: var(--accent-warm); color: var(--text); }
-  .plu-subtab.active { background: var(--accent-soft); border-color: var(--accent-warm); color: var(--text); font-weight: 700; }
+  .plu-subtab.active { background: #1e40af; border-color: #1e40af; color: #fff; font-weight: 700; }
 
   .plu-content {
     background: var(--bg-elev); border: 1.5px solid var(--border); border-radius: 16px;
@@ -136,7 +136,7 @@
   /* 표 + 좌측 분류 사이드바 2단 배치 */
   .plu-main-row { display: flex; align-items: flex-start; gap: 14px; }
   .plu-cat-side {
-    flex: 0 0 220px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start;
+    flex: 0 0 176px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start;
     max-height: calc((100vh - 270px) * 1.5); overflow: auto;
     padding-right: 2px;
   }
@@ -144,9 +144,9 @@
   .plu-main-row .plu-table-wrap { flex: 1 1 auto; min-width: 0; }
   .plu-cat-chip {
     width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 9px; padding: 7px 6px; font-family: var(--mono); font-size: 12px; font-weight: 600;
-    cursor: pointer; text-align: center; white-space: normal; word-break: keep-all; line-height: 1.25;
-    overflow: visible; text-overflow: clip; min-height: 32px;
+    border-radius: 8px; padding: 6px 4px; font-family: var(--mono); font-size: 11px; font-weight: 600;
+    cursor: pointer; text-align: center; white-space: normal; word-break: keep-all; line-height: 1.2;
+    overflow: visible; text-overflow: clip; min-height: 28px;
     transition: background .12s, border-color .12s, color .12s;
   }
   .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
@@ -158,6 +158,7 @@
   }
 
   .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 8px; }
+  .plu-toolbar-slot { margin: 2px 0 10px; }
   .plu-search {
     flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
     border-radius: 10px; font-family: var(--mono); font-size: 15px; background: var(--bg-elev); color: var(--text);
@@ -173,12 +174,12 @@
   }
   .plu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .plu-table thead th {
-    position: sticky; top: 0; z-index: 1; background: var(--bg-elev-2); color: var(--text-dim);
+    position: sticky; top: 0; z-index: 1; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left;
     padding: 9px 9px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
   }
   .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
-  .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
+  .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
   .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
   .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
@@ -211,7 +212,7 @@
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
   /* RESERVE 행: 전체 회색 */
-  .plu-table tbody tr.plu-row-reserve td { color: #a8a8ae; font-weight: 400; }
+  .plu-table tbody tr.plu-row-reserve td { color: #cfcfd4; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
 
   .plu-upload-btn {
@@ -303,6 +304,8 @@
         <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
         </div>
     </div>
+    <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
+    <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
     <!-- 작은 탭 (선택한 큰 탭에 따라 바뀜) -->
     <div class="plu-subtabs" id="pluSubTabs"></div>
     <!-- 내용 영역 -->
@@ -515,9 +518,8 @@
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
-    el.innerHTML='<div class="plu-list-head"><div class="plu-content-crumb">'+escapeHtml(crumb)+'</div></div>'+
-      toolbarHTML()+
-      '<div class="plu-main-row">'+
+    var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML=toolbarHTML();
+    el.innerHTML='<div class="plu-main-row">'+
       (editMode?'':'<div class="plu-cat-side" id="pluCatTabs"></div>')+
       '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>'+
       '</div>';
@@ -666,9 +668,8 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !/RESERVE/i.test(r.eng); });
       visibleCache=rows;
-      el.innerHTML='<div class="plu-list-head"><div class="plu-content-crumb">통합검색: “'+escapeHtml(term)+'”</div></div>'+
-        '<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>'+
-        '<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
+      var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
+      el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']]; rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
