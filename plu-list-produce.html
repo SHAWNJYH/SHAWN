@@ -156,7 +156,7 @@
 
   .plu-table-wrap {
     border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
-    max-height: calc(100vh - 270px); background: var(--bg-elev);
+    max-height: calc((100vh - 270px) * 1.5); background: var(--bg-elev);
   }
   .plu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .plu-table thead th {
@@ -171,12 +171,14 @@
   .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
   .plu-table tbody td.plu-c-organic { font-family: var(--code); font-weight: 700; color: #15803d; white-space: nowrap; }
   .plu-table tbody td.plu-c-eng { color: var(--text-dim); }
-  .plu-table tbody td.plu-c-cat { color: var(--text-dim); font-size: 12px; }
+  .plu-table tbody td.plu-c-cat { color: var(--text-dim); font-size: 13px; }
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width: 30px; padding: 6px 3px; text-align: center; white-space: nowrap; }
-  .plu-table th.plu-col-check { font-size: 10px; }
+  .plu-table th.plu-col-check { font-size: 11px; }
   .plu-table td.plu-c-check { color: #15803d; font-weight: 700; }
   .plu-table thead th:not(.plu-col-check) { padding-left: 6px; padding-right: 6px; }
   .plu-table tbody td:not(.plu-c-check) { padding-left: 6px; padding-right: 6px; }
+  .plu-table thead th:first-child, .plu-table tbody td:first-child { padding-left: 18px; }
+  .plu-table thead th:last-child, .plu-table tbody td:last-child { padding-right: 18px; }
   .plu-table td.plu-c-check .pluchk { font-size: 15px; line-height: 1; color: #15803d; }
   .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
   /* RESERVE 행: 전체 회색 */
@@ -197,7 +199,7 @@
     .plu-c-eng, .plu-c-cat,
     .plu-table thead th:nth-child(5),
     .plu-table thead th:nth-child(6) { display: none; }
-    .plu-table-wrap { max-height: calc(100vh - 300px); }
+    .plu-table-wrap { max-height: calc((100vh - 300px) * 1.5); }
   }
   @media (max-width: 760px) {
     .egmm-sub-screen { padding: 16px 12px 40px; }
@@ -247,7 +249,7 @@
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 <style>
-  .plu-table tbody td.plu-c-extra { color:var(--text-dim); font-size:12px; }
+  .plu-table tbody td.plu-c-extra { color:var(--text-dim); font-size:13px; }
 </style>
 </head>
 <body>
