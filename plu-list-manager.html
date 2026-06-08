@@ -158,6 +158,7 @@
     .plu-cat-side { display: flex; flex: 1 1 auto; flex-direction: row; flex-wrap: wrap; max-height: none; width: 100%; }
     .plu-cat-side .plu-cat-chip { width: auto; }
     .plu-screen-row { flex-direction: column; }
+    .plu-bars-col { width: 100%; }
     .plu-photo-panel { flex: 1 1 auto; width: 100%; align-items: flex-start; position: static; }
   }
 
@@ -196,12 +197,15 @@
   /* 체크박스(매장 약자) 열: 아주 좁게 */
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width: 30px; padding: 6px 3px; text-align: center; white-space: nowrap; }
   .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width: 46px; padding: 6px 4px; text-align: center; white-space: nowrap; }
-  .plu-photo-btn { border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text); border-radius: 6px; padding: 2px 7px; cursor: pointer; font-size: 13px; line-height: 1; }
-  .plu-photo-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
+  .plu-photo-btn { border: none; background: none; padding: 2px; cursor: pointer; font-size: 17px; line-height: 1; filter: grayscale(100%); opacity: 0.4; transition: filter .12s, opacity .12s, transform .12s; }
+  .plu-photo-btn:hover { opacity: 0.7; }
+  .plu-photo-btn.has-photo { filter: none; opacity: 1; }
+  .plu-photo-btn.has-photo:hover { transform: scale(1.12); }
   .plu-table td { word-break: break-word; overflow-wrap: anywhere; vertical-align: top; }
   .plu-table td:not(.plu-c-no):not(.plu-c-check):not(.plu-c-photo):not(.plu-c-local):not(.plu-c-organic) { max-width: 130px; }
   .plu-screen-row { display: flex; align-items: flex-start; gap: 14px; }
-  .plu-main-col { flex: 1 1 auto; min-width: 0; }
+  .plu-bars-col { width: calc(100% - 214px); }
+  #pluContent { flex: 1 1 auto; min-width: 0; }
   .plu-photo-panel { flex: 0 0 200px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
   @media (min-width: 821px) { .page-topbar { padding-right: 246px; } }
   .plu-photo-cap { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text-dim); }
@@ -317,8 +321,7 @@
 <div class="egmm-screen">
   <div class="egmm-sub-screen">
 
-    <div class="plu-screen-row">
-      <div class="plu-main-col">
+    <div class="plu-bars-col">
     <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) + 검색창(오른쪽) -->
     <div class="plu-bigbar">
       <div class="plu-tabs" id="pluBigTabs"></div>
@@ -333,9 +336,10 @@
       <div class="plu-subtabs" id="pluSubTabs"></div>
       <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
     </div>
-    <!-- 내용 영역 -->
-    <div class="plu-content" id="pluContent"></div>
-      </div>
+    </div>
+    <!-- 표 + 사진 패널 (같은 줄) -->
+    <div class="plu-screen-row">
+      <div class="plu-content" id="pluContent"></div>
       <div class="plu-photo-panel" id="pluPhotoPanel"><div class="plu-photo-cap" id="pluPhotoCap">사진</div><div class="plu-photo-frame"><img id="pluPhotoImg" alt=""><div class="plu-photo-ph" id="pluPhotoPlaceholder">사진보기 버튼을 누르면<br>여기에 표시됩니다</div></div></div>
     </div>
   </div>
@@ -514,7 +518,7 @@
   }
   function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
   function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':key==='kor'?'':'plu-c-extra'; }
-  function photoCellHTML(r){ var p=(r.plu!=null?String(r.plu):'').trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" onclick="showPluPhoto(\''+p+'\')" title="사진보기">📷</button>'):'')+'</td>'; }
+  function photoCellHTML(r){ var p=(r.plu!=null?String(r.plu):'').trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" onclick="showPluPhoto(\''+p+'\')" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
     var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check"><span class="pluchk'+(getVal(r,c.key)?'':' off')+'">'+(getVal(r,c.key)?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
@@ -544,8 +548,26 @@
     if(cap) cap.textContent='PLU '+plu;
     img.onerror=function(){ img.style.display='none'; if(ph){ ph.style.display='block'; ph.innerHTML='이미지를 찾을 수 없습니다<br>('+plu+'.jpg)'; } };
     img.onload=function(){ img.style.display='block'; if(ph) ph.style.display='none'; };
-    img.src='image_produce/'+encodeURIComponent(plu)+'.jpg';
   };
+  var __photoCache={};
+  function refreshPhotoIcons(){
+    var btns=document.querySelectorAll('.plu-photo-btn[data-plu]');
+    for(var i=0;i<btns.length;i++){ (function(b){
+      var plu=b.getAttribute('data-plu'); if(!plu) return;
+      if(__photoCache[plu]===true){ b.classList.add('has-photo'); return; }
+      if(__photoCache[plu]===false){ b.classList.remove('has-photo'); return; }
+      if(b.getAttribute('data-probing')) return;
+      b.setAttribute('data-probing','1');
+      var im=new Image();
+      im.onload=function(){ __photoCache[plu]=true; var all=document.querySelectorAll('.plu-photo-btn[data-plu="'+plu+'"]'); for(var k=0;k<all.length;k++){ all[k].classList.add('has-photo'); all[k].removeAttribute('data-probing'); } };
+      im.onerror=function(){ __photoCache[plu]=false; var all=document.querySelectorAll('.plu-photo-btn[data-plu="'+plu+'"]'); for(var k=0;k<all.length;k++){ all[k].removeAttribute('data-probing'); } };
+      im.src='image_produce/'+encodeURIComponent(plu)+'.jpg';
+    })(btns[i]); }
+  }
+  (function(){
+    function setup(){ var root=document.getElementById('pluContent'); if(!root){ return; } try{ new MutationObserver(function(){ refreshPhotoIcons(); }).observe(root,{childList:true,subtree:true}); }catch(e){} refreshPhotoIcons(); }
+    if(document.readyState!=='loading') setup(); else document.addEventListener('DOMContentLoaded',setup);
+  })();
 
   function toolbarHTML(){
     return '<div class="plu-tools">'+
