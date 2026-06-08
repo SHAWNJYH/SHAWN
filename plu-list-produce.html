@@ -158,20 +158,23 @@
     border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
     max-height: calc(100vh - 270px); background: var(--bg-elev);
   }
-  .plu-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .plu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .plu-table thead th {
     position: sticky; top: 0; z-index: 1; background: var(--bg-elev-2); color: var(--text-dim);
-    font-family: var(--mono); font-size: 12px; font-weight: 700; text-align: left;
-    padding: 11px 14px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
+    font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left;
+    padding: 9px 9px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
   }
-  .plu-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
   .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
   .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 700; color: #1e40af; white-space: nowrap; }
   .plu-table tbody td.plu-c-organic { font-family: var(--code); font-weight: 700; color: #15803d; white-space: nowrap; }
   .plu-table tbody td.plu-c-eng { color: var(--text-dim); }
-  .plu-table tbody td.plu-c-cat { color: var(--text-dim); font-size: 13px; }
+  .plu-table tbody td.plu-c-cat { color: var(--text-dim); font-size: 12px; }
+  .plu-table th.plu-col-check, .plu-table td.plu-c-check { width: 30px; padding: 6px 3px; text-align: center; white-space: nowrap; }
+  .plu-table th.plu-col-check { font-size: 10px; }
+  .plu-table td.plu-c-check { color: #15803d; font-weight: 700; }
   /* RESERVE 행: 전체 회색 */
   .plu-table tbody tr.plu-row-reserve td { color: #a8a8ae; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
@@ -223,7 +226,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -236,11 +239,11 @@
   const app = initializeApp(firebaseConfig);
   window.firebaseAuth = getAuth(app);
   window.firebaseDb = getFirestore(app);
-  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, collection, getDocs };
+  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, collection, getDocs, onSnapshot };
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 <style>
-  .plu-table tbody td.plu-c-extra { color:var(--text-dim); font-size:13px; }
+  .plu-table tbody td.plu-c-extra { color:var(--text-dim); font-size:12px; }
 </style>
 </head>
 <body>
@@ -323,14 +326,31 @@
   function db(){ return window.firebaseDb; }
   function onReady(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
   async function loadCloud(){
-    if(!window.firebaseFns){ return; }   // Firebase 아직 준비 안 됨 → 다음 기회에 재시도(cloudLoaded 유지 false)
+    if(!window.firebaseFns){ return; }
     try{
       var snap=await fns().getDocs(fns().collection(db(), COL));
-      cloud={}; layoutByCat={};
-      snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); });
-    }catch(e){ cloud={}; layoutByCat={}; }
-    cloudLoaded=true;
+      applySnap(snap);
+    }catch(e){ cloud={}; layoutByCat={}; cloudLoaded=true; }
     if(cloud['청과']===undefined){ try{ await loadCsv(); }catch(e){} }
+  }
+  function applySnap(snap){
+    cloud={}; layoutByCat={};
+    snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); });
+    cloudLoaded=true;
+  }
+  // 실시간 구독: 매니저에서 저장하면 EGMM 보기도 즉시 갱신
+  var subscribed=false, unsub=null;
+  function subscribe(){
+    if(subscribed) return;
+    if(!window.firebaseFns || !window.firebaseFns.onSnapshot){ loadCloud().then(renderContent); return; }
+    subscribed=true;
+    try{
+      unsub=fns().onSnapshot(fns().collection(db(), COL), function(snap){
+        applySnap(snap);
+        if(cloud['청과']===undefined && !csvRows){ loadCsv().then(renderContent).catch(renderContent); }
+        else renderContent();
+      }, function(err){ subscribed=false; if(!cloudLoaded) loadCloud().then(renderContent); });
+    }catch(e){ subscribed=false; if(!cloudLoaded) loadCloud().then(renderContent); }
   }
 
   function baseRows(cat){ return cat==='청과' ? (csvRows||[]) : []; }
@@ -354,19 +374,19 @@
   const BASE=[{key:'plu',label:'PLU'},{key:'local',label:'로컬'},{key:'organic',label:'유기농'},{key:'kor',label:'한글명'},{key:'eng',label:'영문명'},{key:'cate',label:'분류'}];
   const BASE_KEYS=BASE.map(function(b){return b.key;});
   function isBase(key){ return BASE_KEYS.indexOf(key)>=0; }
-  function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false}); }); return L; }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden}); }); BASE.forEach(function(b){ if(!seen[b.key]){ L.push({key:b.key,label:b.label,hidden:false}); } }); return L; }
+  function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); BASE.forEach(function(b){ if(!seen[b.key]){ L.push({key:b.key,label:b.label,hidden:false,type:'text'}); } }); return L; }
   function getVal(r,key){ return isBase(key) ? (r[key]||'') : ((r.extra&&r.extra[key])||''); }
   function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':'plu-c-extra'; }
   function curLayout(){ return layoutByCat[curCat()] || defaultLayout([]); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
-  function headHTML(){ var v=visibleCols(); return '<thead><tr>'+v.map(function(c){return '<th>'+escapeHtml(c.label)+'</th>';}).join('')+'</tr></thead>'; }
+  function headHTML(){ var v=visibleCols(); return '<thead><tr>'+v.map(function(c){return '<th'+(c.type==='check'?' class="plu-col-check"':'')+'>'+escapeHtml(c.label)+'</th>';}).join('')+'</tr></thead>'; }
   const HEAD='<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>';
   function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
   function rowsHTML(rows){
     var v=visibleCols();
     return rows.map(function(r){
-      var tds=v.map(function(c){ return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+      var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check">'+(getVal(r,c.key)?'✓':'')+'</td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
       return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+tds+'</tr>';
     }).join('') || '<tr><td colspan="'+v.length+'" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
   }
@@ -452,7 +472,7 @@
     if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
     var v=visibleCols();
     var aoa=[v.map(function(c){return c.label;})];
-    rows.forEach(function(r){ aoa.push(v.map(function(c){return getVal(r,c.key);})); });
+    rows.forEach(function(r){ aoa.push(v.map(function(c){ var val=getVal(r,c.key); return c.type==='check' ? (val?'O':'') : val; })); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,curCat().substring(0,28));
     var sub=curSub(); var fname='PLU_'+curCat()+(sub?'_'+sub:'')+'.xlsx';
@@ -489,8 +509,8 @@
 
   // ===== 시작 =====
   renderTabs();
-  onReady(function(){ if(!cloudLoaded) loadCloud().then(renderContent); });
-  setTimeout(function(){ if(!cloudLoaded) loadCloud().then(renderContent); }, 2000);
+  onReady(function(){ subscribe(); });
+  setTimeout(function(){ if(!cloudLoaded) loadCloud().then(renderContent); }, 2500);
 })();
 </script>
 </body>
