@@ -140,7 +140,7 @@
   .plu-main-row { display: flex; align-items: flex-start; gap: 14px; }
   .plu-cat-side {
     flex: 0 0 176px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; align-content: start;
-    max-height: calc((100vh - 270px) * 1.5); overflow: auto; padding-right: 2px;
+    padding-right: 2px;
   }
   .plu-cat-side:empty { display: none; }
   .plu-main-row .plu-table-wrap { flex: 1 1 auto; min-width: 0; }
@@ -328,14 +328,22 @@
   // ===== CSV (청과 fallback) =====
   let csvRows=null, csvPromise=null;
   const PLU_CSV_CANDIDATES=['PLU - PRODUCE.csv','PLU_-_PRODUCE.csv','PLU-PRODUCE.csv','PLU - PRODUCE.CSV','PLU_-_PRODUCE.CSV'];
+  function parseCsvLine(line){
+    var out=[], cur='', q=false;
+    for(var i=0;i<line.length;i++){ var ch=line.charAt(i);
+      if(q){ if(ch==='"'){ if(line.charAt(i+1)==='"'){ cur+='"'; i++; } else { q=false; } } else { cur+=ch; } }
+      else { if(ch===','){ out.push(cur); cur=''; } else if(ch==='"'){ q=true; } else { cur+=ch; } }
+    }
+    out.push(cur); return out;
+  }
   function parseCsv(text){
     text=text.replace(/^\uFEFF/,'');
     var lines=text.split(/\r?\n/).filter(function(l){return l.trim()!=='';});
     lines.shift();
     return lines.map(function(line){
-      var c=line.split(',');
+      var c=parseCsvLine(line);
       var cateKor=(c[6]||'').trim(), cateEng=(c[5]||'').trim();
-      return { plu:(c[0]||'').trim(), local:(c[8]||'').trim(), organic:(c[9]||'').trim(), kor:(c[3]||'').trim(), eng:(c[2]||'').trim(), cate:(cateKor&&cateEng)?(cateKor+' ('+cateEng+')'):(cateKor||cateEng) };
+      return { plu:(c[0]||'').trim(), local:(c[8]||'').trim(), organic:(c[9]||'').trim(), kor:(c[3]||'').trim(), eng:(c[2]||'').trim(), cate:(cateKor&&cateEng)?(cateKor+' ('+cateEng+')'):(cateKor||cateEng), extra:{} };
     });
   }
   function loadCsv(){
@@ -530,7 +538,6 @@
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+HEAD+'<tbody>'+rowsBaseHTML(rows)+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
       if(window.__reqApply) window.__reqApply();
-    if(window.__reqApply) window.__reqApply();
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };
     if(!cloudLoaded){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCloud().then(run); }
@@ -556,22 +563,29 @@
   @keyframes plureqblink2 { 0%,100% { background:#eaf1fb; } 50% { background:#1e40af; color:#fff; } }
   .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; }
   .plureq-ov.show { display: flex; }
-  .plureq-modal { background: #fff; border-radius: 16px; padding: 22px; width: 94%; max-width: 460px; max-height: 86vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
-  .plureq-modal h3 { margin: 0 0 14px; font-size: 18px; color: #1a1a1d; }
+  .plureq-modal { background: #fff; border-radius: 16px; padding: 22px; width: 94%; max-width: 500px; max-height: 86vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .plureq-modal h3 { margin: 0 0 14px; font-size: 20px; color: #1a1a1d; }
   .plureq-field { margin-bottom: 10px; }
-  .plureq-field label { display: block; font-size: 12px; font-weight: 700; color: #6b6b72; margin-bottom: 4px; }
-  .plureq-field input, .plureq-field select { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-family: inherit; font-size: 14px; color: #1a1a1d; background: #fff; }
-  .plureq-field input:focus, .plureq-field select:focus { outline: none; border-color: #1e40af; }
+  .plureq-field label { display: block; font-size: 13px; font-weight: 700; color: #6b6b72; margin-bottom: 4px; }
+  .plureq-field input, .plureq-field select, .plureq-field textarea { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 13px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; }
+  .plureq-field input:focus, .plureq-field select:focus, .plureq-field textarea:focus { outline: none; border-color: #1e40af; }
+  .plureq-divider { border: none; border-top: 1.5px solid #e5e5e0; margin: 16px 0 12px; }
+  .plureq-section-title { font-size: 14px; font-weight: 800; color: #1e40af; margin-bottom: 10px; letter-spacing: .2px; }
+  .plureq-checks { display: flex; flex-wrap: wrap; gap: 16px; padding: 2px 0; }
+  .plureq-check { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: #1a1a1d; cursor: pointer; }
+  .plureq-check input { width: 18px; height: 18px; cursor: pointer; }
+  .plureq-tare input { max-width: 140px; }
+  .plureq-memo { resize: vertical; min-height: 84px; line-height: 1.5; }
   .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
-  .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 14px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
   .plureq-btn.primary { background: #1e40af; color: #fff; }
   .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
   .plureq-list { display: flex; flex-direction: column; gap: 8px; }
-  .plureq-row { border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+  .plureq-row { border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
   .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .plureq-row .name { font-weight: 700; color: #1a1a1d; }
-  .plureq-row .meta { color: #6b6b72; font-size: 12px; margin-top: 3px; }
-  .plureq-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .plureq-row .meta { color: #6b6b72; font-size: 13px; margin-top: 3px; }
+  .plureq-badge { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
   .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
   .plureq-badge.done { background: #e2f3e6; color: #15803d; }
   .plureq-empty { text-align: center; color: #6b6b72; padding: 20px; }
@@ -579,12 +593,30 @@
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
   <h3>PLU 요청하기</h3>
   <div class="plureq-field"><label>SELECT STORE</label><select id="rqStore"></select></div>
-  <div class="plureq-field"><label>요청인 (REQUESTER)</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+  <div class="plureq-field"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
   <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
   <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
   <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
   <div class="plureq-field"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
   <div class="plureq-field"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+
+  <hr class="plureq-divider">
+  <div class="plureq-section-title">Additional info for DELI PLU requests</div>
+  <div class="plureq-field"><label>INGREDIENTS (English only)</label><input id="rqIngredients" maxlength="200" autocomplete="off"></div>
+  <div class="plureq-field"><label>STORAGE</label>
+    <div class="plureq-checks">
+      <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
+      <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
+      <label class="plureq-check"><input type="checkbox" id="rqAmbient"> AMBIENT</label>
+    </div>
+  </div>
+  <div class="plureq-field plureq-tare"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
+  <div class="plureq-field"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
+  <div class="plureq-field"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+
+  <hr class="plureq-divider">
+  <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="4" autocomplete="off"></textarea></div>
+
   <div class="plureq-actions"><button class="plureq-btn ghost" id="rqCancel">취소</button><button class="plureq-btn primary" id="rqSubmit">신청하기</button></div>
 </div></div>
 <div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
@@ -609,13 +641,16 @@
   function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
   function fillStores(){ var sel=$('rqStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
-  function openForm(){ fillStores(); ['rqRequester','rqKor','rqEng','rqOrigin','rqVender','rqPrice'].forEach(function(id){ if($(id)) $(id).value=''; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
+  function openForm(){ fillStores(); ['rqRequester','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
   function closeForm(){ $('plureqFormOv').classList.remove('show'); }
   function submitReq(){
     var store=($('rqStore').value||'').trim(), requester=($('rqRequester').value||'').trim();
     if(!store){ alert('매장을 선택하세요 (SELECT STORE)'); return; }
-    if(!requester){ alert('요청인을 입력하세요'); return; }
-    var data={ store:store, requester:requester, kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(), status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
+    if(!requester){ alert('REQUESTER를 입력하세요'); return; }
+    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('AMBIENT');
+    var data={ store:store, requester:requester, kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
+      ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
+      status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
     try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); if(window.showToast){ try{showToast('PLU 요청이 접수되었습니다','success');}catch(e){} } else alert('PLU 요청이 접수되었습니다'); }).catch(function(){ alert('요청 전송 실패 (네트워크/권한 확인)'); }); }
     catch(e){ alert('요청 전송 실패'); }
   }
@@ -627,9 +662,17 @@
     var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
       var done=r.status==='done';
+      var extra=[];
+      if(r.storage) extra.push(esc(r.storage));
+      if(r.tare) extra.push('TARE '+esc(r.tare));
+      if(r.sellByTime) extra.push('SELL BY TIME '+esc(r.sellByTime));
+      if(r.sellByDate) extra.push('SELL BY DATE '+esc(r.sellByDate));
+      if(r.ingredients) extra.push('INGREDIENTS '+esc(r.ingredients));
       return '<div class="plureq-row"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
-        '<div class="meta">🏬 '+esc(r.store)+' · 👤 '+esc(r.requester)+(r.eng?(' · '+esc(r.eng)):'')+'</div>'+
-        (done?('<div class="meta">✅ PLU '+esc(r.plu)+(r.mgrKor?(' · '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'):'')+
+        '<div class="meta">'+esc(r.store)+' / '+esc(r.requester)+(r.eng?(' / '+esc(r.eng)):'')+'</div>'+
+        (extra.length?('<div class="meta">'+extra.join(' / ')+'</div>'):'')+
+        (r.memo?('<div class="meta">MEMO / '+esc(r.memo)+'</div>'):'')+
+        (done?('<div class="meta">PLU '+esc(r.plu)+(r.mgrKor?(' / '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'):'')+
       '</div>';
     }).join('') : '<div class="plureq-empty">요청 내역이 없습니다.</div>';
     $('plureqViewOv').classList.add('show');
