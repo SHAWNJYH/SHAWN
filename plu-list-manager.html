@@ -158,7 +158,10 @@
   }
 
   .plu-list-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 8px; }
-  .plu-toolbar-slot { margin: 2px 0 10px; }
+  .plu-subbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .plu-subbar .plu-subtabs { margin-bottom: 0; flex: 1 1 auto; }
+  .plu-toolbar-slot { margin: 0; margin-left: auto; }
+  .plu-toolbar-slot .plu-tools, .plu-toolbar-slot .plu-list-bar { margin-bottom: 0; }
   .plu-search {
     flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
     border-radius: 10px; font-family: var(--mono); font-size: 15px; background: var(--bg-elev); color: var(--text);
@@ -305,9 +308,11 @@
         </div>
     </div>
     <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
-    <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
-    <!-- 작은 탭 (선택한 큰 탭에 따라 바뀜) -->
-    <div class="plu-subtabs" id="pluSubTabs"></div>
+    <!-- 작은 탭 + 툴바(오른쪽 끝) 한 줄 -->
+    <div class="plu-subbar">
+      <div class="plu-subtabs" id="pluSubTabs"></div>
+      <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
+    </div>
     <!-- 내용 영역 -->
     <div class="plu-content" id="pluContent"></div>
   </div>
@@ -336,7 +341,7 @@
   function showToast(msg,type){ var t=$('toast'); clearTimeout(toastTimer); t.textContent=msg; t.className='toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='toast '+(type||''); },2500); }
 
   const PLU_TABS=[
-    {label:'청과',       subs:['야채','과일','로컬','박스','글로벌','유기농']},
+    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농']},
     {label:'델리',       subs:[]},
     {label:'수산',       subs:['수산원육']},
     {label:'정육',       subs:['정육원육']},
@@ -440,7 +445,11 @@
 
   function baseRows(cat){ return cat==='청과' ? (csvRows||[]) : []; }
   function rowsFor(cat){ return cloud[cat]!==undefined ? cloud[cat] : baseRows(cat); }
-  function rangeFor(big,sub){ if(big==='청과'&&sub==='야채')return{min:1000,max:1999}; if(big==='청과'&&sub==='과일')return{min:2000,max:2999}; return null; }
+  function rangeFor(big,sub){
+    if(big!=='청과') return null;
+    var R={ '야채':[1000,1999], '과일':[2000,2999], '로컬':[10000,12999], '글로벌':[3000,4999], '박스':[80000,82999], '유기농':[90000,94999] };
+    var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
+  }
 
   // ===== 탭 =====
   function clearSearch(){ pluSearchTerm=''; var se=$('pluSearch'); if(se) se.value=''; }
