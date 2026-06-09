@@ -313,7 +313,10 @@
   .plu-col-btn.del { color:#b04141; }
   .plu-col-btn.del:hover { border-color:#b04141; }
   .plu-col-hidden { opacity:.45; }
-  .plu-c-extra { color:var(--text); font-size:13px; }
+  /* 상품정보추가(시스템 외 글자 열): 붉은색 표시 */
+  .plu-table tbody td.plu-c-extra { color:#c0392b; font-size:13px; }
+  .plu-table thead th.plu-col-info { color:#c0392b; }
+  td.plu-c-info-edit .plu-edit-input { color:#c0392b; }
 </style>
 </head>
 <body>
@@ -537,7 +540,7 @@
       return '<thead><tr>'+ths+'<th></th></tr></thead>';
     }
     var v=visibleCols();
-    return '<thead><tr>'+v.map(function(c){ var hc=(c.type==='check'?'plu-col-check':(String(c.key).toLowerCase()==='plu'?'plu-col-no':'')); return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
+    return '<thead><tr>'+v.map(function(c){ var hc=(c.type==='check'?'plu-col-check':(String(c.key).toLowerCase()==='plu'?'plu-col-no':'')); if(!isBase(c.key)&&c.type!=='check'){ hc=(hc?hc+' ':'')+'plu-col-info'; } return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
   }
   // 이름·PLU 검색: PLU, KOR DESC(한글명), ENG DESC(영문명)만 기준으로 검색.
   function rowMatches(r,t){
