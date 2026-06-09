@@ -540,7 +540,23 @@
     var v=visibleCols();
     return '<thead><tr>'+v.map(function(c){ var hc=(c.type==='check'?'plu-col-check':(String(c.key).toLowerCase()==='plu'?'plu-col-no':'')); return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
   }
-  function rowMatches(r,t){ if(!r) return false; var bk=['plu','itemCode1','itemCode2','local','organic','kor','eng','cate']; for(var i=0;i<bk.length;i++){ if(String(r[bk[i]]||'').toLowerCase().indexOf(t)>=0) return true; } if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && v.toLowerCase().indexOf(t)>=0) return true; } } return false; }
+  // 이름·PLU 검색: PLU, KOR DESC(한글명), ENG DESC(영문명)만 기준으로 검색.
+  function rowMatches(r,t){
+    if(!r) return false;
+    function val(baseKey){
+      var f=fieldOf(baseKey), v=(f&&r[f]!=null)?r[f]:'';
+      if(String(v).trim()!=='') return v;
+      if(r.extra){
+        if(r.extra[baseKey]!=null) return r.extra[baseKey];
+        var lk=String(baseKey).toLowerCase();
+        for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; }
+      }
+      return '';
+    }
+    var fields=[ val('PLU'), val('KOR'), val('ENG') ];
+    for(var i=0;i<fields.length;i++){ if(String(fields[i]||'').toLowerCase().indexOf(t)>=0) return true; }
+    return false;
+  }
   function clsFor(key){ var lk=String(key||'').toLowerCase(); return lk==='plu'?'plu-c-no':lk==='local'?'plu-c-local':lk==='organic'?'plu-c-organic':lk==='eng'?'plu-c-eng':lk==='cate'?'plu-c-cat':lk==='kor'?'':'plu-c-extra'; }
   function pluValOf(r){ if(!r) return ''; if(r.plu!=null&&String(r.plu).trim()!=='') return String(r.plu); if(r.extra){ if(r.extra.PLU) return String(r.extra.PLU); if(r.extra.plu) return String(r.extra.plu); } return ''; }
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
