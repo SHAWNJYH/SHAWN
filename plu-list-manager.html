@@ -69,16 +69,16 @@
     padding: 28px 32px 0;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
-  .page-title { font-family: var(--serif); font-weight: 700; font-size: 18px; line-height: 1.1; color: var(--text); }
+  .page-title { font-family: var(--serif); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--text); }
   .page-back {
     margin-left: auto; flex-shrink: 0;
     display: inline-flex; align-items: center; gap: 6px;
-    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
-    padding: 9px 14px; font-family: var(--mono); font-size: 13px; font-weight: 700;
-    border-radius: 9px; cursor: pointer;
-    transition: border-color .15s, color .15s, transform .12s;
+    background: #8b1e1e; border: 1.5px solid #8b1e1e; color: #fff;
+    padding: 11px 14px; font-family: var(--mono); font-size: 15px; font-weight: 700;
+    border-radius: 10px; cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, transform .12s;
   }
-  .page-back:hover { border-color: var(--accent-warm); color: var(--text); }
+  .page-back:hover { background: #a02525; border-color: #a02525; color: #fff; }
   .page-back:active { transform: scale(0.98); }
 
   /* PLU 보기 탭 */
@@ -140,7 +140,7 @@
   .plu-cat-top:empty { display: none; }
   .plu-cat-chip {
     width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 7px; padding: 5px 3px; font-family: var(--mono); font-size: 10.3px; font-weight: 500;
+    border-radius: 7px; padding: 5px 3px; font-family: var(--mono); font-size: 10.6px; font-weight: 500;
     cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;
     transition: background .12s, border-color .12s, color .12s;
   }
@@ -236,7 +236,7 @@
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
   /* RESERVE 행: 전체 회색 */
-  .plu-table tbody tr.plu-row-reserve td { color: #cfcfd4; font-weight: 400; }
+  .plu-table tbody tr.plu-row-reserve td { color: #9a9aa0; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
 
   .plu-upload-btn {
@@ -525,10 +525,10 @@
   function viewRowHTML(r){
     var v=visibleCols();
     var tds=v.map(function(c){ if(c.type==='check'){ return '<td class="plu-c-check"><span class="pluchk'+(getVal(r,c.key)?'':' off')+'">'+(getVal(r,c.key)?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
-    return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
+    return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
   function viewRowBaseHTML(r){
-    return '<tr class="'+(/RESERVE/i.test(r.eng)?'plu-row-reserve':'')+'">'+
+    return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+
       '<td class="plu-c-no">'+escapeHtml(r.plu)+'</td><td class="plu-c-local">'+escapeHtml(r.local)+'</td><td class="plu-c-organic">'+escapeHtml(r.organic)+'</td>'+
       '<td>'+escapeHtml(r.kor)+'</td><td class="plu-c-eng">'+escapeHtml(r.eng)+'</td><td class="plu-c-cat">'+escapeHtml(r.cate)+'</td></tr>';
   }
@@ -545,6 +545,7 @@
   }
   function korLabel(cate){ cate=String(cate||''); var i=cate.search(/\s*\(/); return i>0 ? cate.slice(0,i).trim() : cate.trim(); }
   function catValOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!==''){ return String(r.extra[k]); } } } return ''; }
+  function isReserveRow(r){ if(!r) return false; if(/RESERVE/i.test(String(r.eng||''))||/RESERVE/i.test(String(r.kor||''))) return true; if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && /RESERVE/i.test(v)) return true; } } return false; }
   (function(){
     var pop=null;
     function ensurePop(){ if(pop) return pop; pop=document.createElement('div'); pop.id='pluPhotoPop'; pop.innerHTML='<img alt=""><div class="nophoto">사진 없음</div>'; document.body.appendChild(pop); return pop; }
@@ -647,7 +648,7 @@
     pluRender=function(){
       var rows=all;
       if(pluCatFilter) rows=rows.filter(function(r){ return catValOf(r)===pluCatFilter; });
-      if(pluHideReserve) rows=rows.filter(function(r){ return !/RESERVE/i.test(r.eng); });
+      if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
       var cnt=$('pluCount'); if(cnt) cnt.textContent = rows.length+'개 / 전체 '+all.length+'개';
       var tb=$('pluTbody'); if(tb) tb.innerHTML = rows.map(viewRowHTML).join('') || '<tr><td colspan="'+totalCols()+'" class="plu-no-result">표시할 데이터가 없습니다</td></tr>';
@@ -781,7 +782,7 @@
     var run=function(){
       var all=[]; PLU_TABS.forEach(function(tb){ rowsFor(tb.label).forEach(function(r){ all.push(r); }); });
       var rows=all.filter(function(r){ return rowMatches(r,t); });
-      if(pluHideReserve) rows=rows.filter(function(r){ return !/RESERVE/i.test(r.eng); });
+      if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
       var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
