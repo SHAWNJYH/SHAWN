@@ -238,6 +238,17 @@
   .plu-modal-choice:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
+  /* INGREDIENT 보기/수정 */
+  .plu-c-ing { font-size:13px; white-space:nowrap; }
+  .plu-ing-btn { border:1px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:6px; padding:1px 7px; font-family:var(--mono); font-size:11px; font-weight:700; cursor:pointer; margin-left:4px; vertical-align:middle; }
+  .plu-ing-btn:hover { border-color:var(--accent-warm); background:var(--accent-soft); }
+  .plu-ing-modal { max-width:520px; }
+  .plu-ing-text { width:100%; box-sizing:border-box; min-height:220px; border:1.5px solid var(--border); border-radius:10px; padding:12px; font-family:var(--mono); font-size:14px; line-height:1.55; color:var(--text); resize:vertical; }
+  .plu-ing-text[readonly] { background:#f5f5f6; color:var(--text); }
+  .plu-ing-btns { display:flex; gap:10px; margin-top:14px; }
+  .plu-ing-btns button { flex:1; border-radius:10px; padding:12px; font-family:var(--mono); font-size:14px; font-weight:700; cursor:pointer; }
+  .plu-ing-close { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text); }
+  .plu-ing-save { border:none; background:var(--accent-warm); color:#fff; }
   /* RESERVE 행: 전체 회색 */
   .plu-table tbody tr.plu-row-reserve td { color: #9a9aa0; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
@@ -364,6 +375,18 @@
   </div>
 </div>
 
+<div class="plu-modal-ov" id="pluIngModal">
+  <div class="plu-modal plu-ing-modal">
+    <h3 id="pluIngTitle">INGREDIENT</h3>
+    <p id="pluIngSub" style="margin-bottom:10px;"></p>
+    <textarea id="pluIngText" class="plu-ing-text" placeholder="내용을 입력하세요"></textarea>
+    <div class="plu-ing-btns">
+      <button class="plu-ing-close" id="pluIngClose" type="button">닫기</button>
+      <button class="plu-ing-save" id="pluIngSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
@@ -455,6 +478,7 @@
     if(cloud['청과']===undefined){ try{ await loadCsv(); }catch(e){} }
   }
   var __pendingChecks={};
+  var __pendingText={};
   function __ckey(c,p,k){ return c+'\u0001'+p+'\u0001'+k; }
   function pluNumOf(r){ var n=parseInt(pluValOf(r),10); return isNaN(n)?Infinity:n; }
   function byPluAsc(a,b){ var na=pluNumOf(a), nb=pluNumOf(b); if(na!==nb) return na<nb?-1:1; return String(pluValOf(a)).localeCompare(String(pluValOf(b))); }
@@ -462,6 +486,7 @@
     cloud={}; layoutByCat={};
     snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); });
     for(var __pk in __pendingChecks){ var __pp=__pk.split('\u0001'); var __c=__pp[0],__pl=__pp[1],__ky=__pp[2],__v=__pendingChecks[__pk]; var __rs=cloud[__c]; if(!__rs){ continue; } var __ff=null; for(var __i=0;__i<__rs.length;__i++){ if(pluValOf(__rs[__i])===__pl){ __ff=__rs[__i]; break; } } if(!__ff){ continue; } if(!__ff.extra) __ff.extra={}; if((!!__ff.extra[__ky])===(!!__v)){ delete __pendingChecks[__pk]; } else { __ff.extra[__ky]=__v; } }
+    for(var __tk in __pendingText){ var __tp=__tk.split('\u0001'); var __tc=__tp[0],__tpl=__tp[1],__tky=__tp[2],__tv=__pendingText[__tk]; var __trs=cloud[__tc]; if(!__trs){ continue; } var __tff=null; for(var __tj=0;__tj<__trs.length;__tj++){ if(pluValOf(__trs[__tj])===__tpl){ __tff=__trs[__tj]; break; } } if(!__tff){ continue; } if(!__tff.extra) __tff.extra={}; if(String(__tff.extra[__tky]==null?'':__tff.extra[__tky])===String(__tv)){ delete __pendingText[__tk]; } else { __tff.extra[__tky]=__tv; } }
     cloudLoaded=true;
   }
   // 실시간 구독: 다른 화면(매니저/EGMM)에서 저장하면 즉시 반영. 단 편집 중(editMode)에는 화면 갱신 보류.
@@ -563,11 +588,13 @@
     return false;
   }
   function clsFor(key){ var lk=String(key||'').toLowerCase(); return lk==='plu'?'plu-c-no':lk==='local'?'plu-c-local':lk==='organic'?'plu-c-organic':lk==='eng'?'plu-c-eng':lk==='cate'?'plu-c-cat':lk==='kor'?'':'plu-c-extra'; }
+  function isIngredientKey(key){ return String(key||'').trim().toUpperCase()==='INGREDIENT'; }
+  function ingredientCellHTML(r,c){ var full=String(getVal(r,c.key)||''); var shown=full.length>15?(escapeHtml(full.slice(0,15))+'…'):escapeHtml(full); var btn='<button class="plu-ing-btn" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" type="button" title="전체 보기">보기</button>'; return '<td class="'+clsFor(c.key)+' plu-c-ing">'+(shown?shown+' ':'')+btn+'</td>'; }
   function pluValOf(r){ if(!r) return ''; if(r.plu!=null&&String(r.plu).trim()!=='') return String(r.plu); if(r.extra){ if(r.extra.PLU) return String(r.extra.PLU); if(r.extra.plu) return String(r.extra.plu); } return ''; }
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+    var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
   function viewRowBaseHTML(r){
@@ -589,6 +616,7 @@
     scheduleCheckSave(cat);
   }
   document.addEventListener('click', function(e){ var s=e.target.closest?e.target.closest('.pluchk-edit'):null; if(s) toggleViewCheck(s); });
+  document.addEventListener('click', function(e){ var b=e.target.closest?e.target.closest('.plu-ing-btn'):null; if(b){ openIngModal(b.getAttribute('data-plu'), b.getAttribute('data-key')); } });
   function inpCol(idx,c,val){ return '<input class="plu-edit-input" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'" data-base="'+(isBase(c.key)?'1':'0')+'" value="'+escapeHtml(val)+'">'; }
   function inpCheck(idx,c,val){ return '<input type="checkbox" class="plu-edit-check" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'"'+(val?' checked':'')+'>'; }
   function editRowHTML(r,idx){
@@ -744,6 +772,10 @@
   }
   function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
   function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
+  var __ingCat=null,__ingPlu=null,__ingKey=null;
+  function openIngModal(plu,key){ var cat=curCat(); var rows=rowsFor(cat)||[]; var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } var full=row?String(getVal(row,key)||''):''; __ingCat=cat; __ingPlu=plu; __ingKey=key; var ta=$('pluIngText'); if(ta){ ta.value=full; ta.readOnly=false; } var ti=$('pluIngTitle'); if(ti) ti.textContent=key; var sb=$('pluIngSub'); if(sb) sb.textContent='PLU '+plu+' · 매니저에서 수정 후 저장하세요'; var ov=$('pluIngModal'); if(ov) ov.classList.add('show'); }
+  function closeIngModal(){ var ov=$('pluIngModal'); if(ov) ov.classList.remove('show'); __ingCat=null; __ingPlu=null; __ingKey=null; }
+  function saveIngModal(){ if(!__ingCat||__ingPlu==null||!__ingKey){ closeIngModal(); return; } var ta=$('pluIngText'); var val=ta?ta.value:''; var cat=__ingCat, plu=__ingPlu, key=__ingKey; var rows=cloud[cat]; if(rows){ var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } if(row){ if(!row.extra) row.extra={}; row.extra[key]=val; __pendingText[__ckey(cat,plu,key)]=val; scheduleCheckSave(cat); } } closeIngModal(); renderContent(); }
   (function wireColModal(){
     var c=$('pluColCheck'), rc=$('pluColRCheck'), t=$('pluColText'), x=$('pluColCancel'), ov=$('pluColModal');
     if(c) c.onclick=function(){ closeColModal(); addColumnOfType('check'); };
@@ -751,6 +783,10 @@
     if(t) t.onclick=function(){ closeColModal(); addColumnOfType('text'); };
     if(x) x.onclick=function(){ closeColModal(); };
     if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) closeColModal(); });
+    var ic=$('pluIngClose'), is=$('pluIngSave'), iov=$('pluIngModal');
+    if(ic) ic.onclick=function(){ closeIngModal(); };
+    if(is) is.onclick=function(){ saveIngModal(); };
+    if(iov) iov.addEventListener('click', function(e){ if(e.target===iov) closeIngModal(); });
   })();
 
   function bindToolbar(){
