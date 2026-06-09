@@ -313,10 +313,11 @@
   .plu-col-btn.del { color:#b04141; }
   .plu-col-btn.del:hover { border-color:#b04141; }
   .plu-col-hidden { opacity:.45; }
-  /* 상품정보추가(시스템 외 글자 열): 붉은색 표시 */
-  .plu-table tbody td.plu-c-extra { color:#c0392b; font-size:13px; }
-  .plu-table thead th.plu-col-info { color:#c0392b; }
-  td.plu-c-info-edit .plu-edit-input { color:#c0392b; }
+  .plu-c-extra { color:var(--text); font-size:13px; }
+  /* 상품정보추가: 붉은색 체크박스 (매장추가는 초록색 .plu-c-check 유지) */
+  .plu-table thead th.plu-col-rcheck { color:#c0392b; }
+  .plu-table td.plu-c-rcheck .pluchk { color:#c0392b; }
+  .plu-table td.plu-c-rcheck .pluchk.off { color:#c2c2c8; }
 </style>
 </head>
 <body>
@@ -391,7 +392,7 @@
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return orderEndCols(L); var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return orderEndCols(L); }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text'))}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
 
@@ -540,7 +541,7 @@
       return '<thead><tr>'+ths+'<th></th></tr></thead>';
     }
     var v=visibleCols();
-    return '<thead><tr>'+v.map(function(c){ var hc=(c.type==='check'?'plu-col-check':(String(c.key).toLowerCase()==='plu'?'plu-col-no':'')); if(!isBase(c.key)&&c.type!=='check'){ hc=(hc?hc+' ':'')+'plu-col-info'; } return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
+    return '<thead><tr>'+v.map(function(c){ var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
   }
   // 이름·PLU 검색: PLU, KOR DESC(한글명), ENG DESC(영문명)만 기준으로 검색.
   function rowMatches(r,t){
@@ -564,7 +565,7 @@
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var tds=v.map(function(c){ if(c.type==='check'){ var on=getVal(r,c.key); return '<td class="plu-c-check"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+    var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
   function viewRowBaseHTML(r){
@@ -774,7 +775,7 @@
     var rows=visibleCache||[]; if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
     var v=visibleCols();
     var aoa=[v.map(function(c){return c.label;})];
-    rows.forEach(function(r){ aoa.push(v.map(function(c){ var val=getVal(r,c.key); return c.type==='check' ? (val?'O':'') : val; })); });
+    rows.forEach(function(r){ aoa.push(v.map(function(c){ var val=getVal(r,c.key); return (c.type==='check'||c.type==='rcheck') ? (val?'O':'') : val; })); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,curCat().substring(0,28));
     var sub=curSub(); var fname='PLU_'+curCat()+(sub?'_'+sub:'')+'.xlsx';
