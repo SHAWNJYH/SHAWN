@@ -103,7 +103,7 @@
 
   .plu-tab {
     border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 15px;
+    border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 14px;
     font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
   }
   .plu-tab:hover { border-color: var(--border-bright); color: var(--text); }
@@ -539,6 +539,7 @@
     return '<tr>'+tds+'<td><button class="plu-row-del" data-del="'+idx+'" title="삭제">✕</button></td></tr>';
   }
   function korLabel(cate){ cate=String(cate||''); var i=cate.search(/\s*\(/); return i>0 ? cate.slice(0,i).trim() : cate.trim(); }
+  function catValOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!==''){ return String(r.extra[k]); } } } return ''; }
   window.showPluPhoto=function(plu){
     plu=(plu||'').trim();
     var img=document.getElementById('pluPhotoImg'), cap=document.getElementById('pluPhotoCap'), ph=document.getElementById('pluPhotoPlaceholder');
@@ -628,7 +629,7 @@
     var rg=rangeFor(cat,curSub());
     if(rg) all=all.filter(function(r){ var n=parseInt(r.plu,10); return !isNaN(n)&&n>=rg.min&&n<=rg.max; });
     var cats=[], seen={};
-    all.forEach(function(r){ if(r.cate && !seen[r.cate]){ seen[r.cate]=1; cats.push(r.cate); } });
+    all.forEach(function(r){ var cv=catValOf(r); if(cv && !seen[cv]){ seen[cv]=1; cats.push(cv); } });
     var catBar=$('pluCatTabs');
     if(catBar){
       catBar.innerHTML='';
@@ -642,7 +643,7 @@
     }
     pluRender=function(){
       var rows=all;
-      if(pluCatFilter) rows=rows.filter(function(r){ return r.cate===pluCatFilter; });
+      if(pluCatFilter) rows=rows.filter(function(r){ return catValOf(r)===pluCatFilter; });
       if(pluHideReserve) rows=rows.filter(function(r){ return !/RESERVE/i.test(r.eng); });
       visibleCache=rows;
       var cnt=$('pluCount'); if(cnt) cnt.textContent = rows.length+'개 / 전체 '+all.length+'개';
