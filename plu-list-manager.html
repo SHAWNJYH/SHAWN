@@ -401,7 +401,7 @@
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
-  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); return o; }
+  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
   // ===== CSV (청과 fallback) =====
   let csvRows=null, csvPromise=null;
@@ -485,6 +485,19 @@
     if(big!=='청과') return null;
     var R={ '야채':[1000,1999], '과일':[2000,2999], '로컬':[10000,12999], '글로벌':[3000,4999], '박스':[80000,82999], '유기농':[90000,94999], '임시':[13000,14000] };
     var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
+  }
+  // 행이 속한 서브카테고리(저장된 sub 우선, 없으면 추론 마이그레이션)
+  function mainTab(main){ for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===main) return PLU_TABS[i]; } return null; }
+  function subOfRowInferred(main, r){
+    if(main==='청과'){ var n=parseInt(r&&r.plu,10); if(!isNaN(n)){ var subs=(mainTab('청과')||{}).subs||[]; for(var i=0;i<subs.length;i++){ var rg=rangeFor('청과',subs[i]); if(rg && n>=rg.min && n<=rg.max) return subs[i]; } } }
+    var mt=mainTab(main); return (mt && mt.subs && mt.subs[0]) || '';
+  }
+  function rowSub(main, r){ if(r && r.sub!=null && String(r.sub)!=='') return r.sub; return subOfRowInferred(main, r); }
+  // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
+  function saveSection(main, sub, subRows, layout){
+    var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);
+    var mine=(subRows||[]).map(function(r){ var c=copyRow(r); c.sub=sub; return c; });
+    return saveCat(main, others.concat(mine), layout);
   }
 
   // ===== 탭 =====
@@ -637,7 +650,7 @@
   function buildList(){
     var cat=curCat();
     if(editMode){
-      if(!work) work=rowsFor(cat).map(copyRow);
+      if(!work) work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow);
       pluRender=function(){
         visibleCache=work;
         var tb=$('pluTbody'); if(tb) tb.innerHTML = (work.map(function(r,i){return editRowHTML(r,i);}).join('') || '<tr><td colspan="'+totalCols()+'" class="plu-no-result">항목이 없습니다. ＋PLU 추가로 시작하세요.</td></tr>');
@@ -646,9 +659,7 @@
       pluRender();
       return;
     }
-    var all=rowsFor(cat);
-    var rg=rangeFor(cat,curSub());
-    if(rg) all=all.filter(function(r){ var n=parseInt(r.plu,10); return !isNaN(n)&&n>=rg.min&&n<=rg.max; });
+    var all=rowsFor(cat).filter(function(r){ return rowSub(cat,r)===curSub(); });
     var cats=[], seen={};
     all.forEach(function(r){ var cv=catValOf(r); if(cv && !seen[cv]){ seen[cv]=1; cats.push(cv); } });
     var catBar=$('pluCatTabs');
@@ -675,7 +686,7 @@
 
   function enterEdit(){
     var cat=curCat();
-    var start=function(){ work=rowsFor(cat).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':'text')};}); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
+    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':'text')};}); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
     if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
   }
   function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
@@ -719,7 +730,7 @@
     var ed=$('pluEditBtn'); if(ed) ed.onclick=function(){ if(!editMode){ enterEdit(); } else { if(leaveEditGuard()) renderContent(); } };
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
     var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
-    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveCat(cat, work||[], workLayout||[]); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
+    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveSection(cat, curSub(), work||[], workLayout||[]); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
     // 열 조작 버튼 (이동/이름변경/숨김/삭제)
     if(el && editMode){ el.querySelectorAll('.plu-col-btn').forEach(function(b){ b.onclick=function(){
@@ -784,9 +795,11 @@
           rows.push(row); }
         if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
         var colNames=cols.map(function(c){return c.label;});
-        if(!confirm('['+cat+'] 데이터를 가져온 '+rows.length+'개 행으로 덮어쓸까요?\n같은 이름 열은 데이터가 덮어써집니다.\n열: '+colNames.join(', '))) return;
-        var lay=normLayout(cols.map(function(c){return {key:c.key,label:c.label,hidden:false,type:'text'};}));
-        var ok=await saveCat(cat, rows, lay); if(ok){ editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 가져오기 완료 ('+rows.length+'행)','success'); }
+        if(!confirm('['+cat+' - '+curSub()+'] 서브카테고리를 가져온 '+rows.length+'개 행으로 교체할까요?\n(다른 서브카테고리 데이터는 유지됩니다)\n열: '+colNames.join(', '))) return;
+        var ex=(layoutByCat[cat]||defaultLayout([])).slice(); var have={}; ex.forEach(function(c){have[c.key]=1;});
+        cols.forEach(function(c){ var K=String(c.key).toUpperCase(); if(!have[K]){ ex.push({key:K,label:K,hidden:false,type:'text'}); have[K]=1; } });
+        var lay=normLayout(ex);
+        var ok=await saveSection(cat, curSub(), rows, lay); if(ok){ editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' - '+curSub()+' 가져오기 완료 ('+rows.length+'행)','success'); }
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
     reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
