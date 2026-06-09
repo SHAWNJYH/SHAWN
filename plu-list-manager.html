@@ -136,12 +136,12 @@
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
   /* 분류 칩: 표 위쪽 가로 배치(표 박스 폭 이내) */
-  .plu-cat-top { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; max-width: 100%; }
+  .plu-cat-top { display: grid; grid-template-columns: repeat(auto-fill, 96px); gap: 5px; margin-bottom: 10px; max-width: 100%; }
   .plu-cat-top:empty { display: none; }
   .plu-cat-chip {
-    border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 8px; padding: 5px 10px; font-family: var(--mono); font-size: 11px; font-weight: 500;
-    cursor: pointer; text-align: center; white-space: nowrap; line-height: 1.2;
+    width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
+    border-radius: 8px; padding: 5px 6px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+    cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;
     transition: background .12s, border-color .12s, color .12s;
   }
   .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
@@ -168,7 +168,7 @@
 
   .plu-table-wrap {
     border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
-    max-height: calc((100vh - 270px) * 1.5); background: var(--bg-elev);
+    max-height: calc((100vh - 270px) * 1.5 - 330px); background: var(--bg-elev);
   }
   .plu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .plu-table thead th {
@@ -197,7 +197,9 @@
   .plu-bars-col { width: 100%; }
   #pluContent { flex: 1 1 auto; min-width: 0; }
   .plu-photo-panel { flex: 0 0 150px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
-  @media (min-width: 821px) { .page-topbar { padding-right: 246px; } }
+  .page-topbar .plu-tabs { margin-bottom: 0; margin-left: 28px; flex: 0 1 auto; }
+  .page-topbar .page-back { margin-left: auto; }
+  @media (min-width: 821px) { .page-topbar { padding-right: 32px; } }
   .plu-photo-cap { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text-dim); }
   /* 사진 호버 팝업 */
   #pluPhotoPop { position: fixed; z-index: 3000; display: none; width: 220px; height: 220px; border: 1.5px solid var(--border); border-radius: 12px; background: #fff; box-shadow: 0 12px 34px rgba(0,0,0,0.24); overflow: hidden; pointer-events: none; }
@@ -248,7 +250,7 @@
     .plu-c-eng, .plu-c-cat,
     .plu-table thead th:nth-child(5),
     .plu-table thead th:nth-child(6) { display: none; }
-    .plu-table-wrap { max-height: calc((100vh - 300px) * 1.5); }
+    .plu-table-wrap { max-height: calc((100vh - 300px) * 1.5 - 330px); }
   }
   @media (max-width: 760px) {
     .egmm-sub-screen { padding: 16px 12px 40px; }
@@ -311,15 +313,15 @@
 <body>
 <div class="page-topbar">
   <h1 class="page-title">🗂️ PLU 관리</h1>
+  <div class="plu-tabs" id="pluBigTabs"></div>
   <button class="page-back" id="pluBackBtn">← 돌아가기</button>
 </div>
 <div class="egmm-screen">
   <div class="egmm-sub-screen">
 
     <div class="plu-bars-col">
-    <!-- 큰 탭 (청과·델리·수산·정육·하우스웨어) + 검색창(오른쪽) -->
+    <!-- 검색창 -->
     <div class="plu-bigbar">
-      <div class="plu-tabs" id="pluBigTabs"></div>
       <div class="plu-search-col">
         <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
         </div>
