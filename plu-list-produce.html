@@ -445,13 +445,14 @@
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return L; var has={}; L.forEach(function(c){ has[c.key]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return L; }
   function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null||seen[c.key])return; seen[c.key]=1; L.push({key:c.key,label:(c.label!=null?String(c.label):String(c.key)),hidden:!!c.hidden,type:(c.type==='check'?'check':'text')}); }); return L; }
   function getVal(r,key){ return isBase(key) ? (r[key]||'') : ((r.extra&&r.extra[key])||''); }
-  function clsFor(key){ return key==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':key==='kor'?'':'plu-c-extra'; }
+  function clsFor(key){ var lk=String(key||'').toLowerCase(); return lk==='plu'?'plu-c-no':key==='local'?'plu-c-local':key==='organic'?'plu-c-organic':key==='eng'?'plu-c-eng':key==='cate'?'plu-c-cat':key==='kor'?'':'plu-c-extra'; }
   function curLayout(){ return withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
   function headHTML(){ var v=visibleCols(); return '<thead><tr>'+v.map(function(c){return '<th'+(c.type==='check'?' class="plu-col-check"':'')+'>'+escapeHtml(c.label)+'</th>';}).join('')+'<th class="plu-col-photo">사진</th></tr></thead>'; }
-  function photoCellHTML(r){ var p=(r.plu!=null?String(r.plu):'').trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" onclick="showPluPhoto(\''+p+'\')" title="사진보기">📷</button>'):'')+'</td>'; }
+  function pluValOf(r){ if(!r) return ''; if(r.plu!=null&&String(r.plu).trim()!=='') return String(r.plu); if(r.extra){ if(r.extra.PLU) return String(r.extra.PLU); if(r.extra.plu) return String(r.extra.plu); } return ''; }
+  function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" onclick="showPluPhoto(\''+p+'\')" title="사진보기">📷</button>'):'')+'</td>'; }
   const HEAD='<thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead>';
-  function rowMatches(r,t){ return (r.plu||'').toLowerCase().indexOf(t)>=0||(r.local||'').toLowerCase().indexOf(t)>=0||(r.organic||'').toLowerCase().indexOf(t)>=0||(r.kor||'').toLowerCase().indexOf(t)>=0||(r.eng||'').toLowerCase().indexOf(t)>=0||(r.cate||'').toLowerCase().indexOf(t)>=0; }
+  function rowMatches(r,t){ if(!r) return false; var bk=['plu','itemCode1','itemCode2','local','organic','kor','eng','cate']; for(var i=0;i<bk.length;i++){ if(String(r[bk[i]]||'').toLowerCase().indexOf(t)>=0) return true; } if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && v.toLowerCase().indexOf(t)>=0) return true; } } return false; }
   function rowsHTML(rows){
     var v=visibleCols();
     return rows.map(function(r){
