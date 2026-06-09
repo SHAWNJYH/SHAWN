@@ -136,14 +136,15 @@
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
   /* 분류 칩: 표 위쪽 가로 배치(표 박스 폭 이내) */
-  .plu-cat-top { display: grid; grid-template-columns: repeat(auto-fill, 96px); gap: 5px; margin-bottom: 10px; max-width: 100%; }
+  .plu-cat-top { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; max-width: 100%; }
   .plu-cat-top:empty { display: none; }
   .plu-cat-chip {
     width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 8px; padding: 5px 6px; font-family: var(--mono); font-size: 11px; font-weight: 500;
+    border-radius: 7px; padding: 5px 3px; font-family: var(--mono); font-size: 10px; font-weight: 500;
     cursor: pointer; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2;
     transition: background .12s, border-color .12s, color .12s;
   }
+  @media (max-width: 1100px) { .plu-cat-top { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); } }
   .plu-cat-chip:hover { border-color: var(--accent-warm); color: var(--text); }
   .plu-cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   @media (max-width: 820px) {
@@ -198,7 +199,9 @@
   #pluContent { flex: 1 1 auto; min-width: 0; }
   .plu-photo-panel { flex: 0 0 150px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
   .page-topbar .plu-tabs { margin-bottom: 0; margin-left: 28px; flex: 0 1 auto; }
-  .page-topbar .page-back { margin-left: auto; }
+  .page-topbar .plu-search-col { margin-left: auto; flex: 0 1 300px; min-width: 160px; }
+  .page-topbar .plu-search-col .plu-search { width: 100%; }
+  .page-topbar .page-back { margin-left: 12px; }
   @media (min-width: 821px) { .page-topbar { padding-right: 32px; } }
   .plu-photo-cap { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--text-dim); }
   /* 사진 호버 팝업 */
@@ -314,17 +317,17 @@
 <div class="page-topbar">
   <h1 class="page-title">🗂️ PLU 관리</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
+  <div class="plu-search-col" id="pluSearchTop">
+    <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
+  </div>
   <button class="page-back" id="pluBackBtn">← 돌아가기</button>
 </div>
 <div class="egmm-screen">
   <div class="egmm-sub-screen">
 
     <div class="plu-bars-col">
-    <!-- 검색창 -->
+    <!-- PLU 신청 알림 -->
     <div class="plu-bigbar">
-      <div class="plu-search-col">
-        <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
-        </div>
       <button class="plu-req-notify" id="pluReqNotify">🔔 PLU 신청 <span id="pluReqNotifyCount">0</span></button>
     </div>
     <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
