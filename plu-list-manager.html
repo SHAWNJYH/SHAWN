@@ -344,9 +344,9 @@
   <div class="egmm-sub-screen">
 
     <div class="plu-bars-col">
-    <!-- PLU 신청 알림 -->
+    <!-- PLU REQUEST notify -->
     <div class="plu-bigbar">
-      <button class="plu-req-notify" id="pluReqNotify">🔔 PLU 신청 <span id="pluReqNotifyCount">0</span></button>
+      <button class="plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>
     </div>
     <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
     <!-- 작은 탭 + 툴바(오른쪽 끝) 한 줄 -->
@@ -955,15 +955,16 @@
   .plureq-mgr input:focus { outline: none; border-color: #1e40af; }
   .plureq-approve { border: none; background: #15803d; color: #fff; border-radius: 9px; padding: 9px 14px; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
   .plureq-empty { text-align: center; color: #6b6b72; padding: 22px; }
+  .rqlbl { color:#c0392b; font-weight:800; }
   .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
   .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
   .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
   @media (max-width: 700px){ .plureq-mgr { grid-template-columns: 1fr 1fr; } }
 </style>
 <div class="plureq-ov" id="plureqMgrOv"><div class="plureq-modal">
-  <h3>PLU 신청 내역</h3>
+  <h3>PLU REQUESTS</h3>
   <div class="plureq-list" id="rqMgrList"></div>
-  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqMgrClose">닫기</button></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqMgrClose">CLOSE</button></div>
 </div></div>
 <script>
 (function(){
@@ -983,18 +984,19 @@
     var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.createdAt||0)-(a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
       var done=r.status==='done', id=esc(r.__id);
+      var L=function(t){ return '<span class="rqlbl">'+t+'</span> '; };
       var lines=[];
-      var l1=[]; l1.push('매장 '+esc(r.store||'-')); l1.push('신청자 '+esc(r.requester||'-')); if(r.category) l1.push('분류 '+esc(r.category)); lines.push(l1.join(' · '));
-      var l2=[]; if(r.kor) l2.push('KOR '+esc(r.kor)); if(r.eng) l2.push('ENG '+esc(r.eng)); if(r.origin) l2.push('원산지 '+esc(r.origin)); if(r.vender) l2.push('거래처 '+esc(r.vender)); if(r.price) l2.push('가격 '+esc(r.price)); if(l2.length) lines.push(l2.join(' · '));
-      var l3=[]; if(r.storage) l3.push(esc(r.storage)); if(r.tare) l3.push('TARE '+esc(r.tare)); if(r.sellByTime) l3.push('SELL BY TIME '+esc(r.sellByTime)); if(r.sellByDate) l3.push('SELL BY DATE '+esc(r.sellByDate)); if(l3.length) lines.push(l3.join(' · '));
-      if(r.ingredients) lines.push('INGREDIENTS '+esc(r.ingredients));
-      if(r.memo) lines.push('MEMO '+esc(r.memo));
+      var l1=[]; l1.push(L('STORE')+esc(r.store||'-')); l1.push(L('REQUESTER')+esc(r.requester||'-')); if(r.category) l1.push(L('CATEGORY')+esc(r.category)); lines.push(l1.join(' · '));
+      var l2=[]; if(r.kor) l2.push(L('KOR')+esc(r.kor)); if(r.eng) l2.push(L('ENG')+esc(r.eng)); if(r.origin) l2.push(L('ORIGIN')+esc(r.origin)); if(r.vender) l2.push(L('VENDER')+esc(r.vender)); if(r.price) l2.push(L('PRICE')+esc(r.price)); if(l2.length) lines.push(l2.join(' · '));
+      var l3=[]; if(r.storage) l3.push(L('STORAGE')+esc(r.storage)); if(r.tare) l3.push(L('TARE')+esc(r.tare)); if(r.sellByTime) l3.push(L('SELL BY TIME')+esc(r.sellByTime)); if(r.sellByDate) l3.push(L('SELL BY DATE')+esc(r.sellByDate)); if(l3.length) lines.push(l3.join(' · '));
+      if(r.ingredients) lines.push(L('INGREDIENTS')+esc(r.ingredients));
+      if(r.memo) lines.push(L('MEMO')+esc(r.memo));
       var metaHtml=lines.map(function(s){ return '<div class="meta">'+s+'</div>'; }).join('');
-      var mgr = done ? '<div class="meta">PLU '+esc(r.plu)+(r.mgrKor?(' · KOR '+esc(r.mgrKor)):'')+(r.mgrEng?(' · ENG '+esc(r.mgrEng)):'')+'</div>'
-        : '<div class="plureq-mgr"><input placeholder="PLU 번호" data-f="plu" data-id="'+id+'" value="'+esc(r.plu)+'"><input placeholder="KOR DESC" data-f="mgrKor" data-id="'+id+'" value="'+esc(r.mgrKor||r.kor)+'"><input placeholder="ENG DESC" data-f="mgrEng" data-id="'+id+'" value="'+esc(r.mgrEng||r.eng)+'"><button class="plureq-approve" data-approve="'+id+'">승인</button></div>';
-      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+badge(r.status)+'</div>'+
+      var mgr = done ? '<div class="meta">'+L('PLU')+esc(r.plu)+(r.mgrKor?(' · '+L('KOR')+esc(r.mgrKor)):'')+(r.mgrEng?(' · '+L('ENG')+esc(r.mgrEng)):'')+'</div>'
+        : '<div class="plureq-mgr"><input placeholder="PLU NO" data-f="plu" data-id="'+id+'" value="'+esc(r.plu)+'"><input placeholder="KOR DESC" data-f="mgrKor" data-id="'+id+'" value="'+esc(r.mgrKor||r.kor)+'"><input placeholder="ENG DESC" data-f="mgrEng" data-id="'+id+'" value="'+esc(r.mgrEng||r.eng)+'"><button class="plureq-approve" data-approve="'+id+'">APPROVE</button></div>';
+      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(NO NAME)')+'</span>'+badge(r.status)+'</div>'+
         metaHtml+mgr+'</div>';
-    }).join('') : '<div class="plureq-empty">신청 내역이 없습니다.</div>';
+    }).join('') : '<div class="plureq-empty">No requests.</div>';
   }
   function openMgr(){ renderList(); $('plureqMgrOv').classList.add('show'); }
   function closeMgr(){ $('plureqMgrOv').classList.remove('show'); }
@@ -1002,10 +1004,10 @@
     var r=null; for(var i=0;i<reqs.length;i++){ if(reqs[i].__id===id){ r=reqs[i]; break; } } if(!r) return;
     var box=$('rqMgrList');
     var gv=function(fld){ var el=box.querySelector('input[data-id="'+id+'"][data-f="'+fld+'"]'); return el?el.value.trim():''; };
-    var plu=gv('plu'); if(!plu){ alert('PLU 번호를 입력하세요'); return; }
+    var plu=gv('plu'); if(!plu){ alert('Enter PLU number'); return; }
     var data={ store:r.store||'', requester:r.requester||'', category:r.category||'', kor:r.kor||'', eng:r.eng||'', origin:r.origin||'', vender:r.vender||'', price:r.price||'', ingredients:r.ingredients||'', storage:r.storage||'', tare:r.tare||'', sellByTime:r.sellByTime||'', sellByDate:r.sellByDate||'', memo:r.memo||'', status:'done', plu:plu, mgrKor:gv('mgrKor'), mgrEng:gv('mgrEng'), createdAt:r.createdAt||Date.now(), updatedAt:Date.now() };
-    try{ fns().setDoc(fns().doc(db(), REQ_COL, id), data).then(function(){ if(window.showToast){try{showToast('승인 완료 (DONE)','success');}catch(e){}} }).catch(function(){ alert('승인 실패 — THE SHAWN 로그인/권한을 확인하세요'); }); }
-    catch(e){ alert('승인 실패'); }
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, id), data).then(function(){ if(window.showToast){try{showToast('Approved (DONE)','success');}catch(e){}} }).catch(function(){ alert('Approval failed — check THE SHAWN login/permission'); }); }
+    catch(e){ alert('Approval failed'); }
   }
   var purgeTried = {};
   function purgeOld(){

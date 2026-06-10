@@ -671,8 +671,8 @@
   function toolbarHTML(){
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
-      '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+
-      '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+
+      '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button>'+
+      '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button>'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
       '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
@@ -867,7 +867,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>'; if(window.__reqApply) window.__reqApply(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>'; if(window.__reqApply) window.__reqApply(); }
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']]; rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
@@ -931,7 +931,7 @@
   .plureq-empty { text-align: center; color: #6b6b72; padding: 20px; }
 </style>
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
-  <h3>PLU 요청하기</h3>
+  <h3>PLU REQUEST</h3>
   <div class="plureq-field"><label>SELECT STORE</label><select id="rqStore"></select></div>
   <div class="plureq-3col">
     <div class="plureq-field plureq-col"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
@@ -962,12 +962,12 @@
   <hr class="plureq-divider">
   <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="4" autocomplete="off"></textarea></div>
 
-  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqCancel">취소</button><button class="plureq-btn primary" id="rqSubmit">신청하기</button></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqCancel">CANCEL</button><button class="plureq-btn primary" id="rqSubmit">SUBMIT</button></div>
 </div></div>
 <div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
-  <h3>요청한 PLU 결과</h3>
+  <h3>PLU REQUEST RESULTS</h3>
   <div class="plureq-list" id="rqList"></div>
-  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">닫기</button></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">CLOSE</button></div>
 </div></div>
 <script>
 (function(){
@@ -990,14 +990,14 @@
   function closeForm(){ $('plureqFormOv').classList.remove('show'); }
   function submitReq(){
     var store=($('rqStore').value||'').trim(), requester=($('rqRequester').value||'').trim();
-    if(!store){ alert('매장을 선택하세요 (SELECT STORE)'); return; }
-    if(!requester){ alert('REQUESTER를 입력하세요'); return; }
+    if(!store){ alert('Please select a store (SELECT STORE)'); return; }
+    if(!requester){ alert('Please enter REQUESTER'); return; }
     var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('ROOM');
     var data={ store:store, requester:requester, category:($('rqCategory')?($('rqCategory').value||'').trim():''), kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
       ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
       status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
-    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); if(window.showToast){ try{showToast('PLU 요청이 접수되었습니다','success');}catch(e){} } else alert('PLU 요청이 접수되었습니다'); }).catch(function(){ alert('요청 전송 실패 (네트워크/권한 확인)'); }); }
-    catch(e){ alert('요청 전송 실패'); }
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); if(window.showToast){ try{showToast('PLU request submitted','success');}catch(e){} } else alert('PLU request submitted'); }).catch(function(){ alert('Submit failed (check network/permission)'); }); }
+    catch(e){ alert('Submit failed'); }
   }
   function statusBadge(st){ return st==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
   function openView(){
@@ -1009,10 +1009,11 @@
       var done=r.status==='done';
       var kor=done?(r.mgrKor||''):(r.kor||'');
       var eng=done?(r.mgrEng||''):(r.eng||'');
-      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
+      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(NO NAME)')+'</span>'+statusBadge(r.status)+'</div>'+
+        '<div class="meta">STORE '+esc(r.store||'-')+' · REQUESTER '+esc(r.requester||'-')+'</div>'+
         '<div class="meta">PLU '+esc(r.plu||'-')+' · KOR '+esc(kor||'-')+' · ENG '+esc(eng||'-')+'</div>'+
       '</div>';
-    }).join('') : '<div class="plureq-empty">요청 내역이 없습니다.</div>';
+    }).join('') : '<div class="plureq-empty">No requests.</div>';
     $('plureqViewOv').classList.add('show');
   }
   function closeView(){ $('plureqViewOv').classList.remove('show'); }
