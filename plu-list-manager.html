@@ -983,11 +983,17 @@
     var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.createdAt||0)-(a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
       var done=r.status==='done', id=esc(r.__id);
-      var mgr = done ? '<div class="meta">✅ PLU '+esc(r.plu)+(r.mgrKor?(' · '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'
+      var lines=[];
+      var l1=[]; l1.push('매장 '+esc(r.store||'-')); l1.push('신청자 '+esc(r.requester||'-')); if(r.category) l1.push('분류 '+esc(r.category)); lines.push(l1.join(' · '));
+      var l2=[]; if(r.kor) l2.push('KOR '+esc(r.kor)); if(r.eng) l2.push('ENG '+esc(r.eng)); if(r.origin) l2.push('원산지 '+esc(r.origin)); if(r.vender) l2.push('거래처 '+esc(r.vender)); if(r.price) l2.push('가격 '+esc(r.price)); if(l2.length) lines.push(l2.join(' · '));
+      var l3=[]; if(r.storage) l3.push(esc(r.storage)); if(r.tare) l3.push('TARE '+esc(r.tare)); if(r.sellByTime) l3.push('SELL BY TIME '+esc(r.sellByTime)); if(r.sellByDate) l3.push('SELL BY DATE '+esc(r.sellByDate)); if(l3.length) lines.push(l3.join(' · '));
+      if(r.ingredients) lines.push('INGREDIENTS '+esc(r.ingredients));
+      if(r.memo) lines.push('MEMO '+esc(r.memo));
+      var metaHtml=lines.map(function(s){ return '<div class="meta">'+s+'</div>'; }).join('');
+      var mgr = done ? '<div class="meta">PLU '+esc(r.plu)+(r.mgrKor?(' · KOR '+esc(r.mgrKor)):'')+(r.mgrEng?(' · ENG '+esc(r.mgrEng)):'')+'</div>'
         : '<div class="plureq-mgr"><input placeholder="PLU 번호" data-f="plu" data-id="'+id+'" value="'+esc(r.plu)+'"><input placeholder="KOR DESC" data-f="mgrKor" data-id="'+id+'" value="'+esc(r.mgrKor||r.kor)+'"><input placeholder="ENG DESC" data-f="mgrEng" data-id="'+id+'" value="'+esc(r.mgrEng||r.eng)+'"><button class="plureq-approve" data-approve="'+id+'">승인</button></div>';
       return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+badge(r.status)+'</div>'+
-        '<div class="meta">🏬 '+esc(r.store)+' · 👤 '+esc(r.requester)+(r.eng?(' · '+esc(r.eng)):'')+(r.origin?(' · 원산지 '+esc(r.origin)):'')+(r.vender?(' · '+esc(r.vender)):'')+(r.price?(' · '+esc(r.price)):'')+'</div>'+
-        mgr+'</div>';
+        metaHtml+mgr+'</div>';
     }).join('') : '<div class="plureq-empty">신청 내역이 없습니다.</div>';
   }
   function openMgr(){ renderList(); $('plureqMgrOv').classList.add('show'); }
@@ -997,7 +1003,7 @@
     var box=$('rqMgrList');
     var gv=function(fld){ var el=box.querySelector('input[data-id="'+id+'"][data-f="'+fld+'"]'); return el?el.value.trim():''; };
     var plu=gv('plu'); if(!plu){ alert('PLU 번호를 입력하세요'); return; }
-    var data={ store:r.store||'', requester:r.requester||'', kor:r.kor||'', eng:r.eng||'', origin:r.origin||'', vender:r.vender||'', price:r.price||'', status:'done', plu:plu, mgrKor:gv('mgrKor'), mgrEng:gv('mgrEng'), createdAt:r.createdAt||Date.now(), updatedAt:Date.now() };
+    var data={ store:r.store||'', requester:r.requester||'', category:r.category||'', kor:r.kor||'', eng:r.eng||'', origin:r.origin||'', vender:r.vender||'', price:r.price||'', ingredients:r.ingredients||'', storage:r.storage||'', tare:r.tare||'', sellByTime:r.sellByTime||'', sellByDate:r.sellByDate||'', memo:r.memo||'', status:'done', plu:plu, mgrKor:gv('mgrKor'), mgrEng:gv('mgrEng'), createdAt:r.createdAt||Date.now(), updatedAt:Date.now() };
     try{ fns().setDoc(fns().doc(db(), REQ_COL, id), data).then(function(){ if(window.showToast){try{showToast('승인 완료 (DONE)','success');}catch(e){}} }).catch(function(){ alert('승인 실패 — THE SHAWN 로그인/권한을 확인하세요'); }); }
     catch(e){ alert('승인 실패'); }
   }

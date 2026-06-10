@@ -933,12 +933,17 @@
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
   <h3>PLU 요청하기</h3>
   <div class="plureq-field"><label>SELECT STORE</label><select id="rqStore"></select></div>
-  <div class="plureq-field"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+  <div class="plureq-3col">
+    <div class="plureq-field plureq-col"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+    <div class="plureq-field plureq-col"><label>CATEGORY</label><select id="rqCategory"><option value="">SELECT</option><option>PRODUCE</option><option>DELI</option><option>FISH</option><option>MEAT</option><option>HOUSEWARE</option></select></div>
+  </div>
   <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
   <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
   <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
-  <div class="plureq-field"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
-  <div class="plureq-field"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+  <div class="plureq-3col">
+    <div class="plureq-field plureq-col"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
+    <div class="plureq-field plureq-col"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+  </div>
 
   <hr class="plureq-divider">
   <div class="plureq-section-title">Additional info for DELI PLU requests</div>
@@ -946,7 +951,7 @@
   <div class="plureq-checks">
     <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
     <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
-    <label class="plureq-check"><input type="checkbox" id="rqAmbient"> AMBIENT</label>
+    <label class="plureq-check"><input type="checkbox" id="rqAmbient"> ROOM</label>
   </div>
   <div class="plureq-3col">
     <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
@@ -981,14 +986,14 @@
   function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
   function fillStores(){ var sel=$('rqStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
-  function openForm(){ fillStores(); ['rqRequester','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
+  function openForm(){ fillStores(); ['rqRequester','rqCategory','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
   function closeForm(){ $('plureqFormOv').classList.remove('show'); }
   function submitReq(){
     var store=($('rqStore').value||'').trim(), requester=($('rqRequester').value||'').trim();
     if(!store){ alert('매장을 선택하세요 (SELECT STORE)'); return; }
     if(!requester){ alert('REQUESTER를 입력하세요'); return; }
-    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('AMBIENT');
-    var data={ store:store, requester:requester, kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
+    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('ROOM');
+    var data={ store:store, requester:requester, category:($('rqCategory')?($('rqCategory').value||'').trim():''), kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
       ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
       status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
     try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); if(window.showToast){ try{showToast('PLU 요청이 접수되었습니다','success');}catch(e){} } else alert('PLU 요청이 접수되었습니다'); }).catch(function(){ alert('요청 전송 실패 (네트워크/권한 확인)'); }); }
@@ -1002,17 +1007,10 @@
     var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
       var done=r.status==='done';
-      var extra=[];
-      if(r.storage) extra.push(esc(r.storage));
-      if(r.tare) extra.push('TARE '+esc(r.tare));
-      if(r.sellByTime) extra.push('SELL BY TIME '+esc(r.sellByTime));
-      if(r.sellByDate) extra.push('SELL BY DATE '+esc(r.sellByDate));
-      if(r.ingredients) extra.push('INGREDIENTS '+esc(r.ingredients));
-      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
-        '<div class="meta">'+esc(r.store)+' / '+esc(r.requester)+(r.eng?(' / '+esc(r.eng)):'')+'</div>'+
-        (extra.length?('<div class="meta">'+extra.join(' / ')+'</div>'):'')+
-        (r.memo?('<div class="meta">MEMO / '+esc(r.memo)+'</div>'):'')+
-        (done?('<div class="meta">PLU '+esc(r.plu)+(r.mgrKor?(' / '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'):'')+
+      var kor=done?(r.mgrKor||''):(r.kor||'');
+      var eng=done?(r.mgrEng||''):(r.eng||'');
+      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
+        '<div class="meta">PLU '+esc(r.plu||'-')+' · KOR '+esc(kor||'-')+' · ENG '+esc(eng||'-')+'</div>'+
       '</div>';
     }).join('') : '<div class="plureq-empty">요청 내역이 없습니다.</div>';
     $('plureqViewOv').classList.add('show');
