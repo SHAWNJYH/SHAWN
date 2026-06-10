@@ -382,6 +382,12 @@
       setTimeout(res, 2500);
     });
   }
+  // 행에서 값을 base 필드 또는 extra(대소문자 무시)에서 찾아온다
+  function pickField(r, names) {
+    for (let i = 0; i < names.length; i++) { const n = names[i]; if (r[n] != null && String(r[n]).trim() !== '') return String(r[n]).trim(); }
+    if (r.extra) { for (let i = 0; i < names.length; i++) { const want = String(names[i]).toLowerCase(); for (const k in r.extra) { if (String(k).toLowerCase() === want) { const v = r.extra[k]; if (v != null && String(v).trim() !== '') return String(v).trim(); } } } }
+    return '';
+  }
   // Firebase plu-list/PRODUCE 문서에서 과일/야채 데이터 읽기
   async function loadFromFirebase() {
     await fbReady();
@@ -393,12 +399,12 @@
         const d = snap.data() || {};
         if (Array.isArray(d.rows) && d.rows.length) {
           return d.rows.map(r => ({
-            plu: (r.plu || '').toString().trim(),
-            eng: (r.eng || '').toString().trim(),
-            kor: (r.kor || '').toString().trim(),
-            localPlu: (r.local || '').toString().trim(),
-            organic: (r.organic || '').toString().trim(),
-            cateKor: '', cateEng: '', origin: '', itemCode: '', cateNo: ''
+            plu: pickField(r, ['plu', 'PLU']),
+            eng: pickField(r, ['eng', 'ENG', 'ENG DESC', 'ENGLISH', '영문명']),
+            kor: pickField(r, ['kor', 'KOR', 'KOR DESC', 'KOREAN', '한글명']),
+            localPlu: pickField(r, ['local', 'LOCAL', '로컬']),
+            organic: pickField(r, ['organic', 'ORGANIC', '유기농']),
+            cateKor: '', cateEng: '', origin: pickField(r, ['origin', 'ORIGIN', '원산지']), itemCode: '', cateNo: ''
           }));
         }
       }
@@ -518,7 +524,9 @@
     loadPluData().then(() => {
       quizPool = buildQuizPool(quizCat);
       if (!quizPool.length) {
-        showToast('No items to quiz', 'error');
+        const total = (pluData || []).length;
+        const range = quizCat === 'fruit' ? 'FRUITS (PLU 2000~2999)' : 'VEGETABLES (PLU 1000~1999)';
+        showToast('출제할 항목이 없습니다 · ' + range + ' · 불러온 데이터 ' + total + '건', 'error');
         return;
       }
       quizCorrect = 0;
