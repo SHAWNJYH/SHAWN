@@ -396,6 +396,18 @@
   </div>
 </div>
 
+<div class="plu-modal-ov" id="pluStoreColModal">
+  <div class="plu-modal">
+    <h3>매장별 데이터 관리</h3>
+    <p style="font-size:13px;color:#6b6b72;margin:0 0 8px;">아래는 매장추가(체크)·상품정보열(텍스트)·상품정보체크박스로 만든 열입니다. 체크한 열은 <b>매장별로 각 매장이 직접 데이터를 입력/수정</b>합니다. (PLU·기본정보 등 공통 열은 제외)</p>
+    <div id="pluStoreColList" style="max-height:300px;overflow:auto;border:1px solid #e5e5e0;border-radius:8px;padding:6px 8px;text-align:left;"></div>
+    <div class="plu-modal-btns" style="margin-top:14px;">
+      <button class="plu-modal-choice" id="pluStoreColSave" style="text-align:center;">적용</button>
+    </div>
+    <button class="plu-modal-cancel" id="pluStoreColCancel">취소</button>
+  </div>
+</div>
+
 <div class="plu-modal-ov" id="pluIngModal">
   <div class="plu-modal plu-ing-modal">
     <h3 id="pluIngTitle">INGREDIENT</h3>
@@ -438,7 +450,7 @@
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return orderEndCols(L); var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return orderEndCols(L); }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,store:!!c.store}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
 
@@ -534,7 +546,7 @@
       var lay=normLayout(layout||defaultLayout([]));
       var tl=(typeof truncLen==='number'&&truncLen>0)?truncLen:((typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:20);
       await fns().setDoc(fns().doc(db(), COL, docId), { rows: rows, layout: lay, fields: extraKeysOf(lay), truncLen: tl, updatedAt: Date.now() });
-      cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp};}); truncLenByCat[cat]=tl;
+      cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,store:!!c.store};}); truncLenByCat[cat]=tl;
       return true;
     }catch(e){ showToast('저장 실패 — 권한(보안규칙)을 확인하세요','error'); return false; }
   }
@@ -708,7 +720,7 @@
       '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
       '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
       '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
-      (editMode?('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ 설정</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'):'')+
+      (editMode?('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ 설정</button><button class="plu-tool-btn" id="pluStoreColBtn">🏬 매장별 데이터</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'):'')+
       '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '<input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none">'+
     '</div>';
@@ -775,7 +787,7 @@
 
   function enterEdit(){
     var cat=curCat();
-    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp};}); workTrunc=(typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:20; var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
+    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,store:!!c.store};}); workTrunc=(typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:20; var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
     if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
   }
   function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
@@ -808,6 +820,9 @@
   function openCfgModal(){ if(!editMode) return; var ti=$('pluCfgTrunc'); if(ti) ti.value=(workTrunc>0?workTrunc:20); var box=$('pluCfgCols'); var lay=workLayout||[]; if(box){ box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span style="color:#9a9aa0;font-size:12px;">(체크)</span>':''; return '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:14px;cursor:pointer;"><input type="checkbox" class="plu-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> '+escapeHtml(c.label)+tag+'</label>'; }).join(''); } var ov=$('pluCfgModal'); if(ov) ov.classList.add('show'); }
   function closeCfgModal(){ var ov=$('pluCfgModal'); if(ov) ov.classList.remove('show'); }
   function saveCfgModal(){ var t=parseInt(($('pluCfgTrunc')||{}).value,10); if(isNaN(t)||t<1) t=20; if(t>200) t=200; workTrunc=t; var on={}; var checks=$('pluCfgCols')?$('pluCfgCols').querySelectorAll('.plu-cfg-col'):[]; Array.prototype.forEach.call(checks,function(ch){ on[ch.getAttribute('data-key')]=ch.checked; }); (workLayout||[]).forEach(function(c){ if(Object.prototype.hasOwnProperty.call(on,c.key)) c.exp=on[c.key]; }); markDirty(); closeCfgModal(); renderContent(); showToast('설정 적용됨 — 💾 저장을 눌러 저장하세요','success'); }
+  function openStoreColModal(){ if(!editMode) return; var box=$('pluStoreColList'); var lay=(workLayout||[]).filter(function(c){ return !isBase(c.key); }); if(box){ if(!lay.length){ box.innerHTML='<div style="font-size:13px;color:#9a9aa0;padding:8px 2px;">매장추가·상품정보 열이 없습니다. 먼저 ＋ 열 추가로 만들어 주세요.</div>'; } else { box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var t=(c.type==='check')?'매장추가(체크)':(c.type==='rcheck'?'상품정보 체크박스':'상품정보 텍스트'); return '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:14px;cursor:pointer;"><input type="checkbox" class="plu-storecol" data-key="'+k+'"'+(c.store?' checked':'')+'> '+escapeHtml(c.label)+' <span style="color:#9a9aa0;font-size:12px;">'+t+'</span></label>'; }).join(''); } } var ov=$('pluStoreColModal'); if(ov) ov.classList.add('show'); }
+  function closeStoreColModal(){ var ov=$('pluStoreColModal'); if(ov) ov.classList.remove('show'); }
+  function saveStoreColModal(){ var on={}; var checks=$('pluStoreColList')?$('pluStoreColList').querySelectorAll('.plu-storecol'):[]; Array.prototype.forEach.call(checks,function(ch){ on[ch.getAttribute('data-key')]=ch.checked; }); (workLayout||[]).forEach(function(c){ if(Object.prototype.hasOwnProperty.call(on,c.key)) c.store=on[c.key]; }); markDirty(); closeStoreColModal(); renderContent(); showToast('매장별 열 지정됨 — 💾 저장을 눌러 저장하세요','success'); }
   var __ingCat=null,__ingPlu=null,__ingKey=null;
   function openIngModal(plu,key){ var cat=curCat(); var rows=rowsFor(cat)||[]; var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } var full=row?String(getVal(row,key)||''):''; __ingCat=cat; __ingPlu=plu; __ingKey=key; var ta=$('pluIngText'); if(ta){ ta.value=full; ta.readOnly=false; } var ti=$('pluIngTitle'); if(ti) ti.textContent=key; var sb=$('pluIngSub'); if(sb) sb.textContent='PLU '+plu; var ov=$('pluIngModal'); if(ov) ov.classList.add('show'); }
   function closeIngModal(){ var ov=$('pluIngModal'); if(ov) ov.classList.remove('show'); __ingCat=null; __ingPlu=null; __ingKey=null; }
@@ -823,6 +838,10 @@
     if(cfg) cfg.onclick=function(){ saveCfgModal(); };
     if(cfgx) cfgx.onclick=function(){ closeCfgModal(); };
     if(cfgov) cfgov.addEventListener('click', function(e){ if(e.target===cfgov) closeCfgModal(); });
+    var scs=$('pluStoreColSave'), scx=$('pluStoreColCancel'), scov=$('pluStoreColModal');
+    if(scs) scs.onclick=function(){ saveStoreColModal(); };
+    if(scx) scx.onclick=function(){ closeStoreColModal(); };
+    if(scov) scov.addEventListener('click', function(e){ if(e.target===scov) closeStoreColModal(); });
     var ic=$('pluIngClose'), is=$('pluIngSave'), iov=$('pluIngModal');
     if(ic) ic.onclick=function(){ closeIngModal(); };
     if(is) is.onclick=function(){ saveIngModal(); };
@@ -841,6 +860,7 @@
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
     var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
     var cfgb=$('pluCfgBtn'); if(cfgb) cfgb.onclick=function(){ openCfgModal(); };
+    var scb=$('pluStoreColBtn'); if(scb) scb.onclick=function(){ openStoreColModal(); };
     var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
     // 열 조작 버튼 (이동/이름변경/숨김/삭제)
@@ -1161,11 +1181,9 @@
 
 <div class="msm-ov" id="msmOv">
   <div class="msm-modal">
-    <h3>매장별 이름 / PIN 관리</h3>
-    <div class="msm-row2">
-      <div><label>STORE</label><select id="msmStore"></select></div>
-      <div><label>CATEGORY</label><select id="msmCat"></select></div>
-    </div>
+    <h3>매장 PIN 관리</h3>
+    <label>STORE</label>
+    <select id="msmStore"></select>
     <div class="msm-pin">
       <label>이 매장 PIN</label>
       <div class="msm-pinrow">
@@ -1175,22 +1193,8 @@
       </div>
       <div class="msm-hint" id="msmPinHint"></div>
     </div>
-    <hr class="msm-div">
-    <label>PLU 번호</label>
-    <input id="msmPlu" type="text" inputmode="numeric" placeholder="예: 1000" autocomplete="off">
-    <div class="msm-common" id="msmCommon">공통: -</div>
-    <label>이 매장 한글명</label>
-    <input id="msmKor" type="text" autocomplete="off">
-    <label>이 매장 영문명</label>
-    <input id="msmEng" type="text" autocomplete="off">
     <div class="msm-btns">
-      <button class="msm-save" id="msmSave">저장</button>
-      <button class="msm-reset" id="msmReset">공통으로</button>
       <button class="msm-close" id="msmClose">닫기</button>
-    </div>
-    <div class="msm-list-wrap">
-      <h4>지정된 이름 (<span id="msmListInfo"></span>)</h4>
-      <div id="msmList"></div>
     </div>
   </div>
 </div>
@@ -1200,77 +1204,23 @@
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
   var STORES = ['TACOMA','FEDERAL WAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART(LYNNWOOD)','MELLOW WAY','DISTRICT-H','M2M'];
-  var DOCID = { '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
   var PINS_COL = 'plu-store-pins';
-  var OV_COL = 'plu-store-overrides';
-  var selStore = null, ovCache = {};
+  var selStore = null;
   function fns(){ return window.firebaseFns; }
   function db(){ return window.firebaseDb; }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function catDoc(){ return DOCID[$('msmCat').value] || $('msmCat').value; }
-  function catLabel(){ return $('msmCat').value; }
 
-  function fillSelects(){
-    var ss=$('msmStore'); ss.innerHTML=STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
-    var cats = (window.__mgrCats? window.__mgrCats() : Object.keys(DOCID));
-    var cur = (window.__curCat? window.__curCat() : cats[0]);
-    var cc=$('msmCat'); cc.innerHTML=cats.map(function(c){return '<option value="'+esc(c)+'"'+(c===cur?' selected':'')+'>'+esc(c)+'</option>';}).join('');
-  }
+  function fillSelect(){ var ss=$('msmStore'); ss.innerHTML=STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
 
   async function loadStore(){
     selStore = $('msmStore').value;
-    ovCache = {};
     $('msmPinHint').textContent='불러오는 중…';
-    try{
-      var ovs = await fns().getDoc(fns().doc(db(), OV_COL, selStore));
-      ovCache = (ovs && ovs.exists() && ovs.data() && ovs.data().ov) ? ovs.data().ov : {};
-    }catch(e){ ovCache={}; }
     try{
       var ps = await fns().getDoc(fns().doc(db(), PINS_COL, selStore));
       var pin = (ps && ps.exists() && ps.data()) ? (ps.data().pin||'') : '';
       $('msmPin').value = pin || '';
       $('msmPinHint').textContent = pin ? 'PIN 설정됨' : 'PIN 미설정 (매장 첫 로그인 시 자동 등록되거나 여기서 지정)';
     }catch(e){ $('msmPinHint').textContent='PIN 정보를 불러오지 못했습니다'; }
-    onPlu(); refreshList();
-  }
-
-  function onPlu(){
-    var plu=($('msmPlu').value||'').trim();
-    var c = window.__commonRow ? window.__commonRow(catLabel(), plu) : null;
-    $('msmCommon').textContent = c ? ('공통: '+(c.kor||'-')+' / '+(c.eng||'-')) : '공통: (해당 PLU 없음)';
-    var rec = (ovCache[catDoc()]||{})[plu];
-    $('msmKor').value = rec && rec.kor!=null ? rec.kor : '';
-    $('msmEng').value = rec && rec.eng!=null ? rec.eng : '';
-  }
-
-  async function saveOv(){
-    try{ await fns().setDoc(fns().doc(db(), OV_COL, selStore), { ov: ovCache, store: selStore, updatedAt: Date.now() }); return true; }
-    catch(e){ alert('저장 실패 — 권한(보안규칙)을 확인하세요'); return false; }
-  }
-
-  async function saveName(){
-    var plu=($('msmPlu').value||'').trim(); if(!plu){ alert('PLU 번호를 입력하세요'); return; }
-    var kor=($('msmKor').value||'').trim(), eng=($('msmEng').value||'').trim();
-    var cid=catDoc(); if(!ovCache[cid]) ovCache[cid]={};
-    if(!kor && !eng){ delete ovCache[cid][plu]; }
-    else { ovCache[cid][plu]={}; if(kor) ovCache[cid][plu].kor=kor; if(eng) ovCache[cid][plu].eng=eng; }
-    if(await saveOv()){ refreshList(); }
-  }
-  async function resetName(){
-    var plu=($('msmPlu').value||'').trim(); if(!plu) return;
-    var cid=catDoc(); if(ovCache[cid]) delete ovCache[cid][plu];
-    $('msmKor').value=''; $('msmEng').value='';
-    if(await saveOv()){ refreshList(); }
-  }
-
-  function refreshList(){
-    $('msmListInfo').textContent = (selStore||'') + ' · ' + catLabel();
-    var cid=catDoc(); var rec=ovCache[cid]||{};
-    var keys=Object.keys(rec).sort(function(a,b){ var na=parseInt(a,10),nb=parseInt(b,10); if(!isNaN(na)&&!isNaN(nb)) return na-nb; return a<b?-1:1; });
-    var box=$('msmList');
-    if(!keys.length){ box.innerHTML='<div style="font-size:13px;color:#9a9aa0;padding:6px 2px;">지정된 이름이 없습니다.</div>'; return; }
-    box.innerHTML=keys.map(function(p){ var r=rec[p]||{}; var nm=[r.kor,r.eng].filter(Boolean).join(' / '); return '<div class="msm-item"><span class="plu">'+esc(p)+'</span><span class="nm">'+esc(nm)+'</span><button class="del" data-plu="'+esc(p)+'">✕</button></div>'; }).join('');
-    Array.prototype.forEach.call(box.querySelectorAll('.del'), function(b){ b.onclick=async function(){ var p=b.getAttribute('data-plu'); if(ovCache[cid]) delete ovCache[cid][p]; if(await saveOv()){ refreshList(); if(($('msmPlu').value||'').trim()===p){ $('msmKor').value=''; $('msmEng').value=''; } } }; });
   }
 
   async function savePin(){
@@ -1287,18 +1237,13 @@
 
   window.__openStoreMgmt = function(){
     if(!window.firebaseFns){ alert('Firebase 준비 중입니다. 잠시 후 다시 시도하세요'); return; }
-    fillSelects();
-    $('msmPlu').value=''; $('msmKor').value=''; $('msmEng').value=''; $('msmCommon').textContent='공통: -';
+    fillSelect();
     $('msmOv').classList.add('show');
     loadStore();
   };
 
   function init(){
     $('msmStore').onchange = loadStore;
-    $('msmCat').onchange = function(){ onPlu(); refreshList(); };
-    $('msmPlu').addEventListener('input', onPlu);
-    $('msmSave').onclick = saveName;
-    $('msmReset').onclick = resetName;
     $('msmClose').onclick = function(){ $('msmOv').classList.remove('show'); };
     $('msmPinSave').onclick = savePin;
     $('msmPinClear').onclick = clearPin;

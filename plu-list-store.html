@@ -415,7 +415,7 @@
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return orderEndCols(L); var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return orderEndCols(L); }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,store:!!c.store}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
 
@@ -428,8 +428,7 @@
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function getTruncLen(){ var n=truncLenByCat[curCat()]; return (typeof n==='number'&&n>0)?n:20; }
-  function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
-  function dispVal(r,key){ var u=String(key||'').toUpperCase(); if((u==='KOR'||u==='ENG') && typeof window.__ovName==='function'){ var o=window.__ovName(curCat(), pluValOf(r), (u==='KOR'?'kor':'eng')); if(o!=null && o!=='') return o; } return getVal(r,key); }
+  function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type,store:!!c.store}; }); return EXPORT_COLS; }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
@@ -594,7 +593,22 @@
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var TL=getTruncLen(); var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var fv=String(dispVal(r,c.key)||''); var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; }).join('');
+    var TL=getTruncLen(); var SACT=(typeof window.__storeActive==='function')?window.__storeActive():null;
+    function ovv(c,r){ return (typeof window.__ovGet==='function') ? window.__ovGet(curCat(), pluValOf(r), c.key) : undefined; }
+    var tds=v.map(function(c){
+      var sc=!!c.store;
+      if(c.type==='check'||c.type==='rcheck'){
+        var on = sc ? !!ovv(c,r) : getVal(r,c.key);
+        var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check';
+        if(sc && SACT){ return '<td class="'+cc+' plu-c-storecell"><span class="pluchk stl-echk'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="이 매장 값 변경">'+(on?'☑':'☐')+'</span></td>'; }
+        return '<td class="'+cc+(sc?' plu-c-storecell':'')+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>';
+      }
+      if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); }
+      var fv = sc ? String(ovv(c,r)||'') : String(getVal(r,c.key)||'');
+      var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv);
+      if(sc && SACT){ return '<td class="'+clsFor(c.key)+' plu-c-storecell stl-etext" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+(sv||'<span class="stl-ph">＋</span>')+'</td>'; }
+      return '<td class="'+clsFor(c.key)+(sc?' plu-c-storecell':'')+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
+    }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
   function viewRowBaseHTML(r){
@@ -830,7 +844,7 @@
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
-  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var __u=String(col.key||'').toUpperCase(); if((__u==='KOR'||__u==='ENG') && typeof window.__ovName==='function'){ var __o=window.__ovName(curCat(), pluValOf(r), (__u==='KOR'?'kor':'eng')); if(__o!=null && __o!=='') return __o; } var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
+  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); if(col && col.store && typeof window.__ovGet==='function'){ var ovv=window.__ovGet(curCat(), pluValOf(r), col.key); return (ovv==null?'':ovv); } var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; return raw==null?'':raw; }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
@@ -1115,6 +1129,10 @@
   .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
   .stl-fab { position: fixed; right: 16px; bottom: 16px; z-index: 1500; background: #1a1a1d; color: #fff; border: none; border-radius: 999px; padding: 11px 16px; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.22); display: none; align-items: center; gap: 8px; }
   .stl-fab.show { display: inline-flex; }
+  .plu-c-storecell { background: #fbf6e9 !important; }
+  .stl-echk, .stl-etext { cursor: pointer; }
+  .stl-etext:hover { outline: 2px solid #e3cd86; outline-offset: -2px; }
+  .stl-ph { color: #c9a961; font-weight: 700; }
   .stl-name-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 2600; padding: 18px; }
   .stl-name-ov.show { display: flex; }
   .stl-name-modal { background: #fff; border-radius: 16px; padding: 18px 18px; width: 100%; max-width: 460px; max-height: 90vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
@@ -1155,25 +1173,12 @@
 
 <div class="stl-name-ov" id="stlNameOv">
   <div class="stl-name-modal">
-    <h3>내 매장 이름 (<span id="stlNameStore"></span>)</h3>
-    <p class="sub">이 매장에서만 다르게 표시할 한글/영문 이름을 지정합니다. 비우고 저장하면 공통 이름으로 되돌립니다.</p>
-    <label>PLU 번호</label>
-    <input id="stlNamePlu" type="text" inputmode="numeric" placeholder="예: 1000" autocomplete="off">
-    <div class="stl-common" id="stlNameCommon">공통: -</div>
-    <label>이 매장 한글명</label>
-    <input id="stlNameKor" type="text" autocomplete="off">
-    <label>이 매장 영문명</label>
-    <input id="stlNameEng" type="text" autocomplete="off">
-    <div class="stl-row-btns">
-      <button class="stl-save" id="stlNameSave">저장</button>
-      <button class="stl-reset" id="stlNameReset">공통으로</button>
+    <h3>🏬 <span id="stlNameStore"></span></h3>
+    <p class="sub">목록에서 <b>연한 색으로 표시된 칸</b>이 이 매장 전용입니다. 체크칸은 눌러서, 글자칸은 눌러서 입력하면 이 매장 데이터만 저장됩니다. (공통 칸은 매니저가 관리)</p>
+    <button class="stl-logout" id="stlLogoutBtn">로그아웃 (이 기기)</button>
+    <div class="stl-row-btns" style="margin-top:8px;">
       <button class="stl-close" id="stlNameClose">닫기</button>
     </div>
-    <div class="stl-ovlist">
-      <h4>현재 이 매장에 지정된 이름 (<span id="stlOvCat"></span>)</h4>
-      <div id="stlOvList"></div>
-    </div>
-    <button class="stl-logout" id="stlLogoutBtn">로그아웃 (이 기기)</button>
   </div>
 </div>
 
@@ -1187,7 +1192,7 @@
   var OV_COL = 'plu-store-overrides';
   var LS_KEY = 'theShawnStore';
   var currentStore = null;
-  var storeOv = {};          // { CATDOCID: { PLU: {kor,eng} } }
+  var storeOv = {};          // { CATDOCID: { PLU: { COLKEY: value } } }
   var ovUnsub = null;
   function fns(){ return window.firebaseFns; }
   function db(){ return window.firebaseDb; }
@@ -1195,15 +1200,16 @@
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   function rerender(){ if(typeof window.__pluRerender==='function'){ try{ window.__pluRerender(); }catch(e){} } }
 
-  // ===== 본앱이 호출하는 훅: 현재 매장의 이름 오버라이드 =====
-  window.__ovName = function(catLabel, plu, field){
-    if(!currentStore) return null;
+  // ===== 본앱이 호출하는 훅: 현재 매장의 열별 데이터 =====
+  window.__ovGet = function(catLabel, plu, colKey){
+    if(!currentStore) return undefined;
     var cid = DOCID[catLabel] || catLabel;
-    var cat = storeOv[cid]; if(!cat) return null;
-    var rec = cat[String(plu)]; if(!rec) return null;
-    var v = rec[field];
-    return (v!=null && v!=='') ? v : null;
+    var cat = storeOv[cid]; if(!cat) return undefined;
+    var rec = cat[String(plu)]; if(!rec) return undefined;
+    var v = rec[String(colKey)];
+    return (v==null || v==='') ? undefined : v;
   };
+  window.__storeActive = function(){ return currentStore; };
   window.__curStore = function(){ return currentStore; };
 
   // ===== 로그인 =====
@@ -1259,7 +1265,6 @@
         var d = (snap && snap.exists()) ? (snap.data()||{}) : {};
         storeOv = d.ov || {};
         rerender();
-        if($('stlNameOv') && $('stlNameOv').classList.contains('show')){ refreshOvList(); }
       }, function(){});
     }catch(e){}
   }
@@ -1270,61 +1275,32 @@
     catch(e){ alert('저장 실패 — 네트워크/권한을 확인하세요'); return false; }
   }
 
-  // ===== 이름 편집 모달 =====
-  function curCatLabel(){ return (typeof window.__curCat==='function') ? window.__curCat() : '청과'; }
-  function curCatDoc(){ return DOCID[curCatLabel()] || curCatLabel(); }
-  function commonNameOf(plu){
-    var f = window.__commonRow ? window.__commonRow(curCatLabel(), plu) : null;
-    if(!f) return null; return { kor: f.kor||'', eng: f.eng||'' };
-  }
-  function openName(){
-    if(!currentStore) return;
-    $('stlNameStore').textContent = currentStore;
-    $('stlOvCat').textContent = curCatLabel();
-    $('stlNamePlu').value=''; $('stlNameKor').value=''; $('stlNameEng').value='';
-    $('stlNameCommon').textContent='공통: -';
-    refreshOvList();
-    $('stlNameOv').classList.add('show');
-  }
+  // ===== 매장 정보 모달 =====
+  function openInfo(){ if(!currentStore) return; var s=$('stlNameStore'); if(s) s.textContent=currentStore; var ov=$('stlNameOv'); if(ov) ov.classList.add('show'); }
   function closeName(){ var ov=$('stlNameOv'); if(ov) ov.classList.remove('show'); }
 
-  function onPluInput(){
-    var plu=($('stlNamePlu').value||'').trim();
-    var c = commonNameOf(plu);
-    if(c){ $('stlNameCommon').textContent='공통: '+(c.kor||'-')+' / '+(c.eng||'-'); }
-    else { $('stlNameCommon').textContent='공통: (해당 PLU 없음)'; }
-    var cid=curCatDoc(); var rec=(storeOv[cid]||{})[plu];
-    $('stlNameKor').value = rec && rec.kor!=null ? rec.kor : '';
-    $('stlNameEng').value = rec && rec.eng!=null ? rec.eng : '';
-  }
-
-  async function saveName(){
-    var plu=($('stlNamePlu').value||'').trim();
-    if(!plu){ alert('PLU 번호를 입력하세요'); return; }
-    var kor=($('stlNameKor').value||'').trim();
-    var eng=($('stlNameEng').value||'').trim();
-    var cid=curCatDoc();
+  // ===== 매장별 칸 저장 =====
+  function curCatLabel(){ return (typeof window.__curCat==='function') ? window.__curCat() : '청과'; }
+  async function saveCell(catLabel, plu, colKey, value){
+    if(!currentStore) return;
+    var cid = DOCID[catLabel] || catLabel; plu=String(plu); colKey=String(colKey);
     if(!storeOv[cid]) storeOv[cid]={};
-    if(!kor && !eng){ delete storeOv[cid][plu]; }
-    else { storeOv[cid][plu] = {}; if(kor) storeOv[cid][plu].kor=kor; if(eng) storeOv[cid][plu].eng=eng; }
-    var ok=await saveOv();
-    if(ok){ rerender(); refreshOvList(); var t=$('stlNameKor'); if(t) t.blur(); }
-  }
-  async function resetName(){
-    var plu=($('stlNamePlu').value||'').trim(); if(!plu) return;
-    var cid=curCatDoc(); if(storeOv[cid]) delete storeOv[cid][plu];
-    $('stlNameKor').value=''; $('stlNameEng').value='';
-    var ok=await saveOv(); if(ok){ rerender(); refreshOvList(); }
+    if(!storeOv[cid][plu]) storeOv[cid][plu]={};
+    if(value==null || value===''){ delete storeOv[cid][plu][colKey]; if(!Object.keys(storeOv[cid][plu]).length) delete storeOv[cid][plu]; }
+    else { storeOv[cid][plu][colKey]=value; }
+    rerender();
+    await saveOv();
   }
 
-  function refreshOvList(){
-    var cid=curCatDoc(); var rec=storeOv[cid]||{};
-    var keys=Object.keys(rec).sort(function(a,b){ var na=parseInt(a,10),nb=parseInt(b,10); if(!isNaN(na)&&!isNaN(nb)) return na-nb; return a<b?-1:1; });
-    var box=$('stlOvList'); if(!box) return;
-    if(!keys.length){ box.innerHTML='<div style="font-size:13px;color:#9a9aa0;padding:6px 2px;">지정된 이름이 없습니다.</div>'; return; }
-    box.innerHTML = keys.map(function(p){ var r=rec[p]||{}; var nm=[r.kor,r.eng].filter(Boolean).join(' / '); return '<div class="stl-ovitem"><span class="plu">'+esc(p)+'</span><span class="nm">'+esc(nm)+'</span><button class="del" data-plu="'+esc(p)+'">✕</button></div>'; }).join('');
-    Array.prototype.forEach.call(box.querySelectorAll('.del'), function(b){ b.onclick=async function(){ var p=b.getAttribute('data-plu'); if(storeOv[cid]) delete storeOv[cid][p]; var ok=await saveOv(); if(ok){ rerender(); refreshOvList(); } }; });
-  }
+  // ===== 인라인 편집(위임) =====
+  document.addEventListener('click', function(e){
+    if(!currentStore) return;
+    var t=e.target;
+    var chk = t.closest ? t.closest('.stl-echk') : null;
+    if(chk){ var plu=chk.getAttribute('data-plu'), key=chk.getAttribute('data-key'); var cur=window.__ovGet(curCatLabel(), plu, key); saveCell(curCatLabel(), plu, key, cur?null:true); return; }
+    var cell = t.closest ? t.closest('.stl-etext') : null;
+    if(cell){ var plu2=cell.getAttribute('data-plu'), key2=cell.getAttribute('data-key'); var cur2=window.__ovGet(curCatLabel(), plu2, key2); var nv=prompt('이 매장 값 ('+key2+')', cur2==null?'':cur2); if(nv===null) return; saveCell(curCatLabel(), plu2, key2, nv.trim()); return; }
+  });
 
   function initLogin(){
     fillStores();
@@ -1332,10 +1308,7 @@
     if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
     var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
     var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
-    var fab=$('stlFab'); if(fab) fab.onclick=openName;
-    var pi=$('stlNamePlu'); if(pi) pi.addEventListener('input', onPluInput);
-    var sv=$('stlNameSave'); if(sv) sv.onclick=saveName;
-    var rs=$('stlNameReset'); if(rs) rs.onclick=resetName;
+    var fab=$('stlFab'); if(fab) fab.onclick=openInfo;
     var cl=$('stlNameClose'); if(cl) cl.onclick=closeName;
     var lo=$('stlLogoutBtn'); if(lo) lo.onclick=function(){ if(confirm('이 기기에서 로그아웃할까요?')) logout(); };
     var nov=$('stlNameOv'); if(nov) nov.addEventListener('click', function(e){ if(e.target===nov) closeName(); });
