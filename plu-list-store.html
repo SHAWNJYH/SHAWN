@@ -258,13 +258,14 @@
   #pluPrintArea { display: none; }
   @media print {
     body > *:not(#pluPrintArea) { display: none !important; }
-    #pluPrintArea { display: block !important; }
+    #pluPrintArea { display: block !important; font-family: Calibri, Arial, 'Malgun Gothic', sans-serif; }
     #pluPrintArea .plu-print-title { font-size: 16px; font-weight: 700; margin: 0 0 10px; }
-    #pluPrintArea table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    #pluPrintArea th, #pluPrintArea td { border: 1px solid #999; padding: 3px 6px; text-align: left; white-space: normal; }
-    #pluPrintArea thead th { background: #e8f0fb !important; color: #1a1a1d !important; position: static; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    #pluPrintArea .plu-col-photo, #pluPrintArea .plu-c-photo { display: none !important; }
-    #pluPrintArea tr.plu-row-reserve td { color: #999 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #pluPrintArea .plu-print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    #pluPrintArea .plu-print-table th, #pluPrintArea .plu-print-table td { border: 1px solid #999; padding: 3px 6px; text-align: center; vertical-align: middle; white-space: normal; }
+    #pluPrintArea .plu-print-table thead th { background: #D9E1F2 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #pluPrintArea .plu-print-table .pp-plu { color: #C00000 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #pluPrintArea .plu-print-table td.pp-kor, #pluPrintArea .plu-print-table td.pp-eng { text-align: left; }
+    #pluPrintArea .plu-print-table tr.plu-row-reserve td { color: #999 !important; }
     @page { margin: 12mm; }
   }
 
@@ -824,17 +825,19 @@
   }
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
-  function printList(){
+  function printList(rowsArg){
     var area=$('pluPrintArea'); if(!area) return;
-    var content=$('pluContent'); var tbl=content?content.querySelector('table.plu-table'):null;
-    if(!tbl){ showToast('인쇄할 표가 없습니다','error'); return; }
+    var rows=rowsArg||visibleCache||[];
     var cat=curCat(), sub=curSub();
     var title=(pluSearchTerm&&pluSearchTerm.trim())?('PLU 검색: '+pluSearchTerm.trim()):(cat+(sub?(' › '+sub):''));
-    var cnt=(visibleCache||[]).length;
     var dt=new Date(); var ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
-    area.innerHTML='';
-    var h=document.createElement('div'); h.className='plu-print-title'; h.textContent=title+'  ('+cnt+'개)  ·  '+ds;
-    area.appendChild(h); area.appendChild(tbl.cloneNode(true));
+    var html='<div class="plu-print-title">'+escapeHtml(title)+'  ('+rows.length+'개)  ·  '+ds+'</div>';
+    html+='<table class="plu-print-table"><thead><tr>';
+    EXPORT_COLS.forEach(function(c){ html+='<th class="pp-'+c.key+'">'+escapeHtml(c.label)+'</th>'; });
+    html+='</tr></thead><tbody>';
+    rows.forEach(function(r){ var res=isReserveRow(r); html+='<tr'+(res?' class="plu-row-reserve"':'')+'>'; EXPORT_COLS.forEach(function(c){ var v=exportVal(r,c); html+='<td class="pp-'+c.key+'">'+escapeHtml(v==null?'':String(v))+'</td>'; }); html+='</tr>'; });
+    html+='</tbody></table>';
+    area.innerHTML=html;
     window.print();
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
@@ -931,7 +934,7 @@
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[EXPORT_COLS.map(function(c){return c.label;})]; rows.forEach(function(r){ aoa.push(EXPORT_COLS.map(function(c){ return exportVal(r,c); })); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EXPORT_COLS, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
-      var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
+      var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(rows); };
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };
     if(!cloudLoaded){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCloud().then(run); }
