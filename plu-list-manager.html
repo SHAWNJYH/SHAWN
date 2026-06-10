@@ -704,6 +704,7 @@
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
       '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
+      '<button class="plu-tool-btn" id="pluStoreBtn">🏬 매장관리</button>'+
       '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
       '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
       '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
@@ -832,6 +833,7 @@
     var cat=curCat(); var el=$('pluContent');
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
+    var stb=$('pluStoreBtn'); if(stb) stb.onclick=function(){ if(window.__openStoreMgmt) window.__openStoreMgmt(); };
     var ae=$('pluAllExportBtn'); if(ae) ae.onclick=function(){ allExportXlsx(); };
     var imp=$('pluImportBtn'); if(imp) imp.onclick=function(){ $('pluImportInput').click(); };
     var impIn=$('pluImportInput'); if(impIn) impIn.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) importXlsx(f); e.target.value=''; };
@@ -1007,6 +1009,9 @@
   // ===== 시작 =====
   renderTabs();
   onReady(function(){
+    window.__commonRow=function(catLabel, plu){ var rows=rowsFor(catLabel)||[]; for(var i=0;i<rows.length;i++){ if(String(pluValOf(rows[i]))===String(plu)) return { kor:(getVal(rows[i],'KOR')||rows[i].kor||''), eng:(getVal(rows[i],'ENG')||rows[i].eng||'') }; } return null; };
+    window.__mgrCats=function(){ return Object.keys(DOCID); };
+    window.__curCat=curCat;
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
     catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
@@ -1119,6 +1124,187 @@
   ready(function(){
     try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); refreshNotify(); purgeOld(); var ov=$('plureqMgrOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
   });
+})();
+</script>
+
+<style>
+  .msm-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 2600; padding: 18px; }
+  .msm-ov.show { display: flex; }
+  .msm-modal { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 480px; max-height: 92vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .msm-modal h3 { margin: 0 0 14px; font-size: 19px; color: #1a1a1d; }
+  .msm-modal label { display: block; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 8px 0 4px; }
+  .msm-modal input, .msm-modal select { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 15px; color: #1a1a1d; background: #fff; }
+  .msm-modal input:focus, .msm-modal select:focus { outline: none; border-color: #c9a961; }
+  .msm-row2 { display: flex; gap: 10px; }
+  .msm-row2 > div { flex: 1; }
+  .msm-pin { margin-top: 12px; background: #f7f6f2; border-radius: 10px; padding: 10px 12px; }
+  .msm-pinrow { display: flex; gap: 8px; align-items: center; }
+  .msm-pinrow input { flex: 1; }
+  .msm-pinrow button { flex: 0 0 auto; border: none; border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  #msmPinSave { background: #1a1a1d; color: #fff; }
+  #msmPinClear { background: #f3f3ee; color: #6b6b72; }
+  .msm-hint { font-size: 12px; color: #9a9aa0; margin-top: 6px; min-height: 16px; }
+  .msm-div { border: none; border-top: 1.5px solid #e5e5e0; margin: 14px 0 6px; }
+  .msm-common { font-size: 12px; color: #6b6b72; background: #f3f3ee; border-radius: 8px; padding: 7px 10px; margin: 4px 0; }
+  .msm-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .msm-btns button { flex: 1; border: none; border-radius: 10px; padding: 11px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .msm-save { background: #c9a961; color: #fff; }
+  .msm-reset { background: #f3f3ee; color: #6b6b72; }
+  .msm-close { background: #fff; border: 1.5px solid #e5e5e0 !important; color: #6b6b72; }
+  .msm-list-wrap { margin-top: 14px; border-top: 1px solid #e5e5e0; padding-top: 10px; }
+  .msm-list-wrap h4 { margin: 0 0 8px; font-size: 13px; color: #6b6b72; }
+  .msm-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 2px; border-bottom: 1px solid #f0f0ec; }
+  .msm-item .plu { font-weight: 800; color: #c0392b; min-width: 54px; }
+  .msm-item .nm { flex: 1; color: #1a1a1d; }
+  .msm-item .del { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 14px; }
+</style>
+
+<div class="msm-ov" id="msmOv">
+  <div class="msm-modal">
+    <h3>매장별 이름 / PIN 관리</h3>
+    <div class="msm-row2">
+      <div><label>STORE</label><select id="msmStore"></select></div>
+      <div><label>CATEGORY</label><select id="msmCat"></select></div>
+    </div>
+    <div class="msm-pin">
+      <label>이 매장 PIN</label>
+      <div class="msm-pinrow">
+        <input id="msmPin" type="text" inputmode="numeric" maxlength="8" placeholder="PIN (4자리 이상)" autocomplete="off">
+        <button id="msmPinSave">PIN 저장</button>
+        <button id="msmPinClear">삭제</button>
+      </div>
+      <div class="msm-hint" id="msmPinHint"></div>
+    </div>
+    <hr class="msm-div">
+    <label>PLU 번호</label>
+    <input id="msmPlu" type="text" inputmode="numeric" placeholder="예: 1000" autocomplete="off">
+    <div class="msm-common" id="msmCommon">공통: -</div>
+    <label>이 매장 한글명</label>
+    <input id="msmKor" type="text" autocomplete="off">
+    <label>이 매장 영문명</label>
+    <input id="msmEng" type="text" autocomplete="off">
+    <div class="msm-btns">
+      <button class="msm-save" id="msmSave">저장</button>
+      <button class="msm-reset" id="msmReset">공통으로</button>
+      <button class="msm-close" id="msmClose">닫기</button>
+    </div>
+    <div class="msm-list-wrap">
+      <h4>지정된 이름 (<span id="msmListInfo"></span>)</h4>
+      <div id="msmList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var STORES = ['TACOMA','FEDERAL WAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART(LYNNWOOD)','MELLOW WAY','DISTRICT-H','M2M'];
+  var DOCID = { '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
+  var PINS_COL = 'plu-store-pins';
+  var OV_COL = 'plu-store-overrides';
+  var selStore = null, ovCache = {};
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function catDoc(){ return DOCID[$('msmCat').value] || $('msmCat').value; }
+  function catLabel(){ return $('msmCat').value; }
+
+  function fillSelects(){
+    var ss=$('msmStore'); ss.innerHTML=STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
+    var cats = (window.__mgrCats? window.__mgrCats() : Object.keys(DOCID));
+    var cur = (window.__curCat? window.__curCat() : cats[0]);
+    var cc=$('msmCat'); cc.innerHTML=cats.map(function(c){return '<option value="'+esc(c)+'"'+(c===cur?' selected':'')+'>'+esc(c)+'</option>';}).join('');
+  }
+
+  async function loadStore(){
+    selStore = $('msmStore').value;
+    ovCache = {};
+    $('msmPinHint').textContent='불러오는 중…';
+    try{
+      var ovs = await fns().getDoc(fns().doc(db(), OV_COL, selStore));
+      ovCache = (ovs && ovs.exists() && ovs.data() && ovs.data().ov) ? ovs.data().ov : {};
+    }catch(e){ ovCache={}; }
+    try{
+      var ps = await fns().getDoc(fns().doc(db(), PINS_COL, selStore));
+      var pin = (ps && ps.exists() && ps.data()) ? (ps.data().pin||'') : '';
+      $('msmPin').value = pin || '';
+      $('msmPinHint').textContent = pin ? 'PIN 설정됨' : 'PIN 미설정 (매장 첫 로그인 시 자동 등록되거나 여기서 지정)';
+    }catch(e){ $('msmPinHint').textContent='PIN 정보를 불러오지 못했습니다'; }
+    onPlu(); refreshList();
+  }
+
+  function onPlu(){
+    var plu=($('msmPlu').value||'').trim();
+    var c = window.__commonRow ? window.__commonRow(catLabel(), plu) : null;
+    $('msmCommon').textContent = c ? ('공통: '+(c.kor||'-')+' / '+(c.eng||'-')) : '공통: (해당 PLU 없음)';
+    var rec = (ovCache[catDoc()]||{})[plu];
+    $('msmKor').value = rec && rec.kor!=null ? rec.kor : '';
+    $('msmEng').value = rec && rec.eng!=null ? rec.eng : '';
+  }
+
+  async function saveOv(){
+    try{ await fns().setDoc(fns().doc(db(), OV_COL, selStore), { ov: ovCache, store: selStore, updatedAt: Date.now() }); return true; }
+    catch(e){ alert('저장 실패 — 권한(보안규칙)을 확인하세요'); return false; }
+  }
+
+  async function saveName(){
+    var plu=($('msmPlu').value||'').trim(); if(!plu){ alert('PLU 번호를 입력하세요'); return; }
+    var kor=($('msmKor').value||'').trim(), eng=($('msmEng').value||'').trim();
+    var cid=catDoc(); if(!ovCache[cid]) ovCache[cid]={};
+    if(!kor && !eng){ delete ovCache[cid][plu]; }
+    else { ovCache[cid][plu]={}; if(kor) ovCache[cid][plu].kor=kor; if(eng) ovCache[cid][plu].eng=eng; }
+    if(await saveOv()){ refreshList(); }
+  }
+  async function resetName(){
+    var plu=($('msmPlu').value||'').trim(); if(!plu) return;
+    var cid=catDoc(); if(ovCache[cid]) delete ovCache[cid][plu];
+    $('msmKor').value=''; $('msmEng').value='';
+    if(await saveOv()){ refreshList(); }
+  }
+
+  function refreshList(){
+    $('msmListInfo').textContent = (selStore||'') + ' · ' + catLabel();
+    var cid=catDoc(); var rec=ovCache[cid]||{};
+    var keys=Object.keys(rec).sort(function(a,b){ var na=parseInt(a,10),nb=parseInt(b,10); if(!isNaN(na)&&!isNaN(nb)) return na-nb; return a<b?-1:1; });
+    var box=$('msmList');
+    if(!keys.length){ box.innerHTML='<div style="font-size:13px;color:#9a9aa0;padding:6px 2px;">지정된 이름이 없습니다.</div>'; return; }
+    box.innerHTML=keys.map(function(p){ var r=rec[p]||{}; var nm=[r.kor,r.eng].filter(Boolean).join(' / '); return '<div class="msm-item"><span class="plu">'+esc(p)+'</span><span class="nm">'+esc(nm)+'</span><button class="del" data-plu="'+esc(p)+'">✕</button></div>'; }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.del'), function(b){ b.onclick=async function(){ var p=b.getAttribute('data-plu'); if(ovCache[cid]) delete ovCache[cid][p]; if(await saveOv()){ refreshList(); if(($('msmPlu').value||'').trim()===p){ $('msmKor').value=''; $('msmEng').value=''; } } }; });
+  }
+
+  async function savePin(){
+    var pin=($('msmPin').value||'').trim();
+    if(pin && pin.length<4){ alert('PIN은 4자리 이상'); return; }
+    try{ await fns().setDoc(fns().doc(db(), PINS_COL, selStore), { pin: pin, store: selStore, updatedAt: Date.now() }); $('msmPinHint').textContent = pin ? 'PIN 저장됨' : 'PIN 비움(삭제) 저장됨'; }
+    catch(e){ alert('PIN 저장 실패 — 권한(보안규칙)을 확인하세요'); }
+  }
+  async function clearPin(){
+    $('msmPin').value='';
+    try{ await fns().setDoc(fns().doc(db(), PINS_COL, selStore), { pin: '', store: selStore, updatedAt: Date.now() }); $('msmPinHint').textContent='PIN 삭제됨 (매장 다음 로그인 시 새 PIN 등록)'; }
+    catch(e){ alert('PIN 삭제 실패 — 권한을 확인하세요'); }
+  }
+
+  window.__openStoreMgmt = function(){
+    if(!window.firebaseFns){ alert('Firebase 준비 중입니다. 잠시 후 다시 시도하세요'); return; }
+    fillSelects();
+    $('msmPlu').value=''; $('msmKor').value=''; $('msmEng').value=''; $('msmCommon').textContent='공통: -';
+    $('msmOv').classList.add('show');
+    loadStore();
+  };
+
+  function init(){
+    $('msmStore').onchange = loadStore;
+    $('msmCat').onchange = function(){ onPlu(); refreshList(); };
+    $('msmPlu').addEventListener('input', onPlu);
+    $('msmSave').onclick = saveName;
+    $('msmReset').onclick = resetName;
+    $('msmClose').onclick = function(){ $('msmOv').classList.remove('show'); };
+    $('msmPinSave').onclick = savePin;
+    $('msmPinClear').onclick = clearPin;
+    $('msmOv').addEventListener('click', function(e){ if(e.target===$('msmOv')) $('msmOv').classList.remove('show'); });
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init, {once:true}); } else { init(); }
 })();
 </script>
 </body>

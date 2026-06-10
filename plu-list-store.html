@@ -429,6 +429,7 @@
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function getTruncLen(){ var n=truncLenByCat[curCat()]; return (typeof n==='number'&&n>0)?n:20; }
   function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
+  function dispVal(r,key){ var u=String(key||'').toUpperCase(); if((u==='KOR'||u==='ENG') && typeof window.__ovName==='function'){ var o=window.__ovName(curCat(), pluValOf(r), (u==='KOR'?'kor':'eng')); if(o!=null && o!=='') return o; } return getVal(r,key); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
@@ -593,7 +594,7 @@
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var TL=getTruncLen(); var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var fv=String(getVal(r,c.key)||''); var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; }).join('');
+    var TL=getTruncLen(); var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var fv=String(dispVal(r,c.key)||''); var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
   function viewRowBaseHTML(r){
@@ -829,7 +830,7 @@
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
-  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
+  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var __u=String(col.key||'').toUpperCase(); if((__u==='KOR'||__u==='ENG') && typeof window.__ovName==='function'){ var __o=window.__ovName(curCat(), pluValOf(r), (__u==='KOR'?'kor':'eng')); if(__o!=null && __o!=='') return __o; } var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; return raw==null?'':raw; }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
@@ -939,6 +940,9 @@
   // ===== 시작 =====
   renderTabs();
   onReady(function(){
+    window.__pluRerender=rerenderIfIdle;
+    window.__curCat=curCat;
+    window.__commonRow=function(catLabel, plu){ var rows=rowsFor(catLabel)||[]; for(var i=0;i<rows.length;i++){ if(String(pluValOf(rows[i]))===String(plu)) return { kor:(getVal(rows[i],'KOR')||rows[i].kor||''), eng:(getVal(rows[i],'ENG')||rows[i].eng||'') }; } return null; };
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
     catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
@@ -1094,6 +1098,250 @@
         applyCount(); var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
     }catch(e){}
   });
+})();
+</script>
+
+<style>
+  .stl-ov { position: fixed; inset: 0; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
+  .stl-ov.show { display: flex; }
+  .stl-card { background: #fff; border-radius: 18px; padding: 26px 24px; width: 100%; max-width: 360px; box-shadow: 0 16px 48px rgba(0,0,0,0.25); text-align: center; }
+  .stl-card h2 { margin: 0 0 4px; font-size: 22px; color: #1a1a1d; }
+  .stl-card p { margin: 0 0 18px; font-size: 13px; color: #9a9aa0; }
+  .stl-card label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 0 0 5px; }
+  .stl-card select, .stl-card input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 12px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; margin-bottom: 13px; }
+  .stl-card select:focus, .stl-card input:focus { outline: none; border-color: #c9a961; }
+  .stl-btn { width: 100%; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; background: #1a1a1d; color: #fff; }
+  .stl-btn:active { transform: scale(0.99); }
+  .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
+  .stl-fab { position: fixed; right: 16px; bottom: 16px; z-index: 1500; background: #1a1a1d; color: #fff; border: none; border-radius: 999px; padding: 11px 16px; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.22); display: none; align-items: center; gap: 8px; }
+  .stl-fab.show { display: inline-flex; }
+  .stl-name-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 2600; padding: 18px; }
+  .stl-name-ov.show { display: flex; }
+  .stl-name-modal { background: #fff; border-radius: 16px; padding: 18px 18px; width: 100%; max-width: 460px; max-height: 90vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .stl-name-modal h3 { margin: 0 0 4px; font-size: 18px; color: #1a1a1d; }
+  .stl-name-modal .sub { font-size: 12px; color: #9a9aa0; margin: 0 0 12px; }
+  .stl-name-modal label { display: block; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 8px 0 4px; }
+  .stl-name-modal input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 15px; }
+  .stl-name-modal input:focus { outline: none; border-color: #c9a961; }
+  .stl-common { font-size: 12px; color: #6b6b72; background: #f3f3ee; border-radius: 8px; padding: 7px 10px; margin: 4px 0; }
+  .stl-row-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .stl-row-btns button { flex: 1; border: none; border-radius: 10px; padding: 11px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .stl-save { background: #c9a961; color: #fff; }
+  .stl-reset { background: #f3f3ee; color: #6b6b72; }
+  .stl-close { background: #fff; border: 1.5px solid #e5e5e0 !important; color: #6b6b72; }
+  .stl-ovlist { margin-top: 14px; border-top: 1px solid #e5e5e0; padding-top: 10px; }
+  .stl-ovlist h4 { margin: 0 0 8px; font-size: 13px; color: #6b6b72; }
+  .stl-ovitem { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 2px; border-bottom: 1px solid #f0f0ec; }
+  .stl-ovitem .plu { font-weight: 800; color: #c0392b; min-width: 54px; }
+  .stl-ovitem .nm { flex: 1; color: #1a1a1d; }
+  .stl-ovitem .del { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 14px; }
+  .stl-logout { margin-top: 12px; width: 100%; background: #fff; border: 1.5px solid #e5e5e0; color: #6b6b72; border-radius: 10px; padding: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+</style>
+
+<div class="stl-ov" id="stlLoginOv">
+  <div class="stl-card">
+    <h2>STORE LOGIN</h2>
+    <p>매장을 선택하고 PIN을 입력하세요</p>
+    <label>STORE</label>
+    <select id="stlStore"><option value="">SELECT STORE</option></select>
+    <label>PIN</label>
+    <input id="stlPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+    <div class="stl-err" id="stlErr"></div>
+    <button class="stl-btn" id="stlLoginBtn">LOGIN</button>
+  </div>
+</div>
+
+<button class="stl-fab" id="stlFab">🏬 <span id="stlFabName">STORE</span></button>
+
+<div class="stl-name-ov" id="stlNameOv">
+  <div class="stl-name-modal">
+    <h3>내 매장 이름 (<span id="stlNameStore"></span>)</h3>
+    <p class="sub">이 매장에서만 다르게 표시할 한글/영문 이름을 지정합니다. 비우고 저장하면 공통 이름으로 되돌립니다.</p>
+    <label>PLU 번호</label>
+    <input id="stlNamePlu" type="text" inputmode="numeric" placeholder="예: 1000" autocomplete="off">
+    <div class="stl-common" id="stlNameCommon">공통: -</div>
+    <label>이 매장 한글명</label>
+    <input id="stlNameKor" type="text" autocomplete="off">
+    <label>이 매장 영문명</label>
+    <input id="stlNameEng" type="text" autocomplete="off">
+    <div class="stl-row-btns">
+      <button class="stl-save" id="stlNameSave">저장</button>
+      <button class="stl-reset" id="stlNameReset">공통으로</button>
+      <button class="stl-close" id="stlNameClose">닫기</button>
+    </div>
+    <div class="stl-ovlist">
+      <h4>현재 이 매장에 지정된 이름 (<span id="stlOvCat"></span>)</h4>
+      <div id="stlOvList"></div>
+    </div>
+    <button class="stl-logout" id="stlLogoutBtn">로그아웃 (이 기기)</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var STORES = ['TACOMA','FEDERAL WAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART(LYNNWOOD)','MELLOW WAY','DISTRICT-H','M2M'];
+  var DOCID = { '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
+  var PINS_COL = 'plu-store-pins';
+  var OV_COL = 'plu-store-overrides';
+  var LS_KEY = 'theShawnStore';
+  var currentStore = null;
+  var storeOv = {};          // { CATDOCID: { PLU: {kor,eng} } }
+  var ovUnsub = null;
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function rerender(){ if(typeof window.__pluRerender==='function'){ try{ window.__pluRerender(); }catch(e){} } }
+
+  // ===== 본앱이 호출하는 훅: 현재 매장의 이름 오버라이드 =====
+  window.__ovName = function(catLabel, plu, field){
+    if(!currentStore) return null;
+    var cid = DOCID[catLabel] || catLabel;
+    var cat = storeOv[cid]; if(!cat) return null;
+    var rec = cat[String(plu)]; if(!rec) return null;
+    var v = rec[field];
+    return (v!=null && v!=='') ? v : null;
+  };
+  window.__curStore = function(){ return currentStore; };
+
+  // ===== 로그인 =====
+  function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
+  function showLogin(){ var ov=$('stlLoginOv'); if(ov) ov.classList.add('show'); }
+  function hideLogin(){ var ov=$('stlLoginOv'); if(ov) ov.classList.remove('show'); }
+
+  async function doLogin(store, pin){
+    var err=$('stlErr'); if(err) err.textContent='';
+    if(!store){ if(err) err.textContent='매장을 선택하세요'; return; }
+    if(!pin || pin.length<4){ if(err) err.textContent='PIN은 4자리 이상'; return; }
+    try{
+      var ref = fns().doc(db(), PINS_COL, store);
+      var snap = await fns().getDoc(ref);
+      if(snap && snap.exists()){
+        var d = snap.data()||{};
+        if(d.pin && String(d.pin)!==String(pin)){ if(err) err.textContent='PIN이 일치하지 않습니다'; return; }
+        if(!d.pin){ try{ await fns().setDoc(ref, { pin:String(pin), store:store, updatedAt:Date.now() }); }catch(e){} }
+      } else {
+        // 최초 로그인 → PIN 등록(부트스트랩)
+        try{ await fns().setDoc(ref, { pin:String(pin), store:store, updatedAt:Date.now() }); }catch(e){}
+      }
+    }catch(e){ /* 읽기 실패 시에도 소프트 진행 */ }
+    loginAs(store);
+  }
+
+  function loginAs(store){
+    currentStore = store;
+    try{ localStorage.setItem(LS_KEY, store); }catch(e){}
+    hideLogin();
+    var fab=$('stlFab'); if(fab){ fab.classList.add('show'); }
+    var fn=$('stlFabName'); if(fn) fn.textContent=store;
+    startOvListener();
+    rerender();
+  }
+
+  function logout(){
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    currentStore=null; storeOv={};
+    if(ovUnsub){ try{ ovUnsub(); }catch(e){} ovUnsub=null; }
+    var fab=$('stlFab'); if(fab) fab.classList.remove('show');
+    closeName();
+    rerender();
+    var ps=$('stlPin'); if(ps) ps.value='';
+    showLogin();
+  }
+
+  function startOvListener(){
+    if(ovUnsub){ try{ ovUnsub(); }catch(e){} ovUnsub=null; }
+    if(!currentStore || !fns() || !fns().onSnapshot) return;
+    try{
+      ovUnsub = fns().onSnapshot(fns().doc(db(), OV_COL, currentStore), function(snap){
+        var d = (snap && snap.exists()) ? (snap.data()||{}) : {};
+        storeOv = d.ov || {};
+        rerender();
+        if($('stlNameOv') && $('stlNameOv').classList.contains('show')){ refreshOvList(); }
+      }, function(){});
+    }catch(e){}
+  }
+
+  async function saveOv(){
+    if(!currentStore) return false;
+    try{ await fns().setDoc(fns().doc(db(), OV_COL, currentStore), { ov: storeOv, store: currentStore, updatedAt: Date.now() }); return true; }
+    catch(e){ alert('저장 실패 — 네트워크/권한을 확인하세요'); return false; }
+  }
+
+  // ===== 이름 편집 모달 =====
+  function curCatLabel(){ return (typeof window.__curCat==='function') ? window.__curCat() : '청과'; }
+  function curCatDoc(){ return DOCID[curCatLabel()] || curCatLabel(); }
+  function commonNameOf(plu){
+    var f = window.__commonRow ? window.__commonRow(curCatLabel(), plu) : null;
+    if(!f) return null; return { kor: f.kor||'', eng: f.eng||'' };
+  }
+  function openName(){
+    if(!currentStore) return;
+    $('stlNameStore').textContent = currentStore;
+    $('stlOvCat').textContent = curCatLabel();
+    $('stlNamePlu').value=''; $('stlNameKor').value=''; $('stlNameEng').value='';
+    $('stlNameCommon').textContent='공통: -';
+    refreshOvList();
+    $('stlNameOv').classList.add('show');
+  }
+  function closeName(){ var ov=$('stlNameOv'); if(ov) ov.classList.remove('show'); }
+
+  function onPluInput(){
+    var plu=($('stlNamePlu').value||'').trim();
+    var c = commonNameOf(plu);
+    if(c){ $('stlNameCommon').textContent='공통: '+(c.kor||'-')+' / '+(c.eng||'-'); }
+    else { $('stlNameCommon').textContent='공통: (해당 PLU 없음)'; }
+    var cid=curCatDoc(); var rec=(storeOv[cid]||{})[plu];
+    $('stlNameKor').value = rec && rec.kor!=null ? rec.kor : '';
+    $('stlNameEng').value = rec && rec.eng!=null ? rec.eng : '';
+  }
+
+  async function saveName(){
+    var plu=($('stlNamePlu').value||'').trim();
+    if(!plu){ alert('PLU 번호를 입력하세요'); return; }
+    var kor=($('stlNameKor').value||'').trim();
+    var eng=($('stlNameEng').value||'').trim();
+    var cid=curCatDoc();
+    if(!storeOv[cid]) storeOv[cid]={};
+    if(!kor && !eng){ delete storeOv[cid][plu]; }
+    else { storeOv[cid][plu] = {}; if(kor) storeOv[cid][plu].kor=kor; if(eng) storeOv[cid][plu].eng=eng; }
+    var ok=await saveOv();
+    if(ok){ rerender(); refreshOvList(); var t=$('stlNameKor'); if(t) t.blur(); }
+  }
+  async function resetName(){
+    var plu=($('stlNamePlu').value||'').trim(); if(!plu) return;
+    var cid=curCatDoc(); if(storeOv[cid]) delete storeOv[cid][plu];
+    $('stlNameKor').value=''; $('stlNameEng').value='';
+    var ok=await saveOv(); if(ok){ rerender(); refreshOvList(); }
+  }
+
+  function refreshOvList(){
+    var cid=curCatDoc(); var rec=storeOv[cid]||{};
+    var keys=Object.keys(rec).sort(function(a,b){ var na=parseInt(a,10),nb=parseInt(b,10); if(!isNaN(na)&&!isNaN(nb)) return na-nb; return a<b?-1:1; });
+    var box=$('stlOvList'); if(!box) return;
+    if(!keys.length){ box.innerHTML='<div style="font-size:13px;color:#9a9aa0;padding:6px 2px;">지정된 이름이 없습니다.</div>'; return; }
+    box.innerHTML = keys.map(function(p){ var r=rec[p]||{}; var nm=[r.kor,r.eng].filter(Boolean).join(' / '); return '<div class="stl-ovitem"><span class="plu">'+esc(p)+'</span><span class="nm">'+esc(nm)+'</span><button class="del" data-plu="'+esc(p)+'">✕</button></div>'; }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.del'), function(b){ b.onclick=async function(){ var p=b.getAttribute('data-plu'); if(storeOv[cid]) delete storeOv[cid][p]; var ok=await saveOv(); if(ok){ rerender(); refreshOvList(); } }; });
+  }
+
+  function initLogin(){
+    fillStores();
+    var saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
+    if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
+    var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
+    var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
+    var fab=$('stlFab'); if(fab) fab.onclick=openName;
+    var pi=$('stlNamePlu'); if(pi) pi.addEventListener('input', onPluInput);
+    var sv=$('stlNameSave'); if(sv) sv.onclick=saveName;
+    var rs=$('stlNameReset'); if(rs) rs.onclick=resetName;
+    var cl=$('stlNameClose'); if(cl) cl.onclick=closeName;
+    var lo=$('stlLogoutBtn'); if(lo) lo.onclick=function(){ if(confirm('이 기기에서 로그아웃할까요?')) logout(); };
+    var nov=$('stlNameOv'); if(nov) nov.addEventListener('click', function(e){ if(e.target===nov) closeName(); });
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', initLogin, {once:true}); } else { initLogin(); }
+  ready(function(){ if(currentStore && !ovUnsub) startOvListener(); });
 })();
 </script>
 </body>
