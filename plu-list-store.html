@@ -200,10 +200,11 @@
   .plu-photo-panel { flex: 0 0 150px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
   .page-topbar .plu-tabs { margin-bottom: 0; margin-left: 28px; flex: 0 1 auto; }
   .page-topbar .plu-search-col { margin-left: auto; flex: 0 1 300px; min-width: 160px; }
-  .page-topbar .plu-topright { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-  .page-topbar .plu-topright .plu-search-col { margin-left: 0; flex: 0 1 240px; }
-  .page-topbar .plu-topright .plu-toolbar-slot { margin: 0; }
-  .page-topbar .plu-topright .plu-tools { margin-bottom: 0; }
+  .page-topbar .plu-topright { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; overflow-x: auto; justify-content: flex-end; }
+  .page-topbar .plu-topright .plu-search-col { margin-left: 0; flex: 0 0 200px; min-width: 140px; }
+  .page-topbar .plu-topright .plu-toolbar-slot { margin: 0; flex: 0 0 auto; }
+  .page-topbar .plu-topright .plu-tools { margin-bottom: 0; flex-wrap: nowrap; }
+  @media (max-width: 820px){ .page-topbar .plu-topright { flex-wrap: wrap; overflow-x: visible; } .page-topbar .plu-topright .plu-tools { flex-wrap: wrap; } }
   .page-topbar .plu-search-col .plu-search { width: 100%; }
   .page-topbar .page-back { margin-left: 12px; }
   @media (min-width: 821px) { .page-topbar { padding-right: 32px; } }
