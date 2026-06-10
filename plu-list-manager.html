@@ -826,6 +826,8 @@
   }
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
+  var EXPORT_COLS=[{key:'plu',label:'PLU'},{key:'eng',label:'ENG DESC'},{key:'kor',label:'KOR DESC'},{key:'cate',label:'CATEGORY'},{key:'origin',label:'ORIGIN'}];
+  function exportVal(r,key){ if(key==='origin'){ if(r&&r.extra){ if(r.extra.ORIGIN!=null&&r.extra.ORIGIN!=='') return r.extra.ORIGIN; if(r.extra.origin!=null&&r.extra.origin!=='') return r.extra.origin; } return (r&&r.origin)||''; } return getVal(r,key); }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
     var headFill={patternType:'solid', fgColor:{rgb:'FFD9E1F2'}};
@@ -844,15 +846,15 @@
         ws[ad].s={ font:{name:'Calibri',sz:10,bold:isPlu,color:{rgb:isPlu?'FFC00000':'FF000000'}}, alignment:{horizontal:(isLeft?'left':'center'),vertical:'center'}, border:{top:hair,bottom:hair,left:hair,right:hair} };
       }
     }
-    ws['!cols']=cols.map(function(col){ var k=String((col&&col.key)||'').toLowerCase(); var t=(col&&col.type)||''; var w=(k==='eng'?28:(k==='kor'?18:(k==='cate'?16:(k==='plu'?10:((t==='check'||t==='rcheck')?6:11))))); return {wch:w}; });
+    ws['!cols']=cols.map(function(col,ci){ var t=(col&&col.type)||''; var maxw=0; for(var rr2=0;rr2<nrows;rr2++){ var cl=ws[XLSX.utils.encode_cell({r:rr2,c:ci})]; if(cl&&cl.v!=null){ var s=String(cl.v),d=0; for(var j=0;j<s.length;j++){ d+=(s.charCodeAt(j)>0x1100?1.8:1); } if(d>maxw)maxw=d; } } var w=Math.min(60, Math.max((t==='check'||t==='rcheck')?5:8, Math.ceil(maxw)+2)); return {wch:w}; });
     var rr=[]; for(var i=0;i<nrows;i++) rr.push({hpt:18.75}); ws['!rows']=rr;
   }
   function exportXlsx(){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     var rows=visibleCache||[]; if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
-    var v=visibleCols();
+    var v=EXPORT_COLS;
     var aoa=[v.map(function(c){return c.label;})];
-    rows.forEach(function(r){ aoa.push(v.map(function(c){ var val=getVal(r,c.key); return (c.type==='check'||c.type==='rcheck') ? (val?'O':'') : val; })); });
+    rows.forEach(function(r){ aoa.push(v.map(function(c){ return exportVal(r,c.key); })); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, v, aoa.length); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,curCat().substring(0,28));
     var sub=curSub(); var fname='PLU_'+curCat()+(sub?'_'+sub:'')+'.xlsx';
@@ -863,13 +865,12 @@
     var cat=curCat(); var tab=mainTab(cat); var subs=(tab&&tab.subs)?tab.subs.slice():[];
     var allRows=rowsFor(cat)||[];
     if(!allRows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
-    var lay=withStdChecks(cat, layoutByCat[cat]||defaultLayout([]));
-    var cols=lay.filter(function(c){ return !c.hidden; });
+    var cols=EXPORT_COLS;
     var wb=XLSX.utils.book_new(); var used={}; var made=0;
     function addSheet(name, rows){
       rows=rows.slice().sort(byPluAsc);
       var aoa=[cols.map(function(c){return c.label;})];
-      rows.forEach(function(r){ aoa.push(cols.map(function(c){ var val=getVal(r,c.key); return (c.type==='check'||c.type==='rcheck')?(val?'O':''):val; })); });
+      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportVal(r,c.key); })); });
       var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length);
       var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
       var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
@@ -941,7 +942,7 @@
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
-      var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']]; rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, [{key:'plu'},{key:'local'},{key:'organic'},{key:'kor'},{key:'eng'},{key:'cate'}], aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
+      var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[EXPORT_COLS.map(function(c){return c.label;})]; rows.forEach(function(r){ aoa.push(EXPORT_COLS.map(function(c){ return exportVal(r,c.key); })); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EXPORT_COLS, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };
     if(!cloudLoaded){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCloud().then(run); }
