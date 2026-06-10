@@ -397,7 +397,7 @@
 
   const PLU_TABS=[
     {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
-    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체','SEATTLE FOOD(떡)','HANAYANG(떡)']},
+    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체','행복떡집','한양떡집']},
     {label:'수산',       subs:['수산','박스']},
     {label:'정육',       subs:['정육','박스']},
     {label:'하우스웨어', subs:['주방용품','전자제품','기타']}
@@ -528,7 +528,8 @@
     if(main==='청과'){ var n=parseInt(r&&r.plu,10); if(!isNaN(n)){ var subs=(mainTab('청과')||{}).subs||[]; for(var i=0;i<subs.length;i++){ var rg=rangeFor('청과',subs[i]); if(rg && n>=rg.min && n<=rg.max) return subs[i]; } } }
     var mt=mainTab(main); return (mt && mt.subs && mt.subs[0]) || '';
   }
-  function rowSub(main, r){ if(r && r.sub!=null && String(r.sub)!=='') return r.sub; return subOfRowInferred(main, r); }
+  var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집', 'SEATTLE FOOD':'행복떡집', 'HANAYANG(떡)':'한양떡집', 'HANAYANG':'한양떡집' };
+  function rowSub(main, r){ var s=(r && r.sub!=null && String(r.sub)!=='') ? r.sub : subOfRowInferred(main, r); if(s!=null && SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
   // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
   function saveSection(main, sub, subRows, layout){
     var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);

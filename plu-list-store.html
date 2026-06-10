@@ -392,7 +392,7 @@
 
   const PLU_TABS=[
     {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
-    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체','SEATTLE FOOD(떡)','HANAYANG(떡)']},
+    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체','행복떡집','한양떡집']},
     {label:'수산',       subs:['수산','박스']},
     {label:'정육',       subs:['정육','박스']},
     {label:'하우스웨어', subs:['주방용품','전자제품','기타']}
@@ -521,7 +521,8 @@
     if(main==='청과'){ var n=parseInt(r&&r.plu,10); if(!isNaN(n)){ var subs=(mainTab('청과')||{}).subs||[]; for(var i=0;i<subs.length;i++){ var rg=rangeFor('청과',subs[i]); if(rg && n>=rg.min && n<=rg.max) return subs[i]; } } }
     var mt=mainTab(main); return (mt && mt.subs && mt.subs[0]) || '';
   }
-  function rowSub(main, r){ if(r && r.sub!=null && String(r.sub)!=='') return r.sub; return subOfRowInferred(main, r); }
+  var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집', 'SEATTLE FOOD':'행복떡집', 'HANAYANG(떡)':'한양떡집', 'HANAYANG':'한양떡집' };
+  function rowSub(main, r){ var s=(r && r.sub!=null && String(r.sub)!=='') ? r.sub : subOfRowInferred(main, r); if(s!=null && SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
   // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
   function saveSection(main, sub, subRows, layout){
     var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);
@@ -670,6 +671,8 @@
   function toolbarHTML(){
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
+      '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button>'+
+      '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button>'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
       '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
@@ -680,7 +683,7 @@
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
-    var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML=toolbarHTML();
+    var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML=toolbarHTML(); if(window.__reqApply) window.__reqApply(); }
     el.innerHTML=(editMode?'':'<div class="plu-cat-top" id="pluCatTabs"></div>')+
       '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>';
     bindToolbar();
@@ -864,7 +867,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU 요청</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">요청 결과 보기 (<span id="pluReqCount">0</span>건)</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>'; if(window.__reqApply) window.__reqApply(); }
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']]; rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
@@ -890,5 +893,153 @@
 })();
 </script>
 
+<style>
+  .plu-req-btn { border-color: #1e40af !important; color: #1e40af; }
+  .plu-req-btn:hover { background: #eaf1fb; }
+  .plu-req-blink { animation: plureqblink2 1s ease-in-out infinite; }
+  @keyframes plureqblink2 { 0%,100% { background:#eaf1fb; } 50% { background:#1e40af; color:#fff; } }
+  .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; }
+  .plureq-ov.show { display: flex; }
+  .plureq-modal { background: #fff; border-radius: 16px; padding: 22px; width: 94%; max-width: 500px; max-height: 86vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .plureq-modal h3 { margin: 0 0 14px; font-size: 20px; color: #1a1a1d; }
+  .plureq-field { margin-bottom: 10px; }
+  .plureq-field label { display: block; font-size: 13px; font-weight: 700; color: #6b6b72; margin-bottom: 4px; }
+  .plureq-field input, .plureq-field select, .plureq-field textarea { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 13px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; }
+  .plureq-field input:focus, .plureq-field select:focus, .plureq-field textarea:focus { outline: none; border-color: #1e40af; }
+  .plureq-divider { border: none; border-top: 1.5px solid #e5e5e0; margin: 16px 0 12px; }
+  .plureq-section-title { font-size: 14px; font-weight: 800; color: #1e40af; margin-bottom: 10px; letter-spacing: .2px; }
+  #plureqFormOv .plureq-modal { text-transform: uppercase; }
+  #plureqFormOv .plureq-modal input, #plureqFormOv .plureq-modal select, #plureqFormOv .plureq-modal textarea { text-transform: none; }
+  .plureq-checks { display: flex; flex-wrap: wrap; gap: 14px; padding: 0 0 6px; }
+  .plureq-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #1a1a1d; cursor: pointer; }
+  .plureq-check input { width: 16px; height: 16px; cursor: pointer; }
+  .plureq-3col { display: flex; gap: 10px; }
+  .plureq-col { flex: 1 1 0; min-width: 0; }
+  .plureq-memo { resize: vertical; min-height: 84px; line-height: 1.5; }
+  .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 14px; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .plureq-btn.primary { background: #1e40af; color: #fff; }
+  .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
+  .plureq-list { display: flex; flex-direction: column; gap: 8px; }
+  .plureq-row { border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+  .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .plureq-row .name { font-weight: 700; color: #1a1a1d; }
+  .plureq-row .meta { color: #6b6b72; font-size: 13px; margin-top: 3px; }
+  .plureq-badge { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
+  .plureq-badge.done { background: #e2f3e6; color: #15803d; }
+  .plureq-empty { text-align: center; color: #6b6b72; padding: 20px; }
+</style>
+<div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
+  <h3>PLU 요청하기</h3>
+  <div class="plureq-field"><label>SELECT STORE</label><select id="rqStore"></select></div>
+  <div class="plureq-field"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+  <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
+  <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
+  <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
+  <div class="plureq-field"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
+  <div class="plureq-field"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+
+  <hr class="plureq-divider">
+  <div class="plureq-section-title">Additional info for DELI PLU requests</div>
+  <div class="plureq-field"><label>INGREDIENTS (English only)</label><input id="rqIngredients" maxlength="200" autocomplete="off"></div>
+  <div class="plureq-checks">
+    <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
+    <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
+    <label class="plureq-check"><input type="checkbox" id="rqAmbient"> AMBIENT</label>
+  </div>
+  <div class="plureq-3col">
+    <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
+    <div class="plureq-field plureq-col"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
+    <div class="plureq-field plureq-col"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+  </div>
+
+  <hr class="plureq-divider">
+  <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="4" autocomplete="off"></textarea></div>
+
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqCancel">취소</button><button class="plureq-btn primary" id="rqSubmit">신청하기</button></div>
+</div></div>
+<div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
+  <h3>요청한 PLU 결과</h3>
+  <div class="plureq-list" id="rqList"></div>
+  <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">닫기</button></div>
+</div></div>
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var REQ_COL = 'plu-requests';
+  var STORES = ['TACOMA','FEDERAL WAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART(LYNNWOOD)','MELLOW WAY','DISTRICT-H','M2M'];
+  var reqs = [];
+  var seenDone = {}, hasNew = false, firstSnap = true;
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function applyCount(){ var c=$('pluReqCount'); if(c) c.textContent = reqs.length; var vb=$('pluReqViewBtn'); if(vb){ if(hasNew) vb.classList.add('plu-req-blink'); else vb.classList.remove('plu-req-blink'); } }
+  window.__reqApply = applyCount;
+  function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+  function fillStores(){ var sel=$('rqStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
+  function openForm(){ fillStores(); ['rqRequester','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
+  function closeForm(){ $('plureqFormOv').classList.remove('show'); }
+  function submitReq(){
+    var store=($('rqStore').value||'').trim(), requester=($('rqRequester').value||'').trim();
+    if(!store){ alert('매장을 선택하세요 (SELECT STORE)'); return; }
+    if(!requester){ alert('REQUESTER를 입력하세요'); return; }
+    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('AMBIENT');
+    var data={ store:store, requester:requester, kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
+      ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
+      status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); if(window.showToast){ try{showToast('PLU 요청이 접수되었습니다','success');}catch(e){} } else alert('PLU 요청이 접수되었습니다'); }).catch(function(){ alert('요청 전송 실패 (네트워크/권한 확인)'); }); }
+    catch(e){ alert('요청 전송 실패'); }
+  }
+  function statusBadge(st){ return st==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
+  function openView(){
+    reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
+    hasNew=false; applyCount();
+    var el=$('rqList');
+    var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
+    el.innerHTML = sorted.length ? sorted.map(function(r){
+      var done=r.status==='done';
+      var extra=[];
+      if(r.storage) extra.push(esc(r.storage));
+      if(r.tare) extra.push('TARE '+esc(r.tare));
+      if(r.sellByTime) extra.push('SELL BY TIME '+esc(r.sellByTime));
+      if(r.sellByDate) extra.push('SELL BY DATE '+esc(r.sellByDate));
+      if(r.ingredients) extra.push('INGREDIENTS '+esc(r.ingredients));
+      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(이름없음)')+'</span>'+statusBadge(r.status)+'</div>'+
+        '<div class="meta">'+esc(r.store)+' / '+esc(r.requester)+(r.eng?(' / '+esc(r.eng)):'')+'</div>'+
+        (extra.length?('<div class="meta">'+extra.join(' / ')+'</div>'):'')+
+        (r.memo?('<div class="meta">MEMO / '+esc(r.memo)+'</div>'):'')+
+        (done?('<div class="meta">PLU '+esc(r.plu)+(r.mgrKor?(' / '+esc(r.mgrKor)):'')+(r.mgrEng?(' / '+esc(r.mgrEng)):'')+'</div>'):'')+
+      '</div>';
+    }).join('') : '<div class="plureq-empty">요청 내역이 없습니다.</div>';
+    $('plureqViewOv').classList.add('show');
+  }
+  function closeView(){ $('plureqViewOv').classList.remove('show'); }
+
+  // 이벤트 위임 (툴바는 재렌더되므로)
+  document.addEventListener('click', function(e){
+    var t=e.target;
+    if(t.closest && t.closest('#pluReqBtn')){ openForm(); return; }
+    if(t.closest && t.closest('#pluReqViewBtn')){ openView(); return; }
+    if(t===$('rqCancel')){ closeForm(); }
+    if(t===$('rqSubmit')){ submitReq(); }
+    if(t===$('rqViewClose')){ closeView(); }
+    if(t===$('plureqFormOv')){ closeForm(); }
+    if(t===$('plureqViewOv')){ closeView(); }
+  });
+
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
+        if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
+        else { reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]) hasNew=true; }); }
+        applyCount(); var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+    }catch(e){}
+  });
+})();
+</script>
 </body>
 </html>
