@@ -917,14 +917,16 @@
   .plureq-field input:focus, .plureq-field select:focus, .plureq-field textarea:focus { outline: none; border-color: #1e40af; }
   .plureq-divider { border: none; border-top: 1.5px solid #e5e5e0; margin: 9px 0 7px; }
   .plureq-section-title { font-size: 12px; font-weight: 800; color: #1e40af; margin-bottom: 6px; letter-spacing: .2px; }
-  #plureqFormOv .plureq-modal { text-transform: uppercase; }
+  #plureqFormOv .plureq-modal { text-transform: uppercase; max-width: 680px; }
+  #plureqFormOv .plureq-check { color: #c0392b; }
   #plureqFormOv .plureq-modal input, #plureqFormOv .plureq-modal select, #plureqFormOv .plureq-modal textarea { text-transform: none; }
   .plureq-checks { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 0 2px; }
   .plureq-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #1a1a1d; cursor: pointer; }
   .plureq-check input { width: 16px; height: 16px; cursor: pointer; }
   .plureq-3col { display: flex; gap: 10px; }
   .plureq-col { flex: 1 1 0; min-width: 0; }
-  .plureq-memo { resize: vertical; min-height: 46px; line-height: 1.4; }
+  .plureq-ingredients { resize: vertical; min-height: 84px; line-height: 1.4; }
+  .plureq-memo { resize: vertical; min-height: 23px; line-height: 1.4; }
   .plureq-actions { display: flex; gap: 10px; margin-top: 10px; }
   .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 10px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
   .plureq-btn.primary { background: #1e40af; color: #fff; }
@@ -949,28 +951,28 @@
   </div>
   <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
   <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
-  <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
   <div class="plureq-3col">
+    <div class="plureq-field plureq-col"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
     <div class="plureq-field plureq-col"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
     <div class="plureq-field plureq-col"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
   </div>
 
   <hr class="plureq-divider">
   <div class="plureq-section-title">Additional info for DELI PLU requests</div>
-  <div class="plureq-field"><label>INGREDIENTS (English only)</label><input id="rqIngredients" maxlength="200" autocomplete="off"></div>
-  <div class="plureq-checks">
-    <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
-    <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
-    <label class="plureq-check"><input type="checkbox" id="rqAmbient"> ROOM</label>
-  </div>
+  <div class="plureq-field"><label>INGREDIENTS (English only)</label><textarea id="rqIngredients" class="plureq-ingredients" maxlength="200" rows="4" autocomplete="off"></textarea></div>
   <div class="plureq-3col">
     <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
     <div class="plureq-field plureq-col"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
     <div class="plureq-field plureq-col"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
   </div>
+  <div class="plureq-checks">
+    <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
+    <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
+    <label class="plureq-check"><input type="checkbox" id="rqAmbient"> ROOM</label>
+  </div>
 
   <hr class="plureq-divider">
-  <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="4" autocomplete="off"></textarea></div>
+  <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="2" autocomplete="off"></textarea></div>
 
   <div class="plureq-actions"><button class="plureq-btn ghost" id="rqCancel">CANCEL</button><button class="plureq-btn primary" id="rqSubmit">SUBMIT</button></div>
 </div></div>
