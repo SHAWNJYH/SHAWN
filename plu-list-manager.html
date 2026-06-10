@@ -200,6 +200,10 @@
   .plu-photo-panel { flex: 0 0 150px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
   .page-topbar .plu-tabs { margin-bottom: 0; margin-left: 28px; flex: 0 1 auto; }
   .page-topbar .plu-search-col { margin-left: auto; flex: 0 1 300px; min-width: 160px; }
+  .page-topbar .plu-topright { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .page-topbar .plu-topright .plu-search-col { margin-left: 0; flex: 0 1 240px; }
+  .page-topbar .plu-topright .plu-toolbar-slot { margin: 0; }
+  .page-topbar .plu-topright .plu-tools { margin-bottom: 0; }
   .page-topbar .plu-search-col .plu-search { width: 100%; }
   .page-topbar .page-back { margin-left: 12px; }
   @media (min-width: 821px) { .page-topbar { padding-right: 32px; } }
@@ -335,8 +339,11 @@
 <div class="page-topbar">
   <h1 class="page-title">🗂️ PLU 관리</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
-  <div class="plu-search-col" id="pluSearchTop">
-    <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
+  <div class="plu-topright">
+    <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
+    <div class="plu-search-col" id="pluSearchTop">
+      <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
+    </div>
   </div>
   <button class="page-back" id="pluBackBtn">← 돌아가기</button>
 </div>
@@ -344,15 +351,8 @@
   <div class="egmm-sub-screen">
 
     <div class="plu-bars-col">
-    <!-- PLU REQUEST notify -->
-    <div class="plu-bigbar">
-      <button class="plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>
-    </div>
-    <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
-    <!-- 작은 탭 + 툴바(오른쪽 끝) 한 줄 -->
     <div class="plu-subbar">
       <div class="plu-subtabs" id="pluSubTabs"></div>
-      <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
     </div>
     </div>
     <!-- 표 -->
@@ -683,6 +683,7 @@
       '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
       '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
       (editMode?('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'):'')+
+      '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '<input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none">'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+(editMode?' disabled':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
       '<span class="plu-count" id="pluCount"></span>'+
@@ -694,7 +695,7 @@
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
-    var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML=toolbarHTML();
+    var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML=toolbarHTML(); if(window.__reqRefresh) window.__reqRefresh(); }
     el.innerHTML=(editMode?'':'<div class="plu-cat-top" id="pluCatTabs"></div>')+
       '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>';
     bindToolbar();
@@ -908,7 +909,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot) slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']]; rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
@@ -956,6 +957,9 @@
   .plureq-approve { border: none; background: #15803d; color: #fff; border-radius: 9px; padding: 9px 14px; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
   .plureq-empty { text-align: center; color: #6b6b72; padding: 22px; }
   .rqlbl { color:#c0392b; font-weight:800; }
+  .rqtop-right { display:inline-flex; align-items:center; gap:8px; }
+  .plureq-del { border:1.5px solid #e3a3a3; background:#fff; color:#c0392b; border-radius:8px; padding:4px 10px; font-family:var(--mono); font-size:12px; font-weight:800; cursor:pointer; }
+  .plureq-del:hover { background:#c0392b; color:#fff; border-color:#c0392b; }
   .plureq-actions { display: flex; gap: 10px; margin-top: 16px; }
   .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
   .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
@@ -978,6 +982,12 @@
   function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
   function pendingCount(){ var n=0; reqs.forEach(function(r){ if(r.status!=='done') n++; }); return n; }
   function refreshNotify(){ var b=$('pluReqNotify'), c=$('pluReqNotifyCount'); if(!b) return; var p=pendingCount(); if(c) c.textContent=p; if(p>0) b.classList.add('on'); else b.classList.remove('on'); }
+  window.__reqRefresh = refreshNotify;
+  function delReq(id){
+    if(!confirm('Delete this request from history?\nIt will also be removed on the store side.')) return;
+    try{ if(fns().deleteDoc){ fns().deleteDoc(fns().doc(db(), REQ_COL, id)).then(function(){ if(window.showToast){try{showToast('Deleted','success');}catch(e){}} }).catch(function(){ alert('Delete failed — check login/permission'); }); } else { alert('Delete not supported'); } }
+    catch(e){ alert('Delete failed'); }
+  }
   function badge(st){ return st==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
   function renderList(){
     var el=$('rqMgrList');
@@ -994,7 +1004,7 @@
       var metaHtml=lines.map(function(s){ return '<div class="meta">'+s+'</div>'; }).join('');
       var mgr = done ? '<div class="meta">'+L('PLU')+esc(r.plu)+(r.mgrKor?(' · '+L('KOR')+esc(r.mgrKor)):'')+(r.mgrEng?(' · '+L('ENG')+esc(r.mgrEng)):'')+'</div>'
         : '<div class="plureq-mgr"><input placeholder="PLU NO" data-f="plu" data-id="'+id+'" value="'+esc(r.plu)+'"><input placeholder="KOR DESC" data-f="mgrKor" data-id="'+id+'" value="'+esc(r.mgrKor||r.kor)+'"><input placeholder="ENG DESC" data-f="mgrEng" data-id="'+id+'" value="'+esc(r.mgrEng||r.eng)+'"><button class="plureq-approve" data-approve="'+id+'">APPROVE</button></div>';
-      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(NO NAME)')+'</span>'+badge(r.status)+'</div>'+
+      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+esc(r.kor||r.eng||'(NO NAME)')+'</span><span class="rqtop-right">'+badge(r.status)+'<button class="plureq-del" data-del="'+id+'">DELETE</button></span></div>'+
         metaHtml+mgr+'</div>';
     }).join('') : '<div class="plureq-empty">No requests.</div>';
   }
@@ -1024,6 +1034,7 @@
     if(t.closest && t.closest('#pluReqNotify')){ openMgr(); return; }
     if(t===$('rqMgrClose')){ closeMgr(); return; }
     if(t===$('plureqMgrOv')){ closeMgr(); return; }
+    var del=t.getAttribute && t.getAttribute('data-del'); if(del){ delReq(del); return; }
     var ap=t.getAttribute && t.getAttribute('data-approve'); if(ap){ approve(ap); }
   });
   ready(function(){

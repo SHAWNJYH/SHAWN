@@ -200,6 +200,10 @@
   .plu-photo-panel { flex: 0 0 150px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
   .page-topbar .plu-tabs { margin-bottom: 0; margin-left: 28px; flex: 0 1 auto; }
   .page-topbar .plu-search-col { margin-left: auto; flex: 0 1 300px; min-width: 160px; }
+  .page-topbar .plu-topright { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .page-topbar .plu-topright .plu-search-col { margin-left: 0; flex: 0 1 240px; }
+  .page-topbar .plu-topright .plu-toolbar-slot { margin: 0; }
+  .page-topbar .plu-topright .plu-tools { margin-bottom: 0; }
   .page-topbar .plu-search-col .plu-search { width: 100%; }
   .page-topbar .page-back { margin-left: 12px; }
   @media (min-width: 821px) { .page-topbar { padding-right: 32px; } }
@@ -333,8 +337,11 @@
 <div class="page-topbar">
   <h1 class="page-title">🗂️ PLU 관리</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
-  <div class="plu-search-col" id="pluSearchTop">
-    <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
+  <div class="plu-topright">
+    <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
+    <div class="plu-search-col" id="pluSearchTop">
+      <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
+    </div>
   </div>
   <button class="page-back" id="pluBackBtn">← 돌아가기</button>
 </div>
@@ -342,14 +349,8 @@
   <div class="egmm-sub-screen">
 
     <div class="plu-bars-col">
-    <!-- PLU 신청 알림 -->
-    <div class="plu-bigbar">
-    </div>
-    <!-- EXPORT/IMPORT/EDIT 툴바 (검색 박스 아래) -->
-    <!-- 작은 탭 + 툴바(오른쪽 끝) 한 줄 -->
     <div class="plu-subbar">
       <div class="plu-subtabs" id="pluSubTabs"></div>
-      <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
     </div>
     </div>
     <!-- 표 -->
@@ -929,6 +930,7 @@
   .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
   .plureq-badge.done { background: #e2f3e6; color: #15803d; }
   .plureq-empty { text-align: center; color: #6b6b72; padding: 20px; }
+  .rqlbl { color:#c0392b; font-weight:800; }
 </style>
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
   <h3>PLU REQUEST</h3>
@@ -1010,8 +1012,8 @@
       var kor=done?(r.mgrKor||''):(r.kor||'');
       var eng=done?(r.mgrEng||''):(r.eng||'');
       return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(NO NAME)')+'</span>'+statusBadge(r.status)+'</div>'+
-        '<div class="meta">STORE '+esc(r.store||'-')+' · REQUESTER '+esc(r.requester||'-')+'</div>'+
-        '<div class="meta">PLU '+esc(r.plu||'-')+' · KOR '+esc(kor||'-')+' · ENG '+esc(eng||'-')+'</div>'+
+        '<div class="meta"><span class="rqlbl">STORE</span> '+esc(r.store||'-')+' · <span class="rqlbl">REQUESTER</span> '+esc(r.requester||'-')+'</div>'+
+        '<div class="meta"><span class="rqlbl">PLU</span> '+esc(r.plu||'-')+' · <span class="rqlbl">KOR DESC</span> '+esc(kor||'-')+' · <span class="rqlbl">ENG DESC</span> '+esc(eng||'-')+'</div>'+
       '</div>';
     }).join('') : '<div class="plureq-empty">No requests.</div>';
     $('plureqViewOv').classList.add('show');
