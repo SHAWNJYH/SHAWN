@@ -353,6 +353,7 @@
     <div class="plu-bars-col">
     <div class="plu-subbar">
       <div class="plu-subtabs" id="pluSubTabs"></div>
+      <div class="plu-toolbar-slot" id="pluToolbarSlot2"></div>
     </div>
     </div>
     <!-- 표 -->
@@ -685,6 +686,10 @@
       (editMode?('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'):'')+
       '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '<input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none">'+
+    '</div>';
+  }
+  function subToolsHTML(){
+    return '<div class="plu-tools">'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+(editMode?' disabled':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
       '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
@@ -696,6 +701,7 @@
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
     var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML=toolbarHTML(); if(window.__reqRefresh) window.__reqRefresh(); }
+    var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML=subToolsHTML();
     el.innerHTML=(editMode?'':'<div class="plu-cat-top" id="pluCatTabs"></div>')+
       '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>';
     bindToolbar();
@@ -909,7 +915,8 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
+      var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var aoa=[['PLU','로컬','유기농','한글명','영문명','분류']]; rows.forEach(function(r){ aoa.push([r.plu,r.local,r.organic,r.kor,r.eng,r.cate]); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
