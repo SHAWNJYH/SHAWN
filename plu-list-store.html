@@ -582,12 +582,12 @@
   }
   function clsFor(key){ var lk=String(key||'').toLowerCase(); return lk==='plu'?'plu-c-no':lk==='local'?'plu-c-local':lk==='organic'?'plu-c-organic':lk==='eng'?'plu-c-eng':lk==='cate'?'plu-c-cat':lk==='kor'?'':'plu-c-extra'; }
   function isIngredientKey(key){ return String(key||'').trim().toUpperCase()==='INGREDIENT'; }
-  function ingredientCellHTML(r,c){ var full=String(getVal(r,c.key)||''); var shown=full.length>15?(escapeHtml(full.slice(0,15))+'…'):escapeHtml(full); var btn='<button class="plu-ing-btn" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" type="button" title="전체 보기">보기</button>'; return '<td class="'+clsFor(c.key)+' plu-c-ing">'+(shown?shown+' ':'')+btn+'</td>'; }
+  function ingredientCellHTML(r,c){ var full=String(getVal(r,c.key)||''); var shown=full.length>10?(escapeHtml(full.slice(0,10))+'…'):escapeHtml(full); var btn='<button class="plu-ing-btn" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" type="button" title="전체 보기">보기</button>'; return '<td class="'+clsFor(c.key)+' plu-c-ing">'+btn+(shown?' '+shown:'')+'</td>'; }
   function pluValOf(r){ if(!r) return ''; if(r.plu!=null&&String(r.plu).trim()!=='') return String(r.plu); if(r.extra){ if(r.extra.PLU) return String(r.extra.PLU); if(r.extra.plu) return String(r.extra.plu); } return ''; }
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } return '<td class="'+clsFor(c.key)+'">'+escapeHtml(getVal(r,c.key))+'</td>'; }).join('');
+    var tds=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var fv=String(getVal(r,c.key)||''); var sv=fv.length>20?(escapeHtml(fv.slice(0,20))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+'"'+(fv.length>20?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
   function viewRowBaseHTML(r){
