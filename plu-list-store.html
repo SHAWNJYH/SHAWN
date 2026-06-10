@@ -255,19 +255,6 @@
   /* RESERVE 행: 전체 회색 */
   .plu-table tbody tr.plu-row-reserve td { color: #9a9aa0; font-weight: 400; }
   .plu-no-result, .plu-empty { text-align: center; color: var(--text-dim); padding: 28px 16px; line-height: 1.6; font-size: 14px; }
-  #pluPrintArea { display: none; }
-  @media print {
-    body > *:not(#pluPrintArea) { display: none !important; }
-    #pluPrintArea { display: block !important; font-family: Calibri, Arial, 'Malgun Gothic', sans-serif; }
-    #pluPrintArea .plu-print-title { font-size: 16px; font-weight: 700; margin: 0 0 10px; }
-    #pluPrintArea .plu-print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    #pluPrintArea .plu-print-table th, #pluPrintArea .plu-print-table td { border: 1px solid #999; padding: 3px 6px; text-align: center; vertical-align: middle; white-space: normal; }
-    #pluPrintArea .plu-print-table thead th { background: #D9E1F2 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    #pluPrintArea .plu-print-table .pp-plu { color: #C00000 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    #pluPrintArea .plu-print-table td.pp-kor, #pluPrintArea .plu-print-table td.pp-eng { text-align: left; }
-    #pluPrintArea .plu-print-table tr.plu-row-reserve td { color: #999 !important; }
-    @page { margin: 12mm; }
-  }
 
   .plu-upload-btn {
     border: 1.5px solid var(--border-bright); background: var(--bg-elev); color: var(--text);
@@ -374,7 +361,6 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="pluPrintArea"></div>
 
 <div class="plu-modal-ov" id="pluColModal">
   <div class="plu-modal">
@@ -826,19 +812,18 @@
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
   function printList(rowsArg){
-    var area=$('pluPrintArea'); if(!area) return;
     var rows=rowsArg||visibleCache||[];
     var cat=curCat(), sub=curSub();
     var title=(pluSearchTerm&&pluSearchTerm.trim())?('PLU 검색: '+pluSearchTerm.trim()):(cat+(sub?(' › '+sub):''));
     var dt=new Date(); var ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
-    var html='<div class="plu-print-title">'+escapeHtml(title)+'  ('+rows.length+'개)  ·  '+ds+'</div>';
-    html+='<table class="plu-print-table"><thead><tr>';
-    EXPORT_COLS.forEach(function(c){ html+='<th class="pp-'+c.key+'">'+escapeHtml(c.label)+'</th>'; });
-    html+='</tr></thead><tbody>';
-    rows.forEach(function(r){ var res=isReserveRow(r); html+='<tr'+(res?' class="plu-row-reserve"':'')+'>'; EXPORT_COLS.forEach(function(c){ var v=exportVal(r,c); html+='<td class="pp-'+c.key+'">'+escapeHtml(v==null?'':String(v))+'</td>'; }); html+='</tr>'; });
-    html+='</tbody></table>';
-    area.innerHTML=html;
-    window.print();
+    var head=''; EXPORT_COLS.forEach(function(c){ head+='<th class="pp-'+c.key+'">'+escapeHtml(c.label)+'</th>'; });
+    var body=''; rows.forEach(function(r){ var res=isReserveRow(r); body+='<tr'+(res?' class="res"':'')+'>'; EXPORT_COLS.forEach(function(c){ var v=exportVal(r,c); body+='<td class="pp-'+c.key+'">'+escapeHtml(v==null?'':String(v))+'</td>'; }); body+='</tr>'; });
+    var css='body{margin:0;padding:16px;font-family:Calibri,Arial,sans-serif;color:#1a1a1d}.t{font-size:16px;font-weight:700;margin:0 0 10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:3px 6px;text-align:center;vertical-align:middle}thead th{background:#D9E1F2;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pp-plu{color:#C00000;font-weight:700}td.pp-kor,td.pp-eng{text-align:left}tr.res td{color:#999}@page{margin:12mm}';
+    var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+escapeHtml(title)+'</title><style>'+css+'</style></head><body><div class="t">'+escapeHtml(title)+'  ('+rows.length+'개)  ·  '+ds+'</div><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></body></html>';
+    var win=window.open('','_blank');
+    if(!win){ showToast('팝업이 차단되었습니다. 팝업 허용 후 다시 시도하세요','error'); return; }
+    win.document.open(); win.document.write(doc); win.document.close(); win.focus();
+    setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
