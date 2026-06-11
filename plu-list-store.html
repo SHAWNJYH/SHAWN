@@ -412,18 +412,20 @@
   function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   function visibleCols(){
     var act=(typeof window.__storeActive==='function')?window.__storeActive():null;
-    var unlocked=(typeof window.__storeUnlocked==='function')&&window.__storeUnlocked();
-    var base=curLayout().filter(function(c){
-      if(c.hidden) return false;
+    var common=[], checkCol=null;
+    curLayout().forEach(function(c){
+      if(c.hidden) return;
       var own=(typeof window.__checkOwner==='function')?window.__checkOwner(c.key):'';
-      if(own) return !!act && own===act;
-      return true;
+      if(own){ if(act && own===act) checkCol=c; return; }
+      common.push(c);
     });
+    var out=common.slice();
     if(act && typeof window.__storeCols==='function'){
-      var sc=window.__storeCols(curCat())||[];
-      for(var i=0;i<sc.length;i++){ if(unlocked || !sc[i].hidden) base.push(sc[i]); }
+      var sc=window.__storeCols(curCat(), curSub())||[];
+      for(var i=0;i<sc.length;i++){ out.push(sc[i]); }
     }
-    return base;
+    if(checkCol) out.push(checkCol);   // 매장 체크열은 항상 매장열 오른쪽(맨 끝)
+    return out;
   }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
@@ -532,14 +534,7 @@
     var unlocked=(typeof window.__storeUnlocked==='function')&&window.__storeUnlocked();
     return '<thead><tr>'+v.map(function(c){
       if(c.__store){
-        var ctrl = unlocked ? ('<span class="plu-col-ops">'+
-          '<button class="plu-col-btn" data-sact="left" data-skey="'+escapeHtml(c.key)+'" title="왼쪽">◀</button>'+
-          '<button class="plu-col-btn" data-sact="right" data-skey="'+escapeHtml(c.key)+'" title="오른쪽">▶</button>'+
-          '<button class="plu-col-btn" data-sact="ren" data-skey="'+escapeHtml(c.key)+'" title="이름변경">✎</button>'+
-          '<button class="plu-col-btn" data-sact="hide" data-skey="'+escapeHtml(c.key)+'" title="'+(c.hidden?'보이기':'숨기기')+'">'+(c.hidden?'🚫':'👁')+'</button>'+
-          '<button class="plu-col-btn del" data-sact="del" data-skey="'+escapeHtml(c.key)+'" title="삭제">✕</button>'+
-        '</span>') : '';
-        return '<th class="stl-col'+(c.hidden?' plu-col-hidden':'')+'">'+escapeHtml(c.label)+' '+ctrl+'</th>';
+        return '<th class="stl-col">'+escapeHtml(c.label)+'</th>';
       }
       var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>';
     }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
@@ -646,7 +641,6 @@
       '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button>'+
-      '<button class="plu-tool-btn plu-cute-btn" id="pluPanelBtn" title="관리자 · 열 추가">⚙️</button>'+
       '<button class="plu-tool-btn plu-cute-btn'+(unlocked?' open':'')+'" id="pluLockBtn" title="'+(unlocked?'잠그기':'편집 잠금 해제')+'">'+(unlocked?'🔓':'🔒')+'</button>'+
     '</div>';
   }
@@ -778,7 +772,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-cute-btn" id="pluPanelBtn" title="관리자 · 열 추가">⚙️</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🔓':'🔒')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🔓':'🔒')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
@@ -1019,7 +1013,7 @@
   window.__storeActive=function(){ return currentStore; };
   window.__storeUnlocked=function(){ return !!(currentStore && unlocked); };
   window.__ovGet=function(catLabel,plu,key){ if(!currentStore) return undefined; var c=storeOv[cid(catLabel)]; if(!c) return undefined; var rec=c[String(plu)]; if(!rec) return undefined; var v=rec[String(key)]; return (v==null||v==='')?undefined:v; };
-  window.__storeCols=function(catLabel){ if(!currentStore) return []; var arr=storeCols[cid(catLabel)]||[]; return arr.map(function(c){ return {key:c.key,label:c.label,type:(c.type==='check'?'check':'text'),hidden:!!c.hidden,__store:true}; }); };
+  window.__storeCols=function(catLabel, subLabel){ if(!currentStore) return []; var c=storeCols[cid(catLabel)]; if(!c||Array.isArray(c)) return []; var arr=c[subLabel]||[]; return arr.map(function(co){ return {key:co.key,label:co.label,type:(co.type==='check'?'check':'text'),__store:true}; }); };
 
   // ===== 로그인 =====
   function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
@@ -1038,45 +1032,20 @@
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
   function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} var fab=$('stlFab'); if(fab) fab.classList.remove('show'); rerender(); var ps=$('stlPin'); if(ps) ps.value=''; showLogin(); }
   function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; rerender(); }, function(){}); }catch(e){} }
-  async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, cols:storeCols, store:currentStore, updatedAt:Date.now()}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
+  async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
   // ===== 셀 값 저장 =====
   async function saveCell(catLabel,plu,key,value){ if(!currentStore) return; var c=cid(catLabel); plu=String(plu); key=String(key); if(!storeOv[c]) storeOv[c]={}; if(!storeOv[c][plu]) storeOv[c][plu]={}; if(value==null||value===''){ delete storeOv[c][plu][key]; if(!Object.keys(storeOv[c][plu]).length) delete storeOv[c][plu]; } else storeOv[c][plu][key]=value; rerender(); await saveDoc(); }
 
-  // ===== 매장 추가 열 =====
-  function colsArr(catLabel){ var c=cid(catLabel); if(!storeCols[c]) storeCols[c]=[]; return storeCols[c]; }
-  function keyExists(catLabel,key){ var a=colsArr(catLabel); for(var i=0;i<a.length;i++){ if(a[i].key===key) return true; } return false; }
-  async function addCol(){
-    if(!currentStore){ return; }
-    var name=await uiPrompt('새 열 이름 (이 매장 · '+curCatLabel()+' 전용)',''); if(name===null) return; name=name.trim(); if(!name){ return; }
-    var key=name.toUpperCase().replace(/\s+/g,'_'); var i=2; var base=key; while(keyExists(curCatLabel(),key)){ key=base+'_'+(i++); }
-    var isChk=await uiConfirm('체크박스 열로 만들까요?\n확인 = 체크박스 / 취소 = 글자 입력');
-    colsArr(curCatLabel()).push({key:key,label:name,type:isChk?'check':'text',hidden:false});
-    if(!unlocked) unlocked=true;
-    rerender(); await saveDoc();
-  }
-  function findCol(catLabel,key){ var a=colsArr(catLabel); for(var i=0;i<a.length;i++){ if(a[i].key===key) return i; } return -1; }
-  async function colAct(act,key){
-    var cat=curCatLabel(); var a=colsArr(cat); var i=findCol(cat,key); if(i<0) return;
-    if(act==='left'||act==='right'){ var j=act==='left'?i-1:i+1; if(j<0||j>=a.length) return; var t=a[i]; a[i]=a[j]; a[j]=t; }
-    else if(act==='hide'){ a[i].hidden=!a[i].hidden; }
-    else if(act==='ren'){ var nm=await uiPrompt('열 이름 변경', a[i].label); if(nm===null) return; nm=nm.trim(); if(nm) a[i].label=nm; }
-    else if(act==='del'){ if(!(await uiConfirm('이 열과 입력값을 삭제할까요? (이 매장·이 카테고리만)'))) return; var dk=a[i].key; a.splice(i,1); var c=cid(cat); if(storeOv[c]){ for(var p in storeOv[c]){ if(storeOv[c][p]) delete storeOv[c][p][dk]; } } }
-    rerender(); await saveDoc();
-  }
-
-  // ===== 자물쇠 / 셋팅 =====
+  // ===== 자물쇠 =====
   function toggleLock(){ if(!currentStore) return; unlocked=!unlocked; rerender(); }
 
   // ===== 위임 핸들러 =====
   document.addEventListener('click', async function(e){
     var t=e.target;
     if(t.closest && t.closest('#pluLockBtn')){ toggleLock(); return; }
-    if(t.closest && t.closest('#pluPanelBtn')){ addCol(); return; }
     if(t.closest && t.closest('#stlFab')){ if(await uiConfirm('로그아웃할까요?')) logout(); return; }
     if(!currentStore || !unlocked) return;
-    var sb=t.closest?t.closest('[data-sact]'):null;
-    if(sb){ colAct(sb.getAttribute('data-sact'), sb.getAttribute('data-skey')); return; }
     var chk=t.closest?t.closest('.stl-echk'):null;
     if(chk){ var plu=chk.getAttribute('data-plu'), key=chk.getAttribute('data-key'); var cur=window.__ovGet(curCatLabel(),plu,key); saveCell(curCatLabel(),plu,key,cur?null:true); return; }
     var cell=t.closest?t.closest('.stl-etext'):null;
