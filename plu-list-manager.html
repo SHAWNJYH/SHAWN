@@ -458,7 +458,8 @@
   function isBase(key){ return BASE_KEYS.indexOf(String(key||'').toUpperCase())>=0; }
   function fieldOf(key){ var u=String(key||'').toUpperCase(); return BASE_FIELD[u]||null; }
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
-  var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M'];
+  var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
+  var STD_CHECK_OWNER={'HTM':'TACOMA','HFW':'FEDERALWAY','HBV':'BELLEVUE','HLW':'LYNNWOOD','HRM':'REDMOND','HBD':'BALLARD','GLW':'G-MART','MW':'MELLOW WAY','DH':'DISTRICT-H','M2M':'M2M','HUW':'UNIVERSITY'};
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return orderEndCols(L); var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return orderEndCols(L); }
@@ -612,7 +613,8 @@
           '<button class="plu-col-btn" data-act="hide" data-key="'+escapeHtml(c.key)+'" title="'+(c.hidden?'보이기':'숨기기')+'">'+(c.hidden?'🚫':'👁')+'</button>'+
           '<button class="plu-col-btn del" data-act="del" data-key="'+escapeHtml(c.key)+'" title="열 삭제">✕</button>'+
         '</span>';
-        return '<th class="'+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'">'+escapeHtml(c.label)+(c.storeOwner?(' <span class="plu-owner-badge">🏬'+escapeHtml(c.storeOwner)+'</span>'):'')+' '+ops+'</th>';
+        var __ow=(c.storeOwner||STD_CHECK_OWNER[String(c.key).toUpperCase()]||'');
+        return '<th class="'+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'">'+escapeHtml(c.label)+(__ow?(' <span class="plu-owner-badge">🏬'+escapeHtml(__ow)+'</span>'):'')+' '+ops+'</th>';
       }).join('');
       return '<thead><tr>'+ths+'<th></th></tr></thead>';
     }
@@ -728,11 +730,11 @@
   function toolbarHTML(){
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
-      '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
-      '<button class="plu-tool-btn" id="pluStoreBtn">🏬 매장관리</button>'+
       '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
       '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
+      '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
       '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
+      '<button class="plu-tool-btn" id="pluStoreBtn">🏬 매장관리</button>'+
       (editMode?('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ 설정</button><button class="plu-tool-btn" id="pluStoreColBtn">🏬 매장 전용 열</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'):'')+
       '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '<input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none">'+
@@ -833,7 +835,7 @@
   function openCfgModal(){ if(!editMode) return; var ti=$('pluCfgTrunc'); if(ti) ti.value=(workTrunc>0?workTrunc:20); var box=$('pluCfgCols'); var lay=workLayout||[]; if(box){ box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span style="color:#9a9aa0;font-size:12px;">(체크)</span>':''; return '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:14px;cursor:pointer;"><input type="checkbox" class="plu-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> '+escapeHtml(c.label)+tag+'</label>'; }).join(''); } var ov=$('pluCfgModal'); if(ov) ov.classList.add('show'); }
   function closeCfgModal(){ var ov=$('pluCfgModal'); if(ov) ov.classList.remove('show'); }
   function saveCfgModal(){ var t=parseInt(($('pluCfgTrunc')||{}).value,10); if(isNaN(t)||t<1) t=20; if(t>200) t=200; workTrunc=t; var on={}; var checks=$('pluCfgCols')?$('pluCfgCols').querySelectorAll('.plu-cfg-col'):[]; Array.prototype.forEach.call(checks,function(ch){ on[ch.getAttribute('data-key')]=ch.checked; }); (workLayout||[]).forEach(function(c){ if(Object.prototype.hasOwnProperty.call(on,c.key)) c.exp=on[c.key]; }); markDirty(); closeCfgModal(); renderContent(); showToast('설정 적용됨 — 💾 저장을 눌러 저장하세요','success'); }
-  function openStoreColModal(){ if(!editMode) return; var STORES=(window.__STORES||['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M']); var sel=$('pluStoreColStore'); if(sel) sel.innerHTML=STORES.map(function(s){return '<option value="'+escapeHtml(s)+'">'+escapeHtml(s)+'</option>';}).join(''); var nm=$('pluStoreColName'); if(nm) nm.value=''; refreshStoreColList(); var ov=$('pluStoreColModal'); if(ov) ov.classList.add('show'); }
+  function openStoreColModal(){ if(!editMode) return; var STORES=(window.__STORES||['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY']); var sel=$('pluStoreColStore'); if(sel) sel.innerHTML=STORES.map(function(s){return '<option value="'+escapeHtml(s)+'">'+escapeHtml(s)+'</option>';}).join(''); var nm=$('pluStoreColName'); if(nm) nm.value=''; refreshStoreColList(); var ov=$('pluStoreColModal'); if(ov) ov.classList.add('show'); }
   function closeStoreColModal(){ var ov=$('pluStoreColModal'); if(ov) ov.classList.remove('show'); }
   function refreshStoreColList(){ var box=$('pluStoreColList'); if(!box) return; var lay=(workLayout||[]).filter(function(c){ return c.storeOwner; }); if(!lay.length){ box.innerHTML='<div style="font-size:13px;color:#9a9aa0;padding:6px 2px;">아직 매장 전용 열이 없습니다.</div>'; return; } box.innerHTML=lay.map(function(c){ var t=(c.type==='text')?'글자':'체크'; return '<div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 2px;border-bottom:1px solid #f0f0ec;"><span style="font-weight:800;color:#1e40af;min-width:96px;">🏬 '+escapeHtml(c.storeOwner)+'</span><span style="flex:1;color:#1a1a1d;">'+escapeHtml(c.label)+' <span style="color:#9a9aa0;font-size:12px;">'+t+'</span></span><button class="plu-storecol-del" data-key="'+escapeHtml(c.key)+'" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:14px;">✕</button></div>'; }).join(''); Array.prototype.forEach.call(box.querySelectorAll('.plu-storecol-del'), function(b){ b.onclick=function(){ var k=b.getAttribute('data-key'); var idx=-1; for(var i=0;i<workLayout.length;i++){ if(workLayout[i].key===k){ idx=i; break; } } if(idx>=0){ if(!confirm('이 매장 전용 열을 삭제할까요? (구조만 삭제, 각 매장 데이터는 그대로 클라우드에 남음)')) return; workLayout.splice(idx,1); markDirty(); renderContent(); refreshStoreColList(); } }; }); }
   function addStoreColumn(){ var store=($('pluStoreColStore')||{}).value||''; var name=(($('pluStoreColName')||{}).value||'').trim().toUpperCase(); var tEl=document.querySelector('input[name="pluStoreColType"]:checked'); var type=tEl?tEl.value:'text'; if(!store){ showToast('매장을 선택하세요','error'); return; } if(!name){ showToast('열 이름을 입력하세요','error'); return; } if(colIndex(name)>=0 || isBase(name)){ showToast('이미 있는 열입니다','error'); return; } if(!workLayout) workLayout=[]; workLayout.push({key:name,label:name,hidden:false,type:(type==='rcheck'?'rcheck':'text'),storeOwner:store}); markDirty(); renderContent(); $('pluStoreColName').value=''; refreshStoreColList(); showToast('🏬 '+store+' 전용 열 추가됨 — 💾 저장을 눌러 저장하세요','success'); }
@@ -1219,7 +1221,7 @@
 (function(){
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
-  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M'];
+  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
   var PINS_COL = 'plu-store-pins';
   var selStore = null;
   function fns(){ return window.firebaseFns; }
