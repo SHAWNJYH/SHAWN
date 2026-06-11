@@ -454,7 +454,7 @@
   function curCat(){ return PLU_TABS[pluBig].label; }
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
-  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
+  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
   // ===== CSV (청과 fallback) =====
@@ -712,6 +712,7 @@
            '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
            '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
            '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
+           '<button class="plu-tool-btn" id="pluStoreBtn">🏬 매장관리</button>'+
            '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>')
       )+
       '<input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none">'+
@@ -837,6 +838,7 @@
     var cat=curCat(); var el=$('pluContent');
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
+    var stb=$('pluStoreBtn'); if(stb) stb.onclick=function(){ if(window.__openStoreMgmt) window.__openStoreMgmt(); };
     var ae=$('pluAllExportBtn'); if(ae) ae.onclick=function(){ allExportXlsx(); };
     var imp=$('pluImportBtn'); if(imp) imp.onclick=function(){ $('pluImportInput').click(); };
     var impIn=$('pluImportInput'); if(impIn) impIn.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) importXlsx(f); e.target.value=''; };
@@ -1127,5 +1129,68 @@
 })();
 </script>
 
+<style>
+  .msm-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 2600; padding: 18px; }
+  .msm-ov.show { display: flex; }
+  .msm-modal { background: #fff; border-radius: 16px; padding: 20px; width: 100%; max-width: 420px; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
+  .msm-modal h3 { margin: 0 0 14px; font-size: 19px; color: #1a1a1d; }
+  .msm-modal label { display: block; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 8px 0 4px; }
+  .msm-modal input, .msm-modal select { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 15px; color: #1a1a1d; background: #fff; }
+  .msm-modal input:focus, .msm-modal select:focus { outline: none; border-color: #c9a961; }
+  .msm-pin { margin-top: 12px; background: #f7f6f2; border-radius: 10px; padding: 10px 12px; }
+  .msm-pinrow { display: flex; gap: 8px; align-items: center; }
+  .msm-pinrow input { flex: 1; }
+  .msm-pinrow button { flex: 0 0 auto; border: none; border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  #msmPinSave { background: #1a1a1d; color: #fff; }
+  #msmPinClear { background: #f3f3ee; color: #6b6b72; }
+  .msm-hint { font-size: 12px; color: #9a9aa0; margin-top: 6px; min-height: 16px; }
+  .msm-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .msm-btns button { flex: 1; border: none; border-radius: 10px; padding: 11px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .msm-close { background: #fff; border: 1.5px solid #e5e5e0 !important; color: #6b6b72; }
+</style>
+
+<div class="msm-ov" id="msmOv">
+  <div class="msm-modal">
+    <h3>매장 PIN 관리</h3>
+    <label>STORE</label>
+    <select id="msmStore"></select>
+    <div class="msm-pin">
+      <label>이 매장 PIN</label>
+      <div class="msm-pinrow">
+        <input id="msmPin" type="text" inputmode="numeric" maxlength="8" placeholder="PIN (4자리 이상)" autocomplete="off">
+        <button id="msmPinSave">PIN 저장</button>
+        <button id="msmPinClear">삭제</button>
+      </div>
+      <div class="msm-hint" id="msmPinHint"></div>
+    </div>
+    <div class="msm-btns">
+      <button class="msm-close" id="msmClose">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var PINS_COL = 'plu-store-pins';
+  var selStore = null;
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function fillSelect(){ var ss=$('msmStore'); ss.innerHTML=STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
+  async function loadStore(){
+    selStore = $('msmStore').value; $('msmPinHint').textContent='불러오는 중…';
+    try{ var ps = await fns().getDoc(fns().doc(db(), PINS_COL, selStore)); var pin=(ps&&ps.exists()&&ps.data())?(ps.data().pin||''):''; $('msmPin').value=pin||''; $('msmPinHint').textContent = pin ? 'PIN 설정됨' : 'PIN 미설정 · 여기서 PIN을 부여하세요 (부여 전 매장 로그인 불가)'; }
+    catch(e){ $('msmPinHint').textContent='PIN 정보를 불러오지 못했습니다'; }
+  }
+  async function savePin(){ var pin=($('msmPin').value||'').trim(); if(pin && pin.length<4){ alert('PIN은 4자리 이상'); return; } try{ await fns().setDoc(fns().doc(db(), PINS_COL, selStore), { pin:pin, store:selStore, updatedAt:Date.now() }); $('msmPinHint').textContent = pin ? 'PIN 저장됨' : 'PIN 비움(삭제) 저장됨'; }catch(e){ alert('PIN 저장 실패 — 규칙(plu-store-pins) 확인'); } }
+  async function clearPin(){ $('msmPin').value=''; try{ await fns().setDoc(fns().doc(db(), PINS_COL, selStore), { pin:'', store:selStore, updatedAt:Date.now() }); $('msmPinHint').textContent='PIN 삭제됨 · 이 매장 로그인 불가 (다시 PIN 부여)'; }catch(e){ alert('PIN 삭제 실패 — 규칙 확인'); } }
+  window.__openStoreMgmt = function(){ if(!window.firebaseFns){ alert('Firebase 준비 중입니다'); return; } fillSelect(); $('msmOv').classList.add('show'); loadStore(); };
+  function init(){ $('msmStore').onchange=loadStore; $('msmClose').onclick=function(){ $('msmOv').classList.remove('show'); }; $('msmPinSave').onclick=savePin; $('msmPinClear').onclick=clearPin; $('msmOv').addEventListener('click', function(e){ if(e.target===$('msmOv')) $('msmOv').classList.remove('show'); }); }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init, {once:true}); } else { init(); }
+})();
+</script>
 </body>
 </html>
