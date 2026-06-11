@@ -398,7 +398,7 @@
     var subs=PLU_TABS[pluBig].subs||[]; if(pluSub>=subs.length) pluSub=0;
     renderTabs(); if(typeof renderContent==='function') renderContent();
   }
-  function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(d&&d.tabs&&d.tabs.length) applyTabs(d.tabs); }, function(){}); }catch(e){} }
+  function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(typeof renderContent==='function') renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
   const BASE=[{key:'PLU',field:'plu',label:'PLU'},{key:'ITEMCODE1',field:'itemCode1',label:'ITEMCODE1'},{key:'ITEMCODE2',field:'itemCode2',label:'ITEMCODE2'},{key:'LOCAL',field:'local',label:'LOCAL'},{key:'ORGANIC',field:'organic',label:'ORGANIC'},{key:'KOR',field:'kor',label:'KOR'},{key:'ENG',field:'eng',label:'ENG'},{key:'CATE',field:'cate',label:'CATE'}];
@@ -416,13 +416,14 @@
 
   let pluBig=0, pluSub=0, pluSearchTerm='', pluHideReserve=false, pluCatFilter='';
   let cloud={}, layoutByCat={}, truncLenByCat={}, cloudLoaded=false;
+  var globalTrunc=20;   // 표시 글자수: 전체 카테고리 공통 (plu-config/main.truncLen)
   let pluRender=null, visibleCache=[];
   let currentUser=null;
 
   function curCat(){ return PLU_TABS[pluBig].label; }
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
-  function getTruncLen(){ var n=truncLenByCat[curCat()]; return (typeof n==='number'&&n>0)?n:20; }
+  function getTruncLen(){ return (globalTrunc>0?globalTrunc:20); }
   function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   function visibleCols(){
     var act=(typeof window.__storeActive==='function')?window.__storeActive():null;
@@ -1051,7 +1052,7 @@
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
   // ===== 셀 값 저장 =====
-  async function saveCell(catLabel,plu,key,value){ if(!currentStore) return; var c=cid(catLabel); plu=String(plu); key=String(key); if(!storeOv[c]) storeOv[c]={}; if(!storeOv[c][plu]) storeOv[c][plu]={}; if(value==null||value===''){ delete storeOv[c][plu][key]; if(!Object.keys(storeOv[c][plu]).length) delete storeOv[c][plu]; } else storeOv[c][plu][key]=value; rerender(); await saveDoc(); }
+  async function saveCell(catLabel,plu,key,value){ if(!currentStore) return; var c=cid(catLabel); plu=String(plu); key=String(key); if(!storeOv[c]) storeOv[c]={}; if(!storeOv[c][plu]) storeOv[c][plu]={}; storeOv[c][plu][key]=(value==null?'':value); rerender(); await saveDoc(); }
 
   // ===== 자물쇠 =====
   function toggleLock(){ if(!currentStore) return; unlocked=!unlocked; rerender(); }
@@ -1063,7 +1064,7 @@
     if(t.closest && t.closest('#stlFab')){ if(await uiConfirm('로그아웃할까요?')) logout(); return; }
     if(!currentStore || !unlocked) return;
     var chk=t.closest?t.closest('.stl-echk'):null;
-    if(chk){ var plu=chk.getAttribute('data-plu'), key=chk.getAttribute('data-key'); var cur=window.__ovGet(curCatLabel(),plu,key); saveCell(curCatLabel(),plu,key,cur?null:true); return; }
+    if(chk){ var plu=chk.getAttribute('data-plu'), key=chk.getAttribute('data-key'); var cur=window.__ovGet(curCatLabel(),plu,key); saveCell(curCatLabel(),plu,key,cur?false:true); return; }
     var cell=t.closest?t.closest('.stl-etext'):null;
     if(cell){ var p2=cell.getAttribute('data-plu'), k2=cell.getAttribute('data-key'); var c2=window.__ovGet(curCatLabel(),p2,k2); var nv=await uiPrompt('값 입력', c2==null?'':c2); if(nv===null) return; saveCell(curCatLabel(),p2,k2,nv.trim()); return; }
   });
