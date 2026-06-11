@@ -218,9 +218,6 @@
   .plu-table th.plu-col-check { font-size: 11px; }
   .plu-table td.plu-c-check { color: var(--text); font-weight: 400; vertical-align: middle; }
   .plu-table td.plu-c-check .pluchk { display: inline-block; line-height: 1; }
-  .plu-table td.plu-c-check .pluchk-edit { cursor: pointer; }
-  .plu-table td.plu-c-check .pluchk-edit:hover { transform: scale(1.18); }
-  .plu-edit-check { width: 16px; height: 16px; cursor: pointer; }
   /* 일반 열 가로 간격 더 축소 (체크박스 열 제외) */
   .plu-table thead th:not(.plu-col-check) { padding-left: 6px; padding-right: 6px; }
   .plu-table tbody td:not(.plu-c-check) { padding-left: 6px; padding-right: 6px; }
@@ -293,10 +290,6 @@
   .plu-tool-btn:hover { border-color:var(--accent-warm); color:var(--text); }
   .plu-tool-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .plu-icon-btn { padding:7px 10px; font-size:15px; line-height:1; }
-  .plu-edit-input { width:100%; min-width:56px; box-sizing:border-box; border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-family:var(--mono); font-size:13px; background:var(--bg); color:var(--text); }
-  .plu-edit-input:focus { outline:none; border-color:var(--accent-warm); }
-  .plu-row-del { border:1px solid var(--border); background:transparent; color:#b04141; border-radius:6px; padding:4px 9px; cursor:pointer; font-weight:700; }
-  .plu-row-del:hover { border-color:#b04141; }
   .plu-locked-hint { font-size:12px; color:#b04141; font-weight:700; }
   .plu-locked-hint.ok { color:#2e7d52; }
 </style>
@@ -363,18 +356,6 @@
 
 <div class="toast" id="toast"></div>
 
-<div class="plu-modal-ov" id="pluColModal">
-  <div class="plu-modal">
-    <h3>새 열 추가</h3>
-    <p>어떤 형태의 열을 추가할까요?</p>
-    <div class="plu-modal-btns">
-      <button class="plu-modal-choice" id="pluColCheck">☑ 체크박스 열<small>매장 보유 여부 등 O/X 표시 (예: BD·BV·FW)</small></button>
-      <button class="plu-modal-choice" id="pluColText">📝 일반정보 열<small>글자 입력 (예: 원산지, 비고)</small></button>
-    </div>
-    <button class="plu-modal-cancel" id="pluColCancel">취소</button>
-  </div>
-</div>
-
 <div class="plu-modal-ov" id="pluIngModal">
   <div class="plu-modal plu-ing-modal">
     <h3 id="pluIngTitle">INGREDIENT</h3>
@@ -414,7 +395,6 @@
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
-  function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return L; var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return L; }
   function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
@@ -423,11 +403,11 @@
   let pluBig=0, pluSub=0, pluSearchTerm='', pluHideReserve=false, pluCatFilter='';
   let cloud={}, layoutByCat={}, truncLenByCat={}, cloudLoaded=false;
   let pluRender=null, visibleCache=[];
-  let editMode=false, work=null, workLayout=null, workDirty=false, currentUser=null;
+  let currentUser=null;
 
   function curCat(){ return PLU_TABS[pluBig].label; }
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
-  function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
+  function curLayout(){ return withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function getTruncLen(){ var n=truncLenByCat[curCat()]; return (typeof n==='number'&&n>0)?n:20; }
   function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   function visibleCols(){
@@ -492,19 +472,16 @@
     }catch(e){ cloud={}; layoutByCat={}; cloudLoaded=true; }
     if(cloud['청과']===undefined){ try{ await loadCsv(); }catch(e){} }
   }
-  var __pendingChecks={};
-  function __ckey(c,p,k){ return c+'\u0001'+p+'\u0001'+k; }
   function pluNumOf(r){ var n=parseInt(pluValOf(r),10); return isNaN(n)?Infinity:n; }
   function byPluAsc(a,b){ var na=pluNumOf(a), nb=pluNumOf(b); if(na!==nb) return na<nb?-1:1; return String(pluValOf(a)).localeCompare(String(pluValOf(b))); }
   function applySnap(snap){
     cloud={}; layoutByCat={}; truncLenByCat={};
     snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20; });
-    for(var __pk in __pendingChecks){ var __pp=__pk.split('\u0001'); var __c=__pp[0],__pl=__pp[1],__ky=__pp[2],__v=__pendingChecks[__pk]; var __rs=cloud[__c]; if(!__rs){ continue; } var __ff=null; for(var __i=0;__i<__rs.length;__i++){ if(pluValOf(__rs[__i])===__pl){ __ff=__rs[__i]; break; } } if(!__ff){ continue; } if(!__ff.extra) __ff.extra={}; if((!!__ff.extra[__ky])===(!!__v)){ delete __pendingChecks[__pk]; } else { __ff.extra[__ky]=__v; } }
     cloudLoaded=true;
   }
-  // 실시간 구독: 다른 화면(매니저/EGMM)에서 저장하면 즉시 반영. 단 편집 중(editMode)에는 화면 갱신 보류.
+  // 실시간 구독: 매니저에서 저장하면 스토어에 즉시 반영(읽기 전용).
   var subscribed=false, unsub=null;
-  function rerenderIfIdle(){ if(!editMode) renderContent(); }
+  function rerenderIfIdle(){ renderContent(); }
   function subscribe(){
     if(subscribed) return;
     if(!window.firebaseFns || !window.firebaseFns.onSnapshot){ loadCloud().then(rerenderIfIdle); return; }
@@ -516,16 +493,6 @@
         else rerenderIfIdle();
       }, function(err){ subscribed=false; if(!cloudLoaded) loadCloud().then(rerenderIfIdle); });
     }catch(e){ subscribed=false; if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }
-  }
-  async function saveCat(cat, rows, layout){
-    if(!currentUser){ showToast('로그인이 필요합니다 (THE SHAWN 로그인)','error'); return false; }
-    try{
-      var docId=DOCID[cat]||cat;
-      var lay=normLayout(layout||defaultLayout([]));
-      await fns().setDoc(fns().doc(db(), COL, docId), { rows: rows, layout: lay, fields: extraKeysOf(lay), updatedAt: Date.now() });
-      cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':'text')};});
-      return true;
-    }catch(e){ showToast('저장 실패 — 권한(보안규칙)을 확인하세요','error'); return false; }
   }
 
   function baseRows(cat){ return cat==='청과' ? (csvRows||[]) : []; }
@@ -543,16 +510,10 @@
   }
   var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집', 'SEATTLE FOOD':'행복떡집', 'HANAYANG(떡)':'한양떡집', 'HANAYANG':'한양떡집' };
   function rowSub(main, r){ var s=(r && r.sub!=null && String(r.sub)!=='') ? r.sub : subOfRowInferred(main, r); if(s!=null && SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
-  // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
-  function saveSection(main, sub, subRows, layout){
-    var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);
-    var mine=(subRows||[]).map(function(r){ var c=copyRow(r); c.sub=sub; return c; });
-    return saveCat(main, others.concat(mine), layout);
-  }
 
   // ===== 탭 =====
   function clearSearch(){ pluSearchTerm=''; var se=$('pluSearch'); if(se) se.value=''; }
-  function leaveEditGuard(){ if(editMode && workDirty){ if(!confirm('저장하지 않은 변경이 있습니다. 나갈까요?')) return false; } editMode=false; work=null; workLayout=null; workDirty=false; return true; }
+  function leaveEditGuard(){ return true; }
   function renderTabs(){
     var bar=$('pluBigTabs'); bar.innerHTML='';
     PLU_TABS.forEach(function(t,i){ var b=document.createElement('button'); b.className='plu-tab'+(i===pluBig?' active':''); b.textContent=t.label; b.onclick=function(){ if(!leaveEditGuard())return; clearSearch(); pluBig=i; pluSub=0; pluCatFilter=''; renderTabs(); }; bar.appendChild(b); });
@@ -565,22 +526,8 @@
   }
 
   // ===== 표 =====
-  function totalCols(){ return (editMode? curLayout().length+1 : visibleCols().length); }
+  function totalCols(){ return visibleCols().length; }
   function headHTML(){
-    if(editMode){
-      var cols=curLayout();
-      var ths=cols.map(function(c){
-        var ops='<span class="plu-col-ops">'+
-          '<button class="plu-col-btn" data-act="left" data-key="'+escapeHtml(c.key)+'" title="왼쪽으로">◀</button>'+
-          '<button class="plu-col-btn" data-act="right" data-key="'+escapeHtml(c.key)+'" title="오른쪽으로">▶</button>'+
-          '<button class="plu-col-btn" data-act="ren" data-key="'+escapeHtml(c.key)+'" title="이름 변경">✎</button>'+
-          '<button class="plu-col-btn" data-act="hide" data-key="'+escapeHtml(c.key)+'" title="'+(c.hidden?'보이기':'숨기기')+'">'+(c.hidden?'🚫':'👁')+'</button>'+
-          '<button class="plu-col-btn del" data-act="del" data-key="'+escapeHtml(c.key)+'" title="열 삭제">✕</button>'+
-        '</span>';
-        return '<th class="'+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'">'+escapeHtml(c.label)+' '+ops+'</th>';
-      }).join('');
-      return '<thead><tr>'+ths+'<th></th></tr></thead>';
-    }
     var v=visibleCols();
     var unlocked=(typeof window.__storeUnlocked==='function')&&window.__storeUnlocked();
     return '<thead><tr>'+v.map(function(c){
@@ -645,31 +592,6 @@
       '<td class="plu-c-no">'+escapeHtml(r.plu)+'</td><td class="plu-c-local">'+escapeHtml(r.local)+'</td><td class="plu-c-organic">'+escapeHtml(r.organic)+'</td>'+
       '<td>'+escapeHtml(r.kor)+'</td><td class="plu-c-eng">'+escapeHtml(r.eng)+'</td><td class="plu-c-cat">'+escapeHtml(r.cate)+'</td></tr>';
   }
-  var __chkSaveTimer=null, __chkSaveCat=null;
-  function scheduleCheckSave(cat){ __chkSaveCat=cat; if(__chkSaveTimer) clearTimeout(__chkSaveTimer); __chkSaveTimer=setTimeout(function(){ var c=__chkSaveCat; __chkSaveTimer=null; if(!c) return; var rows=cloud[c]||[]; var lay=layoutByCat[c]||curLayout(); saveCat(c, rows, lay); }, 600); }
-  function toggleViewCheck(span){
-    if(editMode) return;
-    var plu=span.getAttribute('data-plu'), key=span.getAttribute('data-key'); var cat=curCat();
-    var rows=cloud[cat]||[]; var row=null;
-    for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } }
-    if(!row){ showToast('행을 찾지 못했습니다','error'); return; }
-    if(!row.extra) row.extra={};
-    var nv=!getVal(row,key); row.extra[key]=nv; __pendingChecks[__ckey(cat,plu,key)]=nv;
-    span.classList.toggle('off', !nv); span.textContent=nv?'☑':'☐';
-    scheduleCheckSave(cat);
-  }
-  document.addEventListener('click', function(e){ var s=e.target.closest?e.target.closest('.pluchk-edit'):null; if(s) toggleViewCheck(s); });
-  function inpCol(idx,c,val){ return '<input class="plu-edit-input" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'" data-base="'+(isBase(c.key)?'1':'0')+'" value="'+escapeHtml(val)+'">'; }
-  function inpCheck(idx,c,val){ return '<input type="checkbox" class="plu-edit-check" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'"'+(val?' checked':'')+'>'; }
-  function editRowHTML(r,idx){
-    var cols=curLayout();
-    var tds=cols.map(function(c){
-      var cls=(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-c-check':'');
-      var inner=(c.type==='check') ? inpCheck(idx,c,getVal(r,c.key)) : inpCol(idx,c,getVal(r,c.key));
-      return '<td class="'+cls.trim()+'">'+inner+'</td>';
-    }).join('');
-    return '<tr>'+tds+'<td><button class="plu-row-del" data-del="'+idx+'" title="삭제">✕</button></td></tr>';
-  }
   function korLabel(cate){ cate=String(cate||''); var i=cate.search(/\s*\(/); return i>0 ? cate.slice(0,i).trim() : cate.trim(); }
   function catValOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!==''){ return String(r.extra[k]); } } } return ''; }
   function isReserveRow(r){ if(!r) return false; var RX=/\bRESERVE\b/i; if(RX.test(String(r.eng||''))||RX.test(String(r.kor||''))) return true; if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && RX.test(v)) return true; } } return false; }
@@ -724,8 +646,8 @@
       '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button>'+
-      '<button class="plu-tool-btn plu-cute-btn" id="pluPanelBtn" title="열 추가">🧩</button>'+
-      '<button class="plu-tool-btn plu-cute-btn'+(unlocked?' open':'')+'" id="pluLockBtn" title="'+(unlocked?'잠그기':'편집 잠금 해제')+'">'+(unlocked?'🐰':'🧸')+'</button>'+
+      '<button class="plu-tool-btn plu-cute-btn" id="pluPanelBtn" title="관리자 · 열 추가">⚙️</button>'+
+      '<button class="plu-tool-btn plu-cute-btn'+(unlocked?' open':'')+'" id="pluLockBtn" title="'+(unlocked?'잠그기':'편집 잠금 해제')+'">'+(unlocked?'🔓':'🔒')+'</button>'+
     '</div>';
   }
   function subToolsHTML(){
@@ -742,7 +664,7 @@
     var el=$('pluContent'); el.className='plu-list';
     var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML=toolbarHTML(); if(window.__reqApply) window.__reqApply(); }
     var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML=subToolsHTML();
-    el.innerHTML=(editMode?'':'<div class="plu-cat-top" id="pluCatTabs"></div>')+
+    el.innerHTML='<div class="plu-cat-top" id="pluCatTabs"></div>'+
       '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>';
     bindToolbar();
     if(!cloudLoaded){ $('pluTbody').innerHTML='<tr><td class="plu-no-result">불러오는 중...</td></tr>'; return; }
@@ -753,16 +675,6 @@
 
   function buildList(){
     var cat=curCat();
-    if(editMode){
-      if(!work) work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow);
-      pluRender=function(){
-        visibleCache=work;
-        var tb=$('pluTbody'); if(tb) tb.innerHTML = (work.map(function(r,i){return editRowHTML(r,i);}).join('') || '<tr><td colspan="'+totalCols()+'" class="plu-no-result">항목이 없습니다. ＋PLU 추가로 시작하세요.</td></tr>');
-        var cnt=$('pluCount'); if(cnt) cnt.textContent = work.length+'개';
-      };
-      pluRender();
-      return;
-    }
     var all=rowsFor(cat).filter(function(r){ return rowSub(cat,r)===curSub(); }).sort(byPluAsc);
     var cats=[], seen={};
     all.forEach(function(r){ var cv=catValOf(r); if(cv && !seen[cv]){ seen[cv]=1; cats.push(cv); } });
@@ -788,44 +700,9 @@
     pluRender();
   }
 
-  function enterEdit(){
-    var cat=curCat();
-    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':'text')};}); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
-    if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
-  }
-  function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
-  function colIndex(key){ for(var i=0;i<workLayout.length;i++){ if(workLayout[i].key===key) return i; } return -1; }
-  var CORE_KEYS=['PLU','LOCAL','ORGANIC','KOR','ENG','CATE'];
-  function isCore(k){ return CORE_KEYS.indexOf(k)>=0; }
-  // 시스템 열(6개) 외에는 key를 label과 같게 유지(데이터 안전 이전). 충돌 시 거부.
-  function applyColName(col, newLabel){
-    newLabel=String(newLabel==null?'':newLabel).trim().toUpperCase(); if(!newLabel) return false;
-    var newKey=newLabel;
-    if(newKey===col.key){ col.label=newLabel; return true; }
-    if(isBase(newKey)){ showToast('그 이름은 시스템 키와 충돌합니다','error'); return false; }
-    for(var x=0;x<workLayout.length;x++){ if(workLayout[x]!==col && workLayout[x].key===newKey){ showToast('같은 이름(키)의 열이 이미 있습니다','error'); return false; } }
-    var oldKey=col.key;
-    (work||[]).forEach(function(r){ if(!r) return; if(!r.extra) r.extra={}; var v=isBase(oldKey)?r[fieldOf(oldKey)]:r.extra[oldKey]; if(v!==undefined&&v!==null&&v!=='') r.extra[newKey]=v; if(isBase(oldKey)){ r[fieldOf(oldKey)]=''; } else { delete r.extra[oldKey]; } });
-    col.key=newKey; col.label=newLabel; return true;
-  }
-  function addColumnOfType(type){
-    var name=(prompt('추가할 열 이름을 입력하세요'+(type==='check'?' (예: BD, BV, FW)':' (예: 원산지, 비고)'))||'').trim().toUpperCase();
-    if(!name) return;
-    if(colIndex(name)>=0 || isBase(name)){ showToast('이미 있는 열입니다','error'); return; }
-    if(!workLayout) workLayout=[];
-    workLayout.unshift({key:name,label:name,hidden:false,type:(type==='check'?'check':'text')});
-    markDirty(); renderContent();
-  }
-  function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
-  function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
   function openIngModal(plu,key){ var cat=curCat(); var rows=rowsFor(cat)||[]; var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } var full=row?String(getVal(row,key)||''):''; var ta=$('pluIngText'); if(ta){ ta.value=full; ta.readOnly=true; } var ti=$('pluIngTitle'); if(ti) ti.textContent=key; var sb=$('pluIngSub'); if(sb) sb.textContent='PLU '+plu; var ov=$('pluIngModal'); if(ov) ov.classList.add('show'); }
   function closeIngModal(){ var ov=$('pluIngModal'); if(ov) ov.classList.remove('show'); }
-  (function wireColModal(){
-    var c=$('pluColCheck'), t=$('pluColText'), x=$('pluColCancel'), ov=$('pluColModal');
-    if(c) c.onclick=function(){ closeColModal(); addColumnOfType('check'); };
-    if(t) t.onclick=function(){ closeColModal(); addColumnOfType('text'); };
-    if(x) x.onclick=function(){ closeColModal(); };
-    if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) closeColModal(); });
+  (function wireIngModal(){
     var ic=$('pluIngClose'), iov=$('pluIngModal');
     if(ic) ic.onclick=function(){ closeIngModal(); };
     if(iov) iov.addEventListener('click', function(e){ if(e.target===iov) closeIngModal(); });
@@ -836,27 +713,7 @@
     var cat=curCat(); var el=$('pluContent');
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
-    var imp=$('pluImportBtn'); if(imp) imp.onclick=function(){ $('pluImportInput').click(); };
-    var impIn=$('pluImportInput'); if(impIn) impIn.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) importXlsx(f); e.target.value=''; };
-    var ed=$('pluEditBtn'); if(ed) ed.onclick=function(){ if(!editMode){ enterEdit(); } else { if(leaveEditGuard()) renderContent(); } };
-    var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
-    var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
-    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveSection(cat, curSub(), work||[], workLayout||[]); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
-    // 열 조작 버튼 (이동/이름변경/숨김/삭제)
-    if(el && editMode){ el.querySelectorAll('.plu-col-btn').forEach(function(b){ b.onclick=function(){
-      var act=b.getAttribute('data-act'), key=b.getAttribute('data-key'); var i=colIndex(key); if(i<0) return;
-      if(act==='left'||act==='right'){ var j=act==='left'?i-1:i+1; if(j<0||j>=workLayout.length) return; var tmp=workLayout[i]; workLayout[i]=workLayout[j]; workLayout[j]=tmp; markDirty(); renderContent(); }
-      else if(act==='ren'){ var nw=(prompt('열 이름 변경', workLayout[i].label)||'').trim(); if(!nw||nw===workLayout[i].label) return; if(applyColName(workLayout[i], nw)){ markDirty(); renderContent(); } }
-      else if(act==='hide'){ workLayout[i].hidden=!workLayout[i].hidden; markDirty(); renderContent(); }
-      else if(act==='del'){ var __lbl=workLayout[i].label; if(!confirm('["'+__lbl+'"] 열을 삭제하시겠습니까?\n목록에서 이 열이 사라집니다.')) return; if(!confirm('한 번 더 확인합니다.\n정말 ["'+__lbl+'"] 열을 삭제할까요?')) return; workLayout.splice(i,1); if(!isBase(key)){ (work||[]).forEach(function(r){ if(r&&r.extra) delete r.extra[key]; }); } markDirty(); renderContent(); }
-    }; }); }
-    var tb=$('pluTbody');
-    if(tb){
-      tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var base=t.getAttribute('data-base')==='1'; if(work&&work[idx]){ if(base){ work[idx][fieldOf(key)]=t.value; } else { if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=t.value; } markDirty(); } });
-      tb.addEventListener('change',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-check'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); if(work&&work[idx]){ if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=!!t.checked; markDirty(); } });
-      tb.addEventListener('click',function(e){ var d=e.target.closest&&e.target.closest('.plu-row-del'); if(!d)return; var idx=parseInt(d.getAttribute('data-del'),10); if(work){ work.splice(idx,1); markDirty(); if(pluRender) pluRender(); } });
-    }
   }
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
@@ -912,50 +769,6 @@
   }
 
   // ===== IMPORT (기본 순서: PLU·로컬·유기농·한글명·영문명·분류 + 7번째부터 추가열 헤더) =====
-  function importXlsx(file){
-    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
-    var cat=curCat(); var reader=new FileReader();
-    reader.onload=async function(){
-      try{
-        var wb=XLSX.read(reader.result,{type:'array'}); var ws=wb.Sheets[wb.SheetNames[0]];
-        var aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        var header=aoa.length?aoa[0]:[];
-        function nm(x){ return String(x==null?'':x).trim().toLowerCase().replace(/\s+/g,' '); }
-        var labelMap={};
-        BASE.forEach(function(b){ labelMap[nm(b.label)]={key:b.key, base:true}; });
-        (layoutByCat[cat]||[]).forEach(function(c){ labelMap[nm(c.label)]={key:c.key, base:isBase(c.key)}; });
-        var hasHeader = header.some(function(h){ var n=nm(h); return !!n && (!!labelMap[n] || /plu/.test(n)); });
-        var cols=[];
-        if(hasHeader){
-          header.forEach(function(h,ci){ var n=nm(h); if(!n) return; var m=labelMap[n];
-            if(m){ cols.push({key:m.key,label:String(h).trim(),base:m.base,ci:ci,isNew:false}); }
-            else { var k=String(h).trim().toUpperCase(); cols.push({key:k,label:k,base:false,ci:ci,isNew:true}); } });
-        } else {
-          BASE.forEach(function(b,bi){ cols.push({key:b.key,label:b.label,base:true,ci:bi,isNew:false}); });
-        }
-        var news=cols.filter(function(c){return c.isNew;});
-        if(news.length){ if(!confirm('엑셀에 기존에 없던 열이 있습니다: '+news.map(function(c){return c.label;}).join(', ')+'\n새 열로 만들까요?\n[확인=새 열 생성 / 취소=이 열들은 가져오지 않음]')){ cols=cols.filter(function(c){return !c.isNew;}); } }
-        if(!cols.length){ showToast('가져올 열이 없습니다','error'); return; }
-        var start = hasHeader?1:0;
-        var rows=[];
-        for(var i=start;i<aoa.length;i++){ var c=aoa[i]; if(!c) continue;
-          var empty=true; for(var k=0;k<c.length;k++){ if(String(c[k]==null?'':c[k]).trim()!==''){ empty=false; break; } } if(empty) continue;
-          var row={extra:{}};
-          cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } });
-          rows.push(row); }
-        if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
-        var colNames=cols.map(function(c){return c.label;});
-        if(!confirm('['+cat+' - '+curSub()+'] 서브카테고리를 가져온 '+rows.length+'개 행으로 교체할까요?\n(다른 서브카테고리 데이터는 유지됩니다)\n열: '+colNames.join(', '))) return;
-        var ex=(layoutByCat[cat]||defaultLayout([])).slice(); var have={}; ex.forEach(function(c){have[c.key]=1;});
-        cols.forEach(function(c){ var K=String(c.key).toUpperCase(); if(!have[K]){ ex.push({key:K,label:K,hidden:false,type:'text'}); have[K]=1; } });
-        ex=orderEndCols(ex);
-        var lay=normLayout(ex);
-        var ok=await saveSection(cat, curSub(), rows, lay); if(ok){ editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' - '+curSub()+' 가져오기 완료 ('+rows.length+'행)','success'); }
-      }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
-    };
-    reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
-    reader.readAsArrayBuffer(file);
-  }
 
   // ===== 통합검색 (기본 6열) =====
   function renderSearch(term){
@@ -965,7 +778,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-cute-btn" id="pluPanelBtn" title="열 추가">🧩</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🐰':'🧸')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-cute-btn" id="pluPanelBtn" title="관리자 · 열 추가">⚙️</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🔓':'🔒')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
@@ -981,7 +794,7 @@
   // ===== 돌아가기 / 검색 =====
   function goBack(){ if(document.referrer && history.length>1){ history.back(); } else { window.location.href='hmart.html'; } }
   $('pluBackBtn').onclick=goBack;
-  var se=$('pluSearch'); se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; renderContent(); };
+  var se=$('pluSearch'); se.oninput=function(e){ pluSearchTerm=e.target.value; pluCatFilter=''; renderContent(); };
 
   // ===== 시작 =====
   renderTabs();
@@ -1159,9 +972,9 @@
   .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
   .stl-fab { position: fixed; left: 16px; bottom: 16px; z-index: 1500; background: #fff; color: #1a1a1d; border: 1.5px solid #e5e5e0; border-radius: 999px; padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: none; }
   .stl-fab.show { display: inline-flex; align-items:center; gap:6px; }
-  .plu-cute-btn { font-size:16px; line-height:1; padding:6px 11px; border-radius:999px; background:#fdf3f8; border-color:#f3d7e6; }
-  .plu-cute-btn:hover { transform: translateY(-1px); }
-  .plu-cute-btn.open { background:#e9f9ee; border-color:#bfe8cc; box-shadow:0 0 0 2px #cdeed6 inset; }
+  .plu-cute-btn { font-size:15px; line-height:1; padding:6px 11px; border-radius:9px; }
+  .plu-cute-btn:hover { border-color:var(--accent-warm); color:var(--text); transform: translateY(-1px); }
+  .plu-cute-btn.open { background:#e9f9ee; border-color:#5bbd79; color:#1f7a43; box-shadow:0 0 0 2px #cdeed6 inset; }
   .stl-cell { background:#fff8df !important; }
   th.stl-col { background:#fff8df; }
   .stl-echk, .stl-etext { cursor:pointer; }
