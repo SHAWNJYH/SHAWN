@@ -598,7 +598,7 @@
     var TL=getTruncLen(); var SACT=(typeof window.__storeActive==='function')?window.__storeActive():null;
     function ovv(c,r){ return (typeof window.__ovGet==='function') ? window.__ovGet(curCat(), pluValOf(r), c.key) : undefined; }
     var tds=v.map(function(c){
-      var sc=!!c.storeOwner;
+      var sc=!!ownerOf(c);
       if(c.type==='check'||c.type==='rcheck'){
         var on = sc ? !!ovv(c,r) : getVal(r,c.key);
         var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check';
@@ -846,7 +846,7 @@
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
-  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); if(col && col.storeOwner && typeof window.__ovGet==='function'){ var ovv=window.__ovGet(curCat(), pluValOf(r), col.key); return (ovv==null?'':ovv); } var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
+  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var __ow=ownerOf(col); if(col && __ow && typeof window.__ovGet==='function'){ var ovv=window.__ovGet(curCat(), pluValOf(r), col.key); return (ovv==null?'':ovv); } var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; return raw==null?'':raw; }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
