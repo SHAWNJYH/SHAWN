@@ -411,7 +411,8 @@
   function isBase(key){ return BASE_KEYS.indexOf(String(key||'').toUpperCase())>=0; }
   function fieldOf(key){ var u=String(key||'').toUpperCase(); return BASE_FIELD[u]||null; }
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
-  var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M'];
+  var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
+  var STD_CHECK_OWNER={'HTM':'TACOMA','HFW':'FEDERALWAY','HBV':'BELLEVUE','HLW':'LYNNWOOD','HRM':'REDMOND','HBD':'BALLARD','GLW':'G-MART','MW':'MELLOW WAY','DH':'DISTRICT-H','M2M':'M2M','HUW':'UNIVERSITY'};
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return orderEndCols(L); var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return orderEndCols(L); }
@@ -428,8 +429,9 @@
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function getTruncLen(){ var n=truncLenByCat[curCat()]; return (typeof n==='number'&&n>0)?n:20; }
-  function exportColsFor(){ var st=(typeof window.__storeActive==='function')?window.__storeActive():null; var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ if(!c||!c.exp) return false; if(c.storeOwner) return c.storeOwner===st; return true; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type,storeOwner:(c.storeOwner||'')}; }); return EXPORT_COLS; }
-  function visibleCols(){ var st=(typeof window.__storeActive==='function')?window.__storeActive():null; return curLayout().filter(function(c){ if(c.hidden) return false; if(c.storeOwner) return st && c.storeOwner===st; return true; }); }
+  function exportColsFor(){ var st=(typeof window.__storeActive==='function')?window.__storeActive():null; var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ if(!c||!c.exp) return false; var o=ownerOf(c); if(o) return o===st; return true; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type,storeOwner:(c.storeOwner||'')}; }); return EXPORT_COLS; }
+  function ownerOf(c){ if(!c) return ''; return c.storeOwner || STD_CHECK_OWNER[String(c.key).toUpperCase()] || ''; }
+  function visibleCols(){ var st=(typeof window.__storeActive==='function')?window.__storeActive():null; return curLayout().filter(function(c){ if(c.hidden) return false; var o=ownerOf(c); if(o) return st && o===st; return true; }); }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
   // ===== CSV (청과 fallback) =====
@@ -1048,7 +1050,7 @@
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
   var REQ_COL = 'plu-requests';
-  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M'];
+  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
   var reqs = [];
   var seenDone = {}, hasNew = false, firstSnap = true;
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
@@ -1166,6 +1168,7 @@
     <input id="stlPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
     <div class="stl-err" id="stlErr"></div>
     <button class="stl-btn" id="stlLoginBtn">LOGIN</button>
+    <div style="margin-top:14px;font-size:11px;color:#c9c9cf;">build 2026-06-10 · 11 stores · per-store checkbox</div>
   </div>
 </div>
 
@@ -1185,7 +1188,7 @@
 (function(){
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
-  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M'];
+  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
   var DOCID = { '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
   var PINS_COL = 'plu-store-pins';
   var OV_COL = 'plu-store-overrides';
