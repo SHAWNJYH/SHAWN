@@ -860,8 +860,7 @@
   .rqlbl { color:#c0392b; font-weight:800; }
 </style>
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
-  <h3>PLU REQUEST</h3>
-  <div class="plureq-field"><label>SELECT STORE</label><select id="rqStore"></select></div>
+  <h3 id="rqTitle">PLU REQUEST</h3>
   <div class="plureq-3col">
     <div class="plureq-field plureq-col"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
     <div class="plureq-field plureq-col"><label>CATEGORY</label><select id="rqCategory"><option value="">SELECT</option><option>PRODUCE</option><option>DELI</option><option>FISH</option><option>MEAT</option><option>HOUSEWARE</option></select></div>
@@ -915,11 +914,11 @@
   function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
   function fillStores(){ var sel=$('rqStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
-  function openForm(){ fillStores(); ['rqRequester','rqCategory','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); if($('rqStore')) $('rqStore').value=''; $('plureqFormOv').classList.add('show'); }
+  function openForm(){ var st=(typeof window.__storeActive==='function')?(window.__storeActive()||''):''; var ti=$('rqTitle'); if(ti) ti.textContent=(st?(st+' STORE - '):'')+'PLU REQUEST'; ['rqRequester','rqCategory','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); $('plureqFormOv').classList.add('show'); }
   function closeForm(){ $('plureqFormOv').classList.remove('show'); }
   function submitReq(){
-    var store=($('rqStore').value||'').trim(), requester=($('rqRequester').value||'').trim();
-    if(!store){ uiAlert('Please select a store (SELECT STORE)'); return; }
+    var store=(typeof window.__storeActive==='function')?(window.__storeActive()||''):''; var requester=($('rqRequester').value||'').trim();
+    if(!store){ uiAlert('매장 로그인이 필요합니다'); return; }
     if(!requester){ uiAlert('Please enter REQUESTER'); return; }
     var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('ROOM');
     var data={ store:store, requester:requester, category:($('rqCategory')?($('rqCategory').value||'').trim():''), kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
