@@ -424,16 +424,30 @@
   let toastTimer;
   function showToast(msg,type){ var t=$('toast'); clearTimeout(toastTimer); t.textContent=msg; t.className='toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='toast '+(type||''); },2500); }
 
-  const PLU_TABS=[
-    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
-    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체','행복떡집','한양떡집']},
-    {label:'수산',       subs:['수산','박스']},
-    {label:'정육',       subs:['정육','박스']},
-    {label:'하우스웨어', subs:['주방용품','전자제품','기타']}
+  var DEFAULT_TABS=[
+    {label:'청과', doc:'PRODUCE', subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
+    {label:'델리', doc:'DELI', subs:['델리','레몬랜드','베이커리','매장자체','행복떡집','한양떡집']},
+    {label:'수산', doc:'FISH', subs:['수산','박스']},
+    {label:'정육', doc:'MEAT', subs:['정육','박스']},
+    {label:'하우스웨어', doc:'HOUSEWARE', subs:['주방용품','전자제품','기타']}
   ];
+  var PLU_TABS=DEFAULT_TABS.map(function(t){ return {label:t.label, doc:t.doc, subs:t.subs.slice()}; });
   const COL='plu-list';
-  const DOCID={ '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
+  var CFG_COL='plu-config', CFG_DOC='main';
+  var DOCID={};
+  function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
+  rebuildDocId();
   function labelOf(docId){ for(var k in DOCID){ if(DOCID[k]===docId) return k; } return docId; }
+  function applyTabs(tabs){
+    if(!tabs||!tabs.length) return;
+    var clean=[]; tabs.forEach(function(t){ if(t&&t.label){ clean.push({label:String(t.label), doc:String(t.doc||t.label), subs:(t.subs||[]).map(String)}); } });
+    if(!clean.length) return;
+    PLU_TABS=clean; rebuildDocId();
+    if(pluBig>=PLU_TABS.length) pluBig=0;
+    var subs=PLU_TABS[pluBig].subs||[]; if(pluSub>=subs.length) pluSub=0;
+    renderTabs(); if(!editMode && typeof renderContent==='function') renderContent();
+  }
+  function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(d&&d.tabs&&d.tabs.length) applyTabs(d.tabs); }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
   const BASE=[{key:'PLU',field:'plu',label:'PLU'},{key:'ITEMCODE1',field:'itemCode1',label:'ITEMCODE1'},{key:'ITEMCODE2',field:'itemCode2',label:'ITEMCODE2'},{key:'LOCAL',field:'local',label:'LOCAL'},{key:'ORGANIC',field:'organic',label:'ORGANIC'},{key:'KOR',field:'kor',label:'KOR'},{key:'ENG',field:'eng',label:'ENG'},{key:'CATE',field:'cate',label:'CATE'}];
@@ -600,6 +614,42 @@
     var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
   }
   // 행이 속한 서브카테고리(저장된 sub 우선, 없으면 추론 마이그레이션)
+  function openCatEditor(){ $('catEdAdd').onclick=addCatEdCat; $('catEdSave').onclick=saveCatEditor; $('catEdClose').onclick=function(){ $('catEdOv').classList.remove('show'); }; $('catEdOv').onclick=function(e){ if(e.target===$('catEdOv')) $('catEdOv').classList.remove('show'); }; $('catEdHint').textContent=''; renderCatEd(); $('catEdOv').classList.add('show'); }
+  function catEdSubHTML(sub){ return '<div class="cated-sub"><input class="cated-sub-in" value="'+escapeHtml(sub||'')+'" data-orig="'+escapeHtml(sub||'')+'" placeholder="중간 카테고리"><button class="cated-del-sub" type="button" title="삭제">✕</button></div>'; }
+  function catEdCatHTML(t){ return '<div class="cated-cat" data-doc="'+escapeHtml(t.doc||'')+'"><div class="cated-r1"><input class="cated-label" value="'+escapeHtml(t.label||'')+'" placeholder="상위 카테고리"><button class="cated-del-cat" type="button" title="이 상위 카테고리 삭제">✕</button></div><div class="cated-subs-box">'+(t.subs||[]).map(catEdSubHTML).join('')+'</div><button class="cated-add-sub" type="button">＋ 중간 카테고리</button></div>'; }
+  function bindCatEd(){ var box=$('catEdList');
+    Array.prototype.forEach.call(box.querySelectorAll('.cated-del-cat'), function(b){ b.onclick=function(){ var c=b.closest('.cated-cat'); if(c) c.parentNode.removeChild(c); }; });
+    Array.prototype.forEach.call(box.querySelectorAll('.cated-del-sub'), function(b){ b.onclick=function(){ var r=b.closest('.cated-sub'); if(r) r.parentNode.removeChild(r); }; });
+    Array.prototype.forEach.call(box.querySelectorAll('.cated-add-sub'), function(b){ b.onclick=function(){ var sb=b.closest('.cated-cat').querySelector('.cated-subs-box'); var w=document.createElement('div'); w.innerHTML=catEdSubHTML(''); sb.appendChild(w.firstChild); bindCatEd(); }; });
+  }
+  function renderCatEd(){ var box=$('catEdList'); if(!box) return; box.innerHTML=PLU_TABS.map(catEdCatHTML).join(''); bindCatEd(); }
+  function addCatEdCat(){ var box=$('catEdList'); var w=document.createElement('div'); w.innerHTML=catEdCatHTML({label:'', doc:'CAT_'+Date.now(), subs:['']}); box.appendChild(w.firstChild); bindCatEd(); }
+  async function migrateSubRename(doc, renameMap){
+    var keys=Object.keys(renameMap); if(!keys.length) return;
+    var oldLabel=null; for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].doc===doc){ oldLabel=PLU_TABS[i].label; break; } }
+    // (1) 공통 행 sub 값 이전
+    if(oldLabel && cloud[oldLabel]!==undefined){ var rws=cloud[oldLabel]; var ch=false; for(var r=0;r<rws.length;r++){ var sv=(rws[r]&&rws[r].sub!=null)?String(rws[r].sub):''; if(renameMap[sv]){ rws[r].sub=renameMap[sv]; ch=true; } } if(ch){ try{ await saveCat(oldLabel, rws, layoutByCat[oldLabel], truncLenByCat[oldLabel]); }catch(e){} } }
+    // (2) 전 매장 열 정의 이전
+    var stores=Object.keys(storeOvAll);
+    for(var sx=0;sx<stores.length;sx++){ var st=stores[sx]; var cols=storeOvAll[st].cols||{}; var byCat=cols[doc]; if(!byCat||Array.isArray(byCat)) continue; var moved=false; keys.forEach(function(ov){ var nv=renameMap[ov]; if(byCat[ov]){ byCat[nv]=(byCat[nv]||[]).concat(byCat[ov]); delete byCat[ov]; moved=true; } }); if(moved){ try{ await fns().setDoc(fns().doc(db(), OV_COL, st), {cols:cols, store:st, updatedAt:Date.now()}, {merge:true}); }catch(e){} } }
+  }
+  async function saveCatEditor(){
+    var cats=$('catEdList').querySelectorAll('.cated-cat'); var tabs=[]; var seen={}; var renames=[];
+    for(var i=0;i<cats.length;i++){ var lab=(cats[i].querySelector('.cated-label').value||'').trim(); if(!lab) continue;
+      var doc=(cats[i].getAttribute('data-doc')||'').trim()||('CAT_'+Date.now()+'_'+i); while(seen[doc]) doc=doc+'_x'; seen[doc]=1;
+      var subEls=cats[i].querySelectorAll('.cated-sub-in'); var subs=[]; var rmap={};
+      for(var j=0;j<subEls.length;j++){ var val=(subEls[j].value||'').trim(); if(!val) continue; var orig=(subEls[j].getAttribute('data-orig')||'').trim(); if(subs.indexOf(val)<0) subs.push(val); if(orig && orig!==val) rmap[orig]=val; }
+      if(Object.keys(rmap).length) renames.push({doc:doc, map:rmap});
+      tabs.push({label:lab, doc:doc, subs:subs});
+    }
+    if(!tabs.length){ $('catEdHint').textContent='최소 1개의 상위 카테고리가 필요합니다'; return; }
+    $('catEdHint').textContent = renames.length ? '저장 중… (데이터 이전)' : '저장 중…';
+    try{
+      for(var k=0;k<renames.length;k++){ await migrateSubRename(renames[k].doc, renames[k].map); }
+      await fns().setDoc(fns().doc(db(), CFG_COL, CFG_DOC), {tabs:tabs, updatedAt:Date.now()});
+      applyTabs(tabs); $('catEdHint').textContent='저장됨'+(renames.length?' · 이름 변경 데이터 자동 이전 완료':''); setTimeout(function(){ $('catEdOv').classList.remove('show'); }, 700);
+    }catch(e){ $('catEdHint').textContent='저장 실패 — 규칙(plu-config / plu-store-overrides) 확인'; }
+  }
   function mainTab(main){ for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===main) return PLU_TABS[i]; } return null; }
   function subOfRowInferred(main, r){
     if(main==='청과'){ var n=parseInt(r&&r.plu,10); if(!isNaN(n)){ var subs=(mainTab('청과')||{}).subs||[]; for(var i=0;i<subs.length;i++){ var rg=rangeFor('청과',subs[i]); if(rg && n>=rg.min && n<=rg.max) return subs[i]; } } }
@@ -757,7 +807,7 @@
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
       (editMode
-        ? ('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ 설정</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>')
+        ? ('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ 설정</button><button class="plu-tool-btn" id="pluCatBtn">🗂 카테고리</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>')
         : ('<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
            '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
            '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
@@ -896,6 +946,7 @@
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
     var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
     var cfgb=$('pluCfgBtn'); if(cfgb) cfgb.onclick=function(){ openCfgModal(); };
+    var catb=$('pluCatBtn'); if(catb) catb.onclick=function(){ openCatEditor(); };
     var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
     // 열 조작 버튼 (이동/이름변경/숨김/삭제)
@@ -1067,7 +1118,7 @@
   // ===== 시작 =====
   renderTabs();
   onReady(function(){
-    startOvAllListener();
+    startOvAllListener(); subscribeCfg();
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
     catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
@@ -1196,6 +1247,7 @@
   .msm-pinrow input { flex: 1; }
   .msm-pinrow button { flex: 0 0 auto; border: none; border-radius: 9px; padding: 9px 12px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
   #msmPinSave { background: #1a1a1d; color: #fff; }
+  #catEdSave { background: #1a1a1d; color: #fff; }
   #msmPinClear { background: #f3f3ee; color: #6b6b72; }
   .msm-hint { font-size: 12px; color: #9a9aa0; margin-top: 6px; min-height: 16px; }
   .msm-btns { display: flex; gap: 8px; margin-top: 14px; }
@@ -1212,12 +1264,24 @@
   .msm-colitem { display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 5px 2px; border-bottom: 1px solid #ececec; }
   .msm-colitem em { color: #9a9aa0; font-style: normal; font-size: 12px; margin-left: 6px; }
   .msm-coldel { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 14px; padding: 0 4px; }
+  .msm-colren { background: none; border: none; color: #1e40af; cursor: pointer; font-size: 13px; padding: 0 4px; }
   .msm-colempty { font-size: 13px; color: #9a9aa0; padding: 6px 2px; }
+  .cated-cat { background: #f7f6f2; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+  .cated-r1 { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .cated-cat input { padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
+  .cated-label { flex: 1; min-width: 0; font-weight: 700; }
+  .cated-del-cat { flex: 0 0 auto; background: none; border: none; color: #c0392b; cursor: pointer; font-size: 15px; }
+  .cated-subs-box { padding-left: 10px; }
+  .cated-sub { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .cated-sub-in { flex: 1; min-width: 0; }
+  .cated-del-sub { flex: 0 0 auto; background: none; border: none; color: #b0306a; cursor: pointer; font-size: 13px; }
+  .cated-add-sub { margin-top: 2px; border: 1px dashed #c9c9c2; background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-family: inherit; font-size: 13px; color: #555; }
+  .cated-add { margin: 4px 0 2px; border: 1px dashed #c9c9c2; background: #fff; border-radius: 8px; padding: 9px; width: 100%; cursor: pointer; font-family: inherit; font-weight: 700; color: #444; }
 </style>
 
 <div class="msm-ov" id="msmOv">
   <div class="msm-modal">
-    <h3>매장 PIN 관리</h3>
+    <h3>매장관리</h3>
     <label>STORE</label>
     <select id="msmStore"></select>
     <div class="msm-pin">
@@ -1249,6 +1313,20 @@
   </div>
 </div>
 
+<div class="msm-ov" id="catEdOv">
+  <div class="msm-modal">
+    <h3>카테고리 편집</h3>
+    <div class="msm-hint">상위 카테고리 이름과 중간 카테고리(쉼표로 구분)를 수정·추가하세요. 이름을 바꿔도 기존 데이터는 유지됩니다. (매니저·스토어 공통 적용)</div>
+    <div id="catEdList"></div>
+    <button id="catEdAdd" class="cated-add">＋ 상위 카테고리 추가</button>
+    <div class="msm-hint" id="catEdHint"></div>
+    <div class="msm-btns">
+      <button id="catEdSave">저장</button>
+      <button class="msm-close" id="catEdClose">닫기</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
@@ -1271,13 +1349,14 @@
     CATS.forEach(function(c){ var byCat=msmCols[c.doc]; if(!byCat||Array.isArray(byCat)) return;
       (c.subs||[]).forEach(function(sub){ var arr=byCat[sub]; if(!arr||!arr.length) return; any=true;
         html+='<div class="msm-colgrp"><div class="msm-colgrp-h">'+esc(c.label)+' › '+esc(sub)+'</div>';
-        arr.forEach(function(col){ html+='<div class="msm-colitem"><span>'+esc(col.label)+'<em>'+(col.type==='check'?'체크':'글자')+'</em></span><button class="msm-coldel" data-doc="'+esc(c.doc)+'" data-sub="'+esc(sub)+'" data-key="'+esc(col.key)+'">✕</button></div>';
+        arr.forEach(function(col){ html+='<div class="msm-colitem"><span>'+esc(col.label)+'<em>'+(col.type==='check'?'체크':'글자')+'</em></span><span><button class="msm-colren" data-doc="'+esc(c.doc)+'" data-sub="'+esc(sub)+'" data-key="'+esc(col.key)+'" title="이름 변경">✎</button><button class="msm-coldel" data-doc="'+esc(c.doc)+'" data-sub="'+esc(sub)+'" data-key="'+esc(col.key)+'" title="삭제">✕</button></span></div>';
         });
         html+='</div>';
       });
     });
     box.innerHTML = any ? html : '<div class="msm-colempty">아직 만든 열이 없습니다.</div>';
     Array.prototype.forEach.call(box.querySelectorAll('.msm-coldel'), function(b){ b.onclick=function(){ delColumn(b.getAttribute('data-doc'), b.getAttribute('data-sub'), b.getAttribute('data-key')); }; });
+    Array.prototype.forEach.call(box.querySelectorAll('.msm-colren'), function(b){ b.onclick=function(){ renColumn(b.getAttribute('data-doc'), b.getAttribute('data-sub'), b.getAttribute('data-key')); }; });
   }
   async function addColumn(){
     if(!selStore){ return; }
@@ -1291,6 +1370,13 @@
     $('msmColHint').textContent='저장 중…';
     try{ await fns().setDoc(fns().doc(db(), OV_COL, selStore), {cols:msmCols, store:selStore, updatedAt:Date.now()}, {merge:true}); $('msmColName').value=''; $('msmColHint').textContent='추가됨: '+c.label+' › '+sub+' · '+name; renderColList(); }
     catch(e){ $('msmColHint').textContent='저장 실패 — 규칙(plu-store-overrides) 확인'; }
+  }
+  async function renColumn(doc, sub, key){
+    var arr=(msmCols[doc]||{})[sub]||[]; var col=null; for(var i=0;i<arr.length;i++){ if(arr[i].key===key){ col=arr[i]; break; } } if(!col) return;
+    var nm=await uiPrompt('열 이름 변경', col.label); if(nm===null) return; nm=nm.trim(); if(!nm) return;
+    col.label=nm;
+    try{ await fns().setDoc(fns().doc(db(), OV_COL, selStore), {cols:msmCols, store:selStore, updatedAt:Date.now()}, {merge:true}); renderColList(); }
+    catch(e){ $('msmColHint').textContent='저장 실패 — 규칙 확인'; }
   }
   async function delColumn(doc, sub, key){
     if(!(await uiConfirm('이 열을 삭제할까요? (스토어에서도 사라집니다)'))) return;

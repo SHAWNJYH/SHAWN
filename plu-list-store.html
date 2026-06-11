@@ -375,16 +375,30 @@
   let toastTimer;
   function showToast(msg,type){ var t=$('toast'); clearTimeout(toastTimer); t.textContent=msg; t.className='toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='toast '+(type||''); },2500); }
 
-  const PLU_TABS=[
-    {label:'청과',       subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
-    {label:'델리',       subs:['델리','레몬랜드','베이커리','매장자체','행복떡집','한양떡집']},
-    {label:'수산',       subs:['수산','박스']},
-    {label:'정육',       subs:['정육','박스']},
-    {label:'하우스웨어', subs:['주방용품','전자제품','기타']}
+  var DEFAULT_TABS=[
+    {label:'청과', doc:'PRODUCE', subs:['야채','과일','로컬','글로벌','박스','유기농','임시',"PARK'S FARM","KIM'S PRODUCE","JIN'S FARM","CHARLIE"]},
+    {label:'델리', doc:'DELI', subs:['델리','레몬랜드','베이커리','매장자체','행복떡집','한양떡집']},
+    {label:'수산', doc:'FISH', subs:['수산','박스']},
+    {label:'정육', doc:'MEAT', subs:['정육','박스']},
+    {label:'하우스웨어', doc:'HOUSEWARE', subs:['주방용품','전자제품','기타']}
   ];
+  var PLU_TABS=DEFAULT_TABS.map(function(t){ return {label:t.label, doc:t.doc, subs:t.subs.slice()}; });
   const COL='plu-list';
-  const DOCID={ '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
+  var CFG_COL='plu-config', CFG_DOC='main';
+  var DOCID={};
+  function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
+  rebuildDocId();
   function labelOf(docId){ for(var k in DOCID){ if(DOCID[k]===docId) return k; } return docId; }
+  function applyTabs(tabs){
+    if(!tabs||!tabs.length) return;
+    var clean=[]; tabs.forEach(function(t){ if(t&&t.label){ clean.push({label:String(t.label), doc:String(t.doc||t.label), subs:(t.subs||[]).map(String)}); } });
+    if(!clean.length) return;
+    PLU_TABS=clean; rebuildDocId();
+    if(pluBig>=PLU_TABS.length) pluBig=0;
+    var subs=PLU_TABS[pluBig].subs||[]; if(pluSub>=subs.length) pluSub=0;
+    renderTabs(); if(typeof renderContent==='function') renderContent();
+  }
+  function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(d&&d.tabs&&d.tabs.length) applyTabs(d.tabs); }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
   const BASE=[{key:'PLU',field:'plu',label:'PLU'},{key:'ITEMCODE1',field:'itemCode1',label:'ITEMCODE1'},{key:'ITEMCODE2',field:'itemCode2',label:'ITEMCODE2'},{key:'LOCAL',field:'local',label:'LOCAL'},{key:'ORGANIC',field:'organic',label:'ORGANIC'},{key:'KOR',field:'kor',label:'KOR'},{key:'ENG',field:'eng',label:'ENG'},{key:'CATE',field:'cate',label:'CATE'}];
@@ -795,6 +809,8 @@
   onReady(function(){
     window.__pluRerender=rerenderIfIdle;
     window.__curCat=curCat;
+    window.__docId=function(l){ return DOCID[l]||l; };
+    subscribeCfg();
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
     catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
@@ -969,11 +985,11 @@
   .plu-cute-btn { font-size:15px; line-height:1; padding:6px 11px; border-radius:9px; }
   .plu-cute-btn:hover { border-color:var(--accent-warm); color:var(--text); transform: translateY(-1px); }
   .plu-cute-btn.open { background:#e9f9ee; border-color:#5bbd79; color:#1f7a43; box-shadow:0 0 0 2px #cdeed6 inset; }
-  .stl-cell { background:#fff8df !important; }
-  th.stl-col { background:#fff8df; }
+  .stl-cell { color:#1f7a43 !important; font-weight:600; }
+  th.stl-col { color:#1f7a43; }
   .stl-echk, .stl-etext { cursor:pointer; }
-  .stl-etext:hover { outline:2px solid #e3cd86; outline-offset:-2px; }
-  .stl-ph { color:#c9a961; font-weight:700; }
+  .stl-etext:hover { outline:2px solid #9bd6ad; outline-offset:-2px; }
+  .stl-ph { color:#5bbd79; font-weight:700; }
 </style>
 
 <div class="stl-ov" id="stlLoginOv">
@@ -1006,7 +1022,7 @@
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function rerender(){ if(typeof window.__pluRerender==='function'){ try{window.__pluRerender();}catch(e){} } }
   function curCatLabel(){ return (typeof window.__curCat==='function')?window.__curCat():'청과'; }
-  function cid(catLabel){ return DOCID[catLabel]||catLabel; }
+  function cid(catLabel){ if(typeof window.__docId==='function'){ var d=window.__docId(catLabel); if(d) return d; } return DOCID[catLabel]||catLabel; }
 
   // ===== 코어가 쓰는 훅 =====
   window.__checkOwner=function(key){ return STD_CHECK_OWNER[String(key||'').toUpperCase()]||''; };
