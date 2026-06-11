@@ -292,6 +292,7 @@
   .plu-tool-btn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:9px; padding:8px 12px; font-family:var(--mono); font-size:13px; font-weight:700; cursor:pointer; }
   .plu-tool-btn:hover { border-color:var(--accent-warm); color:var(--text); }
   .plu-tool-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .plu-icon-btn { padding:7px 10px; font-size:15px; line-height:1; }
   .plu-edit-input { width:100%; min-width:56px; box-sizing:border-box; border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-family:var(--mono); font-size:13px; background:var(--bg); color:var(--text); }
   .plu-edit-input:focus { outline:none; border-color:var(--accent-warm); }
   .plu-row-del { border:1px solid var(--border); background:transparent; color:#b04141; border-radius:6px; padding:4px 9px; cursor:pointer; font-weight:700; }
@@ -412,11 +413,10 @@
   function fieldOf(key){ var u=String(key||'').toUpperCase(); return BASE_FIELD[u]||null; }
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
-  var STD_CHECK_OWNER={'HTM':'TACOMA','HFW':'FEDERALWAY','HBV':'BELLEVUE','HLW':'LYNNWOOD','HRM':'REDMOND','HBD':'BALLARD','GLW':'G-MART','MW':'MELLOW WAY','DH':'DISTRICT-H','M2M':'M2M','HUW':'UNIVERSITY'};
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
-  function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return orderEndCols(L); var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return orderEndCols(L); }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,storeOwner:(c.storeOwner||'')}); }); return L; }
+  function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return L; var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
 
@@ -429,9 +429,8 @@
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function getTruncLen(){ var n=truncLenByCat[curCat()]; return (typeof n==='number'&&n>0)?n:20; }
-  function exportColsFor(){ var st=(typeof window.__storeActive==='function')?window.__storeActive():null; var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ if(!c||!c.exp) return false; var o=ownerOf(c); if(o) return o===st; return true; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type,storeOwner:(c.storeOwner||'')}; }); return EXPORT_COLS; }
-  function ownerOf(c){ if(!c) return ''; return c.storeOwner || STD_CHECK_OWNER[String(c.key).toUpperCase()] || ''; }
-  function visibleCols(){ var st=(typeof window.__storeActive==='function')?window.__storeActive():null; return curLayout().filter(function(c){ if(c.hidden) return false; var o=ownerOf(c); if(o) return st && o===st; return true; }); }
+  function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
+  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
   // ===== CSV (청과 fallback) =====
@@ -595,21 +594,11 @@
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
-    var TL=getTruncLen(); var SACT=(typeof window.__storeActive==='function')?window.__storeActive():null;
-    function ovv(c,r){ return (typeof window.__ovGet==='function') ? window.__ovGet(curCat(), pluValOf(r), c.key) : undefined; }
-    var tds=v.map(function(c){
-      var sc=!!ownerOf(c);
-      if(c.type==='check'||c.type==='rcheck'){
-        var on = sc ? !!ovv(c,r) : getVal(r,c.key);
-        var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check';
-        if(sc && SACT){ return '<td class="'+cc+' plu-c-storecell"><span class="pluchk stl-echk'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="이 매장 값 변경">'+(on?'☑':'☐')+'</span></td>'; }
-        return '<td class="'+cc+(sc?' plu-c-storecell':'')+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>';
-      }
+    var TL=getTruncLen(); var tds=v.map(function(c){
+      if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; }
       if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); }
-      var fv = sc ? String(ovv(c,r)||'') : String(getVal(r,c.key)||'');
-      var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv);
-      if(sc && SACT){ return '<td class="'+clsFor(c.key)+' plu-c-storecell stl-etext" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+(sv||'<span class="stl-ph">＋</span>')+'</td>'; }
-      return '<td class="'+clsFor(c.key)+(sc?' plu-c-storecell':'')+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
+      var fv=String(getVal(r,c.key)||''); var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv);
+      return '<td class="'+clsFor(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
     }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
@@ -696,6 +685,8 @@
       '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button>'+
+      '<button class="plu-tool-btn plu-icon-btn" id="pluLockBtn" title="잠금">🔒</button>'+
+      '<button class="plu-tool-btn plu-icon-btn" id="pluPanelBtn" title="제어판">🎛️</button>'+
     '</div>';
   }
   function subToolsHTML(){
@@ -846,7 +837,7 @@
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
-  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var __ow=ownerOf(col); if(col && __ow && typeof window.__ovGet==='function'){ var ovv=window.__ovGet(curCat(), pluValOf(r), col.key); return (ovv==null?'':ovv); } var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
+  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; return raw==null?'':raw; }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
@@ -935,7 +926,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button></div>'; if(window.__reqApply) window.__reqApply(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-icon-btn" id="pluLockBtn" title="잠금">🔒</button><button class="plu-tool-btn plu-icon-btn" id="pluPanelBtn" title="제어판">🎛️</button></div>'; if(window.__reqApply) window.__reqApply(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
           (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
@@ -956,9 +947,6 @@
   // ===== 시작 =====
   renderTabs();
   onReady(function(){
-    window.__pluRerender=rerenderIfIdle;
-    window.__curCat=curCat;
-    window.__commonRow=function(catLabel, plu){ var rows=rowsFor(catLabel)||[]; for(var i=0;i<rows.length;i++){ if(String(pluValOf(rows[i]))===String(plu)) return { kor:(getVal(rows[i],'KOR')||rows[i].kor||''), eng:(getVal(rows[i],'ENG')||rows[i].eng||'') }; } return null; };
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
     catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
@@ -1117,210 +1105,5 @@
 })();
 </script>
 
-<style>
-  .stl-ov { position: fixed; inset: 0; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
-  .stl-ov.show { display: flex; }
-  .stl-card { background: #fff; border-radius: 18px; padding: 26px 24px; width: 100%; max-width: 360px; box-shadow: 0 16px 48px rgba(0,0,0,0.25); text-align: center; }
-  .stl-card h2 { margin: 0 0 4px; font-size: 22px; color: #1a1a1d; }
-  .stl-card p { margin: 0 0 18px; font-size: 13px; color: #9a9aa0; }
-  .stl-card label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 0 0 5px; }
-  .stl-card select, .stl-card input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 12px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; margin-bottom: 13px; }
-  .stl-card select:focus, .stl-card input:focus { outline: none; border-color: #c9a961; }
-  .stl-btn { width: 100%; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; background: #1a1a1d; color: #fff; }
-  .stl-btn:active { transform: scale(0.99); }
-  .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
-  .stl-fab { position: fixed; right: 16px; bottom: 16px; z-index: 1500; background: #1a1a1d; color: #fff; border: none; border-radius: 999px; padding: 11px 16px; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.22); display: none; align-items: center; gap: 8px; }
-  .stl-fab.show { display: inline-flex; }
-  .plu-c-storecell { background: #fbf6e9 !important; }
-  .stl-echk, .stl-etext { cursor: pointer; }
-  .stl-etext:hover { outline: 2px solid #e3cd86; outline-offset: -2px; }
-  .stl-ph { color: #c9a961; font-weight: 700; }
-  .stl-name-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 2600; padding: 18px; }
-  .stl-name-ov.show { display: flex; }
-  .stl-name-modal { background: #fff; border-radius: 16px; padding: 18px 18px; width: 100%; max-width: 460px; max-height: 90vh; overflow: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.22); }
-  .stl-name-modal h3 { margin: 0 0 4px; font-size: 18px; color: #1a1a1d; }
-  .stl-name-modal .sub { font-size: 12px; color: #9a9aa0; margin: 0 0 12px; }
-  .stl-name-modal label { display: block; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 8px 0 4px; }
-  .stl-name-modal input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 9px; padding: 9px 11px; font-family: inherit; font-size: 15px; }
-  .stl-name-modal input:focus { outline: none; border-color: #c9a961; }
-  .stl-common { font-size: 12px; color: #6b6b72; background: #f3f3ee; border-radius: 8px; padding: 7px 10px; margin: 4px 0; }
-  .stl-row-btns { display: flex; gap: 8px; margin-top: 14px; }
-  .stl-row-btns button { flex: 1; border: none; border-radius: 10px; padding: 11px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-  .stl-save { background: #c9a961; color: #fff; }
-  .stl-reset { background: #f3f3ee; color: #6b6b72; }
-  .stl-close { background: #fff; border: 1.5px solid #e5e5e0 !important; color: #6b6b72; }
-  .stl-ovlist { margin-top: 14px; border-top: 1px solid #e5e5e0; padding-top: 10px; }
-  .stl-ovlist h4 { margin: 0 0 8px; font-size: 13px; color: #6b6b72; }
-  .stl-ovitem { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 2px; border-bottom: 1px solid #f0f0ec; }
-  .stl-ovitem .plu { font-weight: 800; color: #c0392b; min-width: 54px; }
-  .stl-ovitem .nm { flex: 1; color: #1a1a1d; }
-  .stl-ovitem .del { background: none; border: none; color: #c0392b; cursor: pointer; font-size: 14px; }
-  .stl-logout { margin-top: 12px; width: 100%; background: #fff; border: 1.5px solid #e5e5e0; color: #6b6b72; border-radius: 10px; padding: 9px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-</style>
-
-<div class="stl-ov" id="stlLoginOv">
-  <div class="stl-card">
-    <h2>STORE LOGIN</h2>
-    <p>매장을 선택하고 PIN을 입력하세요</p>
-    <label>STORE</label>
-    <select id="stlStore"><option value="">SELECT STORE</option></select>
-    <label>PIN</label>
-    <input id="stlPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
-    <div class="stl-err" id="stlErr"></div>
-    <button class="stl-btn" id="stlLoginBtn">LOGIN</button>
-    <div style="margin-top:14px;font-size:11px;color:#c9c9cf;">build 2026-06-10 · 11 stores · per-store checkbox</div>
-  </div>
-</div>
-
-<button class="stl-fab" id="stlFab">🏬 <span id="stlFabName">STORE</span></button>
-
-<div class="stl-name-ov" id="stlNameOv">
-  <div class="stl-name-modal">
-    <h3>🏬 <span id="stlNameStore"></span></h3>
-    <button class="stl-logout" id="stlLogoutBtn">로그아웃 (이 기기)</button>
-    <div class="stl-row-btns" style="margin-top:8px;">
-      <button class="stl-close" id="stlNameClose">닫기</button>
-    </div>
-  </div>
-</div>
-
-<script>
-(function(){
-  'use strict';
-  var $ = function(id){ return document.getElementById(id); };
-  var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  var DOCID = { '청과':'PRODUCE', '델리':'DELI', '수산':'FISH', '정육':'MEAT', '하우스웨어':'HOUSEWARE' };
-  var PINS_COL = 'plu-store-pins';
-  var OV_COL = 'plu-store-overrides';
-  var LS_KEY = 'theShawnStore';
-  var currentStore = null;
-  var storeOv = {};          // { CATDOCID: { PLU: { COLKEY: value } } }
-  var ovUnsub = null;
-  function fns(){ return window.firebaseFns; }
-  function db(){ return window.firebaseDb; }
-  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-  function rerender(){ if(typeof window.__pluRerender==='function'){ try{ window.__pluRerender(); }catch(e){} } }
-
-  // ===== 본앱이 호출하는 훅: 현재 매장의 열별 데이터 =====
-  window.__ovGet = function(catLabel, plu, colKey){
-    if(!currentStore) return undefined;
-    var cid = DOCID[catLabel] || catLabel;
-    var cat = storeOv[cid]; if(!cat) return undefined;
-    var rec = cat[String(plu)]; if(!rec) return undefined;
-    var v = rec[String(colKey)];
-    return (v==null || v==='') ? undefined : v;
-  };
-  window.__storeActive = function(){ return currentStore; };
-  window.__curStore = function(){ return currentStore; };
-
-  // ===== 로그인 =====
-  function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
-  function showLogin(){ var ov=$('stlLoginOv'); if(ov) ov.classList.add('show'); }
-  function hideLogin(){ var ov=$('stlLoginOv'); if(ov) ov.classList.remove('show'); }
-
-  async function doLogin(store, pin){
-    var err=$('stlErr'); if(err) err.textContent='';
-    if(!store){ if(err) err.textContent='매장을 선택하세요'; return; }
-    if(!pin){ if(err) err.textContent='PIN을 입력하세요'; return; }
-    var snap;
-    try{ snap = await fns().getDoc(fns().doc(db(), PINS_COL, store)); }
-    catch(e){ if(err) err.textContent='연결 오류 — 잠시 후 다시 시도하세요'; return; }
-    var d = (snap && snap.exists()) ? (snap.data()||{}) : null;
-    if(!d || !d.pin){ if(err) err.textContent='이 매장의 PIN이 아직 없습니다 · 매니저에게 PIN 부여를 요청하세요'; return; }
-    if(String(d.pin)!==String(pin)){ if(err) err.textContent='PIN이 일치하지 않습니다'; return; }
-    loginAs(store);
-  }
-
-  function loginAs(store){
-    currentStore = store;
-    try{ localStorage.setItem(LS_KEY, store); }catch(e){}
-    hideLogin();
-    var fab=$('stlFab'); if(fab){ fab.classList.add('show'); }
-    var fn=$('stlFabName'); if(fn) fn.textContent=store;
-    startOvListener();
-    rerender();
-  }
-
-  function logout(){
-    try{ localStorage.removeItem(LS_KEY); }catch(e){}
-    currentStore=null; storeOv={};
-    if(ovUnsub){ try{ ovUnsub(); }catch(e){} ovUnsub=null; }
-    var fab=$('stlFab'); if(fab) fab.classList.remove('show');
-    closeName();
-    rerender();
-    var ps=$('stlPin'); if(ps) ps.value='';
-    showLogin();
-  }
-
-  function startOvListener(){
-    if(ovUnsub){ try{ ovUnsub(); }catch(e){} ovUnsub=null; }
-    if(!currentStore || !fns() || !fns().onSnapshot) return;
-    try{
-      ovUnsub = fns().onSnapshot(fns().doc(db(), OV_COL, currentStore), function(snap){
-        var d = (snap && snap.exists()) ? (snap.data()||{}) : {};
-        storeOv = d.ov || {};
-        rerender();
-      }, function(){});
-    }catch(e){}
-  }
-
-  async function saveOv(){
-    if(!currentStore) return false;
-    try{ await fns().setDoc(fns().doc(db(), OV_COL, currentStore), { ov: storeOv, store: currentStore, updatedAt: Date.now() }); return true; }
-    catch(e){ alert('저장 실패 — 네트워크/권한을 확인하세요'); return false; }
-  }
-
-  // ===== 매장 정보 모달 =====
-  function openInfo(){ if(!currentStore) return; var s=$('stlNameStore'); if(s) s.textContent=currentStore; var ov=$('stlNameOv'); if(ov) ov.classList.add('show'); }
-  function closeName(){ var ov=$('stlNameOv'); if(ov) ov.classList.remove('show'); }
-
-  // ===== 매장별 칸 저장 =====
-  function curCatLabel(){ return (typeof window.__curCat==='function') ? window.__curCat() : '청과'; }
-  async function saveCell(catLabel, plu, colKey, value){
-    if(!currentStore) return;
-    var cid = DOCID[catLabel] || catLabel; plu=String(plu); colKey=String(colKey);
-    if(!storeOv[cid]) storeOv[cid]={};
-    if(!storeOv[cid][plu]) storeOv[cid][plu]={};
-    if(value==null || value===''){ delete storeOv[cid][plu][colKey]; if(!Object.keys(storeOv[cid][plu]).length) delete storeOv[cid][plu]; }
-    else { storeOv[cid][plu][colKey]=value; }
-    rerender();
-    await saveOv();
-  }
-
-  // ===== 인라인 편집(위임) =====
-  document.addEventListener('click', function(e){
-    if(!currentStore) return;
-    var t=e.target;
-    var chk = t.closest ? t.closest('.stl-echk') : null;
-    if(chk){ var plu=chk.getAttribute('data-plu'), key=chk.getAttribute('data-key'); var cur=window.__ovGet(curCatLabel(), plu, key); saveCell(curCatLabel(), plu, key, cur?null:true); return; }
-    var cell = t.closest ? t.closest('.stl-etext') : null;
-    if(cell){ var plu2=cell.getAttribute('data-plu'), key2=cell.getAttribute('data-key'); var cur2=window.__ovGet(curCatLabel(), plu2, key2); var nv=prompt('이 매장 값 ('+key2+')', cur2==null?'':cur2); if(nv===null) return; saveCell(curCatLabel(), plu2, key2, nv.trim()); return; }
-  });
-
-  function initLogin(){
-    fillStores();
-    var saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
-    if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
-    var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
-    var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
-    var fab=$('stlFab'); if(fab) fab.onclick=openInfo;
-    var cl=$('stlNameClose'); if(cl) cl.onclick=closeName;
-    var lo=$('stlLogoutBtn'); if(lo) lo.onclick=function(){ if(confirm('이 기기에서 로그아웃할까요?')) logout(); };
-    var nov=$('stlNameOv'); if(nov) nov.addEventListener('click', function(e){ if(e.target===nov) closeName(); });
-  }
-  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', initLogin, {once:true}); } else { initLogin(); }
-  ready(function(){
-    if(!currentStore) return;
-    try{
-      fns().getDoc(fns().doc(db(), PINS_COL, currentStore)).then(function(snap){
-        var d=(snap && snap.exists())?(snap.data()||{}):null;
-        if(!d || !d.pin){ logout(); return; }      // 매니저 PIN이 없으면 자동 로그인 무효화
-        if(!ovUnsub) startOvListener();
-      }).catch(function(){ if(!ovUnsub) startOvListener(); });
-    }catch(e){ if(!ovUnsub) startOvListener(); }
-  });
-})();
-</script>
 </body>
 </html>
