@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>PLU 관리 (THE SHAWN)</title>
+<title>PLU MANAGER (THE SHAWN)</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   :root {
@@ -103,7 +103,7 @@
 
   .plu-tab {
     border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
-    border-radius: 11px; padding: 11px 18px; font-family: var(--mono); font-size: 14px;
+    border-radius: 9px; padding: 8px 12px; font-family: var(--mono); font-size: 13px;
     font-weight: 700; cursor: pointer; transition: background .15s, border-color .15s, color .15s;
   }
   .plu-tab:hover { border-color: var(--border-bright); color: var(--text); }
@@ -344,7 +344,7 @@
 </head>
 <body>
 <div class="page-topbar">
-  <h1 class="page-title">🗂️ PLU 관리</h1>
+  <h1 class="page-title">🗂️ PLU MANAGER</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
   <div class="plu-topright">
     <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
@@ -744,6 +744,14 @@
     var delta=row.getBoundingClientRect().top - wrap.getBoundingClientRect().top;
     wrap.scrollTop = Math.max(0, wrap.scrollTop + delta - headH - 4);
   }
+  document.addEventListener('click', function(e){
+    var fb=e.target.closest&&e.target.closest('#pluFirstBtn');
+    var lb=e.target.closest&&e.target.closest('#pluLastBtn');
+    if(!fb&&!lb) return;
+    var wrap=pluWrapEl(); if(!wrap) return;
+    if(typeof wrap.scrollTo==='function'){ wrap.scrollTo({top: fb?0:wrap.scrollHeight, behavior:'smooth'}); }
+    else { wrap.scrollTop = fb?0:wrap.scrollHeight; }
+  });
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   function viewRowHTML(r){
     var v=visibleCols();
@@ -833,7 +841,8 @@
       '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
       (editMode
         ? ('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ EXPORT 설정</button><button class="plu-tool-btn" id="pluCatBtn">🗂 카테고리</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>')
-        : ('<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
+        : ('<button class="plu-tool-btn" id="pluCatBtn">🗂 카테고리</button>'+
+           '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
            '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
            '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
            '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
@@ -846,6 +855,8 @@
   function subToolsHTML(){
     return '<div class="plu-tools">'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+(editMode?' disabled':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
+      '<button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button>'+
+      '<button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button>'+
       '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
   }
@@ -968,12 +979,12 @@
     var ae=$('pluAllExportBtn'); if(ae) ae.onclick=function(){ allExportXlsx(); };
     var imp=$('pluImportBtn'); if(imp) imp.onclick=function(){ $('pluImportInput').click(); };
     var impIn=$('pluImportInput'); if(impIn) impIn.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) importXlsx(f); e.target.value=''; };
-    var ed=$('pluEditBtn'); if(ed) ed.onclick=async function(){ if(!editMode){ enterEdit(); } else { if(await leaveEditGuard()) renderContent(); } };
+    var ed=$('pluEditBtn'); if(ed) ed.onclick=async function(){ if(!editMode){ enterEdit(); } else { var __a=topVisiblePlu(); if(await leaveEditGuard()){ renderContent(); if(__a) scrollToPlu(__a); } } };
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
     var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
     var cfgb=$('pluCfgBtn'); if(cfgb) cfgb.onclick=function(){ openCfgModal(); };
     var catb=$('pluCatBtn'); if(catb) catb.onclick=function(){ openCatEditor(); };
-    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
+    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var __a=topVisiblePlu(); var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); if(__a) scrollToPlu(__a); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
     // 열 조작 버튼 (이동/이름변경/숨김/삭제)
     if(el && editMode){ el.querySelectorAll('.plu-col-btn').forEach(function(b){ b.onclick=async function(){
@@ -1124,7 +1135,7 @@
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
       var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
-      var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
+      var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button><button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody>'+
           (rows.map(viewRowHTML).join('')||'<tr><td colspan="'+(visibleCols().length+1)+'" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var EC=exportColsFor(); var aoa=[EC.map(function(c){return c.label;})]; rows.forEach(function(r){ aoa.push(EC.map(function(c){ return exportCell(r,c); })); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EC, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
