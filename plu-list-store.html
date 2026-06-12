@@ -159,8 +159,8 @@
   .plu-toolbar-slot { margin: 0; margin-left: auto; }
   .plu-toolbar-slot .plu-tools, .plu-toolbar-slot .plu-list-bar { margin-bottom: 0; }
   .plu-search {
-    flex: 1 1 220px; min-width: 0; padding: 11px 14px; border: 1.5px solid var(--border);
-    border-radius: 10px; font-family: var(--mono); font-size: 15px; background: var(--bg-elev); color: var(--text);
+    flex: 0 1 200px; min-width: 0; padding: 8px 12px; border: 1.5px solid var(--border);
+    border-radius: 9px; font-family: var(--mono); font-size: 13px; background: var(--bg-elev); color: var(--text);
   }
   .plu-search:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
   .plu-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
@@ -567,8 +567,9 @@
       }
       return '';
     }
-    var fields=[ val('PLU'), val('KOR'), val('ENG') ];
+    var fields=[ val('PLU'), val('KOR'), val('ENG'), val('CATE') ];
     for(var i=0;i<fields.length;i++){ if(String(fields[i]||'').toLowerCase().indexOf(t)>=0) return true; }
+    if(r.extra){ for(var k in r.extra){ var ev=r.extra[k]; if(ev!=null && typeof ev!=='boolean' && String(ev).toLowerCase().indexOf(t)>=0) return true; } }
     return false;
   }
   function clsFor(key){ var lk=String(key||'').toLowerCase(); return lk==='plu'?'plu-c-no':lk==='local'?'plu-c-local':lk==='organic'?'plu-c-organic':lk==='eng'?'plu-c-eng':lk==='cate'?'plu-c-cat':lk==='kor'?'':'plu-c-extra'; }
@@ -789,8 +790,8 @@
       visibleCache=rows;
       var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🔓':'🔒')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><span class="plu-count">'+rows.length+'개</span></div>';
-      el.innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr><th>PLU</th><th>로컬</th><th>유기농</th><th>한글명</th><th>영문명</th><th>분류</th></tr></thead><tbody>'+
-          (rows.map(viewRowBaseHTML).join('')||'<tr><td colspan="6" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
+      el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody>'+
+          (rows.map(viewRowHTML).join('')||'<tr><td colspan="'+(visibleCols().length+1)+'" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var EC=exportColsFor(); var aoa=[EC.map(function(c){return c.label;})]; rows.forEach(function(r){ aoa.push(EC.map(function(c){ return exportCell(r,c); })); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EC, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
       var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(rows); };
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
