@@ -757,7 +757,7 @@
   // 열 키→row 기본 필드명 매핑
   function fieldOf(key){ var u=String(key||'').toUpperCase(); return BASE_FIELD[u]||null; }
   // 기본 열 레이아웃 생성
-  function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
+  function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); var STD=[['UPC(O)','UPC(O)'],['UPC(C)','UPC(C)'],['COST','COST'],['MSRP','MSRP'],['MARGIN','MSRP(%)'],['SRP','SRP'],['SRP(%)','SRP(%)']]; STD.forEach(function(p){ if(!L.some(function(c){return String(c.key).toUpperCase()===p[0];})) L.push({key:p[0],label:p[1],hidden:false,type:'text'}); }); (extra||[]).forEach(function(n){ if(!L.some(function(c){return String(c.key).toUpperCase()===String(n).toUpperCase();})) L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   // 끝열(가격 등) 순서 정렬
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
