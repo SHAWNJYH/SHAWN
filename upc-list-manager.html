@@ -2885,7 +2885,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   renderTabs();
   onReady(function(){
     startOvAllListener(); subscribeCfg();
-    subscribe(); /* 로그인 의존 제거 — 인증 없이 바로 데이터 구독/읽기/쓰기 */
+    try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
+    catch(e){ subscribe(); }
     setTimeout(function(){ if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }, 2500);
   });
 })();
