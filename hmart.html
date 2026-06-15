@@ -123,9 +123,9 @@
         <span>PLU LIST</span>
         <span class="egmm-menu-arrow">›</span>
       </button>
-      <button class="egmm-menu-btn soon" data-soon="1">
+      <button class="egmm-menu-btn" id="hmartToUpcBtn">
         <span>UPC / ITEM CODE LOOKUP</span>
-        <span class="egmm-soon">SOON</span>
+        <span class="egmm-menu-arrow">›</span>
       </button>
       <button class="egmm-menu-btn" id="hmartToQuizBtn">
         <span>PLU MEMORIZE</span>
@@ -161,6 +161,7 @@
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
   $('hmartToListBtn').onclick = function(){ window.location.href = 'plu-list-store.html'; };
+  $('hmartToUpcBtn').onclick = function(){ window.location.href = 'plu-item-list-manager.html'; };
   $('hmartToQuizBtn').onclick = function(){ window.location.href = 'plu-quiz.html'; };
   Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){
     b.onclick = function(){ /* 준비 중 — 동작 없음 */ };
