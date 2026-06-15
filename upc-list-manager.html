@@ -497,7 +497,7 @@
      데이터 불러오기/편집/저장이 모두 실제 클라우드에 기록됩니다.
      ========================================================================= */
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
@@ -514,6 +514,8 @@
   window.firebaseDb = db;
   window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
   window.dispatchEvent(new Event('plu-firebase-ready'));
+  // 로그인 없이도 Firebase에 읽기/쓰기가 되도록 익명 인증 (이미 로그인돼 있으면 기존 계정 유지)
+  onAuthStateChanged(window.firebaseAuth, function(u){ if(!u){ signInAnonymously(window.firebaseAuth).catch(function(){}); } });
 
   /* ===== 백업 / 복원 / Firebase 내보내기 (실제 Firestore 기반) ===== */
   window.__upcExportAll = async function(){
@@ -1425,7 +1427,7 @@
   // 검색박스·돌아가기 버튼 위치: 편집모드면 검색→데이터복원 옆, 돌아가기→저장 옆. 아니면 상단 원위치
   function placeFloatingControls(){
     var se=$('pluSearchTop'), bk=$('pluBackBtn');
-    if(bk) bk.disabled=!editMode;   // 메인(뷰)에서는 돌아가기 비활성화, 편집모드에서만 활성
+    if(bk) bk.disabled=false;   // 메인(뷰)에서는 돌아가기 비활성화, 편집모드에서만 활성
     if(editMode){
       var ss=$('editSearchSlot'), bs=$('editBackSlot');
       if(ss && se && se.parentNode!==ss) ss.appendChild(se);
@@ -2792,7 +2794,7 @@
 
   // ===== 돌아가기 / 검색 =====
   // 돌아가기: 편집 모드면 편집만 종료(페이지 유지), 아니면 이전 화면으로 이동
-  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
+  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='egmm.html'; } }
   $('pluBackBtn').onclick=goBack;
   // 이름·UPC 검색: 입력 시 180ms 디바운스로 전체 재렌더 빈도를 줄임(대량 데이터 성능)
   var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
