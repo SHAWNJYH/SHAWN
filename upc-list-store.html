@@ -492,74 +492,87 @@
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script type="module">
-  /* =========================================================================
-     실제 Firebase(Firestore) 연동 — PLU와 동일한 the-shawn 프로젝트 공유.
-     데이터 불러오기/편집/저장이 모두 실제 클라우드에 기록됩니다.
-     ========================================================================= */
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
-    authDomain: "the-shawn.firebaseapp.com",
-    projectId: "the-shawn",
-    storageBucket: "the-shawn.firebasestorage.app",
-    messagingSenderId: "519898602513",
-    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
-    measurementId: "G-NKGYGC63JN"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window.firebaseAuth = getAuth(app);
-  window.firebaseDb = db;
-  window.firebaseFns = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
-  window.dispatchEvent(new Event('plu-firebase-ready'));
-  // 로그인 없이도 Firebase에 읽기/쓰기가 되도록 익명 인증 (이미 로그인돼 있으면 기존 계정 유지)
-  onAuthStateChanged(window.firebaseAuth, function(u){ if(!u){ signInAnonymously(window.firebaseAuth).catch(function(){}); } });
+/* =========================================================================
+   실제 Firebase(Firestore) 연동 — the-shawn 프로젝트 공유.
+   manager에서 저장한 데이터가 store에 실시간(onSnapshot)으로 자동 반영됩니다.
+   기존 코드가 쓰던 인터페이스(window.firebaseFns / firebaseDb / __upcExportAll 등)를
+   그대로 제공하므로 나머지 기능 코드는 수정 없이 동작합니다.
+   ========================================================================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  /* ===== 백업 / 복원 / Firebase 내보내기 (실제 Firestore 기반) ===== */
-  window.__upcExportAll = async function(){
-    try{
-      const cols=['upc-list-item','plu-config','plu-store-overrides','plu-store-pins'];
-      const out={};
-      for(const c of cols){ const o={}; try{ const snap=await getDocs(collection(db,c)); snap.forEach(ds=>{ o[ds.id]=ds.data(); }); }catch(e){} out[c]=o; }
-      const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-      const d=new Date(),yy=String(d.getFullYear()).slice(-2),mm=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);
-      a.download='전체백업('+yy+mm+dd+').json'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      if(window.showToast) showToast('Firebase 데이터를 파일로 내보냈습니다','success');
-    }catch(e){ if(window.showToast) showToast('백업 실패','error'); }
+const firebaseConfig = {
+  apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+  authDomain: "the-shawn.firebaseapp.com",
+  projectId: "the-shawn",
+  storageBucket: "the-shawn.firebasestorage.app",
+  messagingSenderId: "519898602513",
+  appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+  measurementId: "G-NKGYGC63JN"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+window.firebaseAuth = getAuth(app);
+window.firebaseDb   = db;
+// 스토어: 읽기 전용 — 모든 Firebase 쓰기(setDoc/deleteDoc) 차단. 읽기/구독만 허용.
+const __noWrite = async function(){ return; };
+window.firebaseFns  = { onAuthStateChanged, doc, getDoc, collection, getDocs, onSnapshot, setDoc: __noWrite, deleteDoc: __noWrite };
+// 로그인 없이도 읽기 되도록 익명 인증
+onAuthStateChanged(window.firebaseAuth, function(u){ if(!u){ signInAnonymously(window.firebaseAuth).catch(function(){}); } });
+
+/* ===== 전체 백업 / 복원 (실제 Firestore 기반) ===== */
+window.__upcExportAll = async function(){
+  try{
+    const cols=['upc-list-item','plu-config','plu-store-overrides','plu-store-pins'];
+    const out={};
+    for(const c of cols){ const o={}; try{ const snap=await getDocs(collection(db,c)); snap.forEach(ds=>{ o[ds.id]=ds.data(); }); }catch(e){} out[c]=o; }
+    const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const d=new Date(),yy=String(d.getFullYear()).slice(-2),mm=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);
+    a.download='전체백업('+yy+mm+dd+').json'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    if(window.showToast) showToast('Firebase 데이터를 파일로 내보냈습니다','success');
+  }catch(e){ if(window.showToast) showToast('백업 실패','error'); }
+};
+window.__upcImportAll = function(file){
+  /* 스토어: 읽기 전용 — 복원(쓰기)은 manager에서만 */
+  if(window.showToast) showToast('스토어는 보기 전용입니다 — 복원은 관리자에서','error');
+  return;
+};
+window.__disabled_upcImportAll = function(file){
+  const rd=new FileReader();
+  rd.onload=async function(){
+    try{ const obj=JSON.parse(rd.result);
+      for(const col in obj){ const docs=obj[col]||{}; for(const id in docs){ try{ await setDoc(doc(db,col,id), docs[id]); }catch(e){} } }
+      if(window.showToast) showToast('복원 완료 (Firebase)','success');
+    }catch(e){ if(window.showToast) showToast('파일을 읽을 수 없습니다','error'); }
   };
-  window.__upcImportAll = function(file){
-    const rd=new FileReader();
-    rd.onload=async function(){
-      try{ const obj=JSON.parse(rd.result);
-        for(const col in obj){ const docs=obj[col]||{}; for(const id in docs){ try{ await setDoc(doc(db,col,id), docs[id]); }catch(e){} } }
-        if(window.showToast) showToast('복원 완료 (Firebase)','success');
-      }catch(e){ if(window.showToast) showToast('파일을 읽을 수 없습니다','error'); }
-    };
-    rd.readAsText(file);
-  };
-  const FB_GROUPS = {
-    'upc-list-item-artbox':  { cat:'EGP',     sub:'ARTBOX'   },
-    'upc-list-item-kbeauty': { cat:'EGP',     sub:'K-BEAUTY' },
-    'upc-list-item-alcohol': { cat:'ALCOHOL', sub:null       }
-  };
-  function fbFlatten(r){ const o={}; ['plu','itemCode1','itemCode2','local','organic','kor','eng','cate'].forEach(f=>{ if(r[f]!=null && String(r[f]).trim()!=='') o[f]=r[f]; }); if(r.sub!=null && String(r.sub).trim()!=='') o.sub=r.sub; if(r.extra){ for(const k in r.extra){ const v=r.extra[k]; if(v!=null && String(v).trim()!=='') o[k]=v; } } return o; }
-  function fbDocId(r, idx){ let up=(r.extra&&(r.extra.UPC!=null?r.extra.UPC:r.extra.upc)); let id=(up!=null&&String(up).trim()!=='')?up:(r.itemCode1!=null&&String(r.itemCode1).trim()!=='')?r.itemCode1:(r.plu!=null&&String(r.plu).trim()!=='')?r.plu:('row_'+(idx+1)); id=String(id).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_'); return id||('row_'+(idx+1)); }
-  window.__upcExportFirebase = async function(){
-    try{
-      const src={}; const snap=await getDocs(collection(db,'upc-list-item')); snap.forEach(ds=>{ src[ds.id]=ds.data(); });
-      const out={}, counts={};
-      Object.keys(FB_GROUPS).forEach(fc=>{ out[fc]={}; counts[fc]=0; });
-      Object.keys(FB_GROUPS).forEach(fc=>{ const g=FB_GROUPS[fc]; const docObj=src[g.cat]; const rows=(docObj&&Array.isArray(docObj.rows))?docObj.rows:[]; rows.forEach((r,i)=>{ if(g.sub){ const rs=String(r.sub||'').toUpperCase().replace(/\s+/g,''); const want=g.sub.toUpperCase().replace(/\s+/g,''); if(rs!==want) return; } let id=fbDocId(r,i),base=id,n=2; while(out[fc][id]){ id=base+'_'+(n++); } out[fc][id]=fbFlatten(r); counts[fc]++; }); });
-      const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='upc-list-item-firestore-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      const msg=Object.keys(counts).map(c=>c.replace('upc-list-item-','')+' '+counts[c]+'건').join(' · ');
-      if(window.showToast) showToast('Firebase용 내보내기: '+msg,'success');
-    }catch(e){ if(window.showToast) showToast('내보내기 실패','error'); }
-  };
-  window.__upcFirebasePreview = window.__upcExportFirebase;
+  rd.readAsText(file);
+};
+
+/* ===== Firebase용 내보내기 (아이템 1건 = 문서 1개) ===== */
+const FB_GROUPS = {
+  'upc-list-item-artbox':  { cat:'EGP',     sub:'ARTBOX'   },
+  'upc-list-item-kbeauty': { cat:'EGP',     sub:'K-BEAUTY' },
+  'upc-list-item-alcohol': { cat:'ALCOHOL', sub:null       }
+};
+function fbFlatten(r){ const o={}; ['plu','itemCode1','itemCode2','local','organic','kor','eng','cate'].forEach(f=>{ if(r[f]!=null && String(r[f]).trim()!=='') o[f]=r[f]; }); if(r.sub!=null && String(r.sub).trim()!=='') o.sub=r.sub; if(r.extra){ for(const k in r.extra){ const v=r.extra[k]; if(v!=null && String(v).trim()!=='') o[k]=v; } } return o; }
+function fbDocId(r, idx){ let up=(r.extra&&(r.extra.UPC!=null?r.extra.UPC:r.extra.upc)); let id=(up!=null&&String(up).trim()!=='')?up:(r.itemCode1!=null&&String(r.itemCode1).trim()!=='')?r.itemCode1:(r.plu!=null&&String(r.plu).trim()!=='')?r.plu:('row_'+(idx+1)); id=String(id).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_'); return id||('row_'+(idx+1)); }
+window.__upcExportFirebase = async function(){
+  try{
+    const src={}; const snap=await getDocs(collection(db,'upc-list-item')); snap.forEach(ds=>{ src[ds.id]=ds.data(); });
+    const out={}, counts={};
+    Object.keys(FB_GROUPS).forEach(fc=>{ out[fc]={}; counts[fc]=0; });
+    Object.keys(FB_GROUPS).forEach(fc=>{ const g=FB_GROUPS[fc]; const docObj=src[g.cat]; const rows=(docObj&&Array.isArray(docObj.rows))?docObj.rows:[]; rows.forEach((r,i)=>{ if(g.sub){ const rs=String(r.sub||'').toUpperCase().replace(/\s+/g,''); const want=g.sub.toUpperCase().replace(/\s+/g,''); if(rs!==want) return; } let id=fbDocId(r,i),base=id,n=2; while(out[fc][id]){ id=base+'_'+(n++); } out[fc][id]=fbFlatten(r); counts[fc]++; }); });
+    const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='upc-list-item-firestore-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    const msg=Object.keys(counts).map(c=>c.replace('upc-list-item-','')+' '+counts[c]+'건').join(' · ');
+    if(window.showToast) showToast('Firebase용 내보내기: '+msg,'success');
+  }catch(e){ if(window.showToast) showToast('내보내기 실패','error'); }
+};
+window.__upcFirebasePreview = window.__upcExportFirebase;
+
+window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 <style>
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
@@ -630,35 +643,9 @@
   .plu-table td.align-left   input.plu-edit-input { text-align:left   !important; }
   .plu-table td.align-center input.plu-edit-input { text-align:center !important; }
   .plu-table td.align-right  input.plu-edit-input { text-align:right  !important; }
-  /* ===== 매장 로그인 게이트 (스토어 입장용) ===== */
-  .stl-ov { position: fixed; inset: 0; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
-  .stl-ov.show { display: flex; }
-  .stl-card { background: #fff; border-radius: 18px; padding: 26px 24px; width: 100%; max-width: 360px; box-shadow: 0 16px 48px rgba(0,0,0,0.25); text-align: center; }
-  .stl-card h2 { margin: 0 0 4px; font-size: 22px; color: #1a1a1d; }
-  .stl-card p { margin: 0 0 18px; font-size: 13px; color: #9a9aa0; }
-  .stl-card label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 0 0 5px; }
-  .stl-card select, .stl-card input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 12px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; margin-bottom: 13px; }
-  .stl-card select:focus, .stl-card input:focus { outline: none; border-color: #c9a961; }
-  .stl-btn { width: 100%; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; background: #1a1a1d; color: #fff; }
-  .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
-  .stl-fab { position: fixed; left: 16px; bottom: 16px; z-index: 1500; background: #fff; color: #1a1a1d; border: 1.5px solid #e5e5e0; border-radius: 999px; padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: none; }
-  .stl-fab.show { display: inline-flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
-<div class="stl-ov" id="stlLoginOv">
-  <div class="stl-card">
-    <h2>STORE LOGIN</h2>
-    <p>매장을 선택하고 PIN을 입력하세요</p>
-    <label>STORE</label>
-    <select id="stlStore"><option value="">SELECT STORE</option></select>
-    <label>PIN</label>
-    <input id="stlPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
-    <div class="stl-err" id="stlErr"></div>
-    <button class="stl-btn" id="stlLoginBtn">LOGIN</button>
-  </div>
-</div>
-<button class="stl-fab" id="stlFab">🏬 <span id="stlFabName">STORE</span> · 로그아웃</button>
 <div class="page-topbar">
   <h1 class="page-title">🏷️ 아이템 UPC 관리</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
@@ -734,7 +721,7 @@
   ];
   var PLU_TABS=DEFAULT_TABS.map(function(t){ return {label:t.label, doc:t.doc, subs:t.subs.slice()}; });
   const COL='upc-list-item';
-  var CFG_COL='plu-config', CFG_DOC='upc-main';
+  var CFG_COL='plu-config', CFG_DOC='main';
   var DOCID={};
   // 문서 ID 재구성
   function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
@@ -755,7 +742,7 @@
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
-  const BASE=[{key:'PLU',field:'plu',label:'PLU'},{key:'ITEMCODE1',field:'itemCode1',label:'ITEMCODE1'},{key:'ITEMCODE2',field:'itemCode2',label:'ITEMCODE2'},{key:'LOCAL',field:'local',label:'LOCAL'},{key:'ORGANIC',field:'organic',label:'ORGANIC'},{key:'KOR',field:'kor',label:'KOR'},{key:'ENG',field:'eng',label:'ENG'},{key:'CATE',field:'cate',label:'CATE'}];
+  const BASE=[];
   const BASE_KEYS=BASE.map(function(b){return b.key;});
   var BASE_FIELD={}; BASE.forEach(function(b){ BASE_FIELD[b.key]=b.field; });
   // 기본 내장 열 키 여부
@@ -928,6 +915,7 @@
     }catch(e){ subscribed=false; if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }
   }
   async function saveCat(cat, rows, layout, truncLen){
+    return false; /* 스토어: 읽기 전용 — Firebase 쓰기 비활성화(데이터/레이아웃 저장은 manager에서만) */
     if(!currentUser && !(window.firebaseDb && window.firebaseDb.__local)){ showToast('로그인이 필요합니다','error'); return false; }
     try{
       var docId=DOCID[cat]||cat;
@@ -945,7 +933,7 @@
   function rowsFor(cat){ return cloud[cat]!==undefined ? cloud[cat] : baseRows(cat); }
 
   // ===== 매장 전용 열/데이터 (읽기 전용 · 검증용) =====
-  var OV_COL='upc-store-overrides';
+  var OV_COL='plu-store-overrides';
   var storeOvAll={};      // { STORE: { cols:{CATDOC:[...]}, ov:{CATDOC:{PLU:{KEY:val}}} } }
   var mgrRefOrder=[];     // 참조열 표시 순서(세션 한정, 스토어에 미적용)
   // 전체 카테고리 실시간 구독 시작
@@ -962,7 +950,6 @@
     return list;
   }
   async function mgrSetStoreOv(store, catLabel, plu, key, value){
-    return; /* 스토어: 읽기 전용 — 매장 오버라이드 쓰기 비활성화 (관리는 plu-item-list-manager) */
     var cidv=DOCID[catLabel]||catLabel; plu=String(plu); key=String(key);
     if(!storeOvAll[store]) storeOvAll[store]={cols:{},ov:{}};
     if(!storeOvAll[store].ov) storeOvAll[store].ov={};
@@ -1314,10 +1301,10 @@
   }
   var __chkSaveTimer=null, __chkSaveCat=null;
   // 체크 변경 디바운스 저장 예약
-  function scheduleCheckSave(cat){ /* 스토어: 읽기 전용 — 데이터/레이아웃 저장 비활성화 (관리는 plu-item-list-manager). 내보내기 열 선택은 세션 한정으로만 동작 */ }
+  function scheduleCheckSave(cat){ return; /* 스토어: 읽기 전용 — 체크 변경 저장은 manager에서만 */ }
+  function __disabled_scheduleCheckSave(cat){ __chkSaveCat=cat; if(__chkSaveTimer) clearTimeout(__chkSaveTimer); __chkSaveTimer=setTimeout(function(){ var c=__chkSaveCat; __chkSaveTimer=null; if(!c) return; var rows=cloud[c]||[]; var lay=layoutByCat[c]||curLayout(); saveCat(c, rows, lay); }, 600); }
   // 보기 모드 체크 토글
   function toggleViewCheck(span){
-    return; /* 스토어: 읽기 전용 — 체크 변경은 plu-item-list-manager 에서 */
     if(editMode) return;
     var plu=span.getAttribute('data-plu'), key=span.getAttribute('data-key'); var cat=curCat();
     var rows=cloud[cat]||[]; var row=null;
@@ -1435,6 +1422,7 @@
     return '<div class="plu-tools">'+
         '<button class="plu-tool-btn mainact" id="pluExportBtn">⬆ 데이터내보내기</button>'+
         '<button class="plu-tool-btn mainact" id="pluPrintBtn">🖨 인쇄</button>'+
+        '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '</div>';
   }
   // 중간 카테고리 도구 HTML
@@ -1444,6 +1432,7 @@
     return '<div class="plu-tools">'+
       '<span class="plu-sort-box">⇅ 정렬 <select id="pluSortSel">'+sel+'</select>'+
         '<button class="plu-sort-dir" id="pluSortDir" title="오름차순/내림차순">'+(pluSortDir==='desc'?'▼':'▲')+'</button></span>'+
+      /* 스토어: 관리자(👤) 버튼 제거 — 모든 관리/편집은 manager에서만 */ ''+
       '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
   }
@@ -1451,7 +1440,7 @@
   // 검색박스·돌아가기 버튼 위치: 편집모드면 검색→데이터복원 옆, 돌아가기→저장 옆. 아니면 상단 원위치
   function placeFloatingControls(){
     var se=$('pluSearchTop'), bk=$('pluBackBtn');
-    if(bk) bk.disabled=false;   // 메인(뷰)에서는 돌아가기 비활성화, 편집모드에서만 활성
+    if(bk) bk.disabled=!editMode;   // 메인(뷰)에서는 돌아가기 비활성화, 편집모드에서만 활성
     if(editMode){
       var ss=$('editSearchSlot'), bs=$('editBackSlot');
       if(ss && se && se.parentNode!==ss) ss.appendChild(se);
@@ -1770,6 +1759,7 @@
     }
     // 현재 화면/모달 갱신
     var refresh=function(){ var b=$('histBody'); if(b){ b.innerHTML=build(); bindAll(); } };
+    window.__histRefresh=refresh;
     bindAll();
     $('histClose').onclick=close; $('histOk').onclick=close;
     var __hb=$('histBack'); if(__hb) __hb.onclick=function(){ close(); openAdminModal(); };
@@ -1793,14 +1783,29 @@
   function fmtDateOnly(ts){ var d=new Date(ts); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
   // 날짜+시간 형식
   function fmtDateTime(ts){ var d=new Date(ts); return fmtDateOnly(ts)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }
-  // 이력 로드(localStorage)
-  function loadHist(kind){ try{ return JSON.parse(localStorage.getItem('upc-list-item::__hist_'+kind)||'[]')||[]; }catch(e){ return []; } }
-  // 이력 저장
-  function saveHist(kind, arr){ try{ localStorage.setItem('upc-list-item::__hist_'+kind, JSON.stringify(arr)); }catch(e){} }
-  // 이력 추가
-  function addHist(kind, records){ if(!records||!records.length) return; var h=loadHist(kind); var batch=String(Date.now())+'_'+Math.random().toString(36).slice(2,7); records.forEach(function(r){ if(!r.id) r.id=String(r.ts||Date.now())+'_'+Math.random().toString(36).slice(2,7); if(!r.batch) r.batch=batch; h.push(r); }); saveHist(kind, h); }
-  // 이력 항목 삭제
-  function delHist(kind, id){ var h=loadHist(kind).filter(function(r){ return r.id!==id; }); saveHist(kind, h); return h; }
+  /* ===== 이력(히스토리) — Firebase 공유 / 스토어는 읽기 전용 =====
+     manager가 기록한 이력을 실시간 구독해 보기만 함. 저장/추가/삭제는 비활성화. */
+  var HIST_COL='upc-list-hist';
+  var __histCache={ 'new':[], 'price':[] };
+  // 이력 로드: 메모리 캐시 즉시 반환(동기)
+  function loadHist(kind){ return (__histCache[kind]||[]).slice(); }
+  // 스토어: 읽기 전용 — 저장/추가/삭제 비활성화
+  function saveHist(kind, arr){ /* 스토어: 읽기 전용 — 이력 저장은 manager에서만 */ }
+  function addHist(kind, records){ /* 스토어: 읽기 전용 — 이력 기록은 manager에서만 */ }
+  function delHist(kind, id){ return loadHist(kind); /* 스토어: 읽기 전용 — 이력 삭제는 manager에서만 */ }
+  // 이력 실시간 구독: manager의 변경을 캐시에 반영하고 열린 모달 새로고침
+  function startHistListener(){
+    var f=(window.firebaseFns||{}); var d=window.firebaseDb;
+    if(!f.onSnapshot || !f.doc || !d) return;
+    ['new','price'].forEach(function(kind){
+      try{ f.onSnapshot(f.doc(d, HIST_COL, kind), function(snap){
+        var data=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+        __histCache[kind]=(data&&Array.isArray(data.items))?data.items:[];
+        var ov=document.getElementById('histOverlay'); if(ov && window.__histRefresh){ try{ window.__histRefresh(); }catch(e){} }
+      }, function(){}); }catch(e){}
+    });
+  }
+  if(window.firebaseFns){ startHistListener(); } else { window.addEventListener('plu-firebase-ready', startHistListener, {once:true}); }
   // 이력 삭제 시: 해당 행의 N/$ 마커를 제거해 NO. 칸을 원래 번호로 되돌림
   async function clearMarksForRecords(kind, records){
     if(!records || !records.length) return;
@@ -1983,6 +1988,7 @@
 
   // 편집 모드 진입
   function enterEdit(){
+    return; /* 스토어: 편집모드 비활성화 — 데이터 수정은 manager에서만 */
     var cat=curCat();
     // (편집) 시작 처리
     var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
@@ -2026,7 +2032,7 @@
   // 성분 모달 닫기
   function closeIngModal(){ var ov=$('pluIngModal'); if(ov) ov.classList.remove('show'); __ingCat=null; __ingPlu=null; __ingKey=null; }
   // 성분 모달 저장
-  function saveIngModal(){ /* 스토어: 읽기 전용 — 재료 저장 비활성화 (관리는 plu-item-list-manager) */ closeIngModal(); }
+  function saveIngModal(){ closeIngModal(); /* 스토어: 읽기 전용 — 재료 저장은 manager에서만 */ }
   (function wireColModal(){
     var c=$('pluColCheck'), rc=$('pluColRCheck'), t=$('pluColText'), x=$('pluColCancel'), ov=$('pluColModal');
     if(c) c.onclick=function(){ closeColModal(); addColumnOfType('check'); };
@@ -2357,8 +2363,7 @@
   }
   // 관리자 기능 팝업 (편집·데이터불러오기·매장관리·백업·복원·FB내보내기)
   function openAdminModal(){
-    return; /* 스토어: 관리자 모드 비활성화 — 모든 편집/관리는 plu-item-list-manager 에서 수행 */
-    var old=$('admOverlay'); if(old) old.remove();
+    return; /* 스토어: 관리자 모드 비활성화 — 편집·카테고리·불러오기·매장관리·백업·복원·FB내보내기는 manager에서만 */
     var wrap=document.createElement('div');
     wrap.innerHTML='<div class="pcm-overlay" id="admOverlay"><div class="pcm-modal" style="max-width:420px;">'+
       '<div class="pcm-head">👤 관리자<button class="pcm-x" id="admClose" type="button">✕</button></div>'+
@@ -2779,7 +2784,7 @@
       var all=(rowsFor(__c)||[]).filter(function(r){ return rowSub(__c,r)===__s; });
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬆ 데이터내보내기</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 인쇄</button></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬆ 데이터내보내기</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 인쇄</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody>'+
           (rows.map(viewRowHTML).join('')||'<tr><td colspan="'+(visibleCols().length+2)+'" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
@@ -2793,7 +2798,7 @@
 
   // ===== 돌아가기 / 검색 =====
   // 돌아가기: 편집 모드면 편집만 종료(페이지 유지), 아니면 이전 화면으로 이동
-  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='hmart.html'; } }
+  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
   // 이름·UPC 검색: 입력 시 180ms 디바운스로 전체 재렌더 빈도를 줄임(대량 데이터 성능)
   var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
@@ -2898,7 +2903,7 @@
   'use strict';
   // id로 DOM 요소 조회 단축
   var $ = function(id){ return document.getElementById(id); };
-  var REQ_COL = 'upc-requests';
+  var REQ_COL = 'plu-requests';
   var reqs = [];
   // HTML 이스케이프(로컬)
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
@@ -2942,12 +2947,11 @@
     }).join('') : '<div class="plureq-empty">No requests.</div>';
   }
   // 매니저(승인) 모달 열기
-  function openMgr(){ return; /* 스토어: 요청 승인은 관리자(매니저) 전용 — 비활성화 */ renderList(); $('plureqMgrOv').classList.add('show'); }
+  function openMgr(){ renderList(); $('plureqMgrOv').classList.add('show'); }
   // 매니저 모달 닫기
   function closeMgr(){ $('plureqMgrOv').classList.remove('show'); }
   // 승인 처리
   function approve(id){
-    return; /* 스토어: 요청 승인 비활성화 — 매니저에서만 가능 */
     var r=null; for(var i=0;i<reqs.length;i++){ if(reqs[i].__id===id){ r=reqs[i]; break; } } if(!r) return;
     var box=$('rqMgrList');
     // 값 추출 헬퍼
@@ -3082,7 +3086,7 @@
   // id로 DOM 요소 조회 단축
   var $ = function(id){ return document.getElementById(id); };
   var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  var PINS_COL = 'plu-store-pins', OV_COL = 'upc-store-overrides';
+  var PINS_COL = 'plu-store-pins', OV_COL = 'plu-store-overrides';
   var selStore = null, msmCols = {}, msmOv = {};
   var CATS = [
     {label:'EGP', doc:'EGP', subs:['ARTBOX','K-BEAUTY']},
@@ -3260,59 +3264,6 @@
   document.addEventListener('touchstart', function(e){ var t=e.touches&&e.touches[0]; if(t&&startFrom(e.target, t.clientX, t.clientY)){ /* 터치는 기본 동작 유지 위해 preventDefault 안 함 */ } }, {passive:true});
   document.addEventListener('touchmove', function(e){ var t=e.touches&&e.touches[0]; if(drag&&t){ moveTo(t.clientX, t.clientY); e.preventDefault(); } }, {passive:false});
   document.addEventListener('touchend', function(){ drag=null; });
-})();
-</script>
-<script>
-/* ===== 매장 로그인 게이트 (스토어 입장 시 매장+PIN 확인 · 보기 전용) =====
-   PLU LIST 스토어와 동일한 plu-store-pins 컬렉션 사용. 오버라이드 편집 기능은 제외(보기 전용). */
-(function(){
-  'use strict';
-  var $=function(id){return document.getElementById(id);};
-  var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  var PINS_COL='plu-store-pins', LS_KEY='theShawnStore';
-  var currentStore=null;
-  function fns(){return window.firebaseFns;} function db(){return window.firebaseDb;}
-  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
-  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-
-  // 현재 로그인된 매장 (다른 기능에서 참조 가능)
-  window.__storeActive=function(){ return currentStore; };
-
-  function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
-  function showLogin(){ var o=$('stlLoginOv'); if(o) o.classList.add('show'); }
-  function hideLogin(){ var o=$('stlLoginOv'); if(o) o.classList.remove('show'); }
-  async function doLogin(store,pin){
-    var err=$('stlErr'); if(err) err.textContent='';
-    if(!store){ if(err) err.textContent='매장을 선택하세요'; return; }
-    if(!pin){ if(err) err.textContent='PIN을 입력하세요'; return; }
-    if(!fns()||!fns().getDoc){ if(err) err.textContent='연결 준비 중 — 잠시 후 다시'; return; }
-    var snap; try{ snap=await fns().getDoc(fns().doc(db(),PINS_COL,store)); }catch(e){ if(err) err.textContent='연결 오류 — 잠시 후 다시'; return; }
-    var d=(snap&&snap.exists())?(snap.data()||{}):null;
-    if(!d||!d.pin){ if(err) err.textContent='이 매장의 PIN이 아직 없습니다 · 매니저에게 요청'; return; }
-    if(String(d.pin)!==String(pin)){ if(err) err.textContent='PIN이 일치하지 않습니다'; return; }
-    loginAs(store);
-  }
-  function loginAs(store){ currentStore=store; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; var fab=$('stlFab'); if(fab) fab.classList.remove('show'); var ps=$('stlPin'); if(ps) ps.value=''; showLogin(); }
-
-  document.addEventListener('click', function(e){
-    var t=e.target;
-    if(t.closest && t.closest('#stlFab')){ if(window.confirm('로그아웃할까요?')) logout(); return; }
-  });
-
-  function initLogin(){
-    fillStores();
-    var saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
-    if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
-    var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
-    var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
-  }
-  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', initLogin, {once:true}); } else { initLogin(); }
-  // 저장된 매장이 있으면 firebase 준비 후 PIN 유효성 재확인
-  ready(function(){
-    if(!currentStore) return;
-    try{ fns().getDoc(fns().doc(db(),PINS_COL,currentStore)).then(function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d||!d.pin){ logout(); } }).catch(function(){}); }catch(e){}
-  });
 })();
 </script>
 </body>
