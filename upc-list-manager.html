@@ -933,7 +933,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
   var __chunkCount={};       // (구버전 호환) docId -> 청크 수
   var __catChunkIds={};      // docId -> 현재 조각 문서ID 목록 (잉여 삭제용)
-  var __CHUNK=800;           // 조각당 행 수 (행 ~600B → 조각 ~480KB, 1MB 안전)
+  var __CHUNK=1000;          // 조각당 행 수 (행 ~600B → 조각 ~600KB, 1MB 안전)
   function __safeId(s){ return String(s==null?'':s).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_'); }
   async function saveCat(cat, rows, layout, truncLen){
     /* 중간카테고리(sub)별로 나누고, 각 sub를 800개씩 조각 저장. 문서명: {상위}-{중간}-{번호} 예) EGP-ARTBOX-1 */
