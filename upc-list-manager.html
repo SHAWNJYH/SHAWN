@@ -560,6 +560,26 @@
     }catch(e){ if(window.showToast) showToast('내보내기 실패','error'); }
   };
   window.__upcFirebasePreview = window.__upcExportFirebase;
+
+  // ITEM-LIST(옛 localStorage) → 실제 Firebase 이전: 모든 카테고리·필드(레이아웃)·행을 그대로 가져옴.
+  // item-list가 데이터를 저장하던 '같은 브라우저'에서 실행해야 localStorage를 읽을 수 있음.
+  window.__upcMigrateFromLocal = async function(){
+    try{
+      var LSP='upc-list-item';
+      function lsGet(col){ try{ var r=localStorage.getItem(LSP+'::'+col); return r?(JSON.parse(r)||{}):{}; }catch(e){ return {}; } }
+      var cats=lsGet('upc-list-item');                 // { 문서ID: {rows, layout, fields, truncLen} }
+      var catIds=Object.keys(cats);
+      if(!catIds.length){ alert('이 브라우저에 item-list 로컬 데이터가 없습니다.\n(item-list를 쓰던 같은 브라우저·같은 주소에서 실행하세요)'); return; }
+      if(!confirm('item-list의 '+catIds.length+'개 카테고리(필드·레이아웃·데이터)를 Firebase로 가져옵니다.\n같은 이름 카테고리는 덮어씁니다. 진행할까요?')) return;
+      var n=0;
+      for(var i=0;i<catIds.length;i++){ var id=catIds[i]; try{ await setDoc(doc(db,'upc-list-item',id), cats[id]); n++; }catch(e){} }
+      var cfg=lsGet('plu-config'); if(cfg && cfg.main){ try{ await setDoc(doc(db,'plu-config','upc-main'), cfg.main, {merge:true}); }catch(e){} }   // 카테고리 탭 → upc-main
+      var ov=lsGet('plu-store-overrides'); for(var s in ov){ try{ await setDoc(doc(db,'upc-store-overrides',s), ov[s], {merge:true}); }catch(e){} } // 매장 오버라이드 → upc-store-overrides
+      var pins=lsGet('plu-store-pins'); for(var p in pins){ try{ await setDoc(doc(db,'plu-store-pins',p), pins[p], {merge:true}); }catch(e){} }     // 매장 PIN → plu-store-pins(공유)
+      alert('item-list → Firebase 가져오기 완료: '+n+'개 카테고리.\n화면을 새로고침합니다.');
+      location.reload();
+    }catch(e){ alert('가져오기 실패: '+(e&&e.message?e.message:e)); }
+  };
 </script>
 <style>
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
@@ -2353,6 +2373,7 @@
         '<button class="adm-btn adm-green" id="admBackup" type="button">💾 백업</button>'+
         '<button class="adm-btn adm-blue" id="admRestore" type="button">♻ 복원</button>'+
         '<button class="adm-btn adm-orange" id="admFb" type="button">☁ FB 내보내기</button>'+
+        '<button class="adm-btn" id="admMigrate" type="button">📤 ITEM-LIST 가져오기 (옛 로컬→Firebase)</button>'+
       '</div>'+
     '</div></div>';
     document.body.appendChild(wrap.firstChild);
@@ -2367,6 +2388,7 @@
     $('admBackup').onclick=function(){ close(); if(window.__upcBackupPicker) window.__upcBackupPicker(); else if(window.__upcExportAll) window.__upcExportAll(); };
     $('admRestore').onclick=function(){ close(); var f=$('upcRestoreFile'); if(f) f.click(); };
     $('admFb').onclick=function(){ close(); if(window.__upcExportFirebase) window.__upcExportFirebase(); };
+    $('admMigrate').onclick=function(){ close(); if(window.__upcMigrateFromLocal) window.__upcMigrateFromLocal(); };
   }
   // 툴바 버튼 이벤트 연결
   function bindToolbar(){
