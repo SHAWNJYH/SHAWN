@@ -885,21 +885,31 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 클라우드 스냅샷을 메모리에 반영
   function applySnap(snap){
     cloud={}; layoutByCat={}; truncLenByCat={};
-    var metas={}, chunkMap={};
+    var metas={}, chunkBy={}, chunkIdsBy={};
     snap.forEach(function(ds){
       var id=ds.id, d=ds.data()||{};
-      var m=/^(.*)__c(\d+)$/.exec(id);
-      if(m){ var par=m[1], ci=parseInt(m[2],10); if(!chunkMap[par]) chunkMap[par]={}; chunkMap[par][ci]=Array.isArray(d.rows)?d.rows:[]; }
-      else { metas[id]=d; }
+      if(d && d.parent){
+        var par=d.parent;
+        if(!chunkBy[par]) chunkBy[par]=[];
+        chunkBy[par].push({ sub:(d.sub!=null?String(d.sub):''), ci:(typeof d.ci==='number'?d.ci:0), rows:Array.isArray(d.rows)?d.rows:[] });
+        if(!chunkIdsBy[par]) chunkIdsBy[par]=[]; chunkIdsBy[par].push(id);
+      } else {
+        var mc=/^(.*)__c(\d+)$/.exec(id);   // 구버전 청크 호환
+        if(mc){ var p2=mc[1]; if(!chunkBy[p2]) chunkBy[p2]=[]; chunkBy[p2].push({ sub:'', ci:parseInt(mc[2],10), rows:Array.isArray(d.rows)?d.rows:[] }); if(!chunkIdsBy[p2]) chunkIdsBy[p2]=[]; chunkIdsBy[p2].push(id); }
+        else { metas[id]=d; }
+      }
     });
     for(var id in metas){
       var d=metas[id], lab=labelOf(id), rows=[];
-      if(chunkMap[id]){ Object.keys(chunkMap[id]).map(Number).sort(function(a,b){return a-b;}).forEach(function(k){ rows=rows.concat(chunkMap[id][k]); }); }
-      else if(Array.isArray(d.rows)){ rows=d.rows; }  // 구버전(단일 문서) 호환
+      if(chunkBy[id]){
+        var bySub={}, subOrder=[];
+        chunkBy[id].forEach(function(c){ if(!(c.sub in bySub)){ bySub[c.sub]=[]; subOrder.push(c.sub); } bySub[c.sub].push(c); });
+        subOrder.forEach(function(s){ bySub[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ rows=rows.concat(c.rows); }); });
+      } else if(Array.isArray(d.rows)){ rows=d.rows; }  // 구버전 단일 문서
       cloud[lab]=rows;
       layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):((Array.isArray(d.fields)&&d.fields.length)?defaultLayout(d.fields):catDefaultLayout(lab));
       truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20;
-      __chunkCount[id]=(typeof d.chunkCount==='number')?d.chunkCount:(chunkMap[id]?Object.keys(chunkMap[id]).length:0);
+      __catChunkIds[id]=chunkIdsBy[id]||[];
     }
     for(var __pk in __pendingChecks){ var __pp=__pk.split('\u0001'); var __c=__pp[0],__pl=__pp[1],__ky=__pp[2],__v=__pendingChecks[__pk]; var __rs=cloud[__c]; if(!__rs){ continue; } var __ff=null; for(var __i=0;__i<__rs.length;__i++){ if(pluValOf(__rs[__i])===__pl){ __ff=__rs[__i]; break; } } if(!__ff){ continue; } if(!__ff.extra) __ff.extra={}; if((!!__ff.extra[__ky])===(!!__v)){ delete __pendingChecks[__pk]; } else { __ff.extra[__ky]=__v; } }
     for(var __tk in __pendingText){ var __tp=__tk.split('\u0001'); var __tc=__tp[0],__tpl=__tp[1],__tky=__tp[2],__tv=__pendingText[__tk]; var __trs=cloud[__tc]; if(!__trs){ continue; } var __tff=null; for(var __tj=0;__tj<__trs.length;__tj++){ if(pluValOf(__trs[__tj])===__tpl){ __tff=__trs[__tj]; break; } } if(!__tff){ continue; } if(!__tff.extra) __tff.extra={}; if(String(__tff.extra[__tky]==null?'':__tff.extra[__tky])===String(__tv)){ delete __pendingText[__tk]; } else { __tff.extra[__tky]=__tv; } }
@@ -921,28 +931,39 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       }, function(err){ subscribed=false; if(!cloudLoaded) loadCloud().then(rerenderIfIdle); });
     }catch(e){ subscribed=false; if(!cloudLoaded) loadCloud().then(rerenderIfIdle); }
   }
-  var __chunkCount={};   // docId -> 현재 청크 문서 수
-  var __CHUNK=800;       // 청크당 행 수 (행 1개 ~600B → 청크 ~480KB, 1MB 안전)
+  var __chunkCount={};       // (구버전 호환) docId -> 청크 수
+  var __catChunkIds={};      // docId -> 현재 조각 문서ID 목록 (잉여 삭제용)
+  var __CHUNK=800;           // 조각당 행 수 (행 ~600B → 조각 ~480KB, 1MB 안전)
+  function __safeId(s){ return String(s==null?'':s).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_'); }
   async function saveCat(cat, rows, layout, truncLen){
-    /* 로그인 체크 제거 — 인증 없이 바로 저장. rows를 청크로 나눠 1MB 한도 우회 */
+    /* 중간카테고리(sub)별로 나누고, 각 sub를 800개씩 조각 저장. 문서명: {상위}-{중간}-{번호} 예) EGP-ARTBOX-1 */
     try{
       var docId=DOCID[cat]||cat;
       var lay=normLayout(layout||defaultLayout([]));
       var tl=(typeof truncLen==='number'&&truncLen>0)?truncLen:((typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:20);
       rows=rows||[];
-      var chunks=[]; for(var i=0;i<rows.length;i+=__CHUNK){ chunks.push(rows.slice(i,i+__CHUNK)); }
-      if(!chunks.length) chunks.push([]);
-      var chunkCount=chunks.length;
-      // 메타 문서(레이아웃·청크수) — rows는 청크 문서에 분산
-      await fns().setDoc(fns().doc(db(), COL, docId), { layout: lay, fields: extraKeysOf(lay), truncLen: tl, chunkCount: chunkCount, updatedAt: Date.now() });
-      // 청크 문서들
-      for(var ci=0; ci<chunks.length; ci++){
-        await fns().setDoc(fns().doc(db(), COL, docId+'__c'+ci), { parent: docId, ci: ci, rows: chunks[ci] });
+      // 중간카테고리(sub)별 그룹 (순서 유지)
+      var bySub={}, subOrder=[];
+      rows.forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(!(s in bySub)){ bySub[s]=[]; subOrder.push(s); } bySub[s].push(r); });
+      // 메타 문서(레이아웃) — rows 없음
+      await fns().setDoc(fns().doc(db(), COL, docId), { layout: lay, fields: extraKeysOf(lay), truncLen: tl, updatedAt: Date.now() });
+      // sub별 조각 저장
+      var newIds=[];
+      for(var si=0; si<subOrder.length; si++){
+        var s=subOrder[si], srows=bySub[s], safe=__safeId(s)||'_';
+        var part=0;
+        for(var i=0;i<srows.length;i+=__CHUNK){
+          var cid=docId+'-'+safe+'-'+(part+1);
+          await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: s, ci: part, rows: srows.slice(i,i+__CHUNK) });
+          newIds.push(cid); part++;
+        }
       }
-      // 줄어든 경우 잉여 청크 삭제
-      var prev=__chunkCount[docId]||0;
-      for(var dci=chunkCount; dci<prev; dci++){ try{ await fns().deleteDoc(fns().doc(db(), COL, docId+'__c'+dci)); }catch(e){} }
-      __chunkCount[docId]=chunkCount;
+      // 잉여 조각 삭제 (이전엔 있었지만 지금 안 쓴 문서)
+      var prev=__catChunkIds[docId]||[];
+      for(var p=0;p<prev.length;p++){ if(newIds.indexOf(prev[p])<0){ try{ await fns().deleteDoc(fns().doc(db(), COL, prev[p])); }catch(e){} } }
+      // 구버전 단일/청크 문서 정리
+      try{ await fns().deleteDoc(fns().doc(db(), COL, docId+'__c0')); }catch(e){}
+      __catChunkIds[docId]=newIds;
       cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};}); truncLenByCat[cat]=tl;
       return true;
     }catch(e){ showToast('저장 실패 — '+(e&&e.message?e.message:'권한/네트워크 확인'),'error'); return false; }
