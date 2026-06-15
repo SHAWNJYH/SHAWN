@@ -729,9 +729,35 @@
   .plu-table td.align-left   input.plu-edit-input { text-align:left   !important; }
   .plu-table td.align-center input.plu-edit-input { text-align:center !important; }
   .plu-table td.align-right  input.plu-edit-input { text-align:right  !important; }
+  /* ===== 매장 로그인 게이트 (스토어 입장용) ===== */
+  .stl-ov { position: fixed; inset: 0; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
+  .stl-ov.show { display: flex; }
+  .stl-card { background: #fff; border-radius: 18px; padding: 26px 24px; width: 100%; max-width: 360px; box-shadow: 0 16px 48px rgba(0,0,0,0.25); text-align: center; }
+  .stl-card h2 { margin: 0 0 4px; font-size: 22px; color: #1a1a1d; }
+  .stl-card p { margin: 0 0 18px; font-size: 13px; color: #9a9aa0; }
+  .stl-card label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 0 0 5px; }
+  .stl-card select, .stl-card input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 12px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; margin-bottom: 13px; }
+  .stl-card select:focus, .stl-card input:focus { outline: none; border-color: #c9a961; }
+  .stl-btn { width: 100%; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; background: #1a1a1d; color: #fff; }
+  .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
+  .stl-fab { position: fixed; left: 16px; bottom: 16px; z-index: 1500; background: #fff; color: #1a1a1d; border: 1.5px solid #e5e5e0; border-radius: 999px; padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: none; }
+  .stl-fab.show { display: inline-flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
+<div class="stl-ov" id="stlLoginOv">
+  <div class="stl-card">
+    <h2>STORE LOGIN</h2>
+    <p>매장을 선택하고 PIN을 입력하세요</p>
+    <label>STORE</label>
+    <select id="stlStore"><option value="">SELECT STORE</option></select>
+    <label>PIN</label>
+    <input id="stlPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+    <div class="stl-err" id="stlErr"></div>
+    <button class="stl-btn" id="stlLoginBtn">LOGIN</button>
+  </div>
+</div>
+<button class="stl-fab" id="stlFab">🏬 <span id="stlFabName">STORE</span> · 로그아웃</button>
 <div class="page-topbar">
   <h1 class="page-title">🏷️ 아이템 UPC 관리</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
@@ -3333,6 +3359,59 @@
   document.addEventListener('touchstart', function(e){ var t=e.touches&&e.touches[0]; if(t&&startFrom(e.target, t.clientX, t.clientY)){ /* 터치는 기본 동작 유지 위해 preventDefault 안 함 */ } }, {passive:true});
   document.addEventListener('touchmove', function(e){ var t=e.touches&&e.touches[0]; if(drag&&t){ moveTo(t.clientX, t.clientY); e.preventDefault(); } }, {passive:false});
   document.addEventListener('touchend', function(){ drag=null; });
+})();
+</script>
+<script>
+/* ===== 매장 로그인 게이트 (스토어 입장 시 매장+PIN 확인 · 보기 전용) =====
+   PLU LIST 스토어와 동일한 plu-store-pins 컬렉션 사용. 오버라이드 편집 기능은 제외(보기 전용). */
+(function(){
+  'use strict';
+  var $=function(id){return document.getElementById(id);};
+  var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var PINS_COL='plu-store-pins', LS_KEY='theShawnStore';
+  var currentStore=null;
+  function fns(){return window.firebaseFns;} function db(){return window.firebaseDb;}
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+  // 현재 로그인된 매장 (다른 기능에서 참조 가능)
+  window.__storeActive=function(){ return currentStore; };
+
+  function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
+  function showLogin(){ var o=$('stlLoginOv'); if(o) o.classList.add('show'); }
+  function hideLogin(){ var o=$('stlLoginOv'); if(o) o.classList.remove('show'); }
+  async function doLogin(store,pin){
+    var err=$('stlErr'); if(err) err.textContent='';
+    if(!store){ if(err) err.textContent='매장을 선택하세요'; return; }
+    if(!pin){ if(err) err.textContent='PIN을 입력하세요'; return; }
+    if(!fns()||!fns().getDoc){ if(err) err.textContent='연결 준비 중 — 잠시 후 다시'; return; }
+    var snap; try{ snap=await fns().getDoc(fns().doc(db(),PINS_COL,store)); }catch(e){ if(err) err.textContent='연결 오류 — 잠시 후 다시'; return; }
+    var d=(snap&&snap.exists())?(snap.data()||{}):null;
+    if(!d||!d.pin){ if(err) err.textContent='이 매장의 PIN이 아직 없습니다 · 매니저에게 요청'; return; }
+    if(String(d.pin)!==String(pin)){ if(err) err.textContent='PIN이 일치하지 않습니다'; return; }
+    loginAs(store);
+  }
+  function loginAs(store){ currentStore=store; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; var fab=$('stlFab'); if(fab) fab.classList.remove('show'); var ps=$('stlPin'); if(ps) ps.value=''; showLogin(); }
+
+  document.addEventListener('click', function(e){
+    var t=e.target;
+    if(t.closest && t.closest('#stlFab')){ if(window.confirm('로그아웃할까요?')) logout(); return; }
+  });
+
+  function initLogin(){
+    fillStores();
+    var saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
+    if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
+    var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
+    var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', initLogin, {once:true}); } else { initLogin(); }
+  // 저장된 매장이 있으면 firebase 준비 후 PIN 유효성 재확인
+  ready(function(){
+    if(!currentStore) return;
+    try{ fns().getDoc(fns().doc(db(),PINS_COL,currentStore)).then(function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d||!d.pin){ logout(); } }).catch(function(){}); }catch(e){}
+  });
 })();
 </script>
 </body>
