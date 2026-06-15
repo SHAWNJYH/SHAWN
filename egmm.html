@@ -2286,6 +2286,9 @@
   }
   .egmm-back-link:hover { color: var(--text); }
 
+  .egmm-section-title { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--text-faint); text-transform: uppercase; margin: 2px 4px 12px; }
+  .egmm-section-title.gap { margin-top: 22px; }
+
   /* PLU / ITEM CODE 화면 공통 레이아웃 */
   .egmm-sub-screen { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
   .egmm-sub-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
@@ -2408,24 +2411,45 @@
   <div class="egmm-card">
     <h1 class="egmm-title">EGMM</h1>
 
-    <button class="egmm-menu-btn" id="egmmToOdpBtn">
-      <span class="egmm-menu-ico" style="background:#e1f0ff;">🧰</span>
-      <span>ODP 작업</span>
+    <div class="egmm-section-title">ITEM LIST</div>
+    <button class="egmm-menu-btn" id="egmmPluListBtn">
+      <span>PLU LIST</span>
       <span class="egmm-menu-arrow">›</span>
     </button>
-    <button class="egmm-menu-btn" id="egmmToPluBtn">
-      <span class="egmm-menu-ico" style="background:#d9f5ec;">🔎</span>
-      <span>PLU 보기</span>
+    <button class="egmm-menu-btn" id="egmmUpcListBtn">
+      <span>UPC LIST / ITEM CODE</span>
       <span class="egmm-menu-arrow">›</span>
     </button>
-    <button class="egmm-menu-btn" id="egmmToItemBtn">
-      <span class="egmm-menu-ico" style="background:#fff3d6;">📦</span>
-      <span>ITEM CODE 보기</span>
+
+    <div class="egmm-section-title gap">MEMORIZE</div>
+    <button class="egmm-menu-btn" id="egmmPluMemorizeBtn">
+      <span>PLU MEMORIZE</span>
       <span class="egmm-menu-arrow">›</span>
     </button>
-    <button class="egmm-menu-btn" id="egmmToGuideBtn">
-      <span class="egmm-menu-ico" style="background:#f0eafc;">📋</span>
-      <span>상품명 등록 가이드</span>
+    <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn">
+      <span>DELI MEMORIZE</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+
+    <div class="egmm-section-title gap">GUIDE</div>
+    <button class="egmm-menu-btn" id="egmmProductNameMakerBtn">
+      <span>PRODUCT NAME MAKER</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmDeliMgmtBtn">
+      <span>DELI MANAGEMENT</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmEbtBtn">
+      <span>EBT</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmTaxBtn">
+      <span>TAX</span>
+      <span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmHardLiquorBtn">
+      <span>HARD LIQUOR</span>
       <span class="egmm-menu-arrow">›</span>
     </button>
 
@@ -2762,10 +2786,7 @@
   };
 
   // ----- 버튼 연결 -----
-  $('egmmToOdpBtn').onclick = showOdp;
-  $('egmmToPluBtn').onclick = () => { window.location.href = 'plu-list-produce.html'; };
-  $('egmmToItemBtn').onclick = showItemCode;
-  $('egmmToGuideBtn').onclick = showGuide;
+  // ITEM LIST / MEMORIZE / GUIDE 메뉴 버튼 — 링크는 추후 연결 예정
   $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
