@@ -569,6 +569,14 @@
   window.firebaseDb   = { __local:true };
   window.firebaseFns  = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
 
+  // 다른 탭/페이지(매니저↔스토어, 같은 브라우저)에서 localStorage가 바뀌면 메모리에 반영하고 구독자에게 알림
+  window.addEventListener('storage', function(e){
+    if(!e.key || e.key.indexOf(LS_PREFIX+'::')!==0) return;
+    var col=e.key.slice((LS_PREFIX+'::').length);
+    try{ store[col]= e.newValue ? (JSON.parse(e.newValue)||{}) : {}; }catch(_){ store[col]={}; }
+    try{ notify(col); }catch(_){}
+  });
+
   /* ===== 외부 JSON 파일 백업 / 복원 (앱 작업용 · 원본 구조 그대로) ===== */
   window.__upcExportAll = function(){
     var out={}; for(var col in store){ out[col]=store[col]; }
@@ -2511,7 +2519,27 @@
       var ok=await saveSection(u.cat, u.sub, u.rows, u.lay);
       if(ok){ __deleteUndo=null; editMode=false; work=null; workLayout=null; workDirty=false; setCatSub(u.cat, u.sub); renderTabs(); showToast(where+' '+u.rows.length+'건 복원 완료','success'); }
     };
-    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); } };
+    var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){
+      var sub=curSub();
+      // 편집모드에서 COST(가격)가 바뀐 행을 감지해 '변경상품' 이력으로 기록 (저장 전 기존 값과 비교)
+      var __lay=workLayout||[]; var __k=dupKeys(__lay); var __changes=[]; var __now=Date.now();
+      if(__k.ea && __k.uo){
+        var __oldByUo={};
+        (rowsFor(cat)||[]).filter(function(r){ return rowSub(cat,r)===sub; }).forEach(function(r){ var v=String(getVal(r,__k.uo)||'').replace(/\s+/g,''); if(v) __oldByUo[v]=r; });
+        (work||[]).forEach(function(nr){
+          var v=String(getVal(nr,__k.uo)||'').replace(/\s+/g,''); if(!v) return;
+          var old=__oldByUo[v]; if(!old) return;                       // 매칭되는 기존 행이 없으면(신규) 제외
+          var op=priceNum(getVal(old,__k.ea)), np=priceNum(getVal(nr,__k.ea));
+          if(op==null||np==null) return;
+          if(op!==np){
+            __changes.push({ ts:__now, cat:cat, sub:sub, uo:String(getVal(nr,__k.uo)||''), eng:String(getVal(nr,__k.eng)||''), kor:String(getVal(nr,__k.kor)||''), oldp:fmtPrice(getVal(old,__k.ea)), newp:fmtPrice(getVal(nr,__k.ea)) });
+            if(!nr.extra) nr.extra={}; nr.extra['__PRICEUPD']=String(__now);
+          }
+        });
+      }
+      var ok=await saveSection(cat, sub, work||[], workLayout||[], workTrunc);
+      if(ok){ workDirty=false; if(__changes.length) addHist('price', __changes); showToast(cat+' 저장 완료'+(__changes.length?(' · 변경상품 '+__changes.length+'건 기록'):'')+' (Firebase)','success'); renderContent(); }
+    };
     var ss=$('pluSortSel'); if(ss) ss.onchange=function(e){ pluSortKey=e.target.value; renderContent(); };
     var sd=$('pluSortDir'); if(sd) sd.onclick=function(){ pluSortDir=(pluSortDir==='asc'?'desc':'asc'); renderContent(); };
     var ha=$('histAllBtn'); if(ha) ha.onclick=function(){ showHistModal('all'); };

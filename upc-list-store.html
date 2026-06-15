@@ -569,6 +569,14 @@
   window.firebaseDb   = { __local:true };
   window.firebaseFns  = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
 
+  // 다른 탭/페이지(매니저↔스토어, 같은 브라우저)에서 localStorage가 바뀌면 메모리에 반영하고 구독자에게 알림
+  window.addEventListener('storage', function(e){
+    if(!e.key || e.key.indexOf(LS_PREFIX+'::')!==0) return;
+    var col=e.key.slice((LS_PREFIX+'::').length);
+    try{ store[col]= e.newValue ? (JSON.parse(e.newValue)||{}) : {}; }catch(_){ store[col]={}; }
+    try{ notify(col); }catch(_){}
+  });
+
   /* ===== 외부 JSON 파일 백업 / 복원 (앱 작업용 · 원본 구조 그대로) ===== */
   window.__upcExportAll = function(){
     var out={}; for(var col in store){ out[col]=store[col]; }
