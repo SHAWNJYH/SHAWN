@@ -209,7 +209,7 @@
   .plu-table th.upc-c-no-col, .plu-table td.upc-c-no-col { width:40px; min-width:34px; max-width:48px; text-align:center; white-space:nowrap; color:#6b6b72; font-weight:700; background:var(--bg-elev); }
   .plu-table tbody tr:nth-child(even) td.upc-c-no-col { background:#efefe9; }
   .plu-table tbody tr:hover td.upc-c-no-col { background:var(--accent-soft); }
-  .plu-table thead th.upc-c-no-col { color:#3b5b8c; background:#e8f0fb; z-index:11; }
+  .plu-table thead th.upc-c-no-col { color:#3b5b8c; background:#e8f0fb; z-index:32; }
   .plu-table td.upc-c-no-new { color:#fff !important; background:#c0392b !important; font-weight:800; }
   .plu-table tbody tr:hover td.upc-c-no-new { background:#a93226 !important; }
   .plu-table td.upc-c-no-upd { color:#fff !important; background:#1e7a46 !important; font-weight:800; }
@@ -295,10 +295,12 @@
   }
   .plu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .plu-table thead th {
-    position: sticky; top: 0; z-index: 10; background: #e8f0fb; color: #3b5b8c;
+    position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
     padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
   }
+  .plu-table thead th.upc-c-srp, .plu-table thead th.upc-c-srpp, .plu-table thead th.upc-c-blue { position: sticky; top: 0; z-index: 31; }
+  .plu-table tbody td { position: relative; z-index: 0; }
   .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
@@ -853,9 +855,25 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // PLU 오름차순 정렬 비교
   function byPluAsc(a,b){ var na=pluNumOf(a), nb=pluNumOf(b); if(na!==nb) return na<nb?-1:1; return String(pluValOf(a)).localeCompare(String(pluValOf(b))); }
   // 클라우드 스냅샷을 메모리에 반영
+  var __chunkCount={};
   function applySnap(snap){
     cloud={}; layoutByCat={}; truncLenByCat={};
-    snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):((Array.isArray(d.fields)&&d.fields.length)?defaultLayout(d.fields):catDefaultLayout(lab)); truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20; });
+    var metas={}, chunkMap={};
+    snap.forEach(function(ds){
+      var id=ds.id, d=ds.data()||{};
+      var m=/^(.*)__c(\d+)$/.exec(id);
+      if(m){ var par=m[1], ci=parseInt(m[2],10); if(!chunkMap[par]) chunkMap[par]={}; chunkMap[par][ci]=Array.isArray(d.rows)?d.rows:[]; }
+      else { metas[id]=d; }
+    });
+    for(var id in metas){
+      var d=metas[id], lab=labelOf(id), rows=[];
+      if(chunkMap[id]){ Object.keys(chunkMap[id]).map(Number).sort(function(a,b){return a-b;}).forEach(function(k){ rows=rows.concat(chunkMap[id][k]); }); }
+      else if(Array.isArray(d.rows)){ rows=d.rows; }
+      cloud[lab]=rows;
+      layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):((Array.isArray(d.fields)&&d.fields.length)?defaultLayout(d.fields):catDefaultLayout(lab));
+      truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20;
+      __chunkCount[id]=(typeof d.chunkCount==='number')?d.chunkCount:(chunkMap[id]?Object.keys(chunkMap[id]).length:0);
+    }
     for(var __pk in __pendingChecks){ var __pp=__pk.split('\u0001'); var __c=__pp[0],__pl=__pp[1],__ky=__pp[2],__v=__pendingChecks[__pk]; var __rs=cloud[__c]; if(!__rs){ continue; } var __ff=null; for(var __i=0;__i<__rs.length;__i++){ if(pluValOf(__rs[__i])===__pl){ __ff=__rs[__i]; break; } } if(!__ff){ continue; } if(!__ff.extra) __ff.extra={}; if((!!__ff.extra[__ky])===(!!__v)){ delete __pendingChecks[__pk]; } else { __ff.extra[__ky]=__v; } }
     for(var __tk in __pendingText){ var __tp=__tk.split('\u0001'); var __tc=__tp[0],__tpl=__tp[1],__tky=__tp[2],__tv=__pendingText[__tk]; var __trs=cloud[__tc]; if(!__trs){ continue; } var __tff=null; for(var __tj=0;__tj<__trs.length;__tj++){ if(pluValOf(__trs[__tj])===__tpl){ __tff=__trs[__tj]; break; } } if(!__tff){ continue; } if(!__tff.extra) __tff.extra={}; if(String(__tff.extra[__tky]==null?'':__tff.extra[__tky])===String(__tv)){ delete __pendingText[__tk]; } else { __tff.extra[__tky]=__tv; } }
     cloudLoaded=true;
