@@ -491,81 +491,174 @@
   .plu-locked-hint.ok { color:#2e7d52; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script type="module">
+<script>
 /* =========================================================================
-   실제 Firebase(Firestore) 연동 — the-shawn 프로젝트 공유.
-   manager에서 저장한 데이터가 store에 실시간(onSnapshot)으로 자동 반영됩니다.
-   기존 코드가 쓰던 인터페이스(window.firebaseFns / firebaseDb / __upcExportAll 등)를
-   그대로 제공하므로 나머지 기능 코드는 수정 없이 동작합니다.
+   로컬 데이터 어댑터 (Firebase 미사용 · 단독 동작)
+   - 데이터는 브라우저 로컬(localStorage) + 외부 JSON 파일로 저장
+   - 기존 코드가 쓰던 Firestore API(doc/setDoc/getDoc/getDocs/onSnapshot 등)를
+     그대로 구현하므로, 나머지 기능 코드는 수정 없이 동작합니다.
    ========================================================================= */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+(function(){
+  'use strict';
+  var LS_PREFIX = 'upc-list-item';     // 저장 키 접두어
+  var store = {};                      // { 컬렉션명: { 문서ID: data } }
+  var listeners = [];                  // onSnapshot 콜백 목록
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
-  authDomain: "the-shawn.firebaseapp.com",
-  projectId: "the-shawn",
-  storageBucket: "the-shawn.firebasestorage.app",
-  messagingSenderId: "519898602513",
-  appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
-  measurementId: "G-NKGYGC63JN"
-};
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-window.firebaseAuth = getAuth(app);
-window.firebaseDb   = db;
-window.firebaseFns  = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
-// 로그인 없이도 읽기/쓰기 되도록 익명 인증
-onAuthStateChanged(window.firebaseAuth, function(u){ if(!u){ signInAnonymously(window.firebaseAuth).catch(function(){}); } });
+  // localStorage 저장 키 생성
+  function lsKey(col){ return LS_PREFIX + '::' + col; }
+  // 모든 컬렉션을 localStorage→메모리로 로드
+  function loadAll(){
+    try{
+      for(var i=0;i<localStorage.length;i++){
+        var k=localStorage.key(i);
+        if(k && k.indexOf(LS_PREFIX+'::')===0){
+          var col=k.slice((LS_PREFIX+'::').length);
+          try{ store[col]=JSON.parse(localStorage.getItem(k))||{}; }catch(e){ store[col]={}; }
+        }
+      }
+    }catch(e){}
+  }
+  // 특정 컬렉션을 localStorage에 저장
+  function persist(col){ try{ localStorage.setItem(lsKey(col), JSON.stringify(store[col]||{})); }catch(e){} }
+  // 컬렉션 객체 초기화 보장
+  function ensure(col){ if(!store[col]) store[col]={}; return store[col]; }
+  // 컬렉션 스냅샷 객체 생성(onSnapshot 모사)
+  function snapshotOf(col){
+    var c=store[col]||{};
+    var arr=Object.keys(c).map(function(id){ return { id:id, data:function(){ return c[id]; } }; });
+    return { forEach:function(fn){ arr.forEach(fn); }, docs:arr, size:arr.length };
+  }
+  // 단일 문서 스냅샷 생성
+  function docSnap(col,id){ var d=(store[col]||{})[id]; return { id:id, exists:function(){ return d!==undefined; }, data:function(){ return d; } }; }
+  // 컬렉션 구독자에게 변경 알림
+  function notify(col){ listeners.forEach(function(L){ if(L.col===col){ try{ L.fire(); }catch(e){} } }); }
 
-/* ===== 전체 백업 / 복원 (실제 Firestore 기반) ===== */
-window.__upcExportAll = async function(){
-  try{
-    const cols=['upc-list','upc-config','upc-store-overrides','plu-store-pins'];
-    const out={};
-    for(const c of cols){ const o={}; try{ const snap=await getDocs(collection(db,c)); snap.forEach(ds=>{ o[ds.id]=ds.data(); }); }catch(e){} out[c]=o; }
-    const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-    const d=new Date(),yy=String(d.getFullYear()).slice(-2),mm=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);
-    a.download='전체백업('+yy+mm+dd+').json'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    if(window.showToast) showToast('Firebase 데이터를 파일로 내보냈습니다','success');
-  }catch(e){ if(window.showToast) showToast('백업 실패','error'); }
-};
-window.__upcImportAll = function(file){
-  const rd=new FileReader();
-  rd.onload=async function(){
-    try{ const obj=JSON.parse(rd.result);
-      for(const col in obj){ const docs=obj[col]||{}; for(const id in docs){ try{ await setDoc(doc(db,col,id), docs[id]); }catch(e){} } }
-      if(window.showToast) showToast('복원 완료 (Firebase)','success');
-    }catch(e){ if(window.showToast) showToast('파일을 읽을 수 없습니다','error'); }
+  // 문서 참조 생성(firestore 모사)
+  function doc(db,col,id){ return { __type:'doc', col:col, id:id }; }
+  // 컬렉션 참조 생성(firestore 모사)
+  function collection(db,col){ return { __type:'col', col:col }; }
+
+  async function setDoc(ref,data,opts){
+    var c=ensure(ref.col);
+    if(opts && opts.merge && c[ref.id] && typeof c[ref.id]==='object'){
+      var cur=c[ref.id]; for(var k in data){ cur[k]=data[k]; } c[ref.id]=cur;
+    } else { c[ref.id]=data; }
+    persist(ref.col); notify(ref.col);
+  }
+  async function getDoc(ref){ return docSnap(ref.col, ref.id); }
+  async function deleteDoc(ref){ var c=store[ref.col]; if(c){ delete c[ref.id]; persist(ref.col); notify(ref.col); } }
+  async function getDocs(colRef){ return snapshotOf(colRef.col); }
+  // 실시간 구독 등록(firestore 모사)
+  function onSnapshot(ref, cb){
+    if(ref && ref.__type==='doc'){
+      // 문서 변경 이벤트 발생
+      var fireD=function(){ try{ cb(docSnap(ref.col, ref.id)); }catch(e){} };
+      listeners.push({ col:ref.col, fire:fireD }); fireD();
+    } else {
+      // 컬렉션 변경 이벤트 발생
+      var fireC=function(){ try{ cb(snapshotOf(ref.col)); }catch(e){} };
+      listeners.push({ col:ref.col, fire:fireC }); fireC();
+    }
+    return function(){};
+  }
+  // 인증 상태 콜백(모사)
+  function onAuthStateChanged(auth, cb){ try{ cb({ uid:'local', email:'local@upc' }); }catch(e){} return function(){}; }
+
+  loadAll();
+  window.firebaseAuth = { __local:true };
+  window.firebaseDb   = { __local:true };
+  window.firebaseFns  = { onAuthStateChanged, doc, setDoc, getDoc, deleteDoc, collection, getDocs, onSnapshot };
+
+  /* ===== 외부 JSON 파일 백업 / 복원 (앱 작업용 · 원본 구조 그대로) ===== */
+  window.__upcExportAll = function(){
+    var out={}; for(var col in store){ out[col]=store[col]; }
+    var blob=new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    var __d=new Date(); var __yy=String(__d.getFullYear()).slice(-2); var __mm=('0'+(__d.getMonth()+1)).slice(-2); var __dd=('0'+__d.getDate()).slice(-2);
+    a.download='전체백업('+__yy+__mm+__dd+').json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    if(window.showToast) showToast('전체 데이터를 파일로 내보냈습니다','success');
   };
-  rd.readAsText(file);
-};
+  // JSON 백업 파일 전체 복원
+  window.__upcImportAll = function(file){
+    var rd=new FileReader();
+    rd.onload=function(){ try{ var obj=JSON.parse(rd.result); for(var col in obj){ store[col]=obj[col]; persist(col); notify(col); } if(window.showToast) showToast('데이터 불러오기 완료','success'); }catch(e){ if(window.showToast) showToast('파일을 읽을 수 없습니다','error'); } };
+    rd.readAsText(file);
+  };
 
-/* ===== Firebase용 내보내기 (아이템 1건 = 문서 1개) ===== */
-const FB_GROUPS = {
-  'upc-list-artbox':  { cat:'EGP',     sub:'ARTBOX'   },
-  'upc-list-kbeauty': { cat:'EGP',     sub:'K-BEAUTY' },
-  'upc-list-alcohol': { cat:'ALCOHOL', sub:null       }
-};
-function fbFlatten(r){ const o={}; ['plu','itemCode1','itemCode2','local','organic','kor','eng','cate'].forEach(f=>{ if(r[f]!=null && String(r[f]).trim()!=='') o[f]=r[f]; }); if(r.sub!=null && String(r.sub).trim()!=='') o.sub=r.sub; if(r.extra){ for(const k in r.extra){ const v=r.extra[k]; if(v!=null && String(v).trim()!=='') o[k]=v; } } return o; }
-function fbDocId(r, idx){ let up=(r.extra&&(r.extra.UPC!=null?r.extra.UPC:r.extra.upc)); let id=(up!=null&&String(up).trim()!=='')?up:(r.itemCode1!=null&&String(r.itemCode1).trim()!=='')?r.itemCode1:(r.plu!=null&&String(r.plu).trim()!=='')?r.plu:('row_'+(idx+1)); id=String(id).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_'); return id||('row_'+(idx+1)); }
-window.__upcExportFirebase = async function(){
-  try{
-    const src={}; const snap=await getDocs(collection(db,'upc-list')); snap.forEach(ds=>{ src[ds.id]=ds.data(); });
-    const out={}, counts={};
-    Object.keys(FB_GROUPS).forEach(fc=>{ out[fc]={}; counts[fc]=0; });
-    Object.keys(FB_GROUPS).forEach(fc=>{ const g=FB_GROUPS[fc]; const docObj=src[g.cat]; const rows=(docObj&&Array.isArray(docObj.rows))?docObj.rows:[]; rows.forEach((r,i)=>{ if(g.sub){ const rs=String(r.sub||'').toUpperCase().replace(/\s+/g,''); const want=g.sub.toUpperCase().replace(/\s+/g,''); if(rs!==want) return; } let id=fbDocId(r,i),base=id,n=2; while(out[fc][id]){ id=base+'_'+(n++); } out[fc][id]=fbFlatten(r); counts[fc]++; }); });
-    const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='upc-list-firestore-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    const msg=Object.keys(counts).map(c=>c.replace('upc-list-','')+' '+counts[c]+'건').join(' · ');
-    if(window.showToast) showToast('Firebase용 내보내기: '+msg,'success');
-  }catch(e){ if(window.showToast) showToast('내보내기 실패','error'); }
-};
-window.__upcFirebasePreview = window.__upcExportFirebase;
+  /* =====================================================================
+     Firebase(Firestore) 호환 변환
+     - 앱 내부는 "카테고리 문서 1개 + rows 배열" 구조로 작업하지만,
+       Firestore로 옮길 땐 "아이템(UPC) 1건 = 문서 1개"가 되어야 합니다.
+     - 아래 매핑으로 그룹을 Firestore 컬렉션으로 분리합니다:
+         EGP·ARTBOX    → upc-list-item-artbox
+         EGP·K-BEAUTY  → upc-list-item-kbeauty
+         주류(전체)     → upc-list-item-alcohol  (sub 필드로 맥주/와인/사케/강한술 구분)
+     - 문서ID: UPC > ITEMCODE1 > PLU > 순번  (Firestore 문서ID 규칙에 맞게 정제)
+     ===================================================================== */
+  var FB_GROUPS = {
+    'upc-list-item-artbox':  { cat:'EGP',     sub:'ARTBOX'   },
+    'upc-list-item-kbeauty': { cat:'EGP',     sub:'K-BEAUTY' },
+    'upc-list-item-alcohol': { cat:'ALCOHOL', sub:null       }   // 주류 4종 모두
+  };
+  // firebase 내보내기용 데이터 평탄화
+  function fbFlatten(r){
+    // Firestore 문서 형태로 평탄화(기본필드 + extra 펼침). 빈 값은 생략.
+    var o={};
+    ['plu','itemCode1','itemCode2','local','organic','kor','eng','cate'].forEach(function(f){
+      if(r[f]!=null && String(r[f]).trim()!=='') o[f]=r[f];
+    });
+    if(r.sub!=null && String(r.sub).trim()!=='') o.sub=r.sub;
+    if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(v!=null && String(v).trim()!=='') o[k]=v; } }
+    return o;
+  }
+  // firebase 문서 ID 생성
+  function fbDocId(r, idx){
+    var up=(r.extra&&(r.extra.UPC!=null?r.extra.UPC:r.extra.upc));
+    var id = (up!=null&&String(up).trim()!=='') ? up
+           : (r.itemCode1!=null&&String(r.itemCode1).trim()!=='') ? r.itemCode1
+           : (r.plu!=null&&String(r.plu).trim()!=='') ? r.plu
+           : ('row_'+(idx+1));
+    id=String(id).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_');   // Firestore 문서ID 금지문자 정제
+    return id || ('row_'+(idx+1));
+  }
+  // firebase 내보내기 데이터 구성
+  function fbBuild(){
+    var src = store[LS_PREFIX] || {};   // 'upc-list-item' 컬렉션(앱 작업 구조)
+    var out = {}, counts = {};
+    Object.keys(FB_GROUPS).forEach(function(fc){ out[fc]={}; counts[fc]=0; });
+    Object.keys(FB_GROUPS).forEach(function(fc){
+      var g=FB_GROUPS[fc];
+      var docObj = src[g.cat];
+      var rows = (docObj && Array.isArray(docObj.rows)) ? docObj.rows : [];
+      rows.forEach(function(r,i){
+        if(g.sub){
+          var rs=String(r.sub||'').toUpperCase().replace(/\s+/g,'');
+          var want=g.sub.toUpperCase().replace(/\s+/g,'');
+          if(rs!==want) return;   // 해당 중간 카테고리만
+        }
+        var id=fbDocId(r,i), base=id, n=2;
+        while(out[fc][id]){ id=base+'_'+(n++); }   // 문서ID 중복 방지
+        out[fc][id]=fbFlatten(r); counts[fc]++;
+      });
+    });
+    return { data:out, counts:counts };
+  }
+  // Firestore import 호환 JSON 다운로드 ({ 컬렉션: { 문서ID: {필드...} } })
+  window.__upcExportFirebase = function(){
+    var b=fbBuild();
+    var blob=new Blob([JSON.stringify(b.data,null,2)], {type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='upc-list-item-firestore-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    var msg=Object.keys(b.counts).map(function(c){ return c.replace('upc-list-item-','')+' '+b.counts[c]+'건'; }).join(' · ');
+    if(window.showToast) showToast('Firebase용 내보내기: '+msg, 'success');
+  };
+  // (참고용) 현재 메모리 데이터를 Firestore 구조로 확인
+  window.__upcFirebasePreview = function(){ return fbBuild(); };
 
-window.dispatchEvent(new Event('plu-firebase-ready'));
+  window.dispatchEvent(new Event('plu-firebase-ready'));
+})();
 </script>
 <style>
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
@@ -713,8 +806,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     {label:'주류', doc:'ALCOHOL', subs:['맥주','와인','사케','강한술']}
   ];
   var PLU_TABS=DEFAULT_TABS.map(function(t){ return {label:t.label, doc:t.doc, subs:t.subs.slice()}; });
-  const COL='upc-list';
-  var CFG_COL='upc-config', CFG_DOC='main';
+  const COL='upc-list-item';
+  var CFG_COL='plu-config', CFG_DOC='main';
   var DOCID={};
   // 문서 ID 재구성
   function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
@@ -731,7 +824,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var subs=PLU_TABS[pluBig].subs||[]; if(pluSub>=subs.length) pluSub=0;
     renderTabs(); if(!editMode && typeof renderContent==='function') renderContent();
   }
-  // 전역 설정(upc-config) 실시간 구독
+  // 전역 설정(plu-config) 실시간 구독
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
@@ -744,6 +837,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function fieldOf(key){ var u=String(key||'').toUpperCase(); return BASE_FIELD[u]||null; }
   // 기본 열 레이아웃 생성
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
+  // 카테고리별 기본 열(저장된 레이아웃이 없을 때 사용)
+  var DEFAULT_LAYOUTS={
+    'EGP':[{"key":"UPC(O)","label":"UPC(O)","type":"text","hidden":false},{"key":"UPC(C)","label":"UPC(C)","type":"text","hidden":true},{"key":"ENG DESC","label":"ENG DESC","type":"text","hidden":false},{"key":"KOR DESC","label":"KOR DESC","type":"text","hidden":false},{"key":"ITEM CODE","label":"ITEM CODE","type":"text","hidden":false},{"key":"COST","label":"COST","type":"text","hidden":false},{"key":"MSRP","label":"MSRP","type":"text","hidden":false},{"key":"MSRP(%)","label":"MSRP(%)","type":"text","hidden":false},{"key":"SRP","label":"SRP","type":"text","hidden":false},{"key":"SRP(%)","label":"SRP(%)","type":"text","hidden":false},{"key":"CATE(ENG)","label":"CATE(ENG)","type":"text","hidden":true},{"key":"CATE(NO)","label":"CATE(NO)","type":"text","hidden":true},{"key":"CATEGORY","label":"CATEGORY","type":"text","hidden":false},{"key":"ORIGIN","label":"ORIGIN","type":"text","hidden":false},{"key":"VENDER","label":"VENDER","type":"text","hidden":false},{"key":"BRAND","label":"BRAND","type":"text","hidden":true},{"key":"TAX A","label":"TAX A","type":"rcheck","hidden":false},{"key":"TAX B","label":"TAX B","type":"rcheck","hidden":true}]
+  };
+  // 카테고리 기본 레이아웃 반환(없으면 빈 기본)
+  function catDefaultLayout(cat){ var dl=DEFAULT_LAYOUTS[cat]; return (dl&&dl.length)?normLayout(dl):defaultLayout([]); }
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   // 끝열(가격 등) 순서 정렬
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
@@ -768,7 +867,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   let pluBig=0, pluSub=0, pluSearchTerm='', pluCatFilter='';
   let pluSortKey='', pluSortDir='asc';   // SORT: ''=기본(PLU), upco/eng/kor/sales
   let cloud={}, layoutByCat={}, truncLenByCat={}, cloudLoaded=false;
-  var globalTrunc=20;   // 표시 글자수: 전체 카테고리 공통 (upc-config/main.truncLen)
+  var globalTrunc=20;   // 표시 글자수: 전체 카테고리 공통 (plu-config/main.truncLen)
   let pluRender=null, visibleCache=[];
   // ===== 데이터 변환 설정 — 중간 카테고리(cat+sub)별 · 각 필드는 서로 독립 =====
   //  [MSRP(권장판매가) 박스]
@@ -820,7 +919,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 현재 선택 중간 카테고리
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   // 현재 적용 열 레이아웃(편집/보기)
-  function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
+  function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), (layoutByCat[curCat()]&&layoutByCat[curCat()].length) ? layoutByCat[curCat()] : catDefaultLayout(curCat())); }
   // 화면에 보이는 열 목록(캐시)
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); }
   // 행 객체 깊은 복사
@@ -886,7 +985,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 클라우드 스냅샷을 메모리에 반영
   function applySnap(snap){
     cloud={}; layoutByCat={}; truncLenByCat={};
-    snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20; });
+    snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):((Array.isArray(d.fields)&&d.fields.length)?defaultLayout(d.fields):catDefaultLayout(lab)); truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20; });
     for(var __pk in __pendingChecks){ var __pp=__pk.split('\u0001'); var __c=__pp[0],__pl=__pp[1],__ky=__pp[2],__v=__pendingChecks[__pk]; var __rs=cloud[__c]; if(!__rs){ continue; } var __ff=null; for(var __i=0;__i<__rs.length;__i++){ if(pluValOf(__rs[__i])===__pl){ __ff=__rs[__i]; break; } } if(!__ff){ continue; } if(!__ff.extra) __ff.extra={}; if((!!__ff.extra[__ky])===(!!__v)){ delete __pendingChecks[__pk]; } else { __ff.extra[__ky]=__v; } }
     for(var __tk in __pendingText){ var __tp=__tk.split('\u0001'); var __tc=__tp[0],__tpl=__tp[1],__tky=__tp[2],__tv=__pendingText[__tk]; var __trs=cloud[__tc]; if(!__trs){ continue; } var __tff=null; for(var __tj=0;__tj<__trs.length;__tj++){ if(pluValOf(__trs[__tj])===__tpl){ __tff=__trs[__tj]; break; } } if(!__tff){ continue; } if(!__tff.extra) __tff.extra={}; if(String(__tff.extra[__tky]==null?'':__tff.extra[__tky])===String(__tv)){ delete __pendingText[__tk]; } else { __tff.extra[__tky]=__tv; } }
     cloudLoaded=true;
@@ -925,7 +1024,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function rowsFor(cat){ return cloud[cat]!==undefined ? cloud[cat] : baseRows(cat); }
 
   // ===== 매장 전용 열/데이터 (읽기 전용 · 검증용) =====
-  var OV_COL='upc-store-overrides';
+  var OV_COL='plu-store-overrides';
   var storeOvAll={};      // { STORE: { cols:{CATDOC:[...]}, ov:{CATDOC:{PLU:{KEY:val}}} } }
   var mgrRefOrder=[];     // 참조열 표시 순서(세션 한정, 스토어에 미적용)
   // 전체 카테고리 실시간 구독 시작
@@ -950,7 +1049,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     ov[cidv][plu][key]=(value==null?'':value);
     renderContent();
     try{ await fns().setDoc(fns().doc(db(), OV_COL, store), {ov:ov, store:store, updatedAt:Date.now()}, {merge:true}); }
-    catch(e){ showToast('매장 데이터 저장 실패 — 규칙(upc-store-overrides) 확인','error'); }
+    catch(e){ showToast('매장 데이터 저장 실패 — 규칙(plu-store-overrides) 확인','error'); }
   }
   // (매니저) 참조 값 조회
   function mgrRefVal(refCol, plu){ var s=storeOvAll[refCol.store]; if(!s||!s.ov) return ''; var cm=s.ov[DOCID[curCat()]||curCat()]; if(!cm) return ''; var rec=cm[String(plu)]; if(!rec) return ''; var v=rec[refCol.srcKey]; return (v==null?'':v); }
@@ -1018,7 +1117,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       for(var k=0;k<renames.length;k++){ await migrateSubRename(renames[k].doc, renames[k].map); }
       await fns().setDoc(fns().doc(db(), CFG_COL, CFG_DOC), {tabs:tabs, updatedAt:Date.now()}, {merge:true});
       applyTabs(tabs); $('catEdHint').textContent='저장됨'+(renames.length?' · 이름 변경 데이터 자동 이전 완료':''); setTimeout(function(){ $('catEdOv').classList.remove('show'); }, 700);
-    }catch(e){ $('catEdHint').textContent='저장 실패 — 규칙(upc-config / upc-store-overrides) 확인'; }
+    }catch(e){ $('catEdHint').textContent='저장 실패 — 규칙(plu-config / plu-store-overrides) 확인'; }
   }
   // 카테고리에 해당하는 탭 객체
   function mainTab(main){ for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===main) return PLU_TABS[i]; } return null; }
@@ -1750,8 +1849,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     }
     // 현재 화면/모달 갱신
     var refresh=function(){ var b=$('histBody'); if(b){ b.innerHTML=build(); bindAll(); } };
-    window.__histRefresh=refresh;
-    (function(){ var ovEl=$('histOverlay'); if(ovEl){ var x=ovEl.querySelector('.pcm-x, #histClose'); } })();
     bindAll();
     $('histClose').onclick=close; $('histOk').onclick=close;
     var __hb=$('histBack'); if(__hb) __hb.onclick=function(){ close(); openAdminModal(); };
@@ -1775,40 +1872,14 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function fmtDateOnly(ts){ var d=new Date(ts); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
   // 날짜+시간 형식
   function fmtDateTime(ts){ var d=new Date(ts); return fmtDateOnly(ts)+' '+pad2(d.getHours())+':'+pad2(d.getMinutes()); }
-  /* ===== 이력(히스토리) — Firebase 공유 (컬렉션 upc-list-hist / 문서 new·price) =====
-     메모리 캐시(__histCache)로 기존 동기 호출부를 그대로 유지하고,
-     실제 데이터는 Firestore에 저장 → 모든 기기/매니저·스토어가 실시간 공유. */
-  var HIST_COL='upc-list-hist';
-  var __histCache={ 'new':[], 'price':[] };
-  var __histReady=false;
-  // 이력 로드: 메모리 캐시 즉시 반환(동기)
-  function loadHist(kind){ return (__histCache[kind]||[]).slice(); }
-  // 이력 저장: 캐시 갱신 + Firebase 비동기 쓰기
-  function saveHist(kind, arr){
-    __histCache[kind]=(arr||[]).slice();
-    try{
-      var f=(window.firebaseFns||{}); var d=window.firebaseDb;
-      if(f.setDoc && f.doc && d){ f.setDoc(f.doc(d, HIST_COL, kind), { items: __histCache[kind], updatedAt: Date.now() }).catch(function(){}); }
-    }catch(e){}
-  }
+  // 이력 로드(localStorage)
+  function loadHist(kind){ try{ return JSON.parse(localStorage.getItem('upc-list-item::__hist_'+kind)||'[]')||[]; }catch(e){ return []; } }
+  // 이력 저장
+  function saveHist(kind, arr){ try{ localStorage.setItem('upc-list-item::__hist_'+kind, JSON.stringify(arr)); }catch(e){} }
   // 이력 추가
   function addHist(kind, records){ if(!records||!records.length) return; var h=loadHist(kind); var batch=String(Date.now())+'_'+Math.random().toString(36).slice(2,7); records.forEach(function(r){ if(!r.id) r.id=String(r.ts||Date.now())+'_'+Math.random().toString(36).slice(2,7); if(!r.batch) r.batch=batch; h.push(r); }); saveHist(kind, h); }
   // 이력 항목 삭제
   function delHist(kind, id){ var h=loadHist(kind).filter(function(r){ return r.id!==id; }); saveHist(kind, h); return h; }
-  // 이력 실시간 구독: 다른 기기/매니저의 변경을 캐시에 반영하고 열린 모달 새로고침
-  function startHistListener(){
-    var f=(window.firebaseFns||{}); var d=window.firebaseDb;
-    if(!f.onSnapshot || !f.doc || !d) return;
-    ['new','price'].forEach(function(kind){
-      try{ f.onSnapshot(f.doc(d, HIST_COL, kind), function(snap){
-        var data=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
-        __histCache[kind]=(data&&Array.isArray(data.items))?data.items:[];
-        var ov=document.getElementById('histOverlay'); if(ov && window.__histRefresh){ try{ window.__histRefresh(); }catch(e){} }
-      }, function(){}); }catch(e){}
-    });
-    __histReady=true;
-  }
-  if(window.firebaseFns){ startHistListener(); } else { window.addEventListener('plu-firebase-ready', startHistListener, {once:true}); }
   // 이력 삭제 시: 해당 행의 N/$ 마커를 제거해 NO. 칸을 원래 번호로 되돌림
   async function clearMarksForRecords(kind, records){
     if(!records || !records.length) return;
@@ -1993,7 +2064,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function enterEdit(){
     var cat=curCat();
     // (편집) 시작 처리
-    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
+    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, (layoutByCat[cat]&&layoutByCat[cat].length)?layoutByCat[cat]:catDefaultLayout(cat)); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); };
     if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
   }
   // 변경됨 표시(저장 필요)
@@ -2905,7 +2976,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   'use strict';
   // id로 DOM 요소 조회 단축
   var $ = function(id){ return document.getElementById(id); };
-  var REQ_COL = 'upc-requests';
+  var REQ_COL = 'plu-requests';
   var reqs = [];
   // HTML 이스케이프(로컬)
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
@@ -3088,7 +3159,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // id로 DOM 요소 조회 단축
   var $ = function(id){ return document.getElementById(id); };
   var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  var PINS_COL = 'plu-store-pins', OV_COL = 'upc-store-overrides';
+  var PINS_COL = 'plu-store-pins', OV_COL = 'plu-store-overrides';
   var selStore = null, msmCols = {}, msmOv = {};
   var CATS = [
     {label:'EGP', doc:'EGP', subs:['ARTBOX','K-BEAUTY']},
@@ -3126,7 +3197,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     arr.push({key:key, label:name, type:(type==='check'?'check':'text')});
     $('msmColHint').textContent='저장 중…';
     try{ await fns().setDoc(fns().doc(db(), OV_COL, selStore), {cols:msmCols, store:selStore, updatedAt:Date.now()}, {merge:true}); $('msmColName').value=''; $('msmColHint').textContent='추가됨: '+c.label+' › '+sub+' · '+name; renderColList(); }
-    catch(e){ $('msmColHint').textContent='저장 실패 — 규칙(upc-store-overrides) 확인'; }
+    catch(e){ $('msmColHint').textContent='저장 실패 — 규칙(plu-store-overrides) 확인'; }
   }
   async function renColumn(doc, sub, key){
     var arr=(msmCols[doc]||{})[sub]||[]; var col=null; for(var i=0;i<arr.length;i++){ if(arr[i].key===key){ col=arr[i]; break; } } if(!col) return;
