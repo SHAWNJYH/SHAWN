@@ -732,7 +732,7 @@
   ];
   var PLU_TABS=DEFAULT_TABS.map(function(t){ return {label:t.label, doc:t.doc, subs:t.subs.slice()}; });
   const COL='upc-list-item';
-  var CFG_COL='plu-config', CFG_DOC='main';
+  var CFG_COL='plu-config', CFG_DOC='upc-main';
   var DOCID={};
   // 문서 ID 재구성
   function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
@@ -943,7 +943,7 @@
   function rowsFor(cat){ return cloud[cat]!==undefined ? cloud[cat] : baseRows(cat); }
 
   // ===== 매장 전용 열/데이터 (읽기 전용 · 검증용) =====
-  var OV_COL='plu-store-overrides';
+  var OV_COL='upc-store-overrides';
   var storeOvAll={};      // { STORE: { cols:{CATDOC:[...]}, ov:{CATDOC:{PLU:{KEY:val}}} } }
   var mgrRefOrder=[];     // 참조열 표시 순서(세션 한정, 스토어에 미적용)
   // 전체 카테고리 실시간 구독 시작
@@ -2896,7 +2896,7 @@
   'use strict';
   // id로 DOM 요소 조회 단축
   var $ = function(id){ return document.getElementById(id); };
-  var REQ_COL = 'plu-requests';
+  var REQ_COL = 'upc-requests';
   var reqs = [];
   // HTML 이스케이프(로컬)
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
@@ -3080,7 +3080,7 @@
   // id로 DOM 요소 조회 단축
   var $ = function(id){ return document.getElementById(id); };
   var STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  var PINS_COL = 'plu-store-pins', OV_COL = 'plu-store-overrides';
+  var PINS_COL = 'plu-store-pins', OV_COL = 'upc-store-overrides';
   var selStore = null, msmCols = {}, msmOv = {};
   var CATS = [
     {label:'EGP', doc:'EGP', subs:['ARTBOX','K-BEAUTY']},
