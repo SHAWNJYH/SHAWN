@@ -2333,6 +2333,8 @@
   }
   .mgr-x:hover { color: var(--text); }
   .mgr-pw-sub { margin: 2px 0 16px; font-size: 13px; color: var(--text-faint); }
+  .egmm-auto-row { display: flex; align-items: center; gap: 8px; margin: 2px 0 14px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .egmm-auto-row input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-warm); }
 </style>
 </head>
 <body>
@@ -2410,6 +2412,7 @@
       <input type="password" id="egmmPwInput" inputmode="numeric" placeholder="••••••" autocomplete="off">
     </div>
     <div class="err" id="egmmPwErr"></div>
+    <label class="egmm-auto-row"><input type="checkbox" id="egmmAutoChk"><span>자동 로그인</span></label>
     <button class="btn" id="egmmPwBtn">들어가기</button>
   </div>
 </div>
@@ -3235,15 +3238,26 @@
   $('toLoginBtn').onclick = setLoginMode;
   // EGMM 박스 → 비밀번호 확인(팝업) 후 별도 페이지(egmm.html)로 이동
   const EGMM_PASSWORD = '98001';
-  const egmmPwOv = $('egmmPwOv'), egmmPwInput = $('egmmPwInput'), egmmPwErr = $('egmmPwErr');
-  const openEgmmPw = () => { if(egmmPwErr) egmmPwErr.textContent=''; if(egmmPwInput) egmmPwInput.value=''; egmmPwOv.classList.add('show'); setTimeout(()=>{ if(egmmPwInput) egmmPwInput.focus(); }, 80); };
+  const EGMM_AUTO_KEY = 'egmmAutoLogin';
+  const egmmPwOv = $('egmmPwOv'), egmmPwInput = $('egmmPwInput'), egmmPwErr = $('egmmPwErr'), egmmAutoChk = $('egmmAutoChk');
+  const isEgmmAuto = () => { try{ return localStorage.getItem(EGMM_AUTO_KEY)==='1'; }catch(e){ return false; } };
+  const openEgmmPw = () => { if(egmmPwErr) egmmPwErr.textContent=''; if(egmmPwInput) egmmPwInput.value=''; if(egmmAutoChk) egmmAutoChk.checked=isEgmmAuto(); egmmPwOv.classList.add('show'); setTimeout(()=>{ if(egmmPwInput) egmmPwInput.focus(); }, 80); };
   const closeEgmmPw = () => egmmPwOv.classList.remove('show');
   const submitEgmmPw = () => {
     const p = (egmmPwInput && egmmPwInput.value || '').trim();
-    if (p === EGMM_PASSWORD) { window.location.href = 'egmm.html'; }
-    else { if(egmmPwErr) egmmPwErr.textContent = '비밀번호가 올바르지 않습니다'; }
+    if (p === EGMM_PASSWORD) {
+      try{ localStorage.setItem(EGMM_AUTO_KEY, (egmmAutoChk && egmmAutoChk.checked) ? '1' : '0'); }catch(e){}
+      window.location.href = 'egmm.html';
+    } else { if(egmmPwErr) egmmPwErr.textContent = '비밀번호가 올바르지 않습니다'; }
   };
-  const enterEgmm = () => openEgmmPw();
+  const enterEgmm = () => {
+    if (isEgmmAuto()) {   // 자동 로그인 ON → 안 묻고 안내 후 진입
+      try { showToast('자동 로그인 합니다', 'success'); } catch(e) {}
+      setTimeout(()=>{ window.location.href = 'egmm.html'; }, 600);
+      return;
+    }
+    openEgmmPw();
+  };
   $('toOdpBtn').onclick = () => enterEgmm();
   $('toOdpBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }

@@ -2253,16 +2253,17 @@
   .egmm-screen.active { display: block; }
 
   /* EGMM 메인 메뉴 (3개 버튼) */
-  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 24px; }
+  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 24px; overflow-y: auto; flex-direction: column; }
   #egmmMenu.active { display: flex; }
+  .egmm-cards { display: flex; gap: 18px; align-items: stretch; justify-content: center; width: 100%; max-width: 1200px; flex-wrap: wrap; }
   .egmm-card {
-    width: 100%; max-width: 420px; background: var(--bg-elev);
+    flex: 1 1 0; min-width: 280px; max-width: 380px; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 16px;
-    padding: 40px 28px 28px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
+    padding: 32px 24px 24px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
   }
   .egmm-title {
-    font-family: var(--serif); font-weight: 700; font-size: 34px; line-height: 1.1;
-    text-align: center; color: var(--text); letter-spacing: 1px; margin-bottom: 4px;
+    font-family: var(--serif); font-weight: 700; font-size: 28px; line-height: 1.1;
+    text-align: center; color: var(--text); letter-spacing: 1px; margin-bottom: 20px;
   }
   .egmm-sub { text-align: center; font-size: 13px; color: var(--text-dim); margin-bottom: 28px; }
   .egmm-menu-btn {
@@ -2408,53 +2409,64 @@
 
 <!-- EGMM 메인 메뉴 -->
 <div id="egmmMenu">
+ <div class="egmm-cards">
+  <!-- 박스 1: EGMM -->
   <div class="egmm-card">
     <h1 class="egmm-title">EGMM</h1>
 
     <div class="egmm-section-title">ITEM LIST</div>
     <button class="egmm-menu-btn" id="egmmPluListBtn">
-      <span>PLU LIST</span>
-      <span class="egmm-menu-arrow">›</span>
+      <span>PLU LIST</span><span class="egmm-menu-arrow">›</span>
     </button>
     <button class="egmm-menu-btn" id="egmmUpcListBtn">
-      <span>UPC LIST / ITEM CODE</span>
-      <span class="egmm-menu-arrow">›</span>
+      <span>UPC LIST / ITEM CODE</span><span class="egmm-menu-arrow">›</span>
     </button>
 
     <div class="egmm-section-title gap">MEMORIZE</div>
     <button class="egmm-menu-btn" id="egmmPluMemorizeBtn">
-      <span>PLU MEMORIZE</span>
-      <span class="egmm-menu-arrow">›</span>
+      <span>PLU MEMORIZE</span><span class="egmm-menu-arrow">›</span>
     </button>
     <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn">
-      <span>DELI MEMORIZE</span>
-      <span class="egmm-menu-arrow">›</span>
+      <span>DELI MEMORIZE</span><span class="egmm-menu-arrow">›</span>
+    </button>
+
+    <div class="egmm-section-title gap">SCHEDULE</div>
+    <button class="egmm-menu-btn" id="egmmCalendarBtn">
+      <span>CALENDAR</span><span class="egmm-menu-arrow">›</span>
+    </button>
+  </div>
+
+  <!-- 박스 2: ODP -->
+  <div class="egmm-card">
+    <h1 class="egmm-title">ODP</h1>
+    <p class="egmm-sub">준비 중입니다</p>
+  </div>
+
+  <!-- 박스 3: GUIDE -->
+  <div class="egmm-card">
+    <h1 class="egmm-title">GUIDE</h1>
+
+    <div class="egmm-section-title">TAX</div>
+    <button class="egmm-menu-btn" id="egmmTaxBtn">
+      <span>TAX</span><span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmEbtBtn">
+      <span>EBT</span><span class="egmm-menu-arrow">›</span>
+    </button>
+    <button class="egmm-menu-btn" id="egmmHardLiquorBtn">
+      <span>HARD LIQUOR</span><span class="egmm-menu-arrow">›</span>
     </button>
 
     <div class="egmm-section-title gap">GUIDE</div>
     <button class="egmm-menu-btn" id="egmmProductNameMakerBtn">
-      <span>PRODUCT NAME MAKER</span>
-      <span class="egmm-menu-arrow">›</span>
+      <span>PRODUCT NAME MAKER</span><span class="egmm-menu-arrow">›</span>
     </button>
     <button class="egmm-menu-btn" id="egmmDeliMgmtBtn">
-      <span>DELI MANAGEMENT</span>
-      <span class="egmm-menu-arrow">›</span>
+      <span>DELI MANAGEMENT</span><span class="egmm-menu-arrow">›</span>
     </button>
-    <button class="egmm-menu-btn" id="egmmEbtBtn">
-      <span>EBT</span>
-      <span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmTaxBtn">
-      <span>TAX</span>
-      <span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmHardLiquorBtn">
-      <span>HARD LIQUOR</span>
-      <span class="egmm-menu-arrow">›</span>
-    </button>
-
-    <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
   </div>
+ </div>
+ <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
 </div>
 
 <!-- ITEM CODE 보기 화면 -->
@@ -2789,6 +2801,7 @@
   // ITEM LIST / MEMORIZE / GUIDE 메뉴 버튼 — 링크는 추후 연결 예정
   $('egmmUpcListBtn').onclick = function(){ window.location.href = 'upc-list-manager.html'; };
   $('egmmPluListBtn').onclick = function(){ window.location.href = 'plu-list-manager.html'; };
+  var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ try{ showToast('준비 중입니다','error'); }catch(e){} };
   $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
