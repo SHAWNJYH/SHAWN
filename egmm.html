@@ -2432,7 +2432,7 @@
 
     <div class="egmm-section-title gap">SCHEDULE</div>
     <button class="egmm-menu-btn" id="egmmCalendarBtn">
-      <span>CALENDAR</span><span class="egmm-menu-arrow">›</span>
+      <span>CALENDER</span><span class="egmm-menu-arrow">›</span>
     </button>
   </div>
 
@@ -2801,7 +2801,7 @@
   // ITEM LIST / MEMORIZE / GUIDE 메뉴 버튼 — 링크는 추후 연결 예정
   $('egmmUpcListBtn').onclick = function(){ window.location.href = 'upc-list-manager.html'; };
   $('egmmPluListBtn').onclick = function(){ window.location.href = 'plu-list-manager.html'; };
-  var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ try{ showToast('준비 중입니다','error'); }catch(e){} };
+  var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ window.location.href = 'egmm-calendar.html'; };
   $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
