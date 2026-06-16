@@ -2334,11 +2334,28 @@
   .mgr-x:hover { color: var(--text); }
   .mgr-pw-sub { margin: 2px 0 16px; font-size: 13px; color: var(--text-faint); }
 
-  /* EGMM 캘린더 전체화면 (1920×1080 꽉차게) */
-  .app { max-width: 1860px !important; padding: 20px 36px 40px !important; }
-  .cal-layout { grid-template-columns: 1fr 300px !important; }
-  .day { min-height: calc((100vh - 300px) / 6) !important; }
+  /* EGMM 캘린더 전체화면 (1080 한 화면, 스크롤 없음) */
+  html, body { height: 100vh; overflow: hidden; }
+  .app { max-width: 100% !important; height: 100vh; padding: 12px 28px 14px !important; margin: 0 !important; display: flex; flex-direction: column; overflow: hidden; }
+  .app .topbar { flex: 0 0 auto; margin-bottom: 8px !important; align-items: flex-start; }
+  .app .brand { font-size: 24px !important; margin: 0 !important; }
+  .app .brand-meta { margin-top: 2px !important; }
+  .app .cal-header { flex: 0 0 auto; margin-bottom: 8px !important; }
+  .cal-layout { grid-template-columns: 1fr 280px !important; flex: 1 1 auto; min-height: 0; margin-bottom: 0 !important; }
+  .cal-main { display: flex; flex-direction: column; min-height: 0; }
+  .cal-main .weekdays { flex: 0 0 auto; }
+  .calendar { flex: 1 1 auto; min-height: 0; margin-bottom: 0 !important; grid-auto-rows: 1fr; }
+  .day { min-height: 0 !important; overflow: hidden; }
+  .cal-side { overflow-y: auto; min-height: 0; }
+  .topbar-actions { align-items: center; }
   .mgr-fab { display: none !important; }
+
+  /* 메모 팝업 모달 */
+  .notes-ov { position: fixed; inset: 0; z-index: 3000; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; padding: 24px; }
+  .notes-ov.show { display: flex; }
+  .notes-modal { width: 100%; max-width: 900px; max-height: 86vh; overflow-y: auto; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: 0 !important; }
+  .notes-head-btns { display: flex; gap: 8px; }
+  .notes-close-btn { background: transparent !important; color: var(--text-dim) !important; border: 1.5px solid var(--border) !important; }
 </style>
 </head>
 <body>
@@ -2895,7 +2912,6 @@
 <div class="app" id="app">
   <header class="topbar">
     <div>
-      <button class="back-btn" id="backToMenuBtn" style="margin-bottom: 12px;">← EGMM</button>
       <h1 class="brand">CALENDER</h1>
       <div class="brand-meta">EGMM · 일정</div>
     </div>
@@ -2915,6 +2931,7 @@
           <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
       </button>
+      <button class="back-btn" id="backToMenuBtn">EGMM →</button>
     </div>
   </header>
 
@@ -2923,6 +2940,7 @@
       <h2 class="cal-title" id="calMonth">May <em>2026</em></h2>
     </div>
     <div class="cal-nav">
+      <button class="today-btn" id="openNotesBtn" title="메모장">📝 메모</button>
       <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
       <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
       <button class="today-btn" id="todayBtn">TODAY</button>
@@ -2959,12 +2977,17 @@
       </div>
     </aside>
   </div>
+</div>
 
-  <!-- NOTES (Post-it) -->
-  <section class="notes-section">
+<!-- NOTES 팝업 -->
+<div class="notes-ov" id="notesOv">
+  <section class="notes-section notes-modal">
     <div class="notes-header">
       <h2 class="notes-title">메모장 <em id="notesCount">0</em></h2>
-      <button class="add-note-btn" id="addNoteBtn">+ 새 메모</button>
+      <div class="notes-head-btns">
+        <button class="add-note-btn" id="addNoteBtn">+ 새 메모</button>
+        <button class="add-note-btn notes-close-btn" id="notesCloseBtn">닫기</button>
+      </div>
     </div>
     <div class="notes-grid" id="notesGrid"></div>
   </section>
@@ -4313,7 +4336,11 @@
     return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  function openNotes(){ var ov=$('notesOv'); if(ov){ ov.classList.add('show'); renderNotes(); } }
+  function closeNotes(){ var ov=$('notesOv'); if(ov) ov.classList.remove('show'); }
+
   function addNote() {
+    openNotes();   // 새 메모는 팝업 안에서
     const color = NOTE_COLORS[state.notes.length % NOTE_COLORS.length];
     const newNote = {
       id: uid(),
@@ -4333,6 +4360,9 @@
   }
 
   $('addNoteBtn').onclick = addNote;
+  var __openNotesBtn=$('openNotesBtn'); if(__openNotesBtn) __openNotesBtn.onclick = openNotes;
+  var __notesCloseBtn=$('notesCloseBtn'); if(__notesCloseBtn) __notesCloseBtn.onclick = closeNotes;
+  var __notesOv=$('notesOv'); if(__notesOv) __notesOv.addEventListener('click', function(e){ if(e.target===__notesOv) closeNotes(); });
 
   // 메모 textarea 입력 / 삭제 처리 (이벤트 위임)
   $('notesGrid').addEventListener('input', e => {
