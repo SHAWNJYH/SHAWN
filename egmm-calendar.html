@@ -2018,7 +2018,7 @@
   #dateTimeFields:not(.shift-row) .dayoff-spacer { display: none; }
   .dayoff-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
   .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; position: relative; top: 15px; }
-  .dayoff-row .dayoff-text { position: relative; top: 8px; }
+  .dayoff-row .dayoff-text { position: relative; top: 11px; }
   /* 메모 영역 여유 */
   #evNotes { min-height: 56px; }
 
@@ -3095,6 +3095,12 @@
         </div>
       </div>
 
+      <!-- 근무 기간 (근무시간일 때만) -->
+      <div class="field" id="shiftRangeField" style="display:none;">
+        <label>기간 (선택) — 이 날부터 종료일까지 매일 동일 적용</label>
+        <input type="date" id="evShiftEnd">
+      </div>
+
       <!-- 음력/양력 선택 (생일일 때만) -->
       <div class="field" id="lunarField" style="display:none;">
         <label>날짜 종류</label>
@@ -4124,6 +4130,7 @@
     $('dateTimeFields').classList.toggle('shift-row', isShift);
     // 휴무 체크박스는 근무시간일 때만
     $('dayOffField').style.display = isShift ? '' : 'none';
+    var __srf=$('shiftRangeField'); if(__srf) __srf.style.display = isShift ? '' : 'none';
     // 휴무 체크 시 시간 입력 비활성
     var __off = isShift && $('evDayOff') && $('evDayOff').checked;
     ['evStartH','evStartM','evEndH','evEndM'].forEach(function(id){ var el=$(id); if(el) el.disabled = __off; });
@@ -4381,7 +4388,19 @@
       editingId = null;
       var __ab = $('addEvBtn'); if (__ab) __ab.textContent = '+ 추가';
     } else {
-      state.events.push(newEvent);
+      // 근무시간 + 기간(종료일) 입력 시 그 날부터 종료일까지 매일 동일 생성
+      var __shiftEnd = (isShift && $('evShiftEnd')) ? $('evShiftEnd').value : '';
+      if (isShift && __shiftEnd && __shiftEnd >= startDate) {
+        var __cur = startDate;
+        while (__cur <= __shiftEnd) {
+          state.events.push(Object.assign({}, newEvent, { id: uid(), date: __cur }));
+          var __pd = parseDateKey(__cur);
+          var __nd = new Date(__pd.y, __pd.m, __pd.d + 1);
+          __cur = dateKey(__nd.getFullYear(), __nd.getMonth(), __nd.getDate());
+        }
+      } else {
+        state.events.push(newEvent);
+      }
     }
     markDirty();
     // 입력 초기화
@@ -4393,6 +4412,7 @@
     $('evEndH').value = '';
     $('evEndM').value = '';
     $('evNotes').value = '';
+    if ($('evShiftEnd')) $('evShiftEnd').value = '';
     if ($('evDayOff')) $('evDayOff').checked = false;
     ['evStartH','evStartM','evEndH','evEndM'].forEach(function(id){ var el=$(id); if(el) el.disabled=false; });
     renderDayEvents();
