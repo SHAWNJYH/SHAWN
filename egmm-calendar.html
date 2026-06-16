@@ -1996,6 +1996,16 @@
     border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 700;
     line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  /* 날짜 클릭 히스토리: 작은 글씨 한 줄 */
+  .ev-row.ev-oneline .ev-line { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; white-space: nowrap; overflow: hidden; }
+  .ev-row.ev-oneline .ev-title-text { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+  .ev-row.ev-oneline .ev-time-inline { color: var(--text-faint); font-size: 11px; margin-left: auto; flex: 0 0 auto; }
+  .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; }
+  /* 근무시간: 시작/종료 시간 한 줄 */
+  #dateTimeFields.shift-row { display: flex !important; gap: 12px; align-items: flex-end; }
+  #dateTimeFields.shift-row > .field { flex: 1; margin-bottom: 0; }
+  .dayoff-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; }
 
   .lunar-picker {
     display: grid;
@@ -3066,6 +3076,11 @@
         </div>
       </div>
 
+      <!-- 휴무 (근무시간일 때만) -->
+      <div class="field" id="dayOffField" style="display:none;">
+        <label class="dayoff-row"><input type="checkbox" id="evDayOff"> 이 날 휴무 (쉬는 날)</label>
+      </div>
+
       <!-- 음력/양력 선택 (생일일 때만) -->
       <div class="field" id="lunarField" style="display:none;">
         <label>날짜 종류</label>
@@ -3847,11 +3862,12 @@
 
       const moreHtml = remain > 0 ? `<div class="ev-more">+${remain} more</div>` : '';
 
-      // 근무시간: 칸 하단 노란 바탕 (이름 시작~종료 근무)
+      // 근무시간: 칸 하단 노란 바탕 (근무시간 : 이름 시작~종료)
       const shiftHtml = shiftEvents.length ? `<div class="shift-list">${
         shiftEvents.map(e => {
-          const t = e.start ? (e.start + (e.end ? '~' + e.end : '~')) : '';
-          return `<div class="shift-pill">${escapeHtml(e.title)}${t ? ' ' + t : ''} 근무</div>`;
+          if (e.dayOff) return `<div class="shift-pill">근무시간 : ${escapeHtml(e.title)} 휴무</div>`;
+          const t = e.start ? (e.start + '~' + (e.end || '')) : '';
+          return `<div class="shift-pill">근무시간 : ${escapeHtml(e.title)}${t ? ' ' + t : ''}</div>`;
         }).join('')
       }</div>` : '';
 
@@ -3897,6 +3913,7 @@
     for (let d = 1; d <= daysInMonth; d++) {
       const events = getEventsForCell(y, m, d);
       events.forEach(ev => {
+        if (ev.category === 'shift') return;   // 근무시간은 오른쪽 목록에 표시 안 함
         // 다일 일정은 시작일에만 표시
         if (ev._multiPos && ev._multiPos !== 'start') return;
         items.push({ day: d, ev });
@@ -4088,6 +4105,13 @@
     if (__el) __el.textContent = isShift ? '~ 종료' : '종료 (선택)';
     if (__sd) __sd.style.display = isShift ? 'none' : '';
     if (__ed) __ed.style.display = isShift ? 'none' : '';
+    // 근무시간이면 시작/종료 시간을 한 줄로
+    $('dateTimeFields').classList.toggle('shift-row', isShift);
+    // 휴무 체크박스는 근무시간일 때만
+    $('dayOffField').style.display = isShift ? '' : 'none';
+    // 휴무 체크 시 시간 입력 비활성
+    var __off = isShift && $('evDayOff') && $('evDayOff').checked;
+    ['evStartH','evStartM','evEndH','evEndM'].forEach(function(id){ var el=$(id); if(el) el.disabled = __off; });
     updateLunarHint();
   }
 
@@ -4124,6 +4148,7 @@
       updateFormUI();
     });
   });
+  var __dayOff=$('evDayOff'); if(__dayOff) __dayOff.addEventListener('change', updateFormUI);
 
   // 음력 버튼 클릭
   document.querySelectorAll('.lunar-btn').forEach(btn => {
@@ -4163,7 +4188,7 @@
 
     listEl.innerHTML = dayEvents.map(ev => {
       const cat = ev.category || 'work';
-      const catLabel = cat === 'work' ? '회사' : cat === 'personal' ? '개인' : '생일';
+      const catLabel = cat === 'work' ? '회사' : cat === 'personal' ? '개인' : cat === 'shift' ? '근무시간' : '생일';
       const colorCls = (ev.color && ev.color !== 'default') ? 'color-' + ev.color : '';
       let timeLabel;
       if (ev.isBirthday) {
@@ -4200,13 +4225,13 @@
       } else {
         timeLabel = '종일';
       }
+      if (ev.dayOff) timeLabel = '휴무';
 
       return `
-        <li class="ev-row cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}" data-id="${ev.id}">
+        <li class="ev-row ev-oneline cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}" data-id="${ev.id}">
           <div class="ev-check" data-action="toggle" title="${ev.done ? '미완료로 표시' : '완료(X) 표시'}"></div>
           <div class="ev-body">
-            <div class="ev-time-label">${timeLabel}<span class="ev-cat-tag cat-${cat}">${catLabel}</span></div>
-            <div class="ev-title-text">${escapeHtml(ev.title)}</div>
+            <div class="ev-line"><span class="ev-cat-tag cat-${cat}">${catLabel}</span><span class="ev-title-text">${escapeHtml(ev.title)}</span><span class="ev-time-inline">${timeLabel}</span></div>
             ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
           </div>
           <button class="ev-del" data-action="delete" title="삭제">
@@ -4267,6 +4292,8 @@
     const category = formState.category;
     const color = formState.color;
     const isBirthday = category === 'birthday';
+    const isShift = category === 'shift';
+    const dayOff = isShift && $('evDayOff') && $('evDayOff').checked;
     const isLunar = isBirthday && formState.lunar === 'lunar';
 
     if (!title) {
@@ -4274,7 +4301,7 @@
       $('evTitle').focus();
       return;
     }
-    if (start === 'INVALID' || end === 'INVALID') {
+    if (!dayOff && (start === 'INVALID' || end === 'INVALID')) {
       showToast('시간을 0~23시, 0~59분으로 입력하세요', 'error');
       return;
     }
@@ -4291,8 +4318,8 @@
       id: uid(),
       date: isBirthday ? state.selectedDate : startDate,
       endDate: isBirthday ? null : (endDate || null),
-      start: isBirthday ? null : (start || null),
-      end: isBirthday ? null : (end || null),
+      start: (isBirthday || dayOff) ? null : (start || null),
+      end: (isBirthday || dayOff) ? null : (end || null),
       title,
       notes: notes || null,
       done: false,
@@ -4300,6 +4327,7 @@
       color: isBirthday ? 'default' : color,
       isBirthday: isBirthday,
       isLunar: isLunar,
+      dayOff: dayOff || false,
       created: Date.now()
     };
     state.events.push(newEvent);
@@ -4313,6 +4341,8 @@
     $('evEndH').value = '';
     $('evEndM').value = '';
     $('evNotes').value = '';
+    if ($('evDayOff')) $('evDayOff').checked = false;
+    ['evStartH','evStartM','evEndH','evEndM'].forEach(function(id){ var el=$(id); if(el) el.disabled=false; });
     renderDayEvents();
     renderCalendar();
     // 명확한 시각 피드백
