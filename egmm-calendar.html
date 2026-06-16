@@ -2000,10 +2000,14 @@
   .ev-row.ev-oneline .ev-line { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; white-space: nowrap; overflow: hidden; }
   .ev-row.ev-oneline .ev-title-text { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
   .ev-row.ev-oneline .ev-time-inline { color: var(--text-faint); font-size: 11px; margin-left: auto; flex: 0 0 auto; }
-  .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; }
-  /* 근무시간: 시작/종료 시간 한 줄 */
+  .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; font-size: 12px; padding: 2px 9px; margin-left: 0; }
+  .ev-row.ev-oneline .ev-title-text { font-size: 12px; }
+  /* 근무시간: 시작/종료 시간 한 줄 + 휴무 */
   #dateTimeFields.shift-row { display: flex !important; gap: 12px; align-items: flex-end; }
   #dateTimeFields.shift-row > .field { flex: 1; margin-bottom: 0; }
+  #dateTimeFields.shift-row > #dayOffField { flex: 0 0 auto; }
+  #dateTimeFields.shift-row .dt-row { grid-template-columns: 1fr; }
+  #dateTimeFields.shift-row .dayoff-row { padding-bottom: 12px; white-space: nowrap; }
   .dayoff-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
   .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; }
 
@@ -3074,11 +3078,9 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 휴무 (근무시간일 때만) -->
-      <div class="field" id="dayOffField" style="display:none;">
-        <label class="dayoff-row"><input type="checkbox" id="evDayOff"> 이 날 휴무 (쉬는 날)</label>
+        <div class="field" id="dayOffField" style="display:none;">
+          <label class="dayoff-row"><input type="checkbox" id="evDayOff"> 휴무</label>
+        </div>
       </div>
 
       <!-- 음력/양력 선택 (생일일 때만) -->
