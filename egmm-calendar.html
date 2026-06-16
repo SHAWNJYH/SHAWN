@@ -1817,9 +1817,9 @@
   .ev-list { list-style: none; margin-bottom: 8px; }
   .ev-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 14px 0;
     border-bottom: 1px solid var(--border);
   }
@@ -2005,7 +2005,7 @@
   /* 날짜 클릭 히스토리: 작은 글씨 한 줄 */
   .ev-row.ev-oneline { align-items: center; }
   .ev-row.ev-oneline .ev-line { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; white-space: nowrap; overflow: hidden; }
-  .ev-row.ev-oneline .ev-title-text { font-weight: 700; font-size: 12px; line-height: 1.4; display: inline-flex; align-items: center; overflow: hidden; text-overflow: ellipsis; }
+  .ev-row.ev-oneline .ev-title-text { font-weight: 700; font-size: 13px; line-height: 1.4; display: inline-flex; align-items: center; overflow: hidden; text-overflow: ellipsis; }
   .ev-row.ev-oneline .ev-time-inline { color: var(--text-faint); font-size: 11px; margin-left: auto; flex: 0 0 auto; line-height: 1.4; display: inline-flex; align-items: center; }
   .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; font-size: 12px; padding: 2px 9px; margin-left: 0; line-height: 1.4; display: inline-flex; align-items: center; }
   /* 근무시간: 시작/종료 시간 한 줄 + 휴무 */
@@ -2017,7 +2017,8 @@
   .dayoff-spacer { display: block; }
   #dateTimeFields:not(.shift-row) .dayoff-spacer { display: none; }
   .dayoff-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
-  .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; }
+  .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; position: relative; top: 15px; }
+  .dayoff-row .dayoff-text { position: relative; top: 8px; }
   /* 메모 영역 여유 */
   #evNotes { min-height: 56px; }
 
@@ -2290,7 +2291,7 @@
     .lunar-btn { padding: 8px; font-size: 12px; }
 
     /* 이벤트 행 */
-    .ev-row { grid-template-columns: 22px 1fr 28px; gap: 10px; padding: 12px 0; }
+    .ev-row { grid-template-columns: 22px 1fr auto auto; gap: 6px; padding: 12px 0; }
     .ev-title-text { font-size: 16px; }
     .ev-time-label { font-size: 11px; }
     .ev-cat-tag { font-size: 9px; padding: 1px 6px; }
@@ -3090,7 +3091,7 @@
         </div>
         <div class="field" id="dayOffField" style="display:none;">
           <label class="dayoff-spacer">&nbsp;</label>
-          <label class="dayoff-row"><input type="checkbox" id="evDayOff"> 휴무</label>
+          <label class="dayoff-row"><input type="checkbox" id="evDayOff"> <span class="dayoff-text">휴무</span></label>
         </div>
       </div>
 
