@@ -41,6 +41,7 @@
 -->
 <html lang="ko">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>아이템 UPC 관리 (THE SHAWN)</title>
@@ -857,6 +858,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 클라우드 스냅샷을 메모리에 반영
   var __chunkCount={};
   var __catChunkIds={};
+  function __b64ToU8(b64){ var bin=atob(b64), u8=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+  function __ungzipRows(d){ try{ if(d.comp && typeof pako!=='undefined'){ return JSON.parse(pako.ungzip(__b64ToU8(d.data),{to:'string'})); } }catch(e){} return Array.isArray(d.rows)?d.rows:[]; }
   function applySnap(snap){
     cloud={}; layoutByCat={}; truncLenByCat={};
     var metas={}, chunkBy={}, chunkIdsBy={};
@@ -865,11 +868,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(d && d.parent){
         var par=d.parent;
         if(!chunkBy[par]) chunkBy[par]=[];
-        chunkBy[par].push({ sub:(d.sub!=null?String(d.sub):''), ci:(typeof d.ci==='number'?d.ci:0), rows:Array.isArray(d.rows)?d.rows:[] });
+        chunkBy[par].push({ sub:(d.sub!=null?String(d.sub):''), ci:(typeof d.ci==='number'?d.ci:0), rows:__ungzipRows(d) });
         if(!chunkIdsBy[par]) chunkIdsBy[par]=[]; chunkIdsBy[par].push(id);
       } else {
         var mc=/^(.*)__c(\d+)$/.exec(id);
-        if(mc){ var p2=mc[1]; if(!chunkBy[p2]) chunkBy[p2]=[]; chunkBy[p2].push({ sub:'', ci:parseInt(mc[2],10), rows:Array.isArray(d.rows)?d.rows:[] }); if(!chunkIdsBy[p2]) chunkIdsBy[p2]=[]; chunkIdsBy[p2].push(id); }
+        if(mc){ var p2=mc[1]; if(!chunkBy[p2]) chunkBy[p2]=[]; chunkBy[p2].push({ sub:'', ci:parseInt(mc[2],10), rows:__ungzipRows(d) }); if(!chunkIdsBy[p2]) chunkIdsBy[p2]=[]; chunkIdsBy[p2].push(id); }
         else { metas[id]=d; }
       }
     });

@@ -41,6 +41,7 @@
 -->
 <html lang="ko">
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>아이템 UPC 관리 (THE SHAWN)</title>
@@ -891,11 +892,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(d && d.parent){
         var par=d.parent;
         if(!chunkBy[par]) chunkBy[par]=[];
-        chunkBy[par].push({ sub:(d.sub!=null?String(d.sub):''), ci:(typeof d.ci==='number'?d.ci:0), rows:Array.isArray(d.rows)?d.rows:[] });
+        chunkBy[par].push({ sub:(d.sub!=null?String(d.sub):''), ci:(typeof d.ci==='number'?d.ci:0), rows:__ungzipRows(d) });
         if(!chunkIdsBy[par]) chunkIdsBy[par]=[]; chunkIdsBy[par].push(id);
       } else {
         var mc=/^(.*)__c(\d+)$/.exec(id);   // 구버전 청크 호환
-        if(mc){ var p2=mc[1]; if(!chunkBy[p2]) chunkBy[p2]=[]; chunkBy[p2].push({ sub:'', ci:parseInt(mc[2],10), rows:Array.isArray(d.rows)?d.rows:[] }); if(!chunkIdsBy[p2]) chunkIdsBy[p2]=[]; chunkIdsBy[p2].push(id); }
+        if(mc){ var p2=mc[1]; if(!chunkBy[p2]) chunkBy[p2]=[]; chunkBy[p2].push({ sub:'', ci:parseInt(mc[2],10), rows:__ungzipRows(d) }); if(!chunkIdsBy[p2]) chunkIdsBy[p2]=[]; chunkIdsBy[p2].push(id); }
         else { metas[id]=d; }
       }
     });
@@ -934,38 +935,44 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var __chunkCount={};       // (구버전 호환) docId -> 청크 수
   var __catChunkIds={};      // docId -> 현재 조각 문서ID 목록 (잉여 삭제용)
   var __CHUNK=1000;          // 조각당 행 수 (행 ~600B → 조각 ~600KB, 1MB 안전)
+  var __CHUNK_COMP=15000;    // 압축 저장 시 조각당 행 수 (압축 후 ~600KB, 1MB 안전)
+  // gzip 압축 base64 유틸 (pako)
+  function __u8ToB64(u8){ var CH=0x8000, res=''; for(var i=0;i<u8.length;i+=CH){ res+=String.fromCharCode.apply(null, u8.subarray(i,i+CH)); } return btoa(res); }
+  function __b64ToU8(b64){ var bin=atob(b64), u8=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+  function __ungzipRows(d){ try{ if(d.comp && typeof pako!=='undefined'){ return JSON.parse(pako.ungzip(__b64ToU8(d.data),{to:'string'})); } }catch(e){} return Array.isArray(d.rows)?d.rows:[]; }
   function __safeId(s){ return String(s==null?'':s).trim().replace(/[\/\\#?\.\[\]\s]+/g,'_'); }
   // 중간 카테고리(sub) → 문서이름용 매핑. 우선순위: 사용자 지정(SUB_DB_MAP) > 기본(SUB_ID_MAP) > 안전변환
   var SUB_ID_MAP={ 'K-BEAUTY':'KBEAUTY', 'KBEAUTY':'KBEAUTY', '맥주':'BEER', '와인':'WINE', '사케':'SAKE', '강한술':'HARDLIQUOR' };
   var SUB_DB_MAP={};   // 카테고리 설정에서 사용자가 직접 지정한 DB이름 (sub → DB명)
   function __subId(s){ var key=String(s==null?'':s).trim(); if(SUB_DB_MAP[key]) return __safeId(SUB_DB_MAP[key])||'_'; var m=SUB_ID_MAP[key]; return m || __safeId(key) || '_'; }
   async function saveCat(cat, rows, layout, truncLen){
-    /* 중간카테고리(sub)별로 나누고, 각 sub를 800개씩 조각 저장. 문서명: {상위}-{중간}-{번호} 예) EGP-ARTBOX-1 */
+    /* sub별로 묶어 gzip 압축 후 저장. 문서명: {상위}-{중간}-{번호} 예) EGP-ARTBOX-1 (보통 sub당 1개) */
     try{
       var docId=DOCID[cat]||cat;
       var lay=normLayout(layout||defaultLayout([]));
       var tl=(typeof truncLen==='number'&&truncLen>0)?truncLen:((typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:20);
       rows=rows||[];
-      // 중간카테고리(sub)별 그룹 (순서 유지)
       var bySub={}, subOrder=[];
       rows.forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(!(s in bySub)){ bySub[s]=[]; subOrder.push(s); } bySub[s].push(r); });
-      // 메타 문서(레이아웃) — rows 없음
       await fns().setDoc(fns().doc(db(), COL, docId), { layout: lay, fields: extraKeysOf(lay), truncLen: tl, updatedAt: Date.now() });
-      // sub별 조각 저장
       var newIds=[];
       for(var si=0; si<subOrder.length; si++){
         var s=subOrder[si], srows=bySub[s], safe=__subId(s);
         var part=0;
-        for(var i=0;i<srows.length;i+=__CHUNK){
+        for(var i=0;i<srows.length;i+=__CHUNK_COMP){
+          var chunk=srows.slice(i,i+__CHUNK_COMP);
           var cid=docId+'-'+safe+'-'+(part+1);
-          await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: s, ci: part, rows: srows.slice(i,i+__CHUNK) });
+          if(typeof pako!=='undefined'){
+            var data=__u8ToB64(pako.gzip(JSON.stringify(chunk)));
+            await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: s, ci: part, comp: 1, data: data });
+          } else {
+            await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: s, ci: part, rows: chunk });
+          }
           newIds.push(cid); part++;
         }
       }
-      // 잉여 조각 삭제 (이전엔 있었지만 지금 안 쓴 문서)
       var prev=__catChunkIds[docId]||[];
       for(var p=0;p<prev.length;p++){ if(newIds.indexOf(prev[p])<0){ try{ await fns().deleteDoc(fns().doc(db(), COL, prev[p])); }catch(e){} } }
-      // 구버전 단일/청크 문서 정리
       try{ await fns().deleteDoc(fns().doc(db(), COL, docId+'__c0')); }catch(e){}
       __catChunkIds[docId]=newIds;
       cloud[cat]=rows.map(copyRow); layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};}); truncLenByCat[cat]=tl;
