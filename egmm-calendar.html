@@ -1950,7 +1950,7 @@
 
   .cat-picker {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
   }
   .cat-btn {
@@ -3043,7 +3043,7 @@
       <!-- 시작/종료 (생일이 아닐 때만) -->
       <div id="dateTimeFields">
         <div class="field">
-          <label>시작</label>
+          <label id="evStartLabel">시작</label>
           <div class="dt-row">
             <input type="date" id="evStartDate">
             <div class="time-input-group">
@@ -3054,7 +3054,7 @@
           </div>
         </div>
         <div class="field">
-          <label>종료 (선택)</label>
+          <label id="evEndLabel">종료 (선택)</label>
           <div class="dt-row">
             <input type="date" id="evEndDate">
             <div class="time-input-group">
@@ -4078,10 +4078,16 @@
     $('dateTimeFields').style.display = isBirthday ? 'none' : '';
     $('lunarField').style.display = isBirthday ? '' : 'none';
     $('colorField').style.display = (isBirthday || isShift) ? 'none' : '';
-    // 근무시간이면 제목을 '이름' 입력으로 변경
+    // 제목 ↔ 이름
     var __tl=$('evTitleLabel'), __ti=$('evTitle');
     if (__tl) __tl.textContent = isShift ? '이름' : '제목';
-    if (__ti) __ti.placeholder = isShift ? '예: 이재이' : '예: 회의, 점심 약속...';
+    if (__ti) __ti.placeholder = isShift ? '' : '예: 회의, 점심 약속...';
+    // 근무시간이면 시작→시간, 종료→~, 날짜칸 숨기고 시:분만
+    var __sl=$('evStartLabel'), __el=$('evEndLabel'), __sd=$('evStartDate'), __ed=$('evEndDate');
+    if (__sl) __sl.textContent = isShift ? '시간' : '시작';
+    if (__el) __el.textContent = isShift ? '~ 종료' : '종료 (선택)';
+    if (__sd) __sd.style.display = isShift ? 'none' : '';
+    if (__ed) __ed.style.display = isShift ? 'none' : '';
     updateLunarHint();
   }
 
