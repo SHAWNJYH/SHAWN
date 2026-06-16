@@ -1928,6 +1928,12 @@
   }
   .ev-del:hover { color: var(--danger); }
   .ev-del svg { width: 14px; height: 14px; }
+  .ev-edit {
+    background: transparent; border: none; color: var(--text-faint);
+    cursor: pointer; padding: 6px; transition: color 0.2s; display: flex;
+  }
+  .ev-edit:hover { color: var(--accent-warm); }
+  .ev-edit svg { width: 14px; height: 14px; }
 
   .empty-day {
     text-align: center;
@@ -1997,19 +2003,23 @@
     line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   /* 날짜 클릭 히스토리: 작은 글씨 한 줄 */
+  .ev-row.ev-oneline { align-items: center; }
   .ev-row.ev-oneline .ev-line { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; white-space: nowrap; overflow: hidden; }
-  .ev-row.ev-oneline .ev-title-text { font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
-  .ev-row.ev-oneline .ev-time-inline { color: var(--text-faint); font-size: 11px; margin-left: auto; flex: 0 0 auto; }
-  .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; font-size: 12px; padding: 2px 9px; margin-left: 0; }
-  .ev-row.ev-oneline .ev-title-text { font-size: 12px; }
+  .ev-row.ev-oneline .ev-title-text { font-weight: 700; font-size: 12px; line-height: 1.4; display: inline-flex; align-items: center; overflow: hidden; text-overflow: ellipsis; }
+  .ev-row.ev-oneline .ev-time-inline { color: var(--text-faint); font-size: 11px; margin-left: auto; flex: 0 0 auto; line-height: 1.4; display: inline-flex; align-items: center; }
+  .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; font-size: 12px; padding: 2px 9px; margin-left: 0; line-height: 1.4; display: inline-flex; align-items: center; }
   /* 근무시간: 시작/종료 시간 한 줄 + 휴무 */
-  #dateTimeFields.shift-row { display: flex !important; gap: 12px; align-items: flex-end; }
+  #dateTimeFields.shift-row { display: flex !important; gap: 12px; align-items: flex-start; }
   #dateTimeFields.shift-row > .field { flex: 1; margin-bottom: 0; }
   #dateTimeFields.shift-row > #dayOffField { flex: 0 0 auto; }
   #dateTimeFields.shift-row .dt-row { grid-template-columns: 1fr; }
-  #dateTimeFields.shift-row .dayoff-row { padding-bottom: 12px; white-space: nowrap; }
+  #dateTimeFields.shift-row .dayoff-row { height: 48px; white-space: nowrap; }
+  .dayoff-spacer { display: block; }
+  #dateTimeFields:not(.shift-row) .dayoff-spacer { display: none; }
   .dayoff-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
   .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; }
+  /* 메모 영역 여유 */
+  #evNotes { min-height: 56px; }
 
   .lunar-picker {
     display: grid;
@@ -3079,6 +3089,7 @@
           </div>
         </div>
         <div class="field" id="dayOffField" style="display:none;">
+          <label class="dayoff-spacer">&nbsp;</label>
           <label class="dayoff-row"><input type="checkbox" id="evDayOff"> 휴무</label>
         </div>
       </div>
@@ -4048,6 +4059,7 @@
     lunar: 'solar',     // 'solar' | 'lunar'
     color: 'default'    // 'default' | 'red' | 'orange' | ...
   };
+  let editingId = null;   // 수정 중인 일정 id
 
   function openDayPanel(key) {
     state.selectedDate = key;
@@ -4236,6 +4248,12 @@
             <div class="ev-line"><span class="ev-cat-tag cat-${cat}">${catLabel}</span><span class="ev-title-text">${escapeHtml(ev.title)}</span><span class="ev-time-inline">${timeLabel}</span></div>
             ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
           </div>
+          <button class="ev-edit" data-action="edit" title="수정">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
           <button class="ev-del" data-action="delete" title="삭제">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"/>
@@ -4269,8 +4287,31 @@
       markDirty();
       renderDayEvents();
       renderCalendar();
+    } else if (action === 'edit') {
+      const ev = state.events.find(x => x.id === id);
+      if (ev) loadEventToForm(ev);
     }
   });
+
+  // 수정: 일정 데이터를 입력 폼에 로드하고 편집 모드로
+  function loadEventToForm(ev) {
+    editingId = ev.id;
+    formState.category = ev.category || 'work';
+    formState.color = ev.color || 'default';
+    formState.lunar = ev.isLunar ? 'lunar' : 'solar';
+    $('evTitle').value = ev.title || '';
+    var sp = ev.start ? ev.start.split(':') : ['',''];
+    var epp = ev.end ? ev.end.split(':') : ['',''];
+    $('evStartH').value = sp[0] || ''; $('evStartM').value = sp[1] || '';
+    $('evEndH').value = epp[0] || ''; $('evEndM').value = epp[1] || '';
+    $('evStartDate').value = ev.date || state.selectedDate;
+    $('evEndDate').value = ev.endDate || '';
+    $('evNotes').value = ev.notes || '';
+    if ($('evDayOff')) $('evDayOff').checked = !!ev.dayOff;
+    updateFormUI();
+    var ab = $('addEvBtn'); if (ab) ab.textContent = '수정 저장';
+    $('evTitle').focus();
+  }
 
   // 시/분 입력 → "HH:MM" 문자열로 변환
   function buildTime(hInput, mInput) {
@@ -4317,7 +4358,7 @@
     }
 
     const newEvent = {
-      id: uid(),
+      id: editingId || uid(),
       date: isBirthday ? state.selectedDate : startDate,
       endDate: isBirthday ? null : (endDate || null),
       start: (isBirthday || dayOff) ? null : (start || null),
@@ -4332,7 +4373,15 @@
       dayOff: dayOff || false,
       created: Date.now()
     };
-    state.events.push(newEvent);
+    if (editingId) {
+      const idx = state.events.findIndex(x => x.id === editingId);
+      if (idx >= 0) { newEvent.done = state.events[idx].done; state.events[idx] = newEvent; }
+      else state.events.push(newEvent);
+      editingId = null;
+      var __ab = $('addEvBtn'); if (__ab) __ab.textContent = '+ 추가';
+    } else {
+      state.events.push(newEvent);
+    }
     markDirty();
     // 입력 초기화
     $('evTitle').value = '';
