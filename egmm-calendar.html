@@ -1984,6 +1984,18 @@
     border-color: var(--cat-birthday);
     color: #ffffff;
   }
+  .cat-btn.active.cat-shift {
+    background: #f5c518;
+    border-color: #f5c518;
+    color: #3a2e00;
+  }
+  /* 달력 칸 하단 근무시간 목록 (노란 바탕) */
+  .shift-list { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
+  .shift-pill {
+    background: #fff3b0; color: #4a3b00; border: 1px solid #f0d24a;
+    border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 700;
+    line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 
   .lunar-picker {
     display: grid;
@@ -3020,10 +3032,11 @@
           <button type="button" class="cat-btn cat-work active" data-cat="work">회사</button>
           <button type="button" class="cat-btn cat-personal" data-cat="personal">개인</button>
           <button type="button" class="cat-btn cat-birthday" data-cat="birthday">생일 🎂</button>
+          <button type="button" class="cat-btn cat-shift" data-cat="shift">근무시간</button>
         </div>
       </div>
       <div class="field">
-        <label>제목</label>
+        <label id="evTitleLabel">제목</label>
         <input type="text" id="evTitle" placeholder="예: 회의, 점심 약속...">
       </div>
 
@@ -3811,9 +3824,11 @@
       if (weekday === 0) classes.push('sun');
       if (weekday === 6) classes.push('sat');
 
+      const shiftEvents = dayEvents.filter(e => e.category === 'shift');
+      const normalEvents = dayEvents.filter(e => e.category !== 'shift');
       const maxShow = 3;
-      const shown = dayEvents.slice(0, maxShow);
-      const remain = dayEvents.length - shown.length;
+      const shown = normalEvents.slice(0, maxShow);
+      const remain = normalEvents.length - shown.length;
 
       const pillsHtml = shown.map(e => {
         const cat = e.category ? 'cat-' + e.category : '';
@@ -3825,18 +3840,26 @@
           const lunarMark = e.isLunar ? '🌙 ' : '';
           return `<div class="ev-pill ${classes}">${lunarMark}${escapeHtml(e.title)}</div>`;
         }
-        // 다일 일정은 시작일에만 시간 표시, 중간/끝은 제목만
         const showTime = e._multiPos === 'start' || !e._multiPos;
-        const showTitle = e._multiPos !== 'mid'; // 중간일에는 제목만 (혹은 비움)
+        const showTitle = e._multiPos !== 'mid';
         return `<div class="ev-pill ${classes}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(e.title) : ''}</div>`;
       }).join('');
 
       const moreHtml = remain > 0 ? `<div class="ev-more">+${remain} more</div>` : '';
 
+      // 근무시간: 칸 하단 노란 바탕 (이름 시작~종료 근무)
+      const shiftHtml = shiftEvents.length ? `<div class="shift-list">${
+        shiftEvents.map(e => {
+          const t = e.start ? (e.start + (e.end ? '~' + e.end : '~')) : '';
+          return `<div class="shift-pill">${escapeHtml(e.title)}${t ? ' ' + t : ''} 근무</div>`;
+        }).join('')
+      }</div>` : '';
+
       return `
         <div class="${classes.join(' ')}" data-key="${key}">
           <div class="day-num">${c.d}</div>
           <div class="events">${pillsHtml}${moreHtml}</div>
+          ${shiftHtml}
         </div>`;
     }).join('');
 
@@ -4051,9 +4074,14 @@
     });
     // 생일 카테고리면 시간 숨기고 음력 선택 표시
     const isBirthday = formState.category === 'birthday';
+    const isShift = formState.category === 'shift';
     $('dateTimeFields').style.display = isBirthday ? 'none' : '';
     $('lunarField').style.display = isBirthday ? '' : 'none';
-    $('colorField').style.display = isBirthday ? 'none' : '';
+    $('colorField').style.display = (isBirthday || isShift) ? 'none' : '';
+    // 근무시간이면 제목을 '이름' 입력으로 변경
+    var __tl=$('evTitleLabel'), __ti=$('evTitle');
+    if (__tl) __tl.textContent = isShift ? '이름' : '제목';
+    if (__ti) __ti.placeholder = isShift ? '예: 이재이' : '예: 회의, 점심 약속...';
     updateLunarHint();
   }
 
