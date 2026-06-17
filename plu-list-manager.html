@@ -518,7 +518,7 @@
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
-  function withStdChecks(cat, layout){ return (layout||[]).slice().filter(function(c){ return STD_CHECK_COLS.indexOf(String((c&&c.key)||'').toUpperCase())<0; }); }
+  function withStdChecks(cat, layout){ return (layout||[]).slice(); }
   function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0)}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
@@ -535,7 +535,7 @@
   function curCat(){ return PLU_TABS[pluBig].label; }
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
-  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); }
+  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
   // ===== CSV (청과 fallback) =====

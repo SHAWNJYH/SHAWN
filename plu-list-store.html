@@ -434,10 +434,11 @@
   function visibleCols(){
     var act=(typeof window.__storeActive==='function')?window.__storeActive():null;
     var common=[], checkCol=null;
-    curLayout().forEach(function(c){
+    var base=layoutByCat[curCat()] || defaultLayout([]);   // 매장 체크열(STD)도 포함해서 판단
+    base.forEach(function(c){
       if(c.hidden) return;
       var own=(typeof window.__checkOwner==='function')?window.__checkOwner(c.key):'';
-      if(own){ if(act && own===act) checkCol=c; return; }
+      if(own){ if(act && own===act) checkCol=c; return; }   // 매장 체크열: 로그인한 매장 것만 표시
       common.push(c);
     });
     var out=common.slice();
