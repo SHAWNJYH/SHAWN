@@ -283,6 +283,10 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { background: var(--danger); }
   .toast.success { background: var(--success); }
+  /* 열별 텍스트 정렬 (매니저에서 지정한 align 반영 — 데이터/열이름 불변, 표시 정렬만 적용) */
+  .plu-table td.align-left,   .plu-table th.align-left   { text-align:left   !important; }
+  .plu-table td.align-center, .plu-table th.align-center { text-align:center !important; }
+  .plu-table td.align-right,  .plu-table th.align-right  { text-align:right  !important; }
 </style>
 <style>
   .plu-tools { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
@@ -294,6 +298,8 @@
   .plu-locked-hint.ok { color:#2e7d52; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<!-- pako: 매니저가 gzip 압축 저장한 Firebase 행(rows)을 스토어에서 해제(복원)하기 위한 라이브러리 (매니저와 동일 방식) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -410,7 +416,7 @@
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return L; var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return L; }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0)}); }); return L; }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
 
@@ -491,9 +497,53 @@
   }
   function pluNumOf(r){ var n=parseInt(pluValOf(r),10); return isNaN(n)?Infinity:n; }
   function byPluAsc(a,b){ var na=pluNumOf(a), nb=pluNumOf(b); if(na!==nb) return na<nb?-1:1; return String(pluValOf(a)).localeCompare(String(pluValOf(b))); }
+  // ===== gzip 압축 해제 유틸 (pako) — 매니저가 압축 저장한 행 데이터를 스토어에서 복원 =====
+  // base64 문자열 → Uint8Array
+  function __b64ToU8(b64){ var bin=atob(b64), u8=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+  // 청크 문서 → 행 배열 복원 (comp=1 이면 gzip 해제, 아니면 비압축 rows 사용)
+  function __ungzipRows(d){ try{ if(d.comp && typeof pako!=='undefined'){ return JSON.parse(pako.ungzip(__b64ToU8(d.data),{to:'string'})); } }catch(e){} return Array.isArray(d.rows)?d.rows:[]; }
+  // [압축 대응 · 읽기 전용] Firebase 문서는 두 종류:
+  //  (1) 메타 문서(docId = 카테고리 DOCID, layout/fields/truncLen 보유, rows 없음)
+  //  (2) 청크 문서(parent = 메타docId, sub/ci/comp/data 보유 — gzip 압축된 행 배열)
+  //  청크를 sub·ci 순으로 이어 붙여 원래 rows 배열로 복원한다. (매니저 applySnap과 동일 로직)
+  //  ★ 하위호환: 구버전 비압축 단일 문서(d.rows) 및 구버전 청크(docId__cN)도 그대로 읽는다.
   function applySnap(snap){
     cloud={}; layoutByCat={}; truncLenByCat={};
-    snap.forEach(function(ds){ var d=ds.data()||{}; var lab=labelOf(ds.id); cloud[lab]=Array.isArray(d.rows)?d.rows:[]; layoutByCat[lab]=(Array.isArray(d.layout)&&d.layout.length)?normLayout(d.layout):defaultLayout(Array.isArray(d.fields)?d.fields:[]); truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20; });
+    var metas={}, chunkBy={};
+    snap.forEach(function(ds){
+      var id=ds.id, d=ds.data()||{};
+      if(d && d.parent){                                   // 신버전 청크 문서
+        var par=d.parent;
+        if(!chunkBy[par]) chunkBy[par]=[];
+        chunkBy[par].push({ sub:(d.sub!=null?String(d.sub):''), ci:(typeof d.ci==='number'?d.ci:0), rows:__ungzipRows(d) });
+      } else {
+        var mc=/^(.*)__c(\d+)$/.exec(id);                  // 구버전 청크(docId__cN) 호환
+        if(mc){ var p2=mc[1]; if(!chunkBy[p2]) chunkBy[p2]=[]; chunkBy[p2].push({ sub:'', ci:parseInt(mc[2],10), rows:__ungzipRows(d) }); }
+        else { metas[id]=d; }                              // 메타 문서(또는 구버전 단일 문서)
+      }
+    });
+    // 메타 문서 기준으로 카테고리별 rows 재조립
+    for(var mid in metas){
+      var md=metas[mid], lab=labelOf(mid), rows=[];
+      if(chunkBy[mid]){
+        var bySub={}, subOrder=[];
+        chunkBy[mid].forEach(function(c){ if(!(c.sub in bySub)){ bySub[c.sub]=[]; subOrder.push(c.sub); } bySub[c.sub].push(c); });
+        subOrder.forEach(function(s){ bySub[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ rows=rows.concat(c.rows); }); });
+      } else if(Array.isArray(md.rows)){ rows=md.rows; }     // 구버전 단일(비압축) 문서
+      cloud[lab]=rows;
+      layoutByCat[lab]=(Array.isArray(md.layout)&&md.layout.length)?normLayout(md.layout):defaultLayout(Array.isArray(md.fields)?md.fields:[]);
+      truncLenByCat[lab]=(typeof md.truncLen==='number'&&md.truncLen>0)?md.truncLen:20;
+    }
+    // (안전장치) 메타는 없는데 청크만 존재하는 경우에도 데이터 유실 방지 복원
+    for(var par2 in chunkBy){
+      if(metas[par2]) continue;
+      var lab2=labelOf(par2), bySub2={}, order2=[], rows2=[];
+      chunkBy[par2].forEach(function(c){ if(!(c.sub in bySub2)){ bySub2[c.sub]=[]; order2.push(c.sub); } bySub2[c.sub].push(c); });
+      order2.forEach(function(s){ bySub2[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ rows2=rows2.concat(c.rows); }); });
+      cloud[lab2]=rows2;
+      if(!layoutByCat[lab2]) layoutByCat[lab2]=defaultLayout([]);
+      if(truncLenByCat[lab2]==null) truncLenByCat[lab2]=20;
+    }
     cloudLoaded=true;
   }
   // 실시간 구독: 매니저에서 저장하면 스토어에 즉시 반영(읽기 전용).
@@ -544,14 +594,16 @@
 
   // ===== 표 =====
   function totalCols(){ return visibleCols().length; }
+  // 열별 정렬 클래스 (매니저 align 값 → CSS 클래스). 빈 값이면 클래스 없음(기본 정렬 유지)
+  function alignCls(c){ var a=c&&c.align; return (a==='left'||a==='center'||a==='right')?(' align-'+a):''; }
   function headHTML(){
     var v=visibleCols();
     var unlocked=(typeof window.__storeUnlocked==='function')&&window.__storeUnlocked();
     return '<thead><tr>'+v.map(function(c){
       if(c.__store){
-        return '<th class="stl-col">'+escapeHtml(c.label)+'</th>';
+        return '<th class="stl-col'+alignCls(c)+'">'+escapeHtml(c.label)+'</th>';
       }
-      var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); return '<th'+(hc?(' class="'+hc+'"'):'')+'>'+escapeHtml(c.label)+'</th>';
+      var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); var cls=(hc+alignCls(c)).trim(); return '<th'+(cls?(' class="'+cls+'"'):'')+'>'+escapeHtml(c.label)+'</th>';
     }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
   }
   // 이름·PLU 검색: PLU, KOR DESC(한글명), ENG DESC(영문명)만 기준으로 검색.
@@ -583,18 +635,20 @@
     var TL=getTruncLen();
     function ovg(c){ return (typeof window.__ovGet==='function')?window.__ovGet(curCat(), pluValOf(r), c.key):undefined; }
     var tds=v.map(function(c){
+      var limit=(c.trunc>0)?c.trunc:TL;   // 열별 표시 글자수(지정 없으면 전체 공통값)
+      var acl=alignCls(c);                // 열별 정렬 클래스
       var own=(typeof window.__checkOwner==='function')?window.__checkOwner(c.key):'';
       if(own){ var on=!!ovg(c); if(unlocked){ return '<td class="plu-c-check stl-cell"><span class="pluchk stl-echk'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="체크">'+(on?'☑':'☐')+'</span></td>'; } return '<td class="plu-c-check"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; }
       if(c.__store){
         if(c.type==='check'){ var on2=!!ovg(c); if(unlocked){ return '<td class="plu-c-check stl-cell"><span class="pluchk stl-echk'+(on2?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button">'+(on2?'☑':'☐')+'</span></td>'; } return '<td class="plu-c-check stl-cell"><span class="pluchk'+(on2?'':' off')+'">'+(on2?'☑':'☐')+'</span></td>'; }
-        var sv0=String(ovg(c)||''); var sh=sv0.length>TL?(escapeHtml(sv0.slice(0,TL))+'…'):escapeHtml(sv0);
-        if(unlocked){ return '<td class="stl-cell stl-etext" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(sv0.length>TL?(' title="'+escapeHtml(sv0)+'"'):'')+'>'+(sh||'<span class="stl-ph">＋</span>')+'</td>'; }
-        return '<td class="stl-cell"'+(sv0.length>TL?(' title="'+escapeHtml(sv0)+'"'):'')+'>'+sh+'</td>';
+        var sv0=String(ovg(c)||''); var sh=sv0.length>limit?(escapeHtml(sv0.slice(0,limit))+'…'):escapeHtml(sv0);
+        if(unlocked){ return '<td class="stl-cell stl-etext'+acl+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(sv0.length>limit?(' title="'+escapeHtml(sv0)+'"'):'')+'>'+(sh||'<span class="stl-ph">＋</span>')+'</td>'; }
+        return '<td class="stl-cell'+acl+'"'+(sv0.length>limit?(' title="'+escapeHtml(sv0)+'"'):'')+'>'+sh+'</td>';
       }
       if(c.type==='check'||c.type==='rcheck'){ var onc=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk'+(onc?'':' off')+'">'+(onc?'☑':'☐')+'</span></td>'; }
       if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); }
-      var fv=String(getVal(r,c.key)||''); var sv=fv.length>TL?(escapeHtml(fv.slice(0,TL))+'…'):escapeHtml(fv);
-      return '<td class="'+clsFor(c.key)+'"'+(fv.length>TL?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
+      var fv=String(getVal(r,c.key)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv);
+      return '<td class="'+clsFor(c.key)+acl+'"'+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
     }).join('');
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+'">'+tds+photoCellHTML(r)+'</tr>';
   }
