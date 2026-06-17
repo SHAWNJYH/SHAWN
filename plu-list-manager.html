@@ -375,6 +375,10 @@
   .adm-btn.adm-blue { background:#1e40af; border-color:#1e40af; color:#fff; }
   .adm-btn.adm-orange { background:#d97706; border-color:#d97706; color:#fff; }
   .adm-btn.adm-mute { color:var(--text-dim); }
+  /* 열 드래그앤드롭 */
+  th.plu-col-drag .plu-col-name { cursor:grab; }
+  th.col-dragging { opacity:0.45; }
+  th.col-drag-over { box-shadow: inset 3px 0 0 0 var(--accent-warm); background:rgba(217,119,6,0.08); }
   /* 데이터 내보내기 메뉴 */
   .em-sec { padding:10px 0; border-bottom:1px solid #eee; display:flex; flex-direction:column; gap:6px; }
   .em-sec:last-child { border-bottom:none; }
@@ -852,7 +856,7 @@
                     '<button class="plu-col-btn" data-act="trunc" data-key="'+escapeHtml(c.key)+'" title="표시 글자수 ('+(c.trunc>0?c.trunc+'자':'기본')+')">'+(c.trunc>0?('✂'+c.trunc):'✂')+'</button>'))+
         '</span>';
         // 필드 이름 클릭 → 이름변경/표시/삭제 팝업(openColEditPopup)
-        return '<th class="'+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'"><span class="plu-col-name" data-act="colname" data-key="'+escapeHtml(c.key)+'" title="클릭: 이름 변경 · 표시 · 삭제">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
+        return '<th draggable="true" data-dragkey="'+escapeHtml(c.key)+'" class="plu-col-drag '+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'"><span class="plu-col-name" data-act="colname" data-key="'+escapeHtml(c.key)+'" title="클릭: 이름 변경 · 표시 · 삭제 · 드래그: 위치 이동">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
       }).join('');
       return '<thead><tr>'+ths+refHeadHTML()+'<th></th></tr></thead>';
     }
@@ -1268,6 +1272,17 @@
       else if(act==='hide'){ workLayout[i].hidden=!workLayout[i].hidden; markDirty(); renderContent(); }
       else if(act==='del'){ var __lbl=workLayout[i].label; if(!(await uiConfirm('["'+__lbl+'"] 열을 삭제하시겠습니까?\n목록에서 이 열이 사라집니다.'))) return; if(!(await uiConfirm('한 번 더 확인합니다.\n정말 ["'+__lbl+'"] 열을 삭제할까요?'))) return; workLayout.splice(i,1); if(!isBase(key)){ (work||[]).forEach(function(r){ if(r&&r.extra) delete r.extra[key]; }); } markDirty(); renderContent(); }
     }; }); }
+    // 헤더 드래그앤드롭으로 열 위치 이동
+    if(el && editMode){
+      var __dragKey=null;
+      el.querySelectorAll('th[data-dragkey]').forEach(function(th){
+        th.addEventListener('dragstart',function(e){ __dragKey=th.getAttribute('data-dragkey'); if(e.dataTransfer){ e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',__dragKey); }catch(_e){} } th.classList.add('col-dragging'); });
+        th.addEventListener('dragend',function(){ th.classList.remove('col-dragging'); el.querySelectorAll('th.col-drag-over').forEach(function(x){ x.classList.remove('col-drag-over'); }); });
+        th.addEventListener('dragover',function(e){ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='move'; th.classList.add('col-drag-over'); });
+        th.addEventListener('dragleave',function(){ th.classList.remove('col-drag-over'); });
+        th.addEventListener('drop',function(e){ e.preventDefault(); th.classList.remove('col-drag-over'); var dst=th.getAttribute('data-dragkey'); var src=__dragKey||(e.dataTransfer&&e.dataTransfer.getData('text/plain')); __dragKey=null; if(!src||!dst||src===dst) return; var si=colIndex(src), di=colIndex(dst); if(si<0||di<0) return; var moved=workLayout.splice(si,1)[0]; var ni=colIndex(dst); workLayout.splice(ni+(si<di?1:0),0,moved); markDirty(); renderContent(); });
+      });
+    }
     var tb=$('pluTbody');
     if(tb){
       tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var base=t.getAttribute('data-base')==='1'; if(work&&work[idx]){ if(base){ work[idx][fieldOf(key)]=t.value; } else { if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=t.value; } markDirty(); } });

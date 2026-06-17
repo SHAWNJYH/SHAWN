@@ -1091,7 +1091,14 @@
   function cid(catLabel){ if(typeof window.__docId==='function'){ var d=window.__docId(catLabel); if(d) return d; } return DOCID[catLabel]||catLabel; }
 
   // ===== 코어가 쓰는 훅 =====
-  window.__checkOwner=function(key){ return STD_CHECK_OWNER[String(key||'').toUpperCase()]||''; };
+  window.__checkOwner=function(key){
+    var K=String(key||'').toUpperCase();
+    if(STD_CHECK_OWNER[K]) return STD_CHECK_OWNER[K];   // 정확 일치 우선
+    // 부분 포함: 열 이름 어디든(앞·뒤·괄호 안) 매장 코드가 들어가면 그 매장 것 (긴 코드 우선)
+    var codes=Object.keys(STD_CHECK_OWNER).sort(function(a,b){return b.length-a.length;});
+    for(var i=0;i<codes.length;i++){ if(K.indexOf(codes[i])>=0) return STD_CHECK_OWNER[codes[i]]; }
+    return '';
+  };
   window.__storeActive=function(){ return currentStore; };
   window.__storeUnlocked=function(){ return !!(currentStore && unlocked); };
   window.__ovGet=function(catLabel,plu,key){ if(!currentStore) return undefined; var c=storeOv[cid(catLabel)]; if(!c) return undefined; var rec=c[String(plu)]; if(!rec) return undefined; var v=rec[String(key)]; return (v==null||v==='')?undefined:v; };
