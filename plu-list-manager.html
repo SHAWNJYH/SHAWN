@@ -380,10 +380,10 @@
   th.col-dragging { opacity:0.45; }
   th.col-drag-over { box-shadow: inset 3px 0 0 0 var(--accent-warm); background:rgba(217,119,6,0.08); }
   /* 매장 표시 열 선택 */
-  .msm-showhint { font-size:12px; color:#888; padding:4px 2px 8px; }
-  .msm-showitem { display:flex; align-items:center; gap:8px; padding:6px 4px; font-size:14px; cursor:pointer; border-bottom:1px solid #f2f2f2; }
+  .msm-showhint { grid-column:1/-1; font-size:12px; color:#888; padding:4px 2px 8px; }
+  .msm-showitem { display:flex; align-items:center; gap:8px; padding:6px 4px; font-size:14px; cursor:pointer; }
   .msm-showitem em { color:#2a6b3a; font-size:11px; font-style:normal; margin-left:4px; }
-  #msmShowList { max-height:300px; overflow:auto; }
+  #msmShowList { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 12px; max-height:320px; overflow:auto; }
   /* 데이터 내보내기 메뉴 */
   .em-sec { padding:10px 0; border-bottom:1px solid #eee; display:flex; flex-direction:column; gap:6px; }
   .em-sec:last-child { border-bottom:none; }
