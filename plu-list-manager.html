@@ -375,6 +375,17 @@
   .adm-btn.adm-blue { background:#1e40af; border-color:#1e40af; color:#fff; }
   .adm-btn.adm-orange { background:#d97706; border-color:#d97706; color:#fff; }
   .adm-btn.adm-mute { color:var(--text-dim); }
+  /* 데이터 내보내기 메뉴 */
+  .em-sec { padding:10px 0; border-bottom:1px solid #eee; display:flex; flex-direction:column; gap:6px; }
+  .em-sec:last-child { border-bottom:none; }
+  .em-tt { font-weight:700; font-size:13px; color:#333; }
+  .em-tt small { font-weight:600; color:#888; font-size:11px; }
+  .em-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .em-cfg-list { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 14px; padding:4px 2px; }
+  .em-cfg-item { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
+  .em-cfg-item input { flex:0 0 auto; }
+  .em-cfg-tag { color:#9a9aa0; font-size:12px; }
+  .em-sel { flex:1 1 160px; min-width:0; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:13px; background:#fff; color:var(--text); }
   /* 필드 설정 팝업 */
   .cnm-body { display:flex; flex-direction:column; gap:14px; padding:16px 18px 18px; }
   .cnm-row { display:flex; align-items:center; gap:8px; }
@@ -1214,7 +1225,7 @@
     $('admCat').onclick=function(){ close(); openCatEditor(); };
     $('admReq').onclick=function(){ close(); if(window.__openPluReq) window.__openPluReq(); };
     $('admImport').onclick=function(){ close(); var f=$('pluImportInput'); if(f) f.click(); };
-    $('admExport').onclick=function(){ close(); exportXlsx(); };
+    $('admExport').onclick=function(){ close(); openExportMenu(); };
     $('admAllExport').onclick=function(){ close(); allExportXlsx(); };
     $('admPrint').onclick=function(){ close(); printList(); };
     $('admStore').onclick=function(){ close(); if(window.__openStoreMgmt) window.__openStoreMgmt(); };
@@ -1305,6 +1316,72 @@
     }
     ws['!cols']=cols.map(function(col,ci){ var t=(col&&col.type)||''; var maxw=0; for(var rr2=0;rr2<nrows;rr2++){ var cl=ws[XLSX.utils.encode_cell({r:rr2,c:ci})]; if(cl&&cl.v!=null){ var s=String(cl.v),d=0; for(var j=0;j<s.length;j++){ d+=(s.charCodeAt(j)>0x1100?1.8:1); } if(d>maxw)maxw=d; } } var w=Math.min(60, Math.max((t==='check'||t==='rcheck')?5:8, Math.ceil(maxw)+2)); return {wch:w}; });
     var rr=[]; for(var i=0;i<nrows;i++) rr.push({hpt:18.75}); ws['!rows']=rr;
+  }
+  // ===== 데이터 내보내기 메뉴 (팝업): 카테고리 선택 EXPORT + 내보내기필드설정 =====
+  function exportColsForCat(catLabel){
+    var lay = withStdChecks(catLabel, layoutByCat[catLabel]||defaultLayout([]));
+    var chosen=(lay||[]).filter(function(c){ return c && c.exp; });
+    if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
+    return (lay||[]).map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
+  }
+  function exportCatSub(catLabel, sub){
+    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
+    var allRows=rowsFor(catLabel)||[]; var cols=exportColsForCat(catLabel);
+    var wb=XLSX.utils.book_new(); var used={}, made=0;
+    function addSheet(name, rows){
+      rows=rows.slice().sort(byPluAsc);
+      var aoa=[cols.map(function(c){return c.label;})];
+      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportCell(r,c); })); });
+      var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length);
+      var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
+      var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
+      XLSX.utils.book_append_sheet(wb, ws, nm); made++;
+    }
+    if(sub!=null){
+      var rows=allRows.filter(function(r){ return rowSub(catLabel,r)===sub; });
+      if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
+      addSheet(sub||catLabel, rows);
+      var fname1='PLU_'+catLabel+(sub?'_'+sub:'')+'.xlsx';
+      XLSX.writeFile(wb, fname1); showToast('내보냈습니다: '+fname1,'success'); return;
+    }
+    var tab=mainTab(catLabel); var subs=(tab&&tab.subs)?tab.subs.slice():[];
+    var subset={}; subs.forEach(function(sb){ subset[sb]=1; var rs=allRows.filter(function(r){ return rowSub(catLabel,r)===sb; }); if(rs.length) addSheet(sb, rs); });
+    var leftover=allRows.filter(function(r){ return !subset[rowSub(catLabel,r)]; });
+    if(leftover.length) addSheet('기타', leftover);
+    if(!made){ showToast('내보낼 데이터가 없습니다','error'); return; }
+    var fname='PLU_'+catLabel+'_전체.xlsx';
+    XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname+' ('+made+'개 시트)','success');
+  }
+  function openExportMenu(){
+    var ov='pluExportMenuOv'; var old=$(ov); if(old) old.remove();
+    var catOpts=PLU_TABS.map(function(t,ti){
+      var subs=t.subs||[];
+      var inner='<option value="'+ti+'">전체</option>'+subs.map(function(sb,si){ return '<option value="'+ti+':'+si+'">'+escapeHtml(sb)+'</option>'; }).join('');
+      return '<optgroup label="'+escapeHtml(t.label)+'">'+inner+'</optgroup>';
+    }).join('');
+    var cfgLay=(layoutByCat[curCat()]||[]);
+    var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">열이 없습니다.</div>';
+    var wrap=document.createElement('div');
+    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:620px;">'+
+      '<div class="pcm-head">⬆ 데이터 내보내기<button class="pcm-x" id="emClose" type="button">✕</button></div>'+
+      '<div class="pcm-body">'+
+        '<div class="em-sec">'+
+          '<div class="em-tt">카테고리 선택 EXPORT</div>'+
+          '<div class="em-row"><select id="emCatSel" class="em-sel">'+catOpts+'</select>'+
+          '<button class="plu-tool-btn" id="emCatExp" type="button">⬇ EXPORT</button></div>'+
+        '</div>'+
+        '<div class="em-sec">'+
+          '<div class="em-tt">내보내기필드설정 <small>(체크한 열만 내보내기 · 즉시 저장)</small></div>'+
+          '<div class="em-cfg-list">'+cfgRows+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div></div>';
+    document.body.appendChild(wrap.firstChild);
+    var close=function(){ var o=$(ov); if(o) o.remove(); };
+    var x=$('emClose'); if(x) x.onclick=close;
+    var ovEl=$(ov); if(ovEl) ovEl.onclick=function(e){ if(e.target===ovEl) close(); };
+    var ce=$('emCatExp'); if(ce) ce.onclick=function(){ var sel=$('emCatSel'); var v=String(sel?sel.value:'0'); var parts=v.split(':'); var ti=parseInt(parts[0],10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; if(parts.length>1){ var sub=(t.subs||[])[parseInt(parts[1],10)]; exportCatSub(t.label, sub!=null?sub:''); } else { exportCatSub(t.label, null); } };
+    document.querySelectorAll('#'+ov+' .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); }; });
   }
   function exportXlsx(){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
