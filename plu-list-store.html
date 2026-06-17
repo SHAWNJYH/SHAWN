@@ -432,21 +432,14 @@
   function getTruncLen(){ return (globalTrunc>0?globalTrunc:20); }
   function exportColsFor(){ var lay=withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   function visibleCols(){
-    var act=(typeof window.__storeActive==='function')?window.__storeActive():null;
-    var common=[], checkCol=null;
-    var base=layoutByCat[curCat()] || defaultLayout([]);   // 매장 체크열(STD)도 포함해서 판단
+    var base=layoutByCat[curCat()] || defaultLayout([]);
+    var show=(typeof window.__showColsFor==='function')?window.__showColsFor(curCat()):null;
+    var out=[];
     base.forEach(function(c){
       if(c.hidden) return;
-      var own=(typeof window.__checkOwner==='function')?window.__checkOwner(c.key):'';
-      if(own){ if(act && own===act) checkCol=c; return; }   // 매장 체크열: 로그인한 매장 것만 표시
-      common.push(c);
+      if(Array.isArray(show)){ if(show.indexOf(c.key)>=0) out.push(c); }   // 매니저가 이 매장에 지정한 열만
+      else out.push(c);   // 미설정이면 전체
     });
-    var out=common.slice();
-    if(act && typeof window.__storeCols==='function'){
-      var sc=window.__storeCols(curCat(), curSub())||[];
-      for(var i=0;i<sc.length;i++){ out.push(sc[i]); }
-    }
-    if(checkCol) out.push(checkCol);   // 매장 체크열은 항상 매장열 오른쪽(맨 끝)
     return out;
   }
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
@@ -1083,6 +1076,7 @@
   var currentStore=null, unlocked=false, ovUnsub=null;
   var storeOv={};     // { CATDOC: { PLU: { COLKEY: val } } }
   var storeCols={};   // { CATDOC: [ {key,label,type,hidden} ] }
+  var storeShowCols={};   // { CATDOC: [표시할 열 key 목록] } — 매니저가 매장관리에서 지정
   function fns(){return window.firebaseFns;} function db(){return window.firebaseDb;}
   function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -1103,6 +1097,7 @@
   window.__storeUnlocked=function(){ return !!(currentStore && unlocked); };
   window.__ovGet=function(catLabel,plu,key){ if(!currentStore) return undefined; var c=storeOv[cid(catLabel)]; if(!c) return undefined; var rec=c[String(plu)]; if(!rec) return undefined; var v=rec[String(key)]; return (v==null||v==='')?undefined:v; };
   window.__storeCols=function(catLabel, subLabel){ if(!currentStore) return []; var c=storeCols[cid(catLabel)]; if(!c||Array.isArray(c)) return []; var arr=c[subLabel]||[]; return arr.map(function(co){ return {key:co.key,label:co.label,type:(co.type==='check'?'check':'text'),__store:true}; }); };
+  window.__showColsFor=function(catLabel){ if(!currentStore) return null; var v=storeShowCols[cid(catLabel)]; return (Array.isArray(v))?v:null; };
 
   // ===== 로그인 =====
   function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
@@ -1119,8 +1114,8 @@
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} var fab=$('stlFab'); if(fab) fab.classList.remove('show'); rerender(); var ps=$('stlPin'); if(ps) ps.value=''; showLogin(); }
-  function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; rerender(); }, function(){}); }catch(e){} }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} var fab=$('stlFab'); if(fab) fab.classList.remove('show'); rerender(); var ps=$('stlPin'); if(ps) ps.value=''; showLogin(); }
+  function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeShowCols=d.showCols||{}; rerender(); }, function(){}); }catch(e){} }
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
   // ===== 셀 값 저장 =====
