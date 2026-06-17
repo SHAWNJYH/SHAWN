@@ -545,6 +545,9 @@
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([])); }
   function visibleCols(){ return curLayout().filter(function(c){return !c.hidden;}); }
+  // 매장관리에서 쓰는 훅: 특정 카테고리의 모든 열 목록 / 카테고리 목록
+  window.__catColsFor = function(catLabel){ var lay = layoutByCat[catLabel] || defaultLayout([]); return (lay||[]).filter(function(c){ return c && !c.hidden; }).map(function(c){ return {key:c.key, label:c.label, type:c.type}; }); };
+  window.__catList = function(){ return PLU_TABS.map(function(t){ return {label:t.label, doc:(DOCID[t.label]||t.label)}; }); };
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
   // ===== CSV (청과 fallback) =====
@@ -1596,13 +1599,6 @@
   }
   function openMgr(){ renderList(); $('plureqMgrOv').classList.add('show'); }
   window.__openPluReq = openMgr;   // 관리자 모드의 'PLU REQUEST' 버튼에서 호출 (IIFE 외부 노출)
-  // 매장관리에서 쓰는 훅: 특정 카테고리의 모든 열 목록(매니저가 만든 열)
-  window.__catColsFor = function(catLabel){
-    var lay = layoutByCat[catLabel] || defaultLayout([]);
-    return (lay||[]).filter(function(c){ return c && !c.hidden; }).map(function(c){ return {key:c.key, label:c.label, type:c.type}; });
-  };
-  // 카테고리 라벨/문서ID 목록
-  window.__catList = function(){ return PLU_TABS.map(function(t){ return {label:t.label, doc:(DOCID[t.label]||t.label)}; }); };
   function closeMgr(){ $('plureqMgrOv').classList.remove('show'); }
   function approve(id){
     var r=null; for(var i=0;i<reqs.length;i++){ if(reqs[i].__id===id){ r=reqs[i]; break; } } if(!r) return;
