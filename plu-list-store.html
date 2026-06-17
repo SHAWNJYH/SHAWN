@@ -436,9 +436,14 @@
     var show=(typeof window.__showColsFor==='function')?window.__showColsFor(curCat()):null;
     var out=[];
     base.forEach(function(c){
-      if(c.hidden) return;
-      if(Array.isArray(show)){ if(show.indexOf(c.key)>=0) out.push(c); }   // 매니저가 이 매장에 지정한 열만
-      else out.push(c);   // 미설정이면 전체
+      if(Array.isArray(show)){
+        if(show.indexOf(c.key)<0) return;        // 매장관리에서 선택한 열만 (숨김이어도 표시)
+      } else {
+        if(c.hidden) return;                      // 미설정 매장: 기본 정보 열만
+        if(!isBase(c.key)) return;
+      }
+      if(!isBase(c.key)){ out.push({key:c.key,label:c.label,type:(c.type==='check'?'check':'text'),align:c.align,trunc:c.trunc,__store:true}); }
+      else { out.push(c); }
     });
     return out;
   }
@@ -631,8 +636,6 @@
     var tds=v.map(function(c){
       var limit=(c.trunc>0)?c.trunc:TL;   // 열별 표시 글자수(지정 없으면 전체 공통값)
       var acl=alignCls(c);                // 열별 정렬 클래스
-      var own=(typeof window.__checkOwner==='function')?window.__checkOwner(c.key):'';
-      if(own){ var on=!!ovg(c); if(unlocked){ return '<td class="plu-c-check stl-cell"><span class="pluchk stl-echk'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="체크">'+(on?'☑':'☐')+'</span></td>'; } return '<td class="plu-c-check"><span class="pluchk'+(on?'':' off')+'">'+(on?'☑':'☐')+'</span></td>'; }
       if(c.__store){
         if(c.type==='check'){ var on2=!!ovg(c); if(unlocked){ return '<td class="plu-c-check stl-cell"><span class="pluchk stl-echk'+(on2?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button">'+(on2?'☑':'☐')+'</span></td>'; } return '<td class="plu-c-check stl-cell"><span class="pluchk'+(on2?'':' off')+'">'+(on2?'☑':'☐')+'</span></td>'; }
         var sv0=String(ovg(c)||''); var sh=sv0.length>limit?(escapeHtml(sv0.slice(0,limit))+'…'):escapeHtml(sv0);
