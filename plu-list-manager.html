@@ -1319,7 +1319,7 @@
   }
   // ===== 데이터 내보내기 메뉴 (팝업): 카테고리 선택 EXPORT + 내보내기필드설정 =====
   function exportColsForCat(catLabel){
-    var lay = withStdChecks(catLabel, layoutByCat[catLabel]||defaultLayout([]));
+    var lay = layoutByCat[catLabel]||defaultLayout([]);
     var chosen=(lay||[]).filter(function(c){ return c && c.exp; });
     if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
     return (lay||[]).map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
