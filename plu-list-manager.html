@@ -989,15 +989,10 @@
 
   function toolbarHTML(){
     return '<div class="plu-tools">'+
-      '<button class="plu-tool-btn'+(editMode?' on':'')+'" id="pluEditBtn">✎ EDIT'+(editMode?' (ON)':'')+'</button>'+
       (editMode
-        ? ('<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ EXPORT 설정</button><button class="plu-tool-btn" id="pluCatBtn">🗂 카테고리</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>')
-        : ('<button class="plu-tool-btn" id="pluCatBtn">🗂 카테고리</button>'+
-           '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
-           '<button class="plu-tool-btn" id="pluAllExportBtn">⬇ ALL EXPORT</button>'+
-           '<button class="plu-tool-btn" id="pluImportBtn">⬆ IMPORT</button>'+
-           '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
-           '<button class="plu-tool-btn" id="pluStoreBtn">🏬 매장관리</button>'+
+        ? ('<button class="plu-tool-btn on" id="pluEditBtn">✎ EDIT (ON)</button>'+
+           '<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 열 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ EXPORT 설정</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>')
+        : ('<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
            '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>')
       )+
     '</div>';
@@ -1093,8 +1088,8 @@
     if(colIndex(name)>=0 || isBase(name)){ showToast('이미 있는 열입니다','error'); return; }
     if(!workLayout) workLayout=[];
     if(type==='check'){ workLayout.push({key:name,label:name,hidden:false,type:'check'}); }
-    else { workLayout.unshift({key:name,label:name,hidden:false,type:(type==='rcheck'?'rcheck':'text')}); }
-    markDirty(); renderContent();
+    else { workLayout.push({key:name,label:name,hidden:false,type:(type==='rcheck'?'rcheck':'text')}); }
+    markDirty(); renderContent(); showToast('열 추가됨: '+name+' (오른쪽 끝) · 💾 저장 필요','success');
   }
   function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
   function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
