@@ -287,6 +287,30 @@
   .plu-table td.align-left,   .plu-table th.align-left   { text-align:left   !important; }
   .plu-table td.align-center, .plu-table th.align-center { text-align:center !important; }
   .plu-table td.align-right,  .plu-table th.align-right  { text-align:right  !important; }
+  /* COMPARE 모달 */
+  .plu-cmp-ov { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:9000; padding:20px; }
+  .plu-cmp-ov.show { display:flex; }
+  .plu-cmp-modal { background:var(--bg-elev,#fff); color:var(--text,#222); border-radius:14px; width:100%; max-width:860px; max-height:88vh; display:flex; flex-direction:column; box-shadow:0 14px 50px rgba(0,0,0,0.3); }
+  .plu-cmp-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border,#ddd); }
+  .plu-cmp-head b { font-size:15px; }
+  .plu-cmp-x { border:none; background:none; font-size:18px; cursor:pointer; color:var(--text-dim,#888); }
+  .plu-cmp-body { padding:14px 18px; overflow:auto; }
+  .plu-cmp-sec { font-size:13px; font-weight:700; color:var(--text-dim,#666); margin:6px 0 8px; }
+  .plu-cmp-catwrap { margin-bottom:14px; }
+  .plu-cmp-grp { margin-bottom:10px; }
+  .plu-cmp-grplab { font-size:12px; color:#999; margin-bottom:4px; }
+  .plu-cmp-boxes { display:flex; flex-wrap:wrap; gap:7px; }
+  .plu-cmp-box { border:1.5px solid var(--border,#ccc); background:var(--bg-elev,#fff); color:var(--text,#333); border-radius:9px; padding:8px 13px; font-size:13px; font-weight:700; cursor:pointer; }
+  .plu-cmp-box:hover { border-color:var(--accent-warm,#d97706); }
+  .plu-cmp-box.sel { background:var(--accent,#2563eb); border-color:var(--accent,#2563eb); color:#fff; }
+  .plu-cmp-foot { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+  .plu-cmp-go { background:var(--accent,#2563eb); border-color:var(--accent,#2563eb); color:#fff; }
+  .plu-cmp-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .plu-cmp-table th, .plu-cmp-table td { border:1px solid var(--border,#e5e5e5); padding:7px 10px; text-align:left; }
+  .plu-cmp-table th { background:var(--bg,#f5f5f5); font-weight:700; }
+  .plu-cmp-table td:nth-child(3), .plu-cmp-table td:nth-child(4), .plu-cmp-table th:nth-child(3), .plu-cmp-table th:nth-child(4) { text-align:right; }
+  .plu-cmp-table tr.cmp-diff td { background:rgba(229,57,53,0.08); }
+  .plu-cmp-empty { text-align:center; color:#999; padding:18px; }
 </style>
 <style>
   .plu-tools { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
@@ -705,6 +729,7 @@
   function toolbarHTML(){
     var unlocked=(typeof window.__storeUnlocked==='function')&&window.__storeUnlocked();
     return '<div class="plu-tools">'+
+      '<button class="plu-tool-btn" id="pluCompareBtn">⇄ COMPARE</button>'+
       '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
       '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button>'+
@@ -784,8 +809,73 @@
   function bindToolbar(){
     var cat=curCat(); var el=$('pluContent');
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ exportXlsx(); };
+    var cmp=$('pluCompareBtn'); if(cmp) cmp.onclick=function(){ openCompare(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
+  }
+
+  // ===== COMPARE (두 매장 가격 비교) =====
+  function storeCodeOf(store){ for(var k in STD_CHECK_OWNER){ if(STD_CHECK_OWNER[k]===store) return k; } return ''; }
+  function priceFieldOf(store){ var c=storeCodeOf(store); return c?(c+'(S)'):''; }
+  var cmpBig=-1, cmpSub='', cmpStore='';
+  function ensureCmpModal(){
+    var ov=$('pluCmpModal'); if(ov) return ov;
+    ov=document.createElement('div'); ov.id='pluCmpModal'; ov.className='plu-cmp-ov';
+    ov.innerHTML='<div class="plu-cmp-modal"><div class="plu-cmp-head"><b id="pluCmpTitle">가격 비교</b><button class="plu-cmp-x" id="pluCmpX">✕</button></div><div class="plu-cmp-body" id="pluCmpBody"></div></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); });
+    $('pluCmpX').onclick=function(){ ov.classList.remove('show'); };
+    return ov;
+  }
+  function openCompare(){
+    if(!currentStore){ alert('먼저 매장으로 로그인하세요.'); return; }
+    cmpBig=-1; cmpSub=''; cmpStore='';
+    ensureCmpModal(); renderCmpSelect(); $('pluCmpModal').classList.add('show');
+  }
+  function renderCmpSelect(){
+    $('pluCmpTitle').textContent='가격 비교 — 카테고리 / 매장 선택';
+    // 1) 중분류 박스 (상위 대분류 그룹 아래 중간 카테고리만)
+    var catHtml='<div class="plu-cmp-sec">중간 카테고리</div><div class="plu-cmp-catwrap">';
+    PLU_TABS.forEach(function(t,bi){
+      catHtml+='<div class="plu-cmp-grp"><div class="plu-cmp-grplab">'+escapeHtml(t.label)+'</div><div class="plu-cmp-boxes">';
+      (t.subs||[]).forEach(function(s){
+        var on=(cmpBig===bi && cmpSub===s);
+        catHtml+='<button type="button" class="plu-cmp-box'+(on?' sel':'')+'" data-bi="'+bi+'" data-sub="'+escapeHtml(s)+'">'+escapeHtml(s)+'</button>';
+      });
+      catHtml+='</div></div>';
+    });
+    catHtml+='</div>';
+    // 2) 매장 박스 (현재 매장 제외)
+    var stHtml='<div class="plu-cmp-sec">비교할 매장 (현재: '+escapeHtml(currentStore)+')</div><div class="plu-cmp-boxes">';
+    STORES.forEach(function(st){ if(st===currentStore) return; var on=(cmpStore===st); stHtml+='<button type="button" class="plu-cmp-box plu-cmp-store'+(on?' sel':'')+'" data-store="'+escapeHtml(st)+'">'+escapeHtml(st)+'</button>'; });
+    stHtml+='</div>';
+    // 버튼들
+    var btns='<div class="plu-cmp-foot"><button class="plu-tool-btn" id="pluCmpCancel">CANCEL</button><button class="plu-tool-btn plu-cmp-go" id="pluCmpGo">COMPARE</button></div>';
+    $('pluCmpBody').innerHTML=catHtml+stHtml+btns;
+    // 핸들러
+    $('pluCmpBody').querySelectorAll('.plu-cmp-box[data-sub]').forEach(function(b){ b.onclick=function(){ cmpBig=parseInt(b.getAttribute('data-bi'),10); cmpSub=b.getAttribute('data-sub'); renderCmpSelect(); }; });
+    $('pluCmpBody').querySelectorAll('.plu-cmp-store').forEach(function(b){ b.onclick=function(){ cmpStore=b.getAttribute('data-store'); renderCmpSelect(); }; });
+    $('pluCmpCancel').onclick=function(){ $('pluCmpModal').classList.remove('show'); };
+    $('pluCmpGo').onclick=function(){ if(cmpBig<0||!cmpSub){ alert('중간 카테고리를 선택하세요.'); return; } if(!cmpStore){ alert('비교할 매장을 선택하세요.'); return; } renderCmpResult(); };
+  }
+  function renderCmpResult(){
+    var bigLabel=PLU_TABS[cmpBig].label;
+    var myField=priceFieldOf(currentStore), otField=priceFieldOf(cmpStore);
+    var rows=(rowsFor(bigLabel)||[]).filter(function(r){ return rowSub(bigLabel,r)===cmpSub; }).sort(byPluAsc);
+    $('pluCmpTitle').textContent=bigLabel+' › '+cmpSub+'  ·  '+currentStore+' ↔ '+cmpStore;
+    var head='<table class="plu-cmp-table"><thead><tr><th>PLU</th><th>KOR DESC</th><th>'+escapeHtml(currentStore)+'</th><th>'+escapeHtml(cmpStore)+'</th></tr></thead><tbody>';
+    var body='';
+    rows.forEach(function(r){
+      var plu=escapeHtml(pluValOf(r)); var kor=escapeHtml(String(getVal(r,'KOR')||''));
+      var mp=myField?fmtPrice(getVal(r,myField)):'-'; var op=otField?fmtPrice(getVal(r,otField)):'-';
+      var diff=(mp!==op && mp!=='-' && op!=='-');
+      body+='<tr'+(diff?' class="cmp-diff"':'')+'><td>'+plu+'</td><td>'+kor+'</td><td>'+escapeHtml(mp)+'</td><td>'+escapeHtml(op)+'</td></tr>';
+    });
+    if(!rows.length) body='<tr><td colspan="4" class="plu-cmp-empty">데이터가 없습니다</td></tr>';
+    var foot='</tbody></table><div class="plu-cmp-foot"><button class="plu-tool-btn" id="pluCmpBack">← BACK</button><button class="plu-tool-btn" id="pluCmpCancel2">CANCEL</button></div>';
+    $('pluCmpBody').innerHTML=head+body+foot;
+    $('pluCmpBack').onclick=function(){ renderCmpSelect(); };
+    $('pluCmpCancel2').onclick=function(){ $('pluCmpModal').classList.remove('show'); };
   }
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
