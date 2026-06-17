@@ -229,7 +229,7 @@
   .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
   .plu-table thead th.plu-col-check { color: #15803d; }
   .plu-table thead th.plu-col-no { color: #c83a3a; }
-  /* 열 추가 형태 선택 팝업 */
+  /* 필드 추가 형태 선택 팝업 */
   .plu-modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; z-index: 1000; }
   .plu-modal-ov.show { display: flex; }
   .plu-modal { background: #fff; border-radius: 16px; padding: 22px; width: 92%; max-width: 360px; box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
@@ -283,7 +283,7 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { background: var(--danger); }
   .toast.success { background: var(--success); }
-  /* 열별 텍스트 정렬 (매니저에서 지정한 align 반영 — 데이터/열이름 불변, 표시 정렬만 적용) */
+  /* 열별 텍스트 정렬 (매니저에서 지정한 align 반영 — 데이터/필드가름 불변, 표시 정렬만 적용) */
   .plu-table td.align-left,   .plu-table th.align-left   { text-align:left   !important; }
   .plu-table td.align-center, .plu-table th.align-center { text-align:center !important; }
   .plu-table td.align-right,  .plu-table th.align-right  { text-align:right  !important; }
@@ -437,13 +437,12 @@
     var out=[];
     base.forEach(function(c){
       if(Array.isArray(show)){
-        if(show.indexOf(c.key)<0) return;        // 매장관리에서 선택한 열만 (숨김이어도 표시)
+        if(show.indexOf(c.key)<0) return;        // 매장관리에서 선택한 필드만 (숨김이어도 표시)
       } else {
-        if(c.hidden) return;                      // 미설정 매장: 기본 정보 열만
+        if(c.hidden) return;                      // 미설정 매장: 기본 정보 필드만
         if(!isBase(c.key)) return;
       }
-      if(!isBase(c.key)){ out.push({key:c.key,label:c.label,type:(c.type==='check'?'check':'text'),align:c.align,trunc:c.trunc,__store:true}); }
-      else { out.push(c); }
+      out.push(c);   // 매니저가 입력한 데이터 그대로 표시
     });
     return out;
   }
@@ -841,7 +840,7 @@
 
   // ===== IMPORT (기본 순서: PLU·로컬·유기농·한글명·영문명·분류 + 7번째부터 추가열 헤더) =====
 
-  // ===== 통합검색 (기본 6열) =====
+  // ===== 통합검색 (기본 6필드) =====
   function renderSearch(term){
     var el=$('pluContent'); el.className='plu-list'; var t=term.toLowerCase();
     var run=function(){
@@ -1091,7 +1090,7 @@
   window.__checkOwner=function(key){
     var K=String(key||'').toUpperCase();
     if(STD_CHECK_OWNER[K]) return STD_CHECK_OWNER[K];   // 정확 일치 우선
-    // 부분 포함: 열 이름 어디든(앞·뒤·괄호 안) 매장 코드가 들어가면 그 매장 것 (긴 코드 우선)
+    // 부분 포함: 필드 이름 어디든(앞·뒤·괄호 안) 매장 코드가 들어가면 그 매장 것 (긴 코드 우선)
     var codes=Object.keys(STD_CHECK_OWNER).sort(function(a,b){return b.length-a.length;});
     for(var i=0;i<codes.length;i++){ if(K.indexOf(codes[i])>=0) return STD_CHECK_OWNER[codes[i]]; }
     return '';
