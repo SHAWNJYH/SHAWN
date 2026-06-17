@@ -815,7 +815,10 @@
   }
 
   // ===== COMPARE (두 매장 가격 비교) =====
-  function storeCodeOf(store){ for(var k in STD_CHECK_OWNER){ if(STD_CHECK_OWNER[k]===store) return k; } return ''; }
+  var CMP_STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var CMP_OWNER={'HTM':'TACOMA','HFW':'FEDERALWAY','HBV':'BELLEVUE','HLW':'LYNNWOOD','HRM':'REDMOND','HBD':'BALLARD','GLW':'G-MART','MW':'MELLOW WAY','DH':'DISTRICT-H','M2M':'M2M','HUW':'UNIVERSITY'};
+  function cmpStoreNow(){ return (typeof window.__storeActive==='function' && window.__storeActive())||''; }
+  function storeCodeOf(store){ for(var k in CMP_OWNER){ if(CMP_OWNER[k]===store) return k; } return ''; }
   function priceFieldOf(store){ var c=storeCodeOf(store); return c?(c+'(S)'):''; }
   var cmpBig=-1, cmpSub='', cmpStore='';
   function ensureCmpModal(){
@@ -828,7 +831,7 @@
     return ov;
   }
   function openCompare(){
-    if(!currentStore){ alert('먼저 매장으로 로그인하세요.'); return; }
+    if(!cmpStoreNow()){ alert('먼저 매장으로 로그인하세요.'); return; }
     cmpBig=-1; cmpSub=''; cmpStore='';
     ensureCmpModal(); renderCmpSelect(); $('pluCmpModal').classList.add('show');
   }
@@ -846,8 +849,8 @@
     });
     catHtml+='</div>';
     // 2) 매장 박스 (현재 매장 제외)
-    var stHtml='<div class="plu-cmp-sec">비교할 매장 (현재: '+escapeHtml(currentStore)+')</div><div class="plu-cmp-boxes">';
-    STORES.forEach(function(st){ if(st===currentStore) return; var on=(cmpStore===st); stHtml+='<button type="button" class="plu-cmp-box plu-cmp-store'+(on?' sel':'')+'" data-store="'+escapeHtml(st)+'">'+escapeHtml(st)+'</button>'; });
+    var stHtml='<div class="plu-cmp-sec">비교할 매장 (현재: '+escapeHtml(cmpStoreNow())+')</div><div class="plu-cmp-boxes">';
+    CMP_STORES.forEach(function(st){ if(st===cmpStoreNow()) return; var on=(cmpStore===st); stHtml+='<button type="button" class="plu-cmp-box plu-cmp-store'+(on?' sel':'')+'" data-store="'+escapeHtml(st)+'">'+escapeHtml(st)+'</button>'; });
     stHtml+='</div>';
     // 버튼들
     var btns='<div class="plu-cmp-foot"><button class="plu-tool-btn" id="pluCmpCancel">CANCEL</button><button class="plu-tool-btn plu-cmp-go" id="pluCmpGo">COMPARE</button></div>';
@@ -860,10 +863,10 @@
   }
   function renderCmpResult(){
     var bigLabel=PLU_TABS[cmpBig].label;
-    var myField=priceFieldOf(currentStore), otField=priceFieldOf(cmpStore);
+    var myField=priceFieldOf(cmpStoreNow()), otField=priceFieldOf(cmpStore);
     var rows=(rowsFor(bigLabel)||[]).filter(function(r){ return rowSub(bigLabel,r)===cmpSub; }).sort(byPluAsc);
-    $('pluCmpTitle').textContent=bigLabel+' › '+cmpSub+'  ·  '+currentStore+' ↔ '+cmpStore;
-    var head='<table class="plu-cmp-table"><thead><tr><th>PLU</th><th>KOR DESC</th><th>'+escapeHtml(currentStore)+'</th><th>'+escapeHtml(cmpStore)+'</th></tr></thead><tbody>';
+    $('pluCmpTitle').textContent=bigLabel+' › '+cmpSub+'  ·  '+cmpStoreNow()+' ↔ '+cmpStore;
+    var head='<table class="plu-cmp-table"><thead><tr><th>PLU</th><th>KOR DESC</th><th>'+escapeHtml(cmpStoreNow())+'</th><th>'+escapeHtml(cmpStore)+'</th></tr></thead><tbody>';
     var body='';
     rows.forEach(function(r){
       var plu=escapeHtml(pluValOf(r)); var kor=escapeHtml(String(getVal(r,'KOR')||''));
