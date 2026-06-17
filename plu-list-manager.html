@@ -529,7 +529,8 @@
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   function orderEndCols(layout){ var data=[], chk=[]; (layout||[]).forEach(function(c){ var K=String((c&&c.key)||'').toUpperCase(); if((c&&c.type==='check') || STD_CHECK_COLS.indexOf(K)>=0) chk.push(c); else data.push(c); }); chk.sort(function(a,b){ var ia=STD_CHECK_COLS.indexOf(String(a.key).toUpperCase()), ib=STD_CHECK_COLS.indexOf(String(b.key).toUpperCase()); if(ia<0)ia=999; if(ib<0)ib=999; return ia-ib; }); return data.concat(chk); }
   function withStdChecks(cat, layout){ return (layout||[]).slice(); }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0)}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),fmt:(c.fmt==='price'?'price':'text')}); }); return L; }
+  function fmtPrice(v){ var s=String(v==null?'':v).trim(); if(s==='') return ''; var n=parseFloat(s.replace(/[^0-9.\-]/g,'')); return isNaN(n)?s:('$'+n.toFixed(2)); }
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
 
@@ -726,7 +727,7 @@
       __savedLayout[cat]={ layout: lay, ts: __now };
       // 메모리 캐시 갱신 (trunc/align 보존)
       cloud[cat]=rows.map(copyRow);
-      layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};});
+      layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),fmt:(c.fmt==='price'?'price':'text')};});
       truncLenByCat[cat]=tl;
       return true;
     }catch(e){ showToast('저장 실패 — '+(e&&e.message?e.message:'권한(보안규칙) 확인'),'error'); return false; }
@@ -858,10 +859,9 @@
         // 현재 정렬 표시 문자: 미지정(≡)·왼쪽(L)·가운데(C)·오른쪽(R)
         var alC=(c.align==='left')?'L':((c.align==='center')?'C':((c.align==='right')?'R':'≡'));
         var ops='<span class="plu-col-ops">'+
-          '<button class="plu-col-btn" data-act="left" data-key="'+escapeHtml(c.key)+'" title="왼쪽으로">◀</button>'+
-          '<button class="plu-col-btn" data-act="right" data-key="'+escapeHtml(c.key)+'" title="오른쪽으로">▶</button>'+
-          // 체크박스 필드에는 정렬/글자수 버튼 미표시
-          (isChk?'':('<button class="plu-col-btn" data-act="align" data-key="'+escapeHtml(c.key)+'" title="정렬 (왼쪽→가운데→오른쪽)">'+alC+'</button>'+
+          // 체크박스 필드에는 형식/정렬/글자수 버튼 미표시
+          (isChk?'':('<button class="plu-col-btn plu-col-fmt" data-act="fmt" data-key="'+escapeHtml(c.key)+'" title="형식 (TEXT ↔ PRICE)">'+(c.fmt==='price'?'$':'T')+'</button>'+
+                    '<button class="plu-col-btn" data-act="align" data-key="'+escapeHtml(c.key)+'" title="정렬 (왼쪽→가운데→오른쪽)">'+alC+'</button>'+
                     '<button class="plu-col-btn" data-act="trunc" data-key="'+escapeHtml(c.key)+'" title="표시 글자수 ('+(c.trunc>0?c.trunc+'자':'기본')+')">'+(c.trunc>0?('✂'+c.trunc):'✂')+'</button>'))+
         '</span>';
         // 필드 이름 클릭 → 이름변경/표시/삭제 팝업(openColEditPopup)
@@ -936,6 +936,7 @@
       var limit=(c.trunc>0)?c.trunc:TL;                 // 열별 표시 글자수(없으면 전체 공통값)
       var alignCls=c.align?(' align-'+c.align):'';        // 열별 정렬
       var fv=String(getVal(r,c.key)||'');
+      if(c.fmt==='price') fv=fmtPrice(fv);
       var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv);
       return '<td class="'+clsFor(c.key)+alignCls+'"'+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
     }).join('');
@@ -1095,7 +1096,7 @@
   function enterEdit(){
     var cat=curCat();
     var __anchorPlu=topVisiblePlu();
-    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow).sort(byPluAsc); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); if(__anchorPlu) scrollToPlu(__anchorPlu); };
+    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow).sort(byPluAsc); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),fmt:(c.fmt==='price'?'price':'text')};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); if(__anchorPlu) scrollToPlu(__anchorPlu); };
     if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
   }
   function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
@@ -1272,7 +1273,7 @@
       if(act==='colname'){ openColEditPopup(key); return; }
       if(key && key.indexOf('__ref:')===0){ if(act==='left'||act==='right'){ var refs=mgrRefCols(curCat()).map(function(c){return c.key;}); if(mgrRefOrder.length!==refs.length) mgrRefOrder=refs.slice(); var ri=mgrRefOrder.indexOf(key); if(ri<0){ mgrRefOrder=refs.slice(); ri=mgrRefOrder.indexOf(key); } var rj=act==='left'?ri-1:ri+1; if(rj<0||rj>=mgrRefOrder.length) return; var rt=mgrRefOrder[ri]; mgrRefOrder[ri]=mgrRefOrder[rj]; mgrRefOrder[rj]=rt; renderContent(); } return; }
       var i=colIndex(key); if(i<0) return;
-      if(act==='left'||act==='right'){ var j=act==='left'?i-1:i+1; if(j<0||j>=workLayout.length) return; var tmp=workLayout[i]; workLayout[i]=workLayout[j]; workLayout[j]=tmp; markDirty(); renderContent(); }
+      if(act==='fmt'){ workLayout[i].fmt=(workLayout[i].fmt==='price'?'text':'price'); markDirty(); renderContent(); }
       // 정렬 순환: 미지정(≡) → 왼쪽 → 가운데 → 오른쪽 → 미지정
       else if(act==='align'){ var order=['','left','center','right']; var ci2=order.indexOf(workLayout[i].align||''); var na=order[(ci2+1)%order.length]; workLayout[i].align=na; markDirty(); renderContent(); }
       // 이 필드만의 표시 글자수(빈칸/0 = 전체 공통값 사용)
@@ -1319,7 +1320,7 @@
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
-  function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; return raw==null?'':raw; }
+  function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } return raw==null?'':raw; }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
     var headFill={patternType:'solid', fgColor:{rgb:'FFD9E1F2'}};
