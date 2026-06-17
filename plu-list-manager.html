@@ -1362,9 +1362,9 @@
     var cfgLay=(layoutByCat[curCat()]||[]);
     var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">열이 없습니다.</div>';
     var wrap=document.createElement('div');
-    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:620px;">'+
+    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:680px;">'+
       '<div class="pcm-head">⬆ 데이터 내보내기<button class="pcm-x" id="emClose" type="button">✕</button></div>'+
-      '<div class="pcm-body">'+
+      '<div class="pcm-body" style="padding:8px 18px 18px;">'+
         '<div class="em-sec">'+
           '<div class="em-tt">카테고리 선택 EXPORT</div>'+
           '<div class="em-row"><select id="emCatSel" class="em-sel">'+catOpts+'</select>'+
