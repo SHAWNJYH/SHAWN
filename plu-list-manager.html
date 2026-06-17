@@ -514,6 +514,7 @@
 
   let pluBig=0, pluSub=0, pluSearchTerm='', pluHideReserve=false, pluCatFilter='';
   let cloud={}, layoutByCat={}, truncLenByCat={}, cloudLoaded=false;
+  var __savedLayout={};   // 저장 직후 layout 보호 (cat -> {layout, ts})
   var globalTrunc=20;   // 표시 글자수: 전체 카테고리 공통 (plu-config/main.truncLen)
   let pluRender=null, visibleCache=[];
   let editMode=false, work=null, workLayout=null, workTrunc=20, workDirty=false, currentUser=null;
@@ -606,7 +607,11 @@
         subOrder.forEach(function(s){ bySub[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ rows=rows.concat(c.rows); }); });
       } else if(Array.isArray(md.rows)){ rows=md.rows; }     // 구버전 단일(비압축) 문서
       cloud[lab]=rows;
-      layoutByCat[lab]=(Array.isArray(md.layout)&&md.layout.length)?normLayout(md.layout):defaultLayout(Array.isArray(md.fields)?md.fields:[]);
+      var __ml=(Array.isArray(md.layout)&&md.layout.length)?normLayout(md.layout):defaultLayout(Array.isArray(md.fields)?md.fields:[]);
+      // 서버 메타가 방금 저장분보다 오래됐으면(반영 지연) 보호된 layout 유지
+      if(__savedLayout[lab] && (md.updatedAt||0) < __savedLayout[lab].ts){ __ml=__savedLayout[lab].layout; }
+      else if(__savedLayout[lab] && (md.updatedAt||0) >= __savedLayout[lab].ts){ delete __savedLayout[lab]; }
+      layoutByCat[lab]=__ml;
       truncLenByCat[lab]=(typeof md.truncLen==='number'&&md.truncLen>0)?md.truncLen:20;
       __catChunkIds[mid]=chunkIdsBy[mid]||[];
     }
@@ -686,12 +691,15 @@
         }
       }
       // ② 메타 문서 기록 (rows 미포함 — 실제 데이터는 청크에 있음)
-      await fns().setDoc(fns().doc(db(), COL, docId), { layout: lay, fields: extraKeysOf(lay), truncLen: tl, updatedAt: Date.now() });
+      var __now=Date.now();
+      await fns().setDoc(fns().doc(db(), COL, docId), { layout: lay, fields: extraKeysOf(lay), truncLen: tl, updatedAt: __now });
       // ③ 잉여(옛) 청크 삭제 + 구버전 청크(docId__c0) 정리
       var prev=__catChunkIds[docId]||[];
       for(var p=0;p<prev.length;p++){ if(newIds.indexOf(prev[p])<0){ try{ await fns().deleteDoc(fns().doc(db(), COL, prev[p])); }catch(e){} } }
       try{ await fns().deleteDoc(fns().doc(db(), COL, docId+'__c0')); }catch(e){}
       __catChunkIds[docId]=newIds;
+      // 저장한 layout 보호 (onSnapshot이 서버 반영 전 옛 메타로 덮어쓰는 레이스 방지)
+      __savedLayout[cat]={ layout: lay, ts: __now };
       // 메모리 캐시 갱신 (trunc/align 보존)
       cloud[cat]=rows.map(copyRow);
       layoutByCat[cat]=lay.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:'')};});
