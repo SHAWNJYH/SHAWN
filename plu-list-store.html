@@ -317,6 +317,12 @@
   /* 결과 레이아웃 */
   .plu-cmp-split { display:flex; gap:16px; align-items:stretch; height:100%; min-height:0; }
   .plu-cmp-left { flex:1 1 50%; min-width:0; min-height:0; display:flex; flex-direction:column; }
+  .plu-cmp-search { display:flex; gap:8px; margin-bottom:10px; flex:0 0 auto; }
+  .plu-cmp-search-inp { flex:1 1 auto; min-width:0; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; border-radius:10px; padding:9px 12px; font-size:13px; font-weight:600; outline:none; }
+  .plu-cmp-search-inp:focus { border-color:#818cf8; box-shadow:0 0 0 2px rgba(129,140,248,0.25); }
+  .plu-cmp-search-inp::placeholder { color:#7c8aa5; font-weight:500; }
+  .cmp-search-all { flex:0 0 auto; border:1px solid rgba(255,255,255,0.15) !important; background:rgba(255,255,255,0.06) !important; color:#cbd5e1 !important; border-radius:10px; font-weight:700; }
+  .cmp-search-all:hover { background:rgba(255,255,255,0.12) !important; color:#fff !important; }
   .plu-cmp-scroll { flex:1 1 auto; min-height:0; overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius:14px; background:rgba(255,255,255,0.02); }
   .plu-cmp-right { flex:1 1 50%; min-width:0; min-height:0; display:flex; flex-direction:column; gap:10px; overflow:hidden; }
   /* 표 */
@@ -794,8 +800,6 @@
   }
   function subToolsHTML(){
     return '<div class="plu-tools">'+
-      '<input type="text" id="pluStoreSearch" class="plu-search-inp" placeholder="🔍 품명 검색 (예: 배추)" value="'+escapeHtml(storeSearchTerm)+'">'+
-      '<button class="plu-tool-btn" id="pluStoreSearchAll" type="button">전체보기</button>'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
       '<button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button>'+
       '<button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button>'+
@@ -837,8 +841,6 @@
     }
     pluRender=function(){
       var rows=all;
-      var st=storeSearchTerm.trim().toLowerCase();
-      if(st) rows=rows.filter(function(r){ return storeMatch(r, st); });
       if(pluCatFilter) rows=rows.filter(function(r){ return catValOf(r)===pluCatFilter; });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
@@ -871,8 +873,6 @@
     var cmp=$('pluCompareBtn'); if(cmp) cmp.onclick=function(){ openCompare(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
-    var ss=$('pluStoreSearch'); if(ss){ ss.oninput=function(e){ storeSearchTerm=e.target.value; if(pluRender) pluRender(); }; ss.onkeydown=function(e){ if(e.key==='Escape'){ storeSearchTerm=''; ss.value=''; if(pluRender) pluRender(); } }; }
-    var sa=$('pluStoreSearchAll'); if(sa) sa.onclick=function(){ storeSearchTerm=''; var i=$('pluStoreSearch'); if(i) i.value=''; if(pluRender) pluRender(); };
   }
 
   // ===== COMPARE (두 매장 가격 비교) =====
@@ -924,6 +924,10 @@
   }
   function cmpPriceNum(v){ var s=String(v==null?'':v).trim(); if(s==='') return null; var n=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(n)||n===0) return null; return n; }
   function cut8(s){ return String(s==null?'':s); }
+  function cmpRowsHtml(list, ncol){
+    if(!list||!list.length) return '<tr><td colspan="'+ncol+'" class="plu-cmp-empty">결과가 없습니다</td></tr>';
+    return list.map(function(r){ return '<tr'+(r.isd?' class="cmp-diff"':'')+'><td>'+escapeHtml(cut8(r.plu))+'</td><td class="cmp-kor">'+escapeHtml(r.kor)+'</td>'+r.disp.map(function(d){ return '<td>'+escapeHtml(cut8(d))+'</td>'; }).join('')+'</tr>'; }).join('');
+  }
   var cmpData=null;
   function renderCmpResult(){
     var bigLabel=PLU_TABS[cmpBig].label;
@@ -949,10 +953,12 @@
     });
     cmpData={same:same,diff:diff,na:na,recs:recs,stores:stores};
     var ths='<th>PLU</th><th>KOR</th>'+stores.map(function(s2){ return '<th>'+escapeHtml(cut8(s2))+'</th>'; }).join('');
-    var head='<table class="plu-cmp-table"><thead><tr>'+ths+'</tr></thead><tbody>';
-    var body=recs.map(function(r){ return '<tr'+(r.isd?' class="cmp-diff"':'')+'><td>'+escapeHtml(cut8(r.plu))+'</td><td class="cmp-kor">'+escapeHtml(r.kor)+'</td>'+r.disp.map(function(d){ return '<td>'+escapeHtml(cut8(d))+'</td>'; }).join('')+'</tr>'; }).join('');
-    if(!recs.length) body='<tr><td colspan="'+(2+stores.length)+'" class="plu-cmp-empty">\ub370\uc774\ud130\uac00 \uc5c6\uc2b5\ub2c8\ub2e4</td></tr>';
-    var leftHtml='<div class="plu-cmp-left"><div class="plu-cmp-scroll">'+head+body+'</tbody></table></div></div>';
+    var head='<table class="plu-cmp-table"><thead><tr>'+ths+'</tr></thead>';
+    var ncol=2+stores.length;
+    var leftHtml='<div class="plu-cmp-left">'+
+      '<div class="plu-cmp-search"><input type="text" id="cmpSearchInp" class="plu-cmp-search-inp" placeholder="\ud83d\udd0d \ud488\uba85\u00b7PLU \uac80\uc0c9 (\uc608: \ubc30\ucd94)"><button class="plu-tool-btn cmp-search-all" id="cmpSearchAll" type="button">\uc804\uccb4\ubcf4\uae30</button></div>'+
+      '<div class="plu-cmp-scroll">'+head+'<tbody id="cmpTbody">'+cmpRowsHtml(recs,ncol)+'</tbody></table></div>'+
+    '</div>';
     var topCards=stores.map(function(s2,idx){ return cmpTopCard(s2+' \ucd5c\uace0\uac00 TOP10', recs, idx); }).join('');
     var rightHtml='<div class="plu-cmp-right">'+
       cmpDonut(same.length, diff.length, na.length, recs.length)+
@@ -964,6 +970,8 @@
     '</div>';
     var foot='<div class="plu-cmp-foot"><button class="plu-tool-btn" id="pluCmpBack">\u2190 BACK</button><button class="plu-tool-btn" id="pluCmpCancel2">CANCEL</button></div>';
     $('pluCmpBody').innerHTML='<div class="plu-cmp-split">'+leftHtml+rightHtml+'</div>'+foot;
+    var csi=$('cmpSearchInp'); if(csi){ csi.oninput=function(){ var t=this.value.trim().toLowerCase(); var f=t?recs.filter(function(r){ return String(r.kor).toLowerCase().indexOf(t)>=0 || String(r.plu).toLowerCase().indexOf(t)>=0; }):recs; var tb=$('cmpTbody'); if(tb) tb.innerHTML=cmpRowsHtml(f,ncol); }; csi.onkeydown=function(e){ if(e.key==='Escape'){ this.value=''; var tb=$('cmpTbody'); if(tb) tb.innerHTML=cmpRowsHtml(recs,ncol); } }; }
+    var csa=$('cmpSearchAll'); if(csa) csa.onclick=function(){ var i=$('cmpSearchInp'); if(i) i.value=''; var tb=$('cmpTbody'); if(tb) tb.innerHTML=cmpRowsHtml(recs,ncol); };
     $('pluCmpBack').onclick=function(){ renderCmpSelect(); };
     $('pluCmpCancel2').onclick=function(){ $('pluCmpModal').classList.remove('show'); };
     var vs=$('cmpViewSame'); if(vs) vs.onclick=function(){ cmpItemPopup('\uac00\uaca9\uc774 \uac19\uc740 \ud488\ubaa9', same); };
