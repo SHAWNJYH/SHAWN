@@ -1502,17 +1502,15 @@
         var aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         var header=aoa.length?aoa[0]:[];
         function nm(x){ return String(x==null?'':x).trim().toLowerCase().replace(/\s+/g,' '); }
-        var labelMap={};
-        BASE.forEach(function(b){ labelMap[nm(b.label)]={key:b.key, base:true}; });
-        (layoutByCat[cat]||[]).forEach(function(c){ labelMap[nm(c.label)]={key:c.key, base:isBase(c.key)}; });
-        var hasHeader = header.some(function(h){ var n=nm(h); return !!n && (!!labelMap[n] || /plu/.test(n)); });
+        var lay=(layoutByCat[cat]||defaultLayout([]));
+        var headerNm=header.map(nm);
+        var hasHeader = header.some(function(h){ var n=nm(h); return !!n && /plu/.test(n); }) || headerNm.some(function(n){ return lay.some(function(c){ return nm(c.label)===n; }); });
         var cols=[];
         if(hasHeader){
-          header.forEach(function(h,ci){ var n=nm(h); if(!n) return; var m=labelMap[n];
-            if(m){ cols.push({key:m.key,label:String(h).trim(),base:m.base,ci:ci,isNew:false}); }
-            else { var k=String(h).trim().toUpperCase(); cols.push({key:k,label:k,base:false,ci:ci,isNew:true}); } });
+          // 현재 카테고리에서 실제 사용 중인 필드(숨김 포함)만, 엑셀에 같은 이름이 있을 때
+          lay.forEach(function(c){ var ci=headerNm.indexOf(nm(c.label)); if(ci<0) return; cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:ci,isNew:false,hidden:!!c.hidden}); });
         } else {
-          BASE.forEach(function(b,bi){ cols.push({key:b.key,label:b.label,base:true,ci:bi,isNew:false}); });
+          lay.forEach(function(c,bi){ cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:bi,isNew:false,hidden:!!c.hidden}); });
         }
         if(!cols.length){ showToast('가져올 필드가 없습니다','error'); return; }
         var start = hasHeader?1:0;
@@ -1546,7 +1544,7 @@
     $('pluImpHint').innerHTML='['+escapeHtml(pendingImport.cat)+'] 카테고리 · 엑셀 '+pendingImport.rows.length+'행 · 체크한 필드만 <b>PLU 기준</b>으로 기존 데이터에 업데이트됩니다.';
     $('pluImpList').innerHTML=cols.map(function(c,i){
       var pk=isPluKey(c.key);
-      var tag=(pk?' <em>기준</em>':(c.isNew?' <em class="imp-new">신규</em>':''));
+      var tag=(pk?' <em>기준</em>':(c.hidden?' <em class="imp-new">숨김</em>':''));
       return '<label class="plu-imp-item'+(pk?' plu-imp-pk':'')+'"><input type="checkbox" class="plu-imp-col" data-i="'+i+'"'+(pk?' checked disabled':' checked')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>';
     }).join('');
     $('pluImpAll').onclick=function(){ $('pluImpList').querySelectorAll('.plu-imp-col:not(:disabled)').forEach(function(ch){ ch.checked=true; }); };
