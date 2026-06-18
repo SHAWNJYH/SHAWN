@@ -290,7 +290,7 @@
   /* ===== COMPARE — 미래지향 다크 테마 ===== */
   .plu-cmp-ov { position:fixed; inset:0; background:rgba(7,11,20,0.66); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:9000; padding:24px; }
   .plu-cmp-ov.show { display:flex; }
-  .plu-cmp-modal { position:relative; width:100%; max-width:1290px; max-height:92vh; display:flex; flex-direction:column; color:#e2e8f0; border-radius:20px; overflow:hidden;
+  .plu-cmp-modal { position:relative; width:100%; max-width:1480px; max-height:92vh; display:flex; flex-direction:column; color:#e2e8f0; border-radius:20px; overflow:hidden;
     background:linear-gradient(165deg,#0b1220 0%,#111a2e 48%,#0d1626 100%);
     border:1px solid rgba(255,255,255,0.08); box-shadow:0 30px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06); }
   .plu-cmp-modal::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#22d3ee,#818cf8,#e879f9); opacity:0.9; }
@@ -299,11 +299,11 @@
   .plu-cmp-x { border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); width:30px; height:30px; border-radius:9px; font-size:15px; cursor:pointer; color:#cbd5e1; transition:.15s; }
   .plu-cmp-x:hover { background:rgba(255,255,255,0.1); color:#fff; }
   .plu-cmp-body { padding:18px 22px; overflow:auto; }
-  .plu-cmp-sec { font-size:11px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:#7c8aa5; margin:4px 0 12px; }
+  .plu-cmp-sec { font-size:12px; font-weight:700; letter-spacing:0.6px; color:#ffffff; margin:4px 0 12px; }
   .plu-cmp-sec b { color:#a5b4fc; font-weight:800; letter-spacing:0; }
   .plu-cmp-catwrap { margin-bottom:18px; }
   .plu-cmp-grp { margin-bottom:14px; }
-  .plu-cmp-grplab { font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#5b6b86; margin-bottom:7px; }
+  .plu-cmp-grplab { font-size:14px; font-weight:800; letter-spacing:0.3px; color:#ffffff; margin-bottom:8px; }
   .plu-cmp-boxes { display:flex; flex-wrap:wrap; gap:9px; }
   .plu-cmp-box { width:150px; box-sizing:border-box; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03); color:#cbd5e1; border-radius:11px; padding:11px 12px;
@@ -316,46 +316,46 @@
   .plu-cmp-go { border:none !important; color:#fff !important; background:linear-gradient(135deg,#06b6d4,#6366f1) !important; box-shadow:0 8px 22px rgba(99,102,241,0.4); }
   /* 결과 레이아웃 */
   .plu-cmp-split { display:flex; gap:18px; align-items:flex-start; }
-  .plu-cmp-left { flex:0 0 440px; max-width:440px; }
+  .plu-cmp-left { flex:0 0 520px; max-width:520px; }
   .plu-cmp-scroll { max-height:62vh; overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius:14px; background:rgba(255,255,255,0.02); }
-  .plu-cmp-right { flex:1 1 auto; display:flex; flex-direction:column; gap:14px; min-width:300px; }
+  .plu-cmp-right { flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:300px; }
   /* 표 */
   .plu-cmp-table { width:100%; border-collapse:collapse; font-size:12.5px; }
   .plu-cmp-table th { position:sticky; top:0; z-index:1; background:linear-gradient(180deg,#1a2540,#151e35); color:#93c5fd; font-weight:700; letter-spacing:0.4px; padding:9px 8px; border-bottom:1px solid rgba(255,255,255,0.1); }
-  .plu-cmp-table td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,0.05); color:#dbe3f0; white-space:nowrap; text-align:center; }
+  .plu-cmp-table td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,0.05); color:#ffffff; white-space:nowrap; text-align:center; }
   .plu-cmp-table tbody tr:hover td { background:rgba(129,140,248,0.07); }
   .plu-cmp-table th:nth-child(2), .plu-cmp-table td.cmp-kor { text-align:left; }
-  .plu-cmp-table td.cmp-kor, .plu-cmp-table th:nth-child(2) { max-width:78px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .plu-cmp-table tr.cmp-diff td { background:rgba(239,68,68,0.14); color:#fecaca; }
-  .plu-cmp-empty { text-align:center; color:#64748b; padding:18px; }
+  .plu-cmp-table td.cmp-kor, .plu-cmp-table th:nth-child(2) { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .plu-cmp-table tr.cmp-diff td { background:rgba(239,68,68,0.30); color:#ffffff; font-weight:700; }
+  .plu-cmp-empty { text-align:center; color:#ffffff; padding:18px; }
   /* 통계 카드 (glass) */
-  .cmp-stat-row { display:flex; gap:14px; align-items:stretch; }
+  .cmp-stat-row { display:flex; gap:12px; align-items:stretch; }
   .cmp-stat-row.cmp-top-wrap { flex-wrap:wrap; }
   .cmp-half { flex:1 1 0; min-width:0; }
   .cmp-topcard { flex:1 1 220px; min-width:200px; }
-  .cmp-stat-card { border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:14px 16px;
+  .cmp-stat-card { border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:10px 13px;
     background:linear-gradient(160deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02)); box-shadow:inset 0 1px 0 rgba(255,255,255,0.05); }
-  .cmp-stat-num { font-size:30px; font-weight:800; line-height:1; background:linear-gradient(135deg,#34d399,#22d3ee); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .cmp-stat-num { font-size:22px; font-weight:800; line-height:1; background:linear-gradient(135deg,#34d399,#22d3ee); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .cmp-num-red { background:linear-gradient(135deg,#f87171,#fb7185) !important; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-  .cmp-stat-lab { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#7c8aa5; margin-bottom:8px; }
-  .cmp-stat-btn { margin-top:10px; padding:6px 12px; font-size:12px; }
+  .cmp-stat-lab { font-size:11px; font-weight:700; letter-spacing:0.4px; color:#ffffff; margin-bottom:6px; }
+  .cmp-stat-btn { margin-top:7px; padding:5px 11px; font-size:12px; }
   /* 도넛 */
   .cmp-donut-card { display:flex; flex-direction:column; align-items:center; }
-  .cmp-donut-wrap { position:relative; width:158px; height:158px; margin:10px 0 14px; }
-  .cmp-donut { width:158px; height:158px; border-radius:50%; -webkit-mask:radial-gradient(circle 48px at center, transparent 97%, #000 100%); mask:radial-gradient(circle 48px at center, transparent 97%, #000 100%); filter:drop-shadow(0 0 16px rgba(99,102,241,0.45)); }
+  .cmp-donut-wrap { position:relative; width:130px; height:130px; margin:6px 0 10px; }
+  .cmp-donut { width:130px; height:130px; border-radius:50%; -webkit-mask:radial-gradient(circle 40px at center, transparent 97%, #000 100%); mask:radial-gradient(circle 40px at center, transparent 97%, #000 100%); filter:drop-shadow(0 0 16px rgba(99,102,241,0.45)); }
   .cmp-donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-  .cmp-donut-center b { font-size:32px; font-weight:800; line-height:1; color:#f1f5f9; text-shadow:0 0 18px rgba(99,102,241,0.5); }
-  .cmp-donut-center span { font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:#64748b; margin-top:3px; }
+  .cmp-donut-center b { font-size:26px; font-weight:800; line-height:1; color:#f1f5f9; text-shadow:0 0 18px rgba(99,102,241,0.5); }
+  .cmp-donut-center span { font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:#ffffff; margin-top:3px; }
   .cmp-leg-box { width:100%; }
-  .cmp-leg { display:flex; align-items:center; gap:9px; font-size:12px; color:#cbd5e1; padding:4px 0; }
+  .cmp-leg { display:flex; align-items:center; gap:9px; font-size:12px; color:#ffffff; padding:4px 0; }
   .cmp-leg-dot { width:13px; height:13px; border-radius:4px; flex:0 0 auto; box-shadow:0 0 8px rgba(0,0,0,0.4); }
   .cmp-leg-t { flex:1 1 auto; font-weight:700; }
-  .cmp-leg-v { flex:0 0 auto; color:#64748b; }
+  .cmp-leg-v { flex:0 0 auto; color:#ffffff; }
   /* TOP10 */
   .cmp-top-row { display:flex; align-items:center; gap:9px; font-size:12px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.05); }
   .cmp-top-row:first-of-type .cmp-top-rank { background:linear-gradient(135deg,#fbbf24,#f59e0b); color:#1a1205; }
   .cmp-top-rank { flex:0 0 20px; height:20px; line-height:20px; text-align:center; font-weight:800; font-size:11px; border-radius:6px; background:rgba(255,255,255,0.07); color:#93c5fd; }
-  .cmp-top-name { flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#e2e8f0; }
+  .cmp-top-name { flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ffffff; }
   .cmp-top-price { flex:0 0 auto; font-weight:800; color:#5eead4; }
 </style>
 <style>
@@ -884,7 +884,7 @@
   function renderCmpSelect(){
     $('pluCmpTitle').textContent='가격 비교 — 카테고리 / 매장 선택';
     // 1) 중분류 박스 (상위 대분류 그룹 아래 중간 카테고리만)
-    var catHtml='<div class="plu-cmp-sec">중간 카테고리</div><div class="plu-cmp-catwrap">';
+    var catHtml='<div class="plu-cmp-catwrap">';
     PLU_TABS.forEach(function(t,bi){
       catHtml+='<div class="plu-cmp-grp"><div class="plu-cmp-grplab">'+escapeHtml(t.label)+'</div><div class="plu-cmp-boxes">';
       (t.subs||[]).forEach(function(s){
@@ -908,7 +908,7 @@
     $('pluCmpGo').onclick=function(){ if(cmpBig<0||!cmpSub){ alert('중간 카테고리를 선택하세요.'); return; } if(!cmpStores.length){ alert('비교할 매장을 선택하세요.'); return; } renderCmpResult(); };
   }
   function cmpPriceNum(v){ var s=String(v==null?'':v).trim(); if(s==='') return null; var n=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(n)||n===0) return null; return n; }
-  function cut8(s){ s=String(s==null?'':s); return s.length>8?(s.slice(0,8)+'…'):s; }
+  function cut8(s){ return String(s==null?'':s); }
   var cmpData=null;
   function renderCmpResult(){
     var bigLabel=PLU_TABS[cmpBig].label;
