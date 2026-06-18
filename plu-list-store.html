@@ -300,7 +300,7 @@
   .plu-cmp-grp { margin-bottom:10px; }
   .plu-cmp-grplab { font-size:12px; color:#999; margin-bottom:4px; }
   .plu-cmp-boxes { display:flex; flex-wrap:wrap; gap:7px; }
-  .plu-cmp-box { border:1.5px solid var(--border,#ccc); background:var(--bg-elev,#fff); color:var(--text,#333); border-radius:9px; padding:8px 13px; font-size:13px; font-weight:700; cursor:pointer; }
+  .plu-cmp-box { width:150px; box-sizing:border-box; text-align:center; border:1.5px solid var(--border,#ccc); background:var(--bg-elev,#fff); color:var(--text,#333); border-radius:9px; padding:8px 10px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plu-cmp-box:hover { border-color:var(--accent-warm,#d97706); }
   .plu-cmp-box.sel { background:var(--accent,#2563eb); border-color:var(--accent,#2563eb); color:#fff; }
   .plu-cmp-foot { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
@@ -308,7 +308,7 @@
   .plu-cmp-table { width:100%; border-collapse:collapse; font-size:13px; }
   .plu-cmp-table th, .plu-cmp-table td { border:1px solid var(--border,#e5e5e5); padding:7px 10px; text-align:left; }
   .plu-cmp-table th { background:var(--bg,#f5f5f5); font-weight:700; }
-  .plu-cmp-table td:nth-child(3), .plu-cmp-table td:nth-child(4), .plu-cmp-table th:nth-child(3), .plu-cmp-table th:nth-child(4) { text-align:right; }
+  .plu-cmp-table td:nth-child(1), .plu-cmp-table th:nth-child(1), .plu-cmp-table td:nth-child(3), .plu-cmp-table td:nth-child(4), .plu-cmp-table th:nth-child(3), .plu-cmp-table th:nth-child(4) { text-align:center; }
   .plu-cmp-table tr.cmp-diff td { background:rgba(229,57,53,0.08); }
   .plu-cmp-empty { text-align:center; color:#999; padding:18px; }
 </style>
@@ -838,7 +838,7 @@
   function renderCmpSelect(){
     $('pluCmpTitle').textContent='가격 비교 — 카테고리 / 매장 선택';
     // 1) 중분류 박스 (상위 대분류 그룹 아래 중간 카테고리만)
-    var catHtml='<div class="plu-cmp-sec">중간 카테고리</div><div class="plu-cmp-catwrap">';
+    var catHtml='<div class="plu-cmp-catwrap">';
     PLU_TABS.forEach(function(t,bi){
       catHtml+='<div class="plu-cmp-grp"><div class="plu-cmp-grplab">'+escapeHtml(t.label)+'</div><div class="plu-cmp-boxes">';
       (t.subs||[]).forEach(function(s){
@@ -869,7 +869,7 @@
     var head='<table class="plu-cmp-table"><thead><tr><th>PLU</th><th>KOR DESC</th><th>'+escapeHtml(cmpStoreNow())+'</th><th>'+escapeHtml(cmpStore)+'</th></tr></thead><tbody>';
     var body='';
     rows.forEach(function(r){
-      var plu=escapeHtml(pluValOf(r)); var kor=escapeHtml(String(getVal(r,'KOR')||''));
+      var plu=escapeHtml(pluValOf(r)); var kor=escapeHtml(String(exportVal(r,{key:'kor',aliases:['KOR DESC','KOR','KOREAN','한글명','KOR DESC.']})||''));
       var mp=myField?fmtPrice(getVal(r,myField)):'-'; var op=otField?fmtPrice(getVal(r,otField)):'-';
       var diff=(mp!==op && mp!=='-' && op!=='-');
       body+='<tr'+(diff?' class="cmp-diff"':'')+'><td>'+plu+'</td><td>'+kor+'</td><td>'+escapeHtml(mp)+'</td><td>'+escapeHtml(op)+'</td></tr>';
