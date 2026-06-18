@@ -363,6 +363,9 @@
   .plu-tool-btn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:9px; padding:8px 12px; font-family:var(--mono); font-size:13px; font-weight:700; cursor:pointer; }
   .plu-tool-btn:hover { border-color:var(--accent-warm); color:var(--text); }
   .plu-tool-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .plu-search-inp { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:9px; padding:8px 12px; font-family:var(--mono); font-size:13px; font-weight:600; min-width:200px; outline:none; }
+  .plu-search-inp:focus { border-color:var(--accent-warm); }
+  .plu-search-inp::placeholder { color:var(--text-faint); font-weight:500; }
   .plu-icon-btn { padding:7px 10px; font-size:15px; line-height:1; }
   .plu-locked-hint { font-size:12px; color:#b04141; font-weight:700; }
   .plu-locked-hint.ok { color:#2e7d52; }
@@ -727,6 +730,12 @@
   }
   function korLabel(cate){ cate=String(cate||''); var i=cate.search(/\s*\(/); return i>0 ? cate.slice(0,i).trim() : cate.trim(); }
   function catValOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!==''){ return String(r.extra[k]); } } } return ''; }
+  var storeSearchTerm='';
+  function storeMatch(r, t){
+    if(!t) return true;
+    var kor=String(getVal(r,'KOR')||''); var eng=String(getVal(r,'ENG')||''); var plu=String(pluValOf(r)||'');
+    return kor.toLowerCase().indexOf(t)>=0 || eng.toLowerCase().indexOf(t)>=0 || plu.toLowerCase().indexOf(t)>=0;
+  }
   function isReserveRow(r){ if(!r) return false; var RX=/\bRESERVE\b/i; if(RX.test(String(r.eng||''))||RX.test(String(r.kor||''))) return true; if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && RX.test(v)) return true; } } return false; }
   (function(){
     var pop=null;
@@ -785,6 +794,8 @@
   }
   function subToolsHTML(){
     return '<div class="plu-tools">'+
+      '<input type="text" id="pluStoreSearch" class="plu-search-inp" placeholder="🔍 품명 검색 (예: 배추)" value="'+escapeHtml(storeSearchTerm)+'">'+
+      '<button class="plu-tool-btn" id="pluStoreSearchAll" type="button">전체보기</button>'+
       '<label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label>'+
       '<button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button>'+
       '<button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button>'+
@@ -826,6 +837,8 @@
     }
     pluRender=function(){
       var rows=all;
+      var st=storeSearchTerm.trim().toLowerCase();
+      if(st) rows=rows.filter(function(r){ return storeMatch(r, st); });
       if(pluCatFilter) rows=rows.filter(function(r){ return catValOf(r)===pluCatFilter; });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
@@ -858,6 +871,8 @@
     var cmp=$('pluCompareBtn'); if(cmp) cmp.onclick=function(){ openCompare(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
+    var ss=$('pluStoreSearch'); if(ss){ ss.oninput=function(e){ storeSearchTerm=e.target.value; if(pluRender) pluRender(); }; ss.onkeydown=function(e){ if(e.key==='Escape'){ storeSearchTerm=''; ss.value=''; if(pluRender) pluRender(); } }; }
+    var sa=$('pluStoreSearchAll'); if(sa) sa.onclick=function(){ storeSearchTerm=''; var i=$('pluStoreSearch'); if(i) i.value=''; if(pluRender) pluRender(); };
   }
 
   // ===== COMPARE (두 매장 가격 비교) =====
