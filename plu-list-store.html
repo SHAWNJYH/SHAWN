@@ -288,9 +288,9 @@
   .plu-table td.align-center, .plu-table th.align-center { text-align:center !important; }
   .plu-table td.align-right,  .plu-table th.align-right  { text-align:right  !important; }
   /* ===== COMPARE — 미래지향 다크 테마 ===== */
-  .plu-cmp-ov { position:fixed; inset:0; background:rgba(7,11,20,0.66); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:9000; padding:24px; }
+  .plu-cmp-ov { position:fixed; inset:0; background:rgba(7,11,20,0.66); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:9000; padding:14px; }
   .plu-cmp-ov.show { display:flex; }
-  .plu-cmp-modal { position:relative; width:100%; max-width:1480px; max-height:92vh; display:flex; flex-direction:column; color:#e2e8f0; border-radius:20px; overflow:hidden;
+  .plu-cmp-modal { position:relative; width:100%; max-width:1480px; height:90vh; display:flex; flex-direction:column; color:#e2e8f0; border-radius:20px; overflow:hidden;
     background:linear-gradient(165deg,#0b1220 0%,#111a2e 48%,#0d1626 100%);
     border:1px solid rgba(255,255,255,0.08); box-shadow:0 30px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06); }
   .plu-cmp-modal::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#22d3ee,#818cf8,#e879f9); opacity:0.9; }
@@ -298,7 +298,7 @@
   .plu-cmp-head b { font-size:15px; font-weight:700; letter-spacing:0.2px; background:linear-gradient(90deg,#67e8f9,#a5b4fc); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .plu-cmp-x { border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); width:30px; height:30px; border-radius:9px; font-size:15px; cursor:pointer; color:#cbd5e1; transition:.15s; }
   .plu-cmp-x:hover { background:rgba(255,255,255,0.1); color:#fff; }
-  .plu-cmp-body { padding:18px 22px; overflow:auto; }
+  .plu-cmp-body { padding:16px 20px; overflow:auto; flex:1 1 auto; min-height:0; }
   .plu-cmp-sec { font-size:12px; font-weight:700; letter-spacing:0.6px; color:#ffffff; margin:4px 0 12px; }
   .plu-cmp-sec b { color:#a5b4fc; font-weight:800; letter-spacing:0; }
   .plu-cmp-catwrap { margin-bottom:18px; }
@@ -315,10 +315,10 @@
   .plu-cmp-foot .plu-tool-btn:hover, .cmp-stat-btn:hover { background:rgba(255,255,255,0.1); color:#fff; }
   .plu-cmp-go { border:none !important; color:#fff !important; background:linear-gradient(135deg,#06b6d4,#6366f1) !important; box-shadow:0 8px 22px rgba(99,102,241,0.4); }
   /* 결과 레이아웃 */
-  .plu-cmp-split { display:flex; gap:18px; align-items:flex-start; }
-  .plu-cmp-left { flex:0 0 520px; max-width:520px; }
-  .plu-cmp-scroll { max-height:62vh; overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius:14px; background:rgba(255,255,255,0.02); }
-  .plu-cmp-right { flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:300px; }
+  .plu-cmp-split { display:flex; gap:16px; align-items:stretch; height:100%; }
+  .plu-cmp-left { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; }
+  .plu-cmp-scroll { flex:1 1 auto; min-height:0; overflow:auto; border:1px solid rgba(255,255,255,0.08); border-radius:14px; background:rgba(255,255,255,0.02); }
+  .plu-cmp-right { flex:0 0 320px; display:flex; flex-direction:column; gap:10px; overflow:auto; min-height:0; }
   /* 표 */
   .plu-cmp-table { width:100%; border-collapse:collapse; font-size:12.5px; }
   .plu-cmp-table th { position:sticky; top:0; z-index:1; background:linear-gradient(180deg,#1a2540,#151e35); color:#93c5fd; font-weight:700; letter-spacing:0.4px; padding:9px 8px; border-bottom:1px solid rgba(255,255,255,0.1); }
@@ -326,7 +326,7 @@
   .plu-cmp-table tbody tr:hover td { background:rgba(129,140,248,0.07); }
   .plu-cmp-table th:nth-child(2), .plu-cmp-table td.cmp-kor { text-align:left; }
   .plu-cmp-table td.cmp-kor, .plu-cmp-table th:nth-child(2) { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .plu-cmp-table tr.cmp-diff td { background:rgba(239,68,68,0.30); color:#ffffff; font-weight:700; }
+  .plu-cmp-table tr.cmp-diff td { background:rgba(220,38,38,0.55) !important; color:#ffffff !important; font-weight:800; }
   .plu-cmp-empty { text-align:center; color:#ffffff; padding:18px; }
   /* 통계 카드 (glass) */
   .cmp-stat-row { display:flex; gap:12px; align-items:stretch; }
@@ -967,13 +967,13 @@
     return '<div class="cmp-stat-card cmp-donut-card"><div class="cmp-stat-lab">\uad6c\uc131 \ube44\uc728 (\uc804\uccb4 '+tot+'\uac1c)</div><div class="cmp-donut-wrap"><div class="cmp-donut" style="background:conic-gradient('+stops.join(',')+')"></div><div class="cmp-donut-center"><b>'+tot+'</b><span>\ud488\ubaa9</span></div></div><div class="cmp-leg-box">'+leg+'</div></div>';
   }
     function cmpItemPopup(title, list){
-    var ov=$('pluCmpSub'); if(!ov){ ov=document.createElement('div'); ov.id='pluCmpSub'; ov.className='plu-cmp-ov'; ov.innerHTML='<div class="plu-cmp-modal" style="max-width:620px"><div class="plu-cmp-head"><b id="pluCmpSubT"></b><button class="plu-cmp-x" id="pluCmpSubX">✕</button></div><div class="plu-cmp-body" id="pluCmpSubB"></div></div>'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('show'); }); $('pluCmpSubX').onclick=function(){ ov.classList.remove('show'); }; }
+    var ov=$('pluCmpSub'); if(!ov){ ov=document.createElement('div'); ov.id='pluCmpSub'; ov.className='plu-cmp-ov'; ov.innerHTML='<div class="plu-cmp-modal" style="max-width:680px;height:80vh"><div class="plu-cmp-head"><b id="pluCmpSubT"></b><button class="plu-cmp-x" id="pluCmpSubX">✕</button></div><div class="plu-cmp-body" id="pluCmpSubB"></div></div>'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('show'); }); $('pluCmpSubX').onclick=function(){ ov.classList.remove('show'); }; }
     $('pluCmpSubT').textContent=title+' ('+list.length+'개)';
     var sts=cmpData.stores||[];
     var ths='<th>PLU</th><th>KOR</th>'+sts.map(function(s2){ return '<th>'+escapeHtml(cut8(s2))+'</th>'; }).join('');
-    var h='<table class="plu-cmp-table"><thead><tr>'+ths+'</tr></thead><tbody>';
+    var h='<div class="plu-cmp-scroll" style="max-height:none;height:100%"><table class="plu-cmp-table"><thead><tr>'+ths+'</tr></thead><tbody>';
     h+=list.map(function(r){ return '<tr><td>'+escapeHtml(cut8(r.plu))+'</td><td class="cmp-kor">'+escapeHtml(r.kor)+'</td>'+r.disp.map(function(d){ return '<td>'+escapeHtml(cut8(d))+'</td>'; }).join('')+'</tr>'; }).join('')||'<tr><td colspan="'+(2+sts.length)+'" class="plu-cmp-empty">없음</td></tr>';
-    $('pluCmpSubB').innerHTML=h+'</tbody></table>'; $('pluCmpSub').classList.add('show');
+    $('pluCmpSubB').innerHTML=h+'</tbody></table></div>'; $('pluCmpSub').classList.add('show');
   }
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
