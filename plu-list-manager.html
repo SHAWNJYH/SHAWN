@@ -407,11 +407,11 @@
   .cnm-sw.sel { outline:2px solid #111; outline-offset:1px; }
   .cnm-sw-none { background:#fff; color:#999; font-size:13px; line-height:1; }
   /* 매장 표시 필드 선택 */
-  .msm-showitem { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
-  .msm-showitem input { flex:0 0 auto; }
-  .msm-showitem span { flex:1 1 auto; line-height:1.3; }
+  .msm-showitem { display:flex !important; align-items:center; gap:8px; padding:6px 4px; font-size:14px; cursor:pointer; color:#333; min-width:0; }
+  .msm-showitem input { flex:0 0 auto; margin:0; }
+  .msm-showitem span { flex:1 1 auto; min-width:0; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .msm-showitem em { color:#9a9aa0; font-size:12px; font-style:normal; margin-left:4px; }
-  #msmShowList { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 14px; padding:4px 2px; max-height:320px; overflow:auto; }
+  #msmShowList { display:grid !important; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:4px 16px; padding:6px 2px; max-height:340px; overflow-y:auto; align-content:start; }
   /* 데이터 내보내기 메뉴 */
   .em-sec { padding:10px 0; border-bottom:1px solid #eee; display:flex; flex-direction:column; gap:6px; }
   .em-sec:last-child { border-bottom:none; }
@@ -1838,7 +1838,7 @@
     if(!cols.length){ box.innerHTML='<div class="msm-colempty">이 카테고리에 필드가 없습니다.</div>'; return; }
     var picked=(msmShowCols[doc]||null);
     box.innerHTML=cols.map(function(c){
-      var on = picked ? (picked.indexOf(c.key)>=0) : false;
+      var on = picked ? (picked.indexOf(c.key)>=0) : (!c.hidden);   // 미설정이면 store에 보이는 필드(숨김 제외) 기본 체크
       var tag=(c.type==='check'||c.type==='rcheck')?' <em>체크</em>':'';
       var hid=c.hidden?' <em style="color:#b00;">숨김</em>':'';
       return '<label class="msm-showitem"><input type="checkbox" class="msm-show-col" data-key="'+esc(c.key)+'"'+(on?' checked':'')+'> <span>'+esc(c.label)+tag+hid+'</span></label>';
