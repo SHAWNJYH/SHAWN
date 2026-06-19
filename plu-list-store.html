@@ -529,10 +529,9 @@
       if(Array.isArray(show)){
         if(show.indexOf(c.key)<0) return;        // 매장관리에서 선택한 필드만 (숨김이어도 표시)
       } else {
-        if(c.hidden) return;                      // 미설정 매장: 기본 정보 필드만
-        if(!isBase(c.key)) return;
+        if(c.hidden) return;                      // 미설정 매장: 매니저가 만든 필드 전부(숨김만 제외)
       }
-      out.push(c);   // 매니저가 입력한 데이터 그대로 표시
+      out.push(c);   // 매니저가 입력한 데이터·필드 셋팅 그대로 표시
     });
     return out;
   }
