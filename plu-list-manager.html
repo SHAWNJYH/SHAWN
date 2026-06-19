@@ -1537,7 +1537,6 @@
           '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>'+
         '<div class="plu-modal-btns" style="margin-top:6px;"><button class="plu-modal-choice" id="emDoExp" style="text-align:center;">⬇ 선택 카테고리 EXPORT</button></div>'+
-        '<div class="plu-modal-btns" style="margin-top:6px;"><button class="plu-modal-choice" id="emHistExp" style="text-align:center;">💲 가격변경 상품 LIST</button></div>'+
       '</div>'+
     '</div></div>';
     document.body.appendChild(wrap.firstChild);
@@ -1548,7 +1547,6 @@
     var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
     document.querySelectorAll('#'+ov+' .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); }; });
     var doExp=$('emDoExp'); if(doExp) doExp.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); exportSelectedCats(list); };
-    var histExp=$('emHistExp'); if(histExp) histExp.onclick=function(){ var o=$(ov); if(o) o.remove(); showHistModal('price'); };
   }
   function exportXlsx(){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
