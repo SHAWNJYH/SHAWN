@@ -346,11 +346,11 @@
   .cmp-stat-lab { font-size:11px; font-weight:700; letter-spacing:0.4px; color:#ffffff; margin-bottom:6px; }
   .cmp-stat-btn { margin-top:7px; padding:5px 11px; font-size:12px; }
   /* 도넛 */
-  .cmp-donut-card { flex:0 0 auto; display:flex; flex-direction:column; align-items:center; }
-  .cmp-donut-wrap { position:relative; width:130px; height:130px; margin:6px 0 10px; }
-  .cmp-donut { width:130px; height:130px; border-radius:50%; -webkit-mask:radial-gradient(circle 40px at center, transparent 97%, #000 100%); mask:radial-gradient(circle 40px at center, transparent 97%, #000 100%); filter:drop-shadow(0 0 16px rgba(99,102,241,0.45)); }
+  .cmp-donut-card { flex:0 0 auto; display:flex; flex-direction:column; align-items:center; padding:8px 12px; }
+  .cmp-donut-wrap { position:relative; width:104px; height:104px; margin:2px 0 6px; }
+  .cmp-donut { width:104px; height:104px; border-radius:50%; -webkit-mask:radial-gradient(circle 32px at center, transparent 97%, #000 100%); mask:radial-gradient(circle 32px at center, transparent 97%, #000 100%); filter:drop-shadow(0 0 14px rgba(99,102,241,0.4)); }
   .cmp-donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-  .cmp-donut-center b { font-size:26px; font-weight:800; line-height:1; color:#f1f5f9; text-shadow:0 0 18px rgba(99,102,241,0.5); }
+  .cmp-donut-center b { font-size:22px; font-weight:800; line-height:1; color:#f1f5f9; text-shadow:0 0 18px rgba(99,102,241,0.5); }
   .cmp-donut-center span { font-size:10px; letter-spacing:1.2px; text-transform:uppercase; color:#ffffff; margin-top:3px; }
   .cmp-leg-box { width:100%; }
   .cmp-leg { display:flex; align-items:center; gap:9px; font-size:12px; color:#ffffff; padding:4px 0; }
@@ -363,6 +363,14 @@
   .cmp-top-rank { flex:0 0 20px; height:20px; line-height:20px; text-align:center; font-weight:800; font-size:11px; border-radius:6px; background:rgba(255,255,255,0.07); color:#93c5fd; }
   .cmp-top-name { flex:1 1 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ffffff; }
   .cmp-top-price { flex:0 0 auto; font-weight:800; color:#5eead4; }
+  /* 부서 경고 팝업 */
+  .cmp-warn-ov { position:fixed; inset:0; background:rgba(7,11,20,0.6); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:9500; }
+  .cmp-warn-ov.show { display:flex; }
+  .cmp-warn-box { background:linear-gradient(160deg,#111a2e,#0d1626); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:26px 30px; text-align:center; max-width:340px; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+  .cmp-warn-ico { font-size:34px; margin-bottom:10px; }
+  .cmp-warn-msg { color:#fff; font-size:15px; font-weight:700; line-height:1.5; margin-bottom:18px; }
+  .cmp-warn-ok { border:none; background:linear-gradient(135deg,#06b6d4,#6366f1); color:#fff; font-weight:800; font-size:14px; border-radius:10px; padding:10px 28px; cursor:pointer; }
+  .cmp-warn-ok:hover { filter:brightness(1.1); }
 </style>
 <style>
   .plu-tools { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
@@ -919,7 +927,7 @@
     // 핸들러
     $('pluCmpBody').querySelectorAll('.plu-cmp-box[data-sub]').forEach(function(b){ b.onclick=function(){ var bi=parseInt(b.getAttribute('data-bi'),10); var sub=b.getAttribute('data-sub');
       if(cmpBig===bi){ var i=cmpSubs.indexOf(sub); if(i>=0) cmpSubs.splice(i,1); else cmpSubs.push(sub); if(!cmpSubs.length) cmpBig=-1; }
-      else { if(cmpBig>=0 && cmpSubs.length){ alert('다른 상위 카테고리는 함께 선택할 수 없습니다.\n('+PLU_TABS[cmpBig].label+' 선택을 해제한 뒤 가능합니다)'); return; } cmpBig=bi; cmpSubs=[sub]; }
+      else { if(cmpBig>=0 && cmpSubs.length){ cmpWarnPopup('다른 부서와 동시에 검색할 수 없습니다'); return; } cmpBig=bi; cmpSubs=[sub]; }
       renderCmpSelect(); }; });
     $('pluCmpBody').querySelectorAll('.plu-cmp-store').forEach(function(b){ b.onclick=function(){ var st=b.getAttribute('data-store'); var i=cmpStores.indexOf(st); if(i>=0){ cmpStores.splice(i,1); } else { if(cmpStores.length>=2){ alert('현재 매장 외 최대 2개까지 선택할 수 있습니다.'); return; } cmpStores.push(st); } renderCmpSelect(); }; });
     $('pluCmpCancel').onclick=function(){ $('pluCmpModal').classList.remove('show'); };
@@ -927,6 +935,11 @@
   }
   function cmpPriceNum(v){ var s=String(v==null?'':v).trim(); if(s==='') return null; var n=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(n)||n===0) return null; return n; }
   function cut8(s){ return String(s==null?'':s); }
+  function cmpWarnPopup(msg){
+    var ov=$('cmpWarnOv');
+    if(!ov){ ov=document.createElement('div'); ov.id='cmpWarnOv'; ov.className='cmp-warn-ov'; ov.innerHTML='<div class="cmp-warn-box"><div class="cmp-warn-ico">⚠</div><div class="cmp-warn-msg" id="cmpWarnMsg"></div><button class="cmp-warn-ok" id="cmpWarnOk" type="button">확인</button></div>'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) ov.classList.remove('show'); }); $('cmpWarnOk').onclick=function(){ ov.classList.remove('show'); }; }
+    $('cmpWarnMsg').textContent=msg; ov.classList.add('show');
+  }
   function cmpRowsHtml(list, ncol){
     if(!list||!list.length) return '<tr><td colspan="'+ncol+'" class="plu-cmp-empty">결과가 없습니다</td></tr>';
     return list.map(function(r){ return '<tr'+(r.isd?' class="cmp-diff"':'')+'><td>'+escapeHtml(cut8(r.plu))+'</td><td class="cmp-kor">'+escapeHtml(r.kor)+'</td>'+r.disp.map(function(d){ return '<td>'+escapeHtml(cut8(d))+'</td>'; }).join('')+'</tr>'; }).join('');
