@@ -564,6 +564,17 @@
   function tareNormKey(key){ return String(key||'').toUpperCase().replace(/\s+/g,''); }
   function lbToG(lbStr){ var lb=parseFloat(String(lbStr==null?'':lbStr).replace(/[^0-9.\-]/g,'')); if(isNaN(lb)) return null; return Math.round(lb*LB_TO_G*10)/10; }
   function gToLb(gStr){ var g=parseFloat(String(gStr==null?'':gStr).replace(/[^0-9.\-]/g,'')); if(isNaN(g)) return null; return Math.round(g/LB_TO_G*1000)/1000; }
+  function normalizeTareRow(r, gFirst){
+    if(!r) return; var ex=r.extra||(r.extra={});
+    var lbNum=String(ex['TARE(LB)']==null?'':ex['TARE(LB)']).replace(/[^0-9.\-]/g,'').trim();
+    var gNum=String(ex['TARE(G)']==null?'':ex['TARE(G)']).replace(/[^0-9.\-]/g,'').trim();
+    function byLb(){ ex['TARE(LB)']=lbNum+' LB'; var g=lbToG(lbNum); if(g!=null) ex['TARE(G)']=String(g)+' G'; }
+    function byG(){ ex['TARE(G)']=gNum+' G'; var lb=gToLb(gNum); if(lb!=null) ex['TARE(LB)']=String(lb)+' LB'; }
+    var hasLb=(lbNum!=='' && !isNaN(parseFloat(lbNum)));
+    var hasG=(gNum!=='' && !isNaN(parseFloat(gNum)));
+    if(gFirst){ if(hasG) byG(); else if(hasLb) byLb(); }
+    else { if(hasLb) byLb(); else if(hasG) byG(); }
+  }
   function tareMismatch(r){ var lb=lbToG(getVal(r,'TARE(LB)')); if(lb==null) return false; var g=parseFloat(String(getVal(r,'TARE(G)')==null?'':getVal(r,'TARE(G)')).replace(/[^0-9.\-]/g,'')); if(isNaN(g)) return true; return Math.abs(g-lb)>1; }
   var PLU_PAL=[
     ['#e53935','#fb8c00','#fdd835','#43a047','#1e88e5','#3949ab','#8e24aa'],
@@ -1576,9 +1587,14 @@
     var existing=rowsFor(cat).slice(); var byPlu={};
     existing.forEach(function(r){ var p=String(pluValOf(r)).trim(); if(p) byPlu[p]=r; });
     var nMatch=0, nMiss=0;
+    var lbTouched = chosen.some(function(c){ return tareNormKey(c.key)==='TARE(LB)'; });
+    var gTouched = chosen.some(function(c){ return tareNormKey(c.key)==='TARE(G)'; });
+    var tareTouched = lbTouched || gTouched;
+    var gFirst = (gTouched && !lbTouched);
     imp.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; if(!tgt){ nMiss++; return; } nMatch++;
       chosen.forEach(function(col){ var v; if(col.base){ v=er[fieldOf(col.key)]; } else { v=(er.extra||{})[col.key]; } v=String(v==null?'':v);
         if(col.base){ tgt[fieldOf(col.key)]=v; } else { tgt.extra=tgt.extra||{}; tgt.extra[col.key]=v; } });
+      if(tareTouched) normalizeTareRow(tgt, gFirst);
     });
     if(!nMatch){ showToast('PLU가 일치하는 행이 없습니다','error'); return; }
     if(!(await uiConfirm('체크한 '+chosen.length+'개 필드를 PLU 기준으로 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+(nMiss?(' · 미일치 '+nMiss+'행 무시'):'')+'\n필드: '+chosen.map(function(c){return c.label;}).join(', ')))) return;
