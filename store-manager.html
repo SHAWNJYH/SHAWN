@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>STORE MANAGER · THE SHAWN</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafaf7; --bg-elev:#ffffff; --border:#e5e5e0; --border-bright:#c8c8c0;
+    --text:#1a1a1d; --text-dim:#6b6b72; --text-faint:#9a9aa0; --accent:#1a1a1d; --accent-warm:#c9a961;
+    --mono:'Pretendard','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; background:var(--bg); color:var(--text); font-family:var(--mono); -webkit-font-smoothing:antialiased; }
+  body{ display:flex; flex-direction:column; }
+  .sm-top{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; border-bottom:1px solid var(--border); background:var(--bg-elev); }
+  .sm-title{ font-size:22px; font-weight:800; letter-spacing:.01em; }
+  .sm-back{ display:inline-flex; align-items:center; gap:6px; background:var(--bg-elev); border:1.5px solid var(--border); color:var(--text-dim); padding:9px 14px; font-family:var(--mono); font-size:13px; font-weight:700; border-radius:10px; cursor:pointer; }
+  .sm-back:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .sm-tabs{ flex:0 0 auto; display:flex; gap:8px; padding:14px 22px 0; background:var(--bg-elev); }
+  .sm-tab{ border:1.5px solid var(--border); border-bottom:none; background:var(--bg); color:var(--text-dim); padding:11px 22px; font-family:var(--mono); font-size:15px; font-weight:800; border-radius:12px 12px 0 0; cursor:pointer; }
+  .sm-tab.active{ background:var(--bg-elev); color:var(--text); border-color:var(--accent-warm); position:relative; top:1px; }
+  .sm-tab:hover:not(.active){ color:var(--text); }
+  .sm-body{ flex:1 1 auto; min-height:0; position:relative; background:var(--bg-elev); border-top:1px solid var(--border); }
+  .sm-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; display:none; }
+  .sm-frame.active{ display:block; }
+  .sm-hint{ flex:0 0 auto; padding:8px 22px; font-size:12px; color:var(--text-faint); background:var(--bg-elev); border-top:1px dashed var(--border); }
+</style>
+</head>
+<body>
+  <div class="sm-top">
+    <div class="sm-title">🏪 STORE MANAGER</div>
+    <button class="sm-back" id="smBack" type="button">← EGMM</button>
+  </div>
+  <div class="sm-tabs">
+    <button class="sm-tab active" id="smTabPlu" type="button">PLU 매장관리</button>
+    <button class="sm-tab" id="smTabUpc" type="button">UPC 매장관리</button>
+  </div>
+  <div class="sm-body">
+    <iframe class="sm-frame active" id="smFramePlu" title="PLU 매장관리"></iframe>
+    <iframe class="sm-frame" id="smFrameUpc" title="UPC 매장관리"></iframe>
+  </div>
+  <div class="sm-hint">매장을 선택해 PIN 부여, 매장 전용 필드, 보여줄 필드를 설정합니다. PLU·UPC 각 탭에서 따로 관리됩니다.</div>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var PLU_SRC='plu-list-manager.html?storemgmt=1';
+  var UPC_SRC='upc-list-manager.html?storemgmt=1';
+  var loaded={plu:false, upc:false};
+  function ensure(which){
+    if(which==='plu' && !loaded.plu){ $('smFramePlu').src=PLU_SRC; loaded.plu=true; }
+    if(which==='upc' && !loaded.upc){ $('smFrameUpc').src=UPC_SRC; loaded.upc=true; }
+  }
+  function activate(which){
+    var isPlu=(which==='plu');
+    $('smTabPlu').classList.toggle('active', isPlu);
+    $('smTabUpc').classList.toggle('active', !isPlu);
+    $('smFramePlu').classList.toggle('active', isPlu);
+    $('smFrameUpc').classList.toggle('active', !isPlu);
+    ensure(which);
+  }
+  $('smTabPlu').onclick=function(){ activate('plu'); };
+  $('smTabUpc').onclick=function(){ activate('upc'); };
+  $('smBack').onclick=function(){ window.location.href='egmm.html'; };
+  // 첫 탭(PLU) 로드
+  ensure('plu');
+})();
+</script>
+</body>
+</html>

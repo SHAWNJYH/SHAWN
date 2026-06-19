@@ -2434,6 +2434,11 @@
     <button class="egmm-menu-btn" id="egmmCalendarBtn">
       <span>CALENDER</span><span class="egmm-menu-arrow">›</span>
     </button>
+
+    <div class="egmm-section-title gap">MANAGER</div>
+    <button class="egmm-menu-btn" id="egmmStoreManagerBtn">
+      <span>STORE MANAGER</span><span class="egmm-menu-arrow">›</span>
+    </button>
   </div>
 
   <!-- 박스 2: ODP -->
@@ -2802,6 +2807,7 @@
   $('egmmUpcListBtn').onclick = function(){ window.location.href = 'upc-list-manager.html'; };
   $('egmmPluListBtn').onclick = function(){ window.location.href = 'plu-list-manager.html'; };
   var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ window.location.href = 'egmm-calendar.html'; };
+  var __smBtn=$('egmmStoreManagerBtn'); if(__smBtn) __smBtn.onclick = function(){ window.location.href = 'store-manager.html'; };
   $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;

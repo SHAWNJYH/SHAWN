@@ -47,6 +47,10 @@
 <title>아이템 UPC 관리 (THE SHAWN)</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
+  body.storemgmt-only > *:not(.msm-ov):not(script):not(style){ visibility:hidden !important; }
+  body.storemgmt-only .msm-ov{ visibility:visible !important; }
+  body.storemgmt-only{ background:#fff !important; }
+
   :root {
     --bg: #fafaf7;
     --bg-elev: #ffffff;
@@ -3261,6 +3265,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   async function clearPin(){ $('msmPin').value=''; try{ await fns().setDoc(fns().doc(db(), PINS_COL, selStore), { pin:'', store:selStore, updatedAt:Date.now() }); $('msmPinHint').textContent='PIN 삭제됨 · 이 매장 로그인 불가 (다시 PIN 부여)'; }catch(e){ uiAlert('PIN 삭제 실패 — 규칙 확인'); } }
   // 매장 관리 열기
   window.__openStoreMgmt = function(){ if(!window.firebaseFns){ uiAlert('Firebase 준비 중입니다'); return; } fillSelect(); fillTop(); $('msmOv').classList.add('show'); loadStore(); };
+  (function(){ if(!/[?&]storemgmt=1/.test(location.search)) return; function tryOpen(n){ if(window.firebaseFns && window.__openStoreMgmt){ try{ document.body.classList.add('storemgmt-only'); window.__openStoreMgmt(); }catch(e){} } else if(n<40){ setTimeout(function(){tryOpen(n+1);},150); } } if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', function(){ tryOpen(0); }, {once:true}); } else { tryOpen(0); } })();
   // 초기화
   function init(){ $('msmStore').onchange=loadStore; $('msmTopCat').onchange=fillSub; $('msmColAdd').onclick=addColumn; $('msmColName').addEventListener('keydown',function(e){ if(e.key==='Enter') addColumn(); }); $('msmClose').onclick=function(){ $('msmOv').classList.remove('show'); }; $('msmPinSave').onclick=savePin; $('msmPinClear').onclick=clearPin; $('msmOv').addEventListener('click', function(e){ if(e.target===$('msmOv')) $('msmOv').classList.remove('show'); }); }
   if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', init, {once:true}); } else { init(); }
