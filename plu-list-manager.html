@@ -420,9 +420,17 @@
   .em-tt small { font-weight:600; color:#888; font-size:11px; }
   .em-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .em-cfg-list { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 14px; padding:4px 2px; }
+  .plu-cfg-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px 14px; padding:4px 2px; }
+  .plu-cfg-grid .em-cfg-item { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
+  .plu-cfg-grid .em-cfg-item input { flex:0 0 auto; }
   .em-cfg-item { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
   .em-cfg-item input { flex:0 0 auto; }
   .em-cfg-tag { color:#9a9aa0; font-size:12px; }
+  .em-row-between { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .em-cat-wrap { display:flex; flex-direction:column; gap:10px; }
+  .em-cat-grp { border:1px solid #eee; border-radius:10px; padding:8px 10px; }
+  .em-cat-big { font-size:12px; font-weight:800; color:#9a9aa0; letter-spacing:.04em; margin-bottom:6px; }
+  .em-cat-subs { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 14px; }
   .em-sel { flex:1 1 160px; min-width:0; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:13px; background:#fff; color:var(--text); }
   /* 필드 설정 팝업 */
   .cnm-body { display:flex; flex-direction:column; gap:14px; padding:16px 18px 18px; }
@@ -483,15 +491,10 @@
 
 <div class="plu-modal-ov" id="pluCfgModal">
   <div class="plu-modal">
-    <h3>표시 / 내보내기 설정</h3>
-    <div style="text-align:left;margin:4px 0 14px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#6b6b72;margin-bottom:6px;">표시 글자수 — 전체 카테고리 공통 (목록에서 잘리는 길이)</label>
-      <input type="number" id="pluCfgTrunc" min="1" max="200" style="width:130px;padding:8px 10px;border:1.5px solid #e5e5e0;border-radius:8px;font-size:14px;font-family:inherit;">
-    </div>
+    <h3>EXPORT 설정</h3>
     <div style="text-align:left;">
-      <label style="display:block;font-size:13px;font-weight:700;color:#6b6b72;margin-bottom:6px;">EXPORT / PRINT 포함 필드 — 이 카테고리에만 적용 (체크한 필드만 내보내기·인쇄)</label>
-      <div id="pluCfgCols" style="max-height:260px;overflow:auto;border:1px solid #e5e5e0;border-radius:8px;padding:6px 8px;"></div>
-      <p style="font-size:12px;color:#9a9aa0;margin:6px 0 0;">아무 것도 선택하지 않으면 기본 5개 필드(PLU · ENG DESC · KOR DESC · CATEGORY · ORIGIN)로 내보냅니다.</p>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;"><button type="button" id="pluCfgAll" class="plu-tool-btn">전체 선택</button></div>
+      <div id="pluCfgCols" class="plu-cfg-grid"></div>
     </div>
     <div class="plu-modal-btns" style="margin-top:14px;">
       <button class="plu-modal-choice" id="pluCfgSave" style="text-align:center;">저장(적용)</button>
@@ -1186,9 +1189,9 @@
   }
   function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
   function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
-  function openCfgModal(){ if(!editMode) return; var ti=$('pluCfgTrunc'); if(ti) ti.value=(workTrunc>0?workTrunc:20); var box=$('pluCfgCols'); var lay=workLayout||[]; if(box){ box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span style="color:#9a9aa0;font-size:12px;">(체크)</span>':''; return '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;font-size:14px;cursor:pointer;"><input type="checkbox" class="plu-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> '+escapeHtml(c.label)+tag+'</label>'; }).join(''); } var ov=$('pluCfgModal'); if(ov) ov.classList.add('show'); }
+  function openCfgModal(){ if(!editMode) return; var box=$('pluCfgCols'); var lay=workLayout||[]; if(box){ box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="plu-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join(''); } var allb=$('pluCfgAll'); if(allb) allb.onclick=function(){ var cs=$('pluCfgCols').querySelectorAll('.plu-cfg-col'); var allOn=Array.prototype.every.call(cs,function(ch){return ch.checked;}); Array.prototype.forEach.call(cs,function(ch){ ch.checked=!allOn; }); allb.textContent=allOn?'전체 선택':'전체 해제'; }; var ov=$('pluCfgModal'); if(ov) ov.classList.add('show'); }
   function closeCfgModal(){ var ov=$('pluCfgModal'); if(ov) ov.classList.remove('show'); }
-  async function saveCfgModal(){ var t=parseInt(($('pluCfgTrunc')||{}).value,10); if(isNaN(t)||t<1) t=20; if(t>200) t=200; workTrunc=t; globalTrunc=t; try{ await fns().setDoc(fns().doc(db(), CFG_COL, CFG_DOC), {truncLen:t, updatedAt:Date.now()}, {merge:true}); }catch(e){} var on={}; var checks=$('pluCfgCols')?$('pluCfgCols').querySelectorAll('.plu-cfg-col'):[]; Array.prototype.forEach.call(checks,function(ch){ on[ch.getAttribute('data-key')]=ch.checked; }); (workLayout||[]).forEach(function(c){ if(Object.prototype.hasOwnProperty.call(on,c.key)) c.exp=on[c.key]; }); markDirty(); closeCfgModal(); renderContent(); showToast('표시 글자수=전체 공통(저장됨) · 체크 필드=이 카테고리 (💾 저장 필요)','success'); }
+  async function saveCfgModal(){ var on={}; var checks=$('pluCfgCols')?$('pluCfgCols').querySelectorAll('.plu-cfg-col'):[]; Array.prototype.forEach.call(checks,function(ch){ on[ch.getAttribute('data-key')]=ch.checked; }); (workLayout||[]).forEach(function(c){ if(Object.prototype.hasOwnProperty.call(on,c.key)) c.exp=on[c.key]; }); markDirty(); closeCfgModal(); renderContent(); showToast('EXPORT 필드 설정됨 (💾 저장 필요)','success'); }
   var __ingCat=null,__ingPlu=null,__ingKey=null;
   function openIngModal(plu,key){ var cat=curCat(); var rows=rowsFor(cat)||[]; var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } var full=row?String(getVal(row,key)||''):''; __ingCat=cat; __ingPlu=plu; __ingKey=key; var ta=$('pluIngText'); if(ta){ ta.value=full; ta.readOnly=false; } var ti=$('pluIngTitle'); if(ti) ti.textContent=key; var sb=$('pluIngSub'); if(sb) sb.textContent='PLU '+plu; var ov=$('pluIngModal'); if(ov) ov.classList.add('show'); }
   function closeIngModal(){ var ov=$('pluIngModal'); if(ov) ov.classList.remove('show'); __ingCat=null; __ingPlu=null; __ingKey=null; }
@@ -1391,7 +1394,7 @@
     win.document.open(); win.document.write(doc); win.document.close(); win.focus();
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
-  var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
+  var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']}];
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } return raw==null?'':raw; }
   function styleSheet(ws, cols, nrows){
@@ -1420,7 +1423,7 @@
     var lay = layoutByCat[catLabel]||defaultLayout([]);
     var chosen=(lay||[]).filter(function(c){ return c && c.exp; });
     if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
-    return (lay||[]).map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
+    return EXPORT_COLS.map(function(c){ return {key:c.key,label:c.label}; });
   }
   function exportCatSub(catLabel, sub){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
@@ -1450,36 +1453,65 @@
     var fname='PLU_'+catLabel+'_전체.xlsx';
     XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname+' ('+made+'개 시트)','success');
   }
+  function pad2(n){ return n<10?('0'+n):(''+n); }
+  function todayStamp(){ var d=new Date(); return ''+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate()); }
+  function exportSelectedCats(list){
+    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
+    if(!list.length){ showToast('카테고리를 선택하세요','error'); return; }
+    var wb=XLSX.utils.book_new(); var used={}, made=0;
+    function addSheet(name, rows, cols){
+      rows=rows.slice().sort(byPluAsc);
+      var aoa=[cols.map(function(c){return c.label;})];
+      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportCell(r,c); })); });
+      var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length);
+      var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
+      var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
+      XLSX.utils.book_append_sheet(wb, ws, nm); made++;
+    }
+    list.forEach(function(it){
+      var cols=exportColsForCat(it.big);
+      var rows=(rowsFor(it.big)||[]).filter(function(r){ return rowSub(it.big,r)===it.sub; });
+      if(rows.length) addSheet(it.sub||it.big, rows, cols);
+    });
+    if(!made){ showToast('내보낼 데이터가 없습니다','error'); return; }
+    var ds=todayStamp(), fname;
+    if(list.length===1){ fname=list[0].big+'-'+list[0].sub+'-'+ds+'.xlsx'; }
+    else { var bigs={}; list.forEach(function(it){ bigs[it.big]=1; }); var bk=Object.keys(bigs); fname=(bk.length===1?bk[0]:'PLU')+'-전체-'+ds+'.xlsx'; }
+    fname=fname.replace(/[\\\/\?\*\[\]:]/g,'_');
+    XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname+' ('+made+'개 시트)','success');
+  }
   function openExportMenu(){
     var ov='pluExportMenuOv'; var old=$(ov); if(old) old.remove();
-    var catOpts=PLU_TABS.map(function(t,ti){
+    var catHtml=PLU_TABS.map(function(t,ti){
       var subs=t.subs||[];
-      var inner='<option value="'+ti+'">전체</option>'+subs.map(function(sb,si){ return '<option value="'+ti+':'+si+'">'+escapeHtml(sb)+'</option>'; }).join('');
-      return '<optgroup label="'+escapeHtml(t.label)+'">'+inner+'</optgroup>';
+      var items=subs.map(function(sb,si){ return '<label class="em-cfg-item"><input type="checkbox" class="em-cat-col" data-ti="'+ti+'" data-si="'+si+'"> <span>'+escapeHtml(sb)+'</span></label>'; }).join('');
+      return '<div class="em-cat-grp"><div class="em-cat-big">'+escapeHtml(t.label)+'</div><div class="em-cat-subs">'+items+'</div></div>';
     }).join('');
     var cfgLay=(layoutByCat[curCat()]||[]);
     var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">필드가 없습니다.</div>';
     var wrap=document.createElement('div');
-    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:680px;">'+
+    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:760px;">'+
       '<div class="pcm-head">⬆ 데이터 내보내기<button class="pcm-x" id="emClose" type="button">✕</button></div>'+
       '<div class="pcm-body" style="padding:8px 18px 18px;">'+
         '<div class="em-sec">'+
-          '<div class="em-tt">카테고리 선택 EXPORT</div>'+
-          '<div class="em-row"><select id="emCatSel" class="em-sel">'+catOpts+'</select>'+
-          '<button class="plu-tool-btn" id="emCatExp" type="button">⬇ EXPORT</button></div>'+
+          '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="plu-tool-btn" id="emCatAll" type="button">전체 선택</button></div>'+
+          '<div class="em-cat-wrap">'+catHtml+'</div>'+
         '</div>'+
         '<div class="em-sec">'+
-          '<div class="em-tt">내보내기필드설정 <small>(체크한 필드만 내보내기 · 즉시 저장)</small></div>'+
+          '<div class="em-row-between"><div class="em-tt">내보내기 필드 설정 <small>(체크한 필드만 · 즉시 저장)</small></div><button class="plu-tool-btn" id="emFldAll" type="button">전체 선택</button></div>'+
           '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>'+
+        '<div class="plu-modal-btns" style="margin-top:6px;"><button class="plu-modal-choice" id="emDoExp" style="text-align:center;">⬇ 선택 카테고리 EXPORT</button></div>'+
       '</div>'+
     '</div></div>';
     document.body.appendChild(wrap.firstChild);
     var close=function(){ var o=$(ov); if(o) o.remove(); };
     var x=$('emClose'); if(x) x.onclick=close;
     var ovEl=$(ov); if(ovEl) ovEl.onclick=function(e){ if(e.target===ovEl) close(); };
-    var ce=$('emCatExp'); if(ce) ce.onclick=function(){ var sel=$('emCatSel'); var v=String(sel?sel.value:'0'); var parts=v.split(':'); var ti=parseInt(parts[0],10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; if(parts.length>1){ var sub=(t.subs||[])[parseInt(parts[1],10)]; exportCatSub(t.label, sub!=null?sub:''); } else { exportCatSub(t.label, null); } };
+    var catAll=$('emCatAll'); if(catAll) catAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; }); catAll.textContent=allOn?'전체 선택':'전체 해제'; };
+    var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
     document.querySelectorAll('#'+ov+' .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); }; });
+    var doExp=$('emDoExp'); if(doExp) doExp.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); exportSelectedCats(list); };
   }
   function exportXlsx(){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
