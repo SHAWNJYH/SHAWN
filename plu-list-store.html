@@ -524,14 +524,20 @@
   function visibleCols(){
     var base=layoutByCat[curCat()] || defaultLayout([]);
     var show=(typeof window.__showColsFor==='function')?window.__showColsFor(curCat()):null;
+    var myStore=(typeof window.__storeActive==='function')?(window.__storeActive()||''):'';
+    var myField=(myStore?priceFieldOf(myStore):'').toUpperCase();
+    var spCodes=Object.keys(CMP_OWNER);
+    function isStorePriceKey(K){ for(var i=0;i<spCodes.length;i++){ if(K===spCodes[i]+'(S)') return true; } return false; }
     var out=[];
     base.forEach(function(c){
+      var K=String(c.key).toUpperCase();
+      if(isStorePriceKey(K) && K!==myField) return;   // 다른 매장 가격(S) 숨김 — 로그인 매장 가격만 표시
       if(Array.isArray(show)){
-        if(show.indexOf(c.key)<0) return;        // 매장관리에서 선택한 필드만 (숨김이어도 표시)
+        if(show.indexOf(c.key)<0) return;
       } else {
-        if(c.hidden) return;                      // 미설정 매장: 매니저가 만든 필드 전부(숨김만 제외)
+        if(c.hidden) return;
       }
-      out.push(c);   // 매니저가 입력한 데이터·필드 셋팅 그대로 표시
+      out.push(c);
     });
     return out;
   }
@@ -1345,7 +1351,7 @@
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} var fab=$('stlFab'); if(fab) fab.classList.remove('show'); rerender(); var ps=$('stlPin'); if(ps) ps.value=''; showLogin(); }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='hmart.html'; }
   function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeShowCols=d.showCols||{}; rerender(); }, function(){}); }catch(e){} }
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
