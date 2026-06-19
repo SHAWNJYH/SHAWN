@@ -348,6 +348,22 @@
   .plu-imp-item em.imp-new { color:#d97706; }
   .plu-imp-foot { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; padding-top:12px; border-top:1px solid #eee; }
   .plu-imp-go { background:#1565c0; border-color:#1565c0; color:#fff; }
+  .icp-body { display:flex; flex-direction:column; gap:8px; padding:16px 18px 18px; }
+  .icp-lbl { font-size:12px; font-weight:700; color:#6b6b72; margin-top:4px; }
+  .icp-sel { width:100%; box-sizing:border-box; border:1.5px solid #e5e5e0; border-radius:9px; padding:10px 12px; font-family:inherit; font-size:15px; font-weight:700; color:#1a1a1d; background:#fff; }
+  .icp-sel:focus { outline:none; border-color:#c9a961; }
+  .icp-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .icp-ok { background:#1e40af !important; border-color:#1e40af !important; color:#fff !important; }
+  .icp-opt { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed #e5e5e0; opacity:.55; }
+  .icp-file { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .icp-fname { font-size:12px; color:#6b6b72; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dcv-num { width:64px; border:1.5px solid #e5e5e0; border-radius:8px; padding:7px 9px; font-family:inherit; font-size:14px; font-weight:700; text-align:right; }
+  .dcv-switch { position:relative; display:inline-block; width:42px; height:24px; flex:0 0 auto; }
+  .dcv-switch input { opacity:0; width:0; height:0; }
+  .dcv-slider { position:absolute; inset:0; background:#cfcfca; border-radius:24px; transition:background .15s; }
+  .dcv-slider::before { content:''; position:absolute; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:transform .15s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .dcv-switch input:checked + .dcv-slider { background:#43a047; }
+  .dcv-switch input:checked + .dcv-slider::before { transform:translateX(18px); }
 </style>
 <style>
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
@@ -1309,7 +1325,7 @@
     $('admEdit').onclick=function(){ close(); if(!editMode) enterEdit(); };
     $('admCat').onclick=function(){ close(); openCatEditor(); };
     $('admReq').onclick=function(){ close(); if(window.__openPluReq) window.__openPluReq(); };
-    $('admImport').onclick=function(){ close(); var f=$('pluImportInput'); if(f) f.click(); };
+    $('admImport').onclick=function(){ close(); openPluImportMenu(); };
     $('admExport').onclick=function(){ close(); openExportMenu(); };
     $('admAllExport').onclick=function(){ close(); allExportXlsx(); };
     $('admPrint').onclick=function(){ close(); printList(); };
@@ -1550,6 +1566,82 @@
 
   // ===== IMPORT (필드 선택 후 체크된 필드만 PLU 기준 업데이트) =====
   var pendingImport=null;
+  function openPluImportMenu(){
+    var old=$('icpOverlay'); if(old) old.remove();
+    var topOpts=PLU_TABS.map(function(t,i){ return '<option value="'+i+'"'+(t.label===curCat()?' selected':'')+'>'+escapeHtml(t.label)+'</option>'; }).join('');
+    var wrap=document.createElement('div');
+    wrap.innerHTML='<div class="pcm-overlay" id="icpOverlay"><div class="pcm-modal" style="max-width:420px;">'+
+      '<div class="pcm-head">📥 데이터 불러오기<button class="pcm-x" id="icpClose" type="button">✕</button></div>'+
+      '<div class="pcm-body icp-body">'+
+        '<label class="icp-lbl">상위 카테고리</label>'+
+        '<select class="icp-sel" id="icpTop">'+topOpts+'</select>'+
+        '<label class="icp-lbl">중간 카테고리</label>'+
+        '<select class="icp-sel" id="icpSub"></select>'+
+        '<div class="icp-opt">'+
+          '<label class="dcv-switch"><input type="checkbox" id="icpMgSw" disabled><span class="dcv-slider"></span></label>'+
+          '<span class="icp-lbl" style="margin:0;color:#bbb;">불러오기 평균마진</span>'+
+          '<input type="number" class="dcv-num" id="icpMargin" min="0" max="99" step="1" value="40" disabled> <span class="icp-lbl" style="margin:0;color:#bbb;">%</span>'+
+        '</div>'+
+        '<div class="icp-file">'+
+          '<button class="plu-tool-btn" id="icpPick" type="button">📂 파일 검색</button>'+
+          '<span class="icp-fname" id="icpFname">선택된 파일 없음</span>'+
+          '<input type="file" id="icpFile" accept=".xlsx,.xls" style="display:none">'+
+        '</div>'+
+        '<div class="icp-foot"><button class="plu-tool-btn" id="icpBack" type="button">← 뒤로가기</button><button class="plu-tool-btn icp-ok" id="icpOk" type="button" disabled>가져오기</button></div>'+
+      '</div>'+
+    '</div></div>';
+    document.body.appendChild(wrap.firstChild);
+    var picked=null;
+    var fillSub=function(){ var ti=parseInt($('icpTop').value,10)||0; var subs=PLU_TABS[ti]?(PLU_TABS[ti].subs||[]):[]; $('icpSub').innerHTML=subs.length?subs.map(function(s,j){ return '<option value="'+j+'">'+escapeHtml(s)+'</option>'; }).join(''):'<option value="-1">(중간 카테고리 없음)</option>'; };
+    fillSub();
+    $('icpTop').onchange=fillSub;
+    $('icpPick').onclick=function(){ $('icpFile').click(); };
+    $('icpFile').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f){ picked=f; $('icpFname').textContent=f.name; $('icpOk').disabled=false; } };
+    var close=function(){ var o=$('icpOverlay'); if(o) o.remove(); };
+    $('icpClose').onclick=close;
+    $('icpBack').onclick=function(){ close(); };
+    $('icpOverlay').onclick=function(e){ if(e.target&&e.target.id==='icpOverlay') close(); };
+    $('icpOk').onclick=function(){ if(!picked) return; var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; close(); importToCategory(t.label, picked); };
+  }
+  function importToCategory(cat, file){
+    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
+    var reader=new FileReader();
+    reader.onload=async function(){
+      try{
+        var wb=XLSX.read(reader.result,{type:'array'}); var ws=wb.Sheets[wb.SheetNames[0]];
+        var aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        var header=aoa.length?aoa[0]:[];
+        function nm(x){ return String(x==null?'':x).trim().toLowerCase().replace(/\s+/g,' '); }
+        var lay=(layoutByCat[cat]||defaultLayout([]));
+        var headerNm=header.map(nm);
+        var hasHeader = header.some(function(h){ var n=nm(h); return !!n && /plu/.test(n); }) || headerNm.some(function(n){ return lay.some(function(c){ return nm(c.label)===n; }); });
+        var cols=[];
+        if(hasHeader){ lay.forEach(function(c){ var ci=headerNm.indexOf(nm(c.label)); if(ci<0) return; cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:ci}); }); }
+        else { lay.forEach(function(c,bi){ cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:bi}); }); }
+        if(!cols.length){ showToast('가져올 필드가 없습니다','error'); return; }
+        var start = hasHeader?1:0; var rows=[];
+        for(var i=start;i<aoa.length;i++){ var c=aoa[i]; if(!c) continue; var empty=true; for(var k=0;k<c.length;k++){ if(String(c[k]==null?'':c[k]).trim()!==''){ empty=false; break; } } if(empty) continue; var row={extra:{}}; cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } }); rows.push(row); }
+        if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
+        var chosen=cols.filter(function(c){ return !isPluKey(c.key); });
+        var existing=rowsFor(cat).slice(); var byPlu={}; existing.forEach(function(r){ var p=String(pluValOf(r)).trim(); if(p) byPlu[p]=r; });
+        var lbTouched=chosen.some(function(c){ return tareNormKey(c.key)==='TARE(LB)'; });
+        var gTouched=chosen.some(function(c){ return tareNormKey(c.key)==='TARE(G)'; });
+        var tareTouched=lbTouched||gTouched; var gFirst=(gTouched && !lbTouched);
+        var nMatch=0, nMiss=0;
+        rows.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; if(!tgt){ nMiss++; return; } nMatch++;
+          chosen.forEach(function(col){ var v; if(col.base){ v=er[fieldOf(col.key)]; } else { v=(er.extra||{})[col.key]; } v=String(v==null?'':v); if(col.base){ tgt[fieldOf(col.key)]=v; } else { tgt.extra=tgt.extra||{}; tgt.extra[col.key]=v; } });
+          if(tareTouched) normalizeTareRow(tgt, gFirst);
+        });
+        if(!nMatch){ showToast('PLU가 일치하는 행이 없습니다','error'); return; }
+        if(!(await uiConfirm('['+cat+'] PLU 기준으로 데이터를 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+(nMiss?(' · 미일치 '+nMiss+'행 무시'):'')))) return;
+        var ok=await saveCat(cat, existing, layoutByCat[cat]||defaultLayout([]));
+        if(ok){ editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 업데이트 완료 ('+nMatch+'행)','success'); }
+        else showToast('저장 실패','error');
+      }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
+    };
+    reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
+    reader.readAsArrayBuffer(file);
+  }
   function importXlsx(file){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     var cat=curCat(); var reader=new FileReader();
@@ -1564,7 +1656,6 @@
         var hasHeader = header.some(function(h){ var n=nm(h); return !!n && /plu/.test(n); }) || headerNm.some(function(n){ return lay.some(function(c){ return nm(c.label)===n; }); });
         var cols=[];
         if(hasHeader){
-          // 현재 카테고리에서 실제 사용 중인 필드(숨김 포함)만, 엑셀에 같은 이름이 있을 때
           lay.forEach(function(c){ var ci=headerNm.indexOf(nm(c.label)); if(ci<0) return; cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:ci,isNew:false,hidden:!!c.hidden}); });
         } else {
           lay.forEach(function(c,bi){ cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:bi,isNew:false,hidden:!!c.hidden}); });
