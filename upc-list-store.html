@@ -602,6 +602,19 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   .plu-table td.align-left   input.plu-edit-input { text-align:left   !important; }
   .plu-table td.align-center input.plu-edit-input { text-align:center !important; }
   .plu-table td.align-right  input.plu-edit-input { text-align:right  !important; }
+  /* 매장 로그인 게이트 */
+  .stl-ov { position: fixed; inset: 0; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 20px; }
+  .stl-ov.show { display: flex; }
+  .stl-card { background: #fff; border-radius: 18px; padding: 26px 24px; width: 100%; max-width: 360px; box-shadow: 0 16px 48px rgba(0,0,0,0.25); text-align: center; }
+  .stl-card h2 { margin: 0 0 4px; font-size: 22px; color: #1a1a1d; }
+  .stl-card p { margin: 0 0 18px; font-size: 13px; color: #9a9aa0; }
+  .stl-card label { display: block; text-align: left; font-size: 12px; font-weight: 700; color: #6b6b72; margin: 0 0 5px; }
+  .stl-card select, .stl-card input { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 11px 12px; font-family: inherit; font-size: 16px; color: #1a1a1d; background: #fff; margin-bottom: 13px; }
+  .stl-card select:focus, .stl-card input:focus { outline: none; border-color: #c9a961; }
+  .stl-btn { width: 100%; border: none; border-radius: 11px; padding: 13px; font-family: inherit; font-size: 16px; font-weight: 800; cursor: pointer; background: #1a1a1d; color: #fff; }
+  .stl-err { color: #c0392b; font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
+  .stl-fab { position: fixed; left: 16px; bottom: 16px; z-index: 1500; background: #fff; color: #1a1a1d; border: 1.5px solid #e5e5e0; border-radius: 999px; padding: 9px 14px; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.14); display: none; }
+  .stl-fab.show { display: inline-flex; align-items:center; gap:6px; }
 </style>
 </head>
 <body>
@@ -794,7 +807,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 현재 적용 열 레이아웃(편집/보기)
   function curLayout(){ return editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), (layoutByCat[curCat()]&&layoutByCat[curCat()].length) ? layoutByCat[curCat()] : catDefaultLayout(curCat())); }
   // 화면에 보이는 열 목록(캐시)
-  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); }
+  var CMP_OWNER={'HTM':'TACOMA','HFW':'FEDERALWAY','HBV':'BELLEVUE','HLW':'LYNNWOOD','HRM':'REDMOND','HBD':'BALLARD','GLW':'G-MART','MW':'MELLOW WAY','DH':'DISTRICT-H','M2M':'M2M','HUW':'UNIVERSITY'};
+  function storeCodeOf(store){ for(var k in CMP_OWNER){ if(CMP_OWNER[k]===store) return k; } return ''; }
+  function priceFieldOf(store){ var c=storeCodeOf(store); return c?(c+'(S)'):''; }
+  function visibleCols(){
+    var myStore=(typeof window.__storeActive==='function')?(window.__storeActive()||''):'';
+    var myField=(myStore?priceFieldOf(myStore):'').toUpperCase();
+    var spCodes=Object.keys(CMP_OWNER);
+    function isStorePriceKey(K){ for(var i=0;i<spCodes.length;i++){ if(K===spCodes[i]+'(S)') return true; } return false; }
+    return curLayout().filter(function(c){ var K=String(c.key).toUpperCase(); if(c.hidden) return false; if(STD_CHECK_COLS.indexOf(K)>=0) return false; if(isStorePriceKey(K) && K!==myField) return false; return true; });
+  }
   // 행 객체 깊은 복사
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
@@ -3254,6 +3276,57 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   document.addEventListener('touchstart', function(e){ var t=e.touches&&e.touches[0]; if(t&&startFrom(e.target, t.clientX, t.clientY)){ /* 터치는 기본 동작 유지 위해 preventDefault 안 함 */ } }, {passive:true});
   document.addEventListener('touchmove', function(e){ var t=e.touches&&e.touches[0]; if(drag&&t){ moveTo(t.clientX, t.clientY); e.preventDefault(); } }, {passive:false});
   document.addEventListener('touchend', function(){ drag=null; });
+})();
+</script>
+<div class="stl-ov" id="stlLoginOv">
+  <div class="stl-card">
+    <h2>STORE LOGIN</h2>
+    <p>매장을 선택하고 PIN을 입력하세요</p>
+    <label>STORE</label>
+    <select id="stlStore"><option value="">SELECT STORE</option></select>
+    <label>PIN</label>
+    <input id="stlPin" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off">
+    <div class="stl-err" id="stlErr"></div>
+    <button class="stl-btn" id="stlLoginBtn">LOGIN</button>
+  </div>
+</div>
+<button class="stl-fab" id="stlFab">🏬 <span id="stlFabName">STORE</span> · 로그아웃</button>
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var PINS_COL='plu-store-pins', LS_KEY='theShawnUpcStore';
+  var currentStore=null;
+  window.__storeActive=function(){ return currentStore; };
+  function fns(){ return (window.firebaseFns||null); }
+  function db(){ return (window.firebaseDb||null); }
+  function ready(cb){ if(window.firebaseFns&&window.firebaseDb){ cb(); } else { window.addEventListener('plu-firebase-ready', cb, {once:true}); } }
+  function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join(''); }
+  function showLogin(){ var o=$('stlLoginOv'); if(o) o.classList.add('show'); }
+  function hideLogin(){ var o=$('stlLoginOv'); if(o) o.classList.remove('show'); }
+  function applyStore(){ try{ if(typeof renderContent==='function') renderContent(); }catch(e){} }
+  async function doLogin(store,pin){
+    var err=$('stlErr'); if(err) err.textContent='';
+    if(!store){ if(err) err.textContent='매장을 선택하세요'; return; }
+    if(!pin){ if(err) err.textContent='PIN을 입력하세요'; return; }
+    if(!fns()||!fns().getDoc){ if(err) err.textContent='연결 준비 중 — 잠시 후 다시'; return; }
+    var snap; try{ snap=await fns().getDoc(fns().doc(db(),PINS_COL,store)); }catch(e){ if(err) err.textContent='연결 오류 — 잠시 후 다시'; return; }
+    var d=(snap&&snap.exists())?(snap.data()||{}):null;
+    if(!d||!d.pin){ if(err) err.textContent='이 매장의 PIN이 아직 없습니다 · 매니저에게 요청'; return; }
+    if(String(d.pin)!==String(pin)){ if(err) err.textContent='PIN이 일치하지 않습니다'; return; }
+    loginAs(store);
+  }
+  function loginAs(store){ currentStore=store; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; applyStore(); }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; window.location.href='hmart.html'; }
+  document.addEventListener('click', function(e){ var t=e.target; if(t&&t.closest&&t.closest('#stlFab')){ if(window.confirm('로그아웃할까요?')) logout(); } });
+  function initLogin(){
+    fillStores();
+    var saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
+    if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
+    var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
+    var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', initLogin, {once:true}); } else { initLogin(); }
 })();
 </script>
 </body>
