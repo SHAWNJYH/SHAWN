@@ -1141,8 +1141,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           (isChk?'':('<button class="plu-col-btn plu-col-fmt" data-act="fmt" data-key="'+escapeHtml(c.key)+'" title="형식 (TEXT ↔ PRICE)">'+(c.fmt==='price'?'$':'T')+'</button>'+'<button class="plu-col-btn" data-act="align" data-key="'+escapeHtml(c.key)+'" title="정렬 (왼쪽→가운데→오른쪽)">'+alC+'</button>'+
                     '<button class="plu-col-btn" data-act="trunc" data-key="'+escapeHtml(c.key)+'" title="표시 글자수 ('+(c.trunc>0?c.trunc+'자':'기본')+')">'+(c.trunc>0?('✂'+c.trunc):'✂')+'</button>'))+
         '</span>';
-        var __tt=colTooltip(c,curCat(),curSub());
-        return '<th draggable="true" data-dragkey="'+escapeHtml(c.key)+'" '+(__tt?('data-tip="'+escapeHtml(__tt)+'" '):'')+'class="plu-col-drag '+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+'"><span class="plu-col-name" data-act="colname" data-key="'+escapeHtml(c.key)+'" title="클릭: 이름 변경 · 표시 · 삭제 · 드래그: 위치 이동">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
+        return '<th draggable="true" data-dragkey="'+escapeHtml(c.key)+'" class="plu-col-drag '+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+'"><span class="plu-col-name" data-act="colname" data-key="'+escapeHtml(c.key)+'" title="클릭: 이름 변경 · 표시 · 삭제 · 드래그: 위치 이동">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
       });
       ths.splice(noColPos(cols), 0, '<th class="upc-c-no-col">NO.</th>');
       return '<thead><tr>'+ths.join('')+refHeadHTML()+'<th></th></tr></thead>';
@@ -3349,6 +3348,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function hide(){ if(tip) tip.classList.remove('show'); }
   document.addEventListener('mouseover', function(e){ var el=e.target&&e.target.closest?e.target.closest('[data-tip]'):null; if(el) show(el); });
   document.addEventListener('mouseout', function(e){ var el=e.target&&e.target.closest?e.target.closest('[data-tip]'):null; if(el) hide(); });
+  document.addEventListener('mousedown', hide, true);
   window.addEventListener('scroll', hide, true);
 })();
 </script>
