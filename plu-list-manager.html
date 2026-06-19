@@ -449,23 +449,36 @@
   .msm-fielditem label { flex:1 1 auto; cursor:pointer; line-height:1.3; word-break:break-all; }
   .msm-fieldtag { font-size:11px; font-weight:700; margin-left:5px; }
   /* 데이터 내보내기 메뉴 */
-  .em-sec { padding:10px 0; border-bottom:1px solid #eee; display:flex; flex-direction:column; gap:6px; }
+  .em-sec { padding:18px 22px; border-bottom:1px solid #efeee9; display:flex; flex-direction:column; gap:10px; }
   .em-sec:last-child { border-bottom:none; }
-  .em-tt { font-weight:700; font-size:13px; color:#333; }
-  .em-tt small { font-weight:600; color:#888; font-size:11px; }
+  .em-tt { font-weight:800; font-size:14px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .em-tt::before { content:''; width:4px; height:15px; background:var(--accent-warm); border-radius:2px; }
+  .em-tt small { font-weight:600; color:var(--text-faint); font-size:11px; }
   .em-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .em-cfg-list { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 14px; padding:4px 2px; }
-  .plu-cfg-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px 14px; padding:4px 2px; }
-  .plu-cfg-grid .em-cfg-item { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
-  .plu-cfg-grid .em-cfg-item input { flex:0 0 auto; }
-  .em-cfg-item { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
-  .em-cfg-item input { flex:0 0 auto; }
-  .em-cfg-tag { color:#9a9aa0; font-size:12px; }
-  .em-row-between { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .em-cat-wrap { display:flex; flex-direction:column; gap:10px; }
-  .em-cat-grp { border:1px solid #eee; border-radius:10px; padding:8px 10px; }
-  .em-cat-big { font-size:12px; font-weight:800; color:#9a9aa0; letter-spacing:.04em; margin-bottom:6px; }
-  .em-cat-subs { display:grid; grid-template-columns:repeat(5, 1fr); gap:2px 6px; }
+  .em-allbtn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:999px; padding:5px 14px; font-family:var(--mono); font-size:12px; font-weight:700; cursor:pointer; transition:all .12s; }
+  .em-allbtn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
+  .em-cfg-list { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; padding:2px; }
+  .plu-cfg-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; padding:2px; }
+  .em-cfg-item, .plu-cfg-grid .em-cfg-item { display:flex; align-items:center; gap:8px; padding:9px 12px; font-size:13px; cursor:pointer; color:var(--text); border:1.5px solid var(--border); border-radius:10px; background:var(--bg-elev); transition:all .12s; user-select:none; }
+  .em-cfg-item:hover, .plu-cfg-grid .em-cfg-item:hover { border-color:var(--accent-warm); }
+  .em-cfg-item:has(input:checked), .plu-cfg-grid .em-cfg-item:has(input:checked) { background:var(--accent-soft); border-color:var(--accent-warm); font-weight:700; }
+  .em-cfg-item input, .plu-cfg-grid .em-cfg-item input { flex:0 0 auto; accent-color:var(--accent-warm); width:15px; height:15px; }
+  .em-cfg-item > span, .plu-cfg-grid .em-cfg-item > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .em-cfg-tag { color:var(--text-faint); font-size:11px; }
+  .em-row-between { display:flex; align-items:center; justify-content:space-between; }
+  .em-cat-wrap { display:flex; flex-direction:column; gap:12px; }
+  .em-cat-grp { border:1px solid #efeee9; border-radius:14px; padding:12px 14px 14px; background:var(--bg-elev); box-shadow:0 1px 2px rgba(0,0,0,.03); }
+  .em-cat-big { font-size:11px; font-weight:800; color:var(--text-dim); letter-spacing:.05em; text-transform:uppercase; margin-bottom:9px; }
+  .em-cat-subs { display:grid; grid-template-columns:repeat(5, 1fr); gap:7px; }
+  .em-foot { display:flex; gap:10px; padding:16px 22px; border-top:1px solid #efeee9; background:var(--bg-elev); position:sticky; bottom:0; }
+  .em-export-cta { flex:1; border:none; border-radius:12px; padding:14px; font-family:var(--mono); font-size:15px; font-weight:800; cursor:pointer; background:var(--text); color:#fff; transition:transform .1s, filter .12s; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .em-export-cta:hover { filter:brightness(1.12); }
+  .em-export-cta:active { transform:scale(.99); }
+  #pluExportMenuOv .pcm-modal { max-width:860px; border-radius:18px; }
+  #pluExportMenuOv .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
+  #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
+  #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
+  #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
   .em-sel { flex:1 1 160px; min-width:0; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:13px; background:#fff; color:var(--text); }
   /* 필드 설정 팝업 */
   .cnm-body { display:flex; flex-direction:column; gap:14px; padding:16px 18px 18px; }
@@ -1525,18 +1538,18 @@
     var cfgLay=(layoutByCat[curCat()]||[]);
     var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">필드가 없습니다.</div>';
     var wrap=document.createElement('div');
-    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:880px;">'+
+    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal">'+
       '<div class="pcm-head">⬆ 데이터 내보내기<button class="pcm-x" id="emClose" type="button">✕</button></div>'+
-      '<div class="pcm-body" style="padding:8px 18px 18px;">'+
+      '<div class="pcm-body">'+
         '<div class="em-sec">'+
-          '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="plu-tool-btn" id="emCatAll" type="button">전체 선택</button></div>'+
+          '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="em-allbtn" id="emCatAll" type="button">전체 선택</button></div>'+
           '<div class="em-cat-wrap">'+catHtml+'</div>'+
         '</div>'+
         '<div class="em-sec">'+
-          '<div class="em-row-between"><div class="em-tt">내보내기 필드 설정 <small>(체크한 필드만 · 즉시 저장)</small></div><button class="plu-tool-btn" id="emFldAll" type="button">전체 선택</button></div>'+
+          '<div class="em-row-between"><div class="em-tt">내보내기 필드 <small>(체크한 필드만 · 즉시 저장)</small></div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
           '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>'+
-        '<div class="plu-modal-btns" style="margin-top:6px;"><button class="plu-modal-choice" id="emDoExp" style="text-align:center;">⬇ 선택 카테고리 EXPORT</button></div>'+
+        '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ 선택 카테고리 EXPORT</button></div>'+
       '</div>'+
     '</div></div>';
     document.body.appendChild(wrap.firstChild);
