@@ -648,7 +648,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 </head>
 <body>
 <div class="page-topbar">
-  <h1 class="page-title">🏷️ 아이템 UPC 관리</h1>
+  <h1 class="page-title">🗂️ UPC MANAGER</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
   <div class="plu-topright">
     <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
@@ -1496,22 +1496,28 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       '</div>';
     }
     return '<div class="plu-tools">'+
-        '<button class="plu-tool-btn mainact" id="pluExportBtn">⬆ 데이터내보내기</button>'+
         '<button class="plu-tool-btn mainact" id="pluPrintBtn">🖨 인쇄</button>'+
         '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '</div>';
   }
   // 중간 카테고리 도구 HTML
   function subToolsHTML(){
-    var opts=[['','기본(PLU)'],['upco','UPC(O)'],['eng','ENG DESC'],['kor','KOR DESC'],['sales','MSRP'],['newflag','신규 N'],['priceupd','가격갱신 $']];
-    var sel=opts.map(function(o){ return '<option value="'+o[0]+'"'+(pluSortKey===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('');
     return '<div class="plu-tools">'+
-      '<span class="plu-sort-box">⇅ 정렬 <select id="pluSortSel">'+sel+'</select>'+
-        '<button class="plu-sort-dir" id="pluSortDir" title="오름차순/내림차순">'+(pluSortDir==='desc'?'▼':'▲')+'</button></span>'+
+      '<button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button>'+
+      '<button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button>'+
       '<button class="plu-hist-btn admin-icon" id="pluAdminBtn" title="관리자 기능 — 편집·신제품/변경상품 보기·데이터불러오기·매장관리·백업·복원·FB내보내기">👤</button>'+
       '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
   }
+  // 처음/마지막: 테이블 래퍼를 맨 위/맨 아래로 스크롤 (PLU 매니저와 동일)
+  document.addEventListener('click', function(e){
+    var fb=e.target.closest&&e.target.closest('#pluFirstBtn');
+    var lb=e.target.closest&&e.target.closest('#pluLastBtn');
+    if(!fb&&!lb) return;
+    var wrap=document.querySelector('#pluContent .plu-table-wrap'); if(!wrap) return;
+    if(typeof wrap.scrollTo==='function'){ wrap.scrollTo({top: fb?0:wrap.scrollHeight, behavior:'smooth'}); }
+    else { wrap.scrollTop = fb?0:wrap.scrollHeight; }
+  });
 
   // 검색박스·돌아가기 버튼 위치: 편집모드면 검색→데이터복원 옆, 돌아가기→저장 옆. 아니면 상단 원위치
   function placeFloatingControls(){
@@ -2888,7 +2894,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var all=(rowsFor(__c)||[]).filter(function(r){ return rowSub(__c,r)===__s; });
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬆ 데이터내보내기</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 인쇄</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluPrintBtn">🖨 인쇄</button><button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button></div>'; if(window.__reqRefresh) window.__reqRefresh(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody>'+
           (rows.map(viewRowHTML).join('')||'<tr><td colspan="'+(visibleCols().length+2)+'" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
