@@ -457,7 +457,7 @@
   .em-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .em-allbtn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:999px; padding:5px 14px; font-family:var(--mono); font-size:12px; font-weight:700; cursor:pointer; transition:all .12s; }
   .em-allbtn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
-  .em-cfg-list { display:grid; grid-template-columns:repeat(4, 1fr); gap:2px 14px; padding:2px; }
+  .em-cfg-list { display:grid; grid-template-columns:repeat(4, 1fr); gap:2px 14px; padding:14px 16px; border:1px solid var(--border); border-radius:14px; background:var(--bg-elev); }
   .plu-cfg-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:2px 14px; padding:2px; }
   .em-cfg-item, .plu-cfg-grid .em-cfg-item { display:flex; align-items:center; gap:7px; padding:5px 4px; font-size:13px; cursor:pointer; color:var(--text); border:none; border-radius:0; background:transparent; transition:color .12s; user-select:none; }
   .em-cfg-item:hover, .plu-cfg-grid .em-cfg-item:hover { color:#1a1a1d; }
@@ -466,10 +466,16 @@
   .em-cfg-item > span, .plu-cfg-grid .em-cfg-item > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .em-cfg-tag { color:var(--text-faint); font-size:11px; }
   .em-row-between { display:flex; align-items:center; justify-content:space-between; }
-  .em-cat-wrap { display:flex; flex-direction:column; gap:14px; }
+  .em-cat-wrap { display:flex; flex-direction:column; gap:14px; border:1px solid var(--border); border-radius:14px; padding:14px 16px; background:var(--bg-elev); }
   .em-cat-grp { border:none; border-radius:0; padding:0; background:transparent; box-shadow:none; }
   .em-cat-big { font-size:11px; font-weight:800; color:var(--text-dim); letter-spacing:.05em; text-transform:uppercase; margin-bottom:5px; }
   .em-cat-subs { display:grid; grid-template-columns:repeat(5, 1fr); gap:1px 6px; }
+  .em-foot { display:flex; gap:10px; padding:16px 22px; border-top:1px solid #efeee9; background:var(--bg-elev); position:sticky; bottom:0; }
+  .em-export-cta { flex:5; border:none; border-radius:12px; padding:14px; font-family:var(--mono); font-size:15px; font-weight:800; cursor:pointer; background:var(--text); color:#fff; transition:transform .1s, filter .12s; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .em-export-cta:hover { filter:brightness(1.12); }
+  .em-export-cta:active { transform:scale(.99); }
+  .em-back-btn { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:14px 0; font-family:var(--mono); font-size:14px; font-weight:800; cursor:pointer; background:var(--bg-elev); color:var(--text-dim); transition:all .12s; }
+  .em-back-btn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
   .em-foot { display:flex; gap:10px; padding:16px 22px; border-top:1px solid #efeee9; background:var(--bg-elev); position:sticky; bottom:0; }
   .em-export-cta { flex:1; border:none; border-radius:12px; padding:14px; font-family:var(--mono); font-size:15px; font-weight:800; cursor:pointer; background:var(--text); color:#fff; transition:transform .1s, filter .12s; display:flex; align-items:center; justify-content:center; gap:8px; }
   .em-export-cta:hover { filter:brightness(1.12); }
@@ -1549,12 +1555,13 @@
           '<div class="em-row-between"><div class="em-tt">내보내기 필드 <small>(체크한 필드만 · 즉시 저장)</small></div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
           '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>'+
-        '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ 선택 카테고리 EXPORT</button></div>'+
+        '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button><button class="em-back-btn" id="emBack" type="button">← 뒤로</button></div>'+
       '</div>'+
     '</div></div>';
     document.body.appendChild(wrap.firstChild);
     var close=function(){ var o=$(ov); if(o) o.remove(); };
     var x=$('emClose'); if(x) x.onclick=close;
+    var emBackBtn=$('emBack'); if(emBackBtn) emBackBtn.onclick=function(){ close(); openAdminModal(); };
     var ovEl=$(ov); if(ovEl) ovEl.onclick=function(e){ if(e.target===ovEl) close(); };
     var catAll=$('emCatAll'); if(catAll) catAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; }); catAll.textContent=allOn?'전체 선택':'전체 해제'; };
     var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
@@ -1631,7 +1638,7 @@
     $('icpFile').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f){ picked=f; $('icpFname').textContent=f.name; $('icpOk').disabled=false; } };
     var close=function(){ var o=$('icpOverlay'); if(o) o.remove(); };
     $('icpClose').onclick=close;
-    $('icpBack').onclick=function(){ close(); };
+    $('icpBack').onclick=function(){ close(); openAdminModal(); };
     $('icpOverlay').onclick=function(e){ if(e.target&&e.target.id==='icpOverlay') close(); };
     $('icpOk').onclick=function(){ if(!picked) return; var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; close(); importToCategory(t.label, picked); };
   }
