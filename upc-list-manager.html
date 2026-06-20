@@ -236,15 +236,42 @@
   .pcm-foot { display:flex; justify-content:flex-end; gap:8px; padding:12px 18px; border-top:1px solid #eee; }
   .pcm-modal-wide { max-width:760px; }
   #emBody { padding:2px 18px 14px; max-height:64vh; overflow:auto; }
-  .em-sec { padding:10px 0; border-bottom:1px solid #eee; display:flex; flex-direction:column; gap:6px; }
+  .em-sec { padding:18px 22px; border-bottom:1px solid #efeee9; display:flex; flex-direction:column; gap:10px; }
   .em-sec:last-child { border-bottom:none; }
-  .em-tt { font-weight:700; font-size:13px; color:#333; }
-  .em-tt small { font-weight:600; color:#888; font-size:11px; }
+  .em-tt { font-weight:800; font-size:14px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .em-tt::before { content:''; width:4px; height:15px; background:var(--accent-warm); border-radius:2px; }
+  .em-tt small { font-weight:600; color:var(--text-faint); font-size:11px; }
   .em-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .em-cfg-list { display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 14px; padding:4px 2px; }
-  .em-cfg-item { display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer; color:#333; }
-  .em-cfg-item input { flex:0 0 auto; }
-  .em-cfg-tag { color:#9a9aa0; font-size:12px; }
+  .em-allbtn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:999px; padding:5px 14px; font-family:var(--mono); font-size:12px; font-weight:700; cursor:pointer; transition:all .12s; }
+  .em-allbtn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
+  .em-cfg-list { display:grid; grid-template-columns:repeat(4, 1fr); gap:2px 14px; padding:14px 16px; border:1px solid var(--border); border-radius:14px; background:var(--bg-elev); }
+  .em-cfg-item { display:flex; align-items:center; gap:7px; padding:5px 4px; font-size:13px; cursor:pointer; color:var(--text); border:none; background:transparent; transition:color .12s; user-select:none; }
+  .em-cfg-item:hover { color:#1a1a1d; }
+  .em-cfg-item:has(input:checked) { font-weight:700; color:#8a6d2b; }
+  .em-cfg-item input { flex:0 0 auto; accent-color:var(--accent-warm); width:15px; height:15px; }
+  .em-cfg-item > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .em-cfg-tag { color:var(--text-faint); font-size:11px; }
+  .em-box { border:1px solid var(--border); border-radius:14px; padding:14px 16px; background:var(--bg-elev); display:flex; flex-direction:column; gap:10px; }
+  .em-foot { display:flex; gap:10px; padding:16px 22px; border-top:1px solid #efeee9; background:var(--bg-elev); }
+  .em-export-cta { flex:5; border:none; border-radius:12px; padding:14px; font-family:var(--mono); font-size:15px; font-weight:800; cursor:pointer; background:var(--text); color:#fff; transition:transform .1s, filter .12s; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .em-export-cta:hover { filter:brightness(1.12); }
+  .em-export-cta:active { transform:scale(.99); }
+  .em-export-cta:disabled { opacity:.45; cursor:not-allowed; filter:none; }
+  .em-back-btn { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:14px 0; font-family:var(--mono); font-size:14px; font-weight:800; cursor:pointer; background:var(--bg-elev); color:var(--text-dim); transition:all .12s; }
+  .em-back-btn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
+  #pluExportMenuOv .pcm-modal { max-width:760px; border-radius:18px; }
+  #pluExportMenuOv .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
+  #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
+  #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
+  #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
+  #icpOverlay .pcm-modal { max-width:480px; border-radius:18px; }
+  #icpOverlay .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
+  #icpOverlay .pcm-head .pcm-x { color:#fff; opacity:.75; }
+  #icpOverlay .pcm-head .pcm-x:hover { opacity:1; }
+  #icpOverlay .pcm-body { padding:0 !important; background:#fbfaf7; }
+  #icpOverlay .icp-lbl { margin-top:0; }
+  #icpOverlay .icp-file { margin-top:0; }
+  #icpOverlay .icp-opt { margin-top:0; padding-top:10px; }
   .em-modes .em-go { flex:0 0 auto; }
   .em-sel { flex:1 1 160px; min-width:0; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:13px; background:#fff; color:var(--text); }
   .em-go { text-align:left; }
@@ -2390,24 +2417,34 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var old=$('icpOverlay'); if(old) old.remove();
       var topOpts=PLU_TABS.map(function(t,i){ return '<option value="'+i+'"'+(i===pluBig?' selected':'')+'>'+escapeHtml(t.label)+'</option>'; }).join('');
       var wrap=document.createElement('div');
-      wrap.innerHTML='<div class="pcm-overlay" id="icpOverlay"><div class="pcm-modal" style="max-width:420px;">'+
-        '<div class="pcm-head">📥 데이터불러오기<button class="pcm-x" id="icpClose" type="button">✕</button></div>'+
-        '<div class="pcm-body icp-body">'+
-          '<label class="icp-lbl">상위 카테고리</label>'+
-          '<select class="icp-sel" id="icpTop">'+topOpts+'</select>'+
-          '<label class="icp-lbl">중간 카테고리</label>'+
-          '<select class="icp-sel" id="icpSub"></select>'+
-          '<div class="icp-opt">'+
-            '<label class="dcv-switch" title="ON: 평균마진으로 MSRP 계산해 가져오기 / OFF: 원본 그대로"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
-            '<span class="icp-lbl" style="margin:0;">불러오기 평균마진</span>'+
-            '<input type="number" class="dcv-num" id="icpMargin" min="0" max="99" step="1" value="40" disabled> <span class="icp-lbl" style="margin:0;">%</span>'+
+      wrap.innerHTML='<div class="pcm-overlay" id="icpOverlay"><div class="pcm-modal">'+
+        '<div class="pcm-head">⬇ 데이터 불러오기<button class="pcm-x" id="icpClose" type="button">✕</button></div>'+
+        '<div class="pcm-body">'+
+          '<div class="em-sec">'+
+            '<div class="em-tt">카테고리 선택</div>'+
+            '<div class="em-box">'+
+              '<label class="icp-lbl">상위 카테고리</label>'+
+              '<select class="icp-sel" id="icpTop">'+topOpts+'</select>'+
+              '<label class="icp-lbl">중간 카테고리</label>'+
+              '<select class="icp-sel" id="icpSub"></select>'+
+              '<div class="icp-opt">'+
+                '<label class="dcv-switch" title="ON: 평균마진으로 MSRP 계산해 가져오기 / OFF: 원본 그대로"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
+                '<span class="icp-lbl" style="margin:0;">불러오기 평균마진</span>'+
+                '<input type="number" class="dcv-num" id="icpMargin" min="0" max="99" step="1" value="40" disabled> <span class="icp-lbl" style="margin:0;">%</span>'+
+              '</div>'+
+            '</div>'+
           '</div>'+
-          '<div class="icp-file">'+
-            '<button class="plu-tool-btn" id="icpPick" type="button">📂 파일 검색</button>'+
-            '<span class="icp-fname" id="icpFname">선택된 파일 없음</span>'+
-            '<input type="file" id="icpFile" accept=".xlsx,.xls" style="display:none">'+
+          '<div class="em-sec">'+
+            '<div class="em-tt">파일 선택</div>'+
+            '<div class="em-box">'+
+              '<div class="icp-file">'+
+                '<button class="plu-tool-btn" id="icpPick" type="button">📂 파일 검색</button>'+
+                '<span class="icp-fname" id="icpFname">선택된 파일 없음</span>'+
+                '<input type="file" id="icpFile" accept=".xlsx,.xls" style="display:none">'+
+              '</div>'+
+            '</div>'+
           '</div>'+
-          '<div class="icp-foot"><button class="plu-tool-btn" id="icpBack" type="button">← 뒤로가기</button><button class="plu-tool-btn icp-ok" id="icpOk" type="button" disabled>가져오기</button></div>'+
+          '<div class="em-foot"><button class="em-export-cta" id="icpOk" disabled>⬇ 가져오기</button><button class="em-back-btn" id="icpBack" type="button">← 뒤로</button></div>'+
         '</div>'+
       '</div></div>';
       document.body.appendChild(wrap.firstChild);
@@ -2708,7 +2745,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       return '<optgroup label="'+escapeHtml(t.label)+'">'+inner+'</optgroup>';
     }).join('');
     var wrap=document.createElement('div');
-    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal" style="max-width:620px;">'+
+    wrap.innerHTML='<div class="pcm-overlay" id="'+ov+'"><div class="pcm-modal">'+
       '<div class="pcm-head">⬆ 데이터 내보내기<button class="pcm-x" id="emClose" type="button">✕</button></div>'+
       '<div class="pcm-body" id="emBody"></div>'+
     '</div></div>';
@@ -2719,13 +2756,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     function homeHTML(){
       var catSec='<div class="em-sec">'+
           '<div class="em-tt">'+(startList?'카테고리별로 데이터 내보내기':'카테고리 선택 EXPORT')+'</div>'+
-          '<div class="em-row"><select id="emCatSel" class="em-sel">'+catOpts+'</select>'+
-          '<button class="plu-tool-btn newlist-update" id="emCatExp" type="button">⬇ EXPORT</button></div>'+
+          '<div class="em-box"><div class="em-row"><select id="emCatSel" class="em-sel" style="flex:1 1 auto;">'+catOpts+'</select>'+
+          '<button class="em-allbtn" id="emCatExp" type="button" style="border-radius:10px;padding:9px 16px;">⬇ EXPORT</button></div></div>'+
         '</div>';
       var cfgLay=(layoutByCat[curCat()]||[]);
       var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">열이 없습니다.</div>';
       var cfgSec='<div class="em-sec">'+
-          '<div class="em-tt">내보내기필드설정</div>'+
+          '<div class="em-tt">내보내기 필드</div>'+
           '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>';
       if(!startList) return catSec+cfgSec;
@@ -2733,14 +2770,14 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       return catSec+cfgSec+
         '<div class="em-sec">'+
           '<div class="em-tt">신상품 / 가격변경 LIST 선택 EXPORT</div>'+
-          '<div class="em-row em-modes">'+
-            '<button class="plu-tool-btn em-go" data-mode="set" type="button">EXPORT</button>'+
-            '<button class="plu-tool-btn em-go" data-mode="hanaro" type="button">EXPORT(HANARO)</button>'+
-            '<button class="plu-tool-btn em-go" data-mode="hana" type="button">EXPORT(HANA)</button>'+
-            '<button class="plu-tool-btn em-go" data-mode="stws" type="button">EXPORT(STWS)</button>'+
-          '</div>'+
+          '<div class="em-box"><div class="em-row em-modes">'+
+            '<button class="em-allbtn em-go" data-mode="set" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT</button>'+
+            '<button class="em-allbtn em-go" data-mode="hanaro" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANARO)</button>'+
+            '<button class="em-allbtn em-go" data-mode="hana" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANA)</button>'+
+            '<button class="em-allbtn em-go" data-mode="stws" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(STWS)</button>'+
+          '</div></div>'+
         '</div>'+
-        '<div class="em-sec"><div class="em-row"><button class="plu-tool-btn" id="emAdminBack" type="button">← 뒤로가기</button></div></div>';
+        '<div class="em-foot"><button class="em-back-btn" id="emAdminBack" type="button" style="flex:1;">← 뒤로</button></div>';
     }
     // 리스트 화면 HTML
     var emEntryMap={};
