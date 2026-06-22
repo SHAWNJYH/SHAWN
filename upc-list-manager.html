@@ -412,6 +412,17 @@
   .plu-modal h3 { margin: 0 0 4px; font-size: 17px; color: var(--text); }
   .plu-modal p { margin: 0 0 16px; font-size: 13px; color: var(--text-dim); }
   .plu-modal-btns { display: flex; flex-direction: column; gap: 10px; }
+  .cfd-divider { display:flex; align-items:center; text-align:center; margin:14px 0 10px; color:#9a9aa0; font-size:12px; font-weight:700; }
+  .cfd-divider::before, .cfd-divider::after { content:''; flex:1; height:1px; background:#e5e5e0; }
+  .cfd-divider span { padding:0 12px; }
+  .cfd-list { max-height:200px; overflow-y:auto; border:1px solid #e5e5e0; border-radius:12px; padding:10px 12px; display:grid; grid-template-columns:repeat(2,1fr); gap:2px 12px; background:#fbfaf7; }
+  .cfd-list .em-cfg-item { display:flex; align-items:center; gap:7px; padding:5px 4px; font-size:13px; cursor:pointer; color:#1a1a1d; user-select:none; }
+  .cfd-list .em-cfg-item input { flex:0 0 auto; accent-color:var(--accent-warm); width:15px; height:15px; }
+  .cfd-list .em-cfg-item:has(input:checked) { font-weight:700; color:#8a6d2b; }
+  .cfd-list .em-cfg-item .em-cfg-tag { color:#b0b0b0; font-size:10px; }
+  .cfd-empty { grid-column:1/-1; text-align:center; color:#9a9aa0; font-size:12px; padding:14px 0; }
+  .cfd-add { margin-top:10px; text-align:center; }
+  .cfd-add:disabled { opacity:.45; cursor:not-allowed; }
   .plu-modal-choice { border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text); border-radius: 12px; padding: 14px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; text-align: left; }
   .plu-modal-choice:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
@@ -689,6 +700,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   </div>
   <input type="file" id="upcRestoreFile" accept="application/json,.json" style="display:none;">
   <input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none;">
+  <button class="page-back topbar-mini mainact" id="pluGoOther">🗂️ PLU 매니저</button>
   <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
 </div>
 <div class="egmm-screen">
@@ -718,6 +730,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       <button class="plu-modal-choice" id="pluColRCheck">🔴 상품정보추가<small>체크박스 · 붉은색 · 원하는 위치로 이동 가능</small></button>
       <button class="plu-modal-choice" id="pluColText">📝 상품필드추가<small>글자 입력 · 검은색 · 원하는 위치로 이동 가능 (예: 원산지·비고)</small></button>
     </div>
+    <div class="cfd-divider"><span>또는 다른 카테고리에서 쓰는 필드 가져오기</span></div>
+    <div class="cfd-list" id="pluColImportList"></div>
+    <button class="plu-modal-choice cfd-add" id="pluColImportAdd" disabled>✓ 선택한 필드 추가</button>
     <button class="plu-modal-cancel" id="pluColCancel">취소</button>
   </div>
 </div>
@@ -2145,7 +2160,50 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     markDirty(); renderContent();
   }
   // 열 추가/관리 모달 열기
-  function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
+  function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); fillColImportList(); }
+  var __cfdItems=[];
+  function otherCatFields(){
+    var curKeys={}; (workLayout||[]).forEach(function(c){ if(c&&c.key!=null) curKeys[String(c.key).toUpperCase()]=1; });
+    var seen={}, out=[];
+    PLU_TABS.forEach(function(t){
+      if(t.label===curCat()) return;
+      var lay=layoutByCat[t.label]||[];
+      lay.forEach(function(c){
+        if(!c||c.key==null) return;
+        var K=String(c.key).toUpperCase();
+        if(isBase(c.key)) return;
+        if(curKeys[K]) return;
+        if(seen[K]){ if(seen[K].cats.indexOf(t.label)<0) seen[K].cats.push(t.label); return; }
+        var item={ key:c.key, label:c.label, type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')), fmt:(c.fmt==='price'?'price':'text'), fg:(c.fg||''), bg:(c.bg||''), bold:!!c.bold, cats:[t.label] };
+        seen[K]=item; out.push(item);
+      });
+    });
+    return out;
+  }
+  function fillColImportList(){
+    var box=$('pluColImportList'); if(!box) return;
+    __cfdItems=otherCatFields();
+    if(!__cfdItems.length){ box.innerHTML='<div class="cfd-empty">가져올 수 있는 다른 카테고리 필드가 없습니다</div>'; var ab=$('pluColImportAdd'); if(ab) ab.disabled=true; return; }
+    box.innerHTML=__cfdItems.map(function(it,i){ var tt=(it.type==='check'||it.type==='rcheck')?' (체크)':(it.fmt==='price'?' ($)':''); return '<label class="em-cfg-item"><input type="checkbox" class="cfd-col" data-i="'+i+'"> <span>'+escapeHtml(it.label)+tt+' <span class="em-cfg-tag">'+escapeHtml(it.cats.join(', '))+'</span></span></label>'; }).join('');
+    var refresh=function(){ var any=box.querySelectorAll('.cfd-col:checked').length>0; var ab=$('pluColImportAdd'); if(ab) ab.disabled=!any; };
+    box.querySelectorAll('.cfd-col').forEach(function(ch){ ch.onchange=refresh; });
+    refresh();
+  }
+  function addImportedCols(){
+    var box=$('pluColImportList'); if(!box) return;
+    var picks=box.querySelectorAll('.cfd-col:checked'); if(!picks.length) return;
+    if(!workLayout) workLayout=[];
+    var added=0;
+    Array.prototype.forEach.call(picks, function(ch){
+      var it=__cfdItems[parseInt(ch.getAttribute('data-i'),10)]; if(!it) return;
+      if(colIndex(it.key)>=0 || isBase(it.key)) return;
+      workLayout.push({ key:it.key, label:it.label, hidden:false, type:it.type, fmt:it.fmt, fg:it.fg, bg:it.bg, bold:it.bold });
+      added++;
+    });
+    closeColModal();
+    if(added){ markDirty(); renderContent(); showToast(added+'개 필드를 현재 카테고리에 추가했습니다 · 💾 저장 필요','success'); }
+    else showToast('추가할 새 필드가 없습니다','error');
+  }
   // 열 모달 닫기
   function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
   var __ingCat=null,__ingPlu=null,__ingKey=null;
@@ -2161,6 +2219,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(rc) rc.onclick=function(){ closeColModal(); addColumnOfType('rcheck'); };
     if(t) t.onclick=function(){ closeColModal(); addColumnOfType('text'); };
     if(x) x.onclick=function(){ closeColModal(); };
+    var imp=$('pluColImportAdd'); if(imp) imp.onclick=function(){ addImportedCols(); };
     if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) closeColModal(); });
     var ic=$('pluIngClose'), is=$('pluIngSave'), iov=$('pluIngModal');
     if(ic) ic.onclick=function(){ closeIngModal(); };
@@ -2976,6 +3035,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 돌아가기: 편집 모드면 편집만 종료(페이지 유지), 아니면 이전 화면으로 이동
   async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
+  var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=function(){ window.location.href='plu-list-manager.html'; };
   // 이름·UPC 검색: 입력 시 180ms 디바운스로 전체 재렌더 빈도를 줄임(대량 데이터 성능)
   var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
 
