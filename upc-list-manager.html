@@ -995,7 +995,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var __chunkCount={};       // (구버전 호환) docId -> 청크 수
   var __catChunkIds={};      // docId -> 현재 조각 문서ID 목록 (잉여 삭제용)
   var __CHUNK=1000;          // 조각당 행 수 (행 ~600B → 조각 ~600KB, 1MB 안전)
-  var __CHUNK_COMP=15000;    // 압축 저장 시 조각당 행 수 (압축 후 ~600KB, 1MB 안전)
+  var __CHUNK_COMP=10000;    // 한 문서당 최대 행 수 (1만 초과 시 다음 분할번호 -2, -3 ...)
   // gzip 압축 base64 유틸 (pako)
   function __u8ToB64(u8){ var CH=0x8000, res=''; for(var i=0;i<u8.length;i+=CH){ res+=String.fromCharCode.apply(null, u8.subarray(i,i+CH)); } return btoa(res); }
   function __b64ToU8(b64){ var bin=atob(b64), u8=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
@@ -1006,27 +1006,39 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var SUB_DB_MAP={};   // 카테고리 설정에서 사용자가 직접 지정한 DB이름 (sub → DB명)
   function __subId(s){ var key=String(s==null?'':s).trim(); if(SUB_DB_MAP[key]) return __safeId(SUB_DB_MAP[key])||'_'; var m=SUB_ID_MAP[key]; return m || __safeId(key) || '_'; }
   async function saveCat(cat, rows, layout, truncLen){
-    /* sub별로 묶어 gzip 압축 후 저장. 문서명: {상위}-{중간}-{번호} 예) EGP-ARTBOX-1 (보통 sub당 1개) */
+    /* 문서명 규칙: {상위}-{중간}-{하위(CATE ENG)}-{분할번호}  예) STI-GROCERY-FROZEN-1
+       · 하위(CATE ENG)가 비면 {상위}-{중간}-{분할번호} (예: EGP-ARTBOX-1)
+       · 한 (중간·하위) 묶음이 1만 행을 넘으면 분할번호가 2,3...으로 증가
+       · 로드는 parent 필드 기준이라 ID 형식이 달라도 그대로 읽힌다 */
     try{
       var docId=DOCID[cat]||cat;
       var lay=normLayout(layout||defaultLayout([]));
       var tl=(typeof truncLen==='number'&&truncLen>0)?truncLen:((typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:20);
       rows=rows||[];
-      var bySub={}, subOrder=[];
-      rows.forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(!(s in bySub)){ bySub[s]=[]; subOrder.push(s); } bySub[s].push(r); });
+      // 중간(sub) + 하위(CATE ENG) 별로 묶기
+      var byGrp={}, grpOrder=[];
+      rows.forEach(function(r){
+        var s=(r&&r.sub!=null)?String(r.sub):'';
+        var ce=String(getVal(r,'CATE(ENG)')||'').trim();
+        var gk=s+'\u0000'+ce;
+        if(!(gk in byGrp)){ byGrp[gk]={sub:s, ce:ce, rows:[]}; grpOrder.push(gk); }
+        byGrp[gk].rows.push(r);
+      });
       await fns().setDoc(fns().doc(db(), COL, docId), { layout: lay, fields: extraKeysOf(lay), truncLen: tl, updatedAt: Date.now() });
       var newIds=[];
-      for(var si=0; si<subOrder.length; si++){
-        var s=subOrder[si], srows=bySub[s], safe=__subId(s);
+      for(var gi=0; gi<grpOrder.length; gi++){
+        var g=byGrp[grpOrder[gi]], grows=g.rows;
+        var subId=__subId(g.sub);
+        var ceId=g.ce ? ('-'+__safeId(String(g.ce).toUpperCase())) : '';   // 하위(CATE ENG) 영문
         var part=0;
-        for(var i=0;i<srows.length;i+=__CHUNK_COMP){
-          var chunk=srows.slice(i,i+__CHUNK_COMP);
-          var cid=docId+'-'+safe+'-'+(part+1);
+        for(var i=0;i<grows.length;i+=__CHUNK_COMP){
+          var chunk=grows.slice(i,i+__CHUNK_COMP);
+          var cid=docId+'-'+subId+ceId+'-'+(part+1);
           if(typeof pako!=='undefined'){
             var data=__u8ToB64(pako.gzip(JSON.stringify(chunk)));
-            await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: s, ci: part, comp: 1, data: data });
+            await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: g.sub, cate: g.ce, ci: part, comp: 1, data: data });
           } else {
-            await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: s, ci: part, rows: chunk });
+            await fns().setDoc(fns().doc(db(), COL, cid), { parent: docId, sub: g.sub, cate: g.ce, ci: part, rows: chunk });
           }
           newIds.push(cid); part++;
         }
@@ -1104,7 +1116,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 카테고리 편집기-서브 입력 HTML
   function catEdSubHTML(sub, dbName){ return '<div class="cated-sub"><input class="cated-sub-in" value="'+escapeHtml(sub||'')+'" data-orig="'+escapeHtml(sub||'')+'" placeholder="중간 카테고리"><input class="cated-db-in" value="'+escapeHtml(dbName||'')+'" placeholder="DB명" title="Firebase 문서이름 (예: BEER → ALCOHOL-BEER-1, 번호는 자동)"><button class="cated-del-sub" type="button" title="삭제">✕</button></div>'; }
   // 카테고리 편집기-카테고리 입력 HTML
-  function catEdCatHTML(t){ var subDb=(t.subDb&&typeof t.subDb==='object')?t.subDb:{}; return '<div class="cated-cat" data-doc="'+escapeHtml(t.doc||'')+'"><div class="cated-r1"><input class="cated-label" value="'+escapeHtml(t.label||'')+'" placeholder="상위 카테고리"><button class="cated-del-cat" type="button" title="이 상위 카테고리 삭제">✕</button></div><div class="cated-subs-box">'+(t.subs||[]).map(function(s){ var dn=subDb[s]||SUB_DB_MAP[s]||SUB_ID_MAP[s]||''; return catEdSubHTML(s, dn); }).join('')+'</div><button class="cated-add-sub" type="button">＋ 중간 카테고리</button></div>'; }
+  function catEdCatHTML(t){ var subDb=(t.subDb&&typeof t.subDb==='object')?t.subDb:{}; return '<div class="cated-cat"><div class="cated-r1"><input class="cated-label" value="'+escapeHtml(t.label||'')+'" placeholder="상위 카테고리(한글)"><input class="cated-doc" value="'+escapeHtml(t.doc||'')+'" placeholder="상위 DB명(영문)" title="Firebase 상위 문서이름(영문). 예: STI → STI-GROCERY-FROZEN-1"><button class="cated-del-cat" type="button" title="이 상위 카테고리 삭제">✕</button></div><div class="cated-subs-box">'+(t.subs||[]).map(function(s){ var dn=subDb[s]||SUB_DB_MAP[s]||SUB_ID_MAP[s]||''; return catEdSubHTML(s, dn); }).join('')+'</div><button class="cated-add-sub" type="button">＋ 중간 카테고리</button></div>'; }
   // 카테고리 편집기 이벤트 연결
   function bindCatEd(){ var box=$('catEdList');
     Array.prototype.forEach.call(box.querySelectorAll('.cated-del-cat'), function(b){ b.onclick=function(){ var c=b.closest('.cated-cat'); if(c) c.parentNode.removeChild(c); }; });
@@ -1114,7 +1126,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 카테고리 편집기 렌더
   function renderCatEd(){ var box=$('catEdList'); if(!box) return; box.innerHTML=PLU_TABS.map(catEdCatHTML).join(''); bindCatEd(); }
   // 카테고리 편집기-카테고리 추가
-  function addCatEdCat(){ var box=$('catEdList'); var w=document.createElement('div'); w.innerHTML=catEdCatHTML({label:'', doc:'CAT_'+Date.now(), subs:['']}); box.appendChild(w.firstChild); bindCatEd(); }
+  function addCatEdCat(){ var box=$('catEdList'); var w=document.createElement('div'); w.innerHTML=catEdCatHTML({label:'', doc:'', subs:['']}); box.appendChild(w.firstChild); bindCatEd(); }
   async function migrateSubRename(doc, renameMap){
     var keys=Object.keys(renameMap); if(!keys.length) return;
     var oldLabel=null; for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].doc===doc){ oldLabel=PLU_TABS[i].label; break; } }
@@ -1127,7 +1139,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   async function saveCatEditor(){
     var cats=$('catEdList').querySelectorAll('.cated-cat'); var tabs=[]; var seen={}; var renames=[];
     for(var i=0;i<cats.length;i++){ var lab=(cats[i].querySelector('.cated-label').value||'').trim(); if(!lab) continue;
-      var doc=(cats[i].getAttribute('data-doc')||'').trim()||('CAT_'+Date.now()+'_'+i); while(seen[doc]) doc=doc+'_x'; seen[doc]=1;
+      var docEl=cats[i].querySelector('.cated-doc'); var doc=(docEl&&docEl.value||'').trim().toUpperCase().replace(/[^A-Z0-9_]/g,'');
+      if(!doc){ $('catEdHint').textContent='상위 카테고리 「'+lab+'」의 DB명(영문)을 입력하세요'; return; }
+      while(seen[doc]) doc=doc+'_X'; seen[doc]=1;
       var subRowEls=cats[i].querySelectorAll('.cated-sub'); var subs=[]; var rmap={}; var subDb={};
       for(var j=0;j<subRowEls.length;j++){ var inEl=subRowEls[j].querySelector('.cated-sub-in'); var dbEl=subRowEls[j].querySelector('.cated-db-in'); var val=(inEl&&inEl.value||'').trim(); if(!val) continue; var orig=(inEl&&inEl.getAttribute('data-orig')||'').trim(); if(subs.indexOf(val)<0) subs.push(val); if(orig && orig!==val) rmap[orig]=val; var dbv=(dbEl&&dbEl.value||'').trim(); if(dbv) subDb[val]=dbv; }
       if(Object.keys(rmap).length) renames.push({doc:doc, map:rmap});
@@ -3258,6 +3272,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   .cated-r1 { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
   .cated-cat input { padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
   .cated-label { flex: 1; min-width: 0; font-weight: 700; }
+  .cated-doc { flex: 0 0 160px; min-width: 0; font-weight: 700; text-transform: uppercase; }
   .cated-del-cat { flex: 0 0 auto; background: none; border: none; color: #c0392b; cursor: pointer; font-size: 15px; }
   .cated-subs-box { padding-left: 10px; }
   .cated-sub { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
