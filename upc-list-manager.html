@@ -701,6 +701,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   <input type="file" id="upcRestoreFile" accept="application/json,.json" style="display:none;">
   <input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none;">
   <button class="page-back topbar-mini mainact" id="pluGoOther">🗂️ PLU 매니저</button>
+  <button class="page-back topbar-mini mainact" id="pluGoOcr">🔄 UPC OCR</button>
   <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
 </div>
 <div class="egmm-screen">
@@ -3050,6 +3051,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
   var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=function(){ window.location.href='plu-list-manager.html'; };
+  var __goOcr=$('pluGoOcr'); if(__goOcr) __goOcr.onclick=function(){ window.location.href='upc-list-convert-ocr.html'; };
   // 이름·UPC 검색: 입력 시 180ms 디바운스로 전체 재렌더 빈도를 줄임(대량 데이터 성능)
   var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
 

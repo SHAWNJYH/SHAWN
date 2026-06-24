@@ -520,6 +520,7 @@
       <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
     </div>
   </div>
+  <button class="page-back topbar-mini mainact" id="pluGoOcr">🔄 UPC OCR</button>
   <button class="page-back topbar-mini mainact" id="pluGoOther">🏷️ UPC 매니저</button>
   <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
   <!-- 관리자 모드/툴바 공용 파일 입력기: 항상 DOM에 존재해야 편집/보기 모드 관계없이 동작 (UPC 매니저 방식) -->
@@ -2085,6 +2086,7 @@
   async function goBack(){ if(!(await leaveEditGuard()))return; if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
   var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=async function(){ if(!(await leaveEditGuard()))return; window.location.href='upc-list-manager.html'; };
+  var __goOcr=$('pluGoOcr'); if(__goOcr) __goOcr.onclick=async function(){ if(!(await leaveEditGuard()))return; window.location.href='upc-list-convert-ocr.html'; };
   var se=$('pluSearch'); se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; renderContent(); };
 
   // ===== 시작 =====
