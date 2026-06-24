@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>UPC LIST CONVERT</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f3f3ee; --border:#e5e5e0; --border-bright:#c8c8c0;
+    --text:#1a1a1d; --text-dim:#6b6b72; --text-faint:#9a9aa0;
+    --accent:#1a1a1d; --accent-soft:#f0eee5; --accent-warm:#c9a961;
+    --danger:#c83a3a; --success:#2a8a4a;
+    --serif:'Pretendard','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+    --mono:'Pretendard','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+    --code:'Pretendard',ui-monospace,monospace;
+    --green:#1f7a43; --red:#c0392b; --blue:#1e40af;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--mono); min-height:100vh; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+  body::before{ content:''; position:fixed; inset:0; background-image:
+      radial-gradient(circle at 20% 10%, rgba(201,169,97,0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(26,26,29,0.03) 0%, transparent 40%);
+    pointer-events:none; z-index:0; }
+  body::after{ content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E"); opacity:0.04; pointer-events:none; z-index:0; }
+
+  /* 화면 레이아웃 (UPC/PLU 매니저와 동일) */
+  .egmm-screen{ min-height:100vh; position:relative; z-index:1; }
+  .egmm-sub-screen{ margin:0 auto; padding:8px 32px 48px; }
+
+  /* 공통 상단 바 */
+  .page-topbar{ position:relative; z-index:1; margin:0 auto; padding:28px 32px 0; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .page-title{ font-family:var(--serif); font-weight:700; font-size:20px; line-height:1.1; color:var(--text); flex:0 0 auto; }
+  .crumb{ display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+  .crumb .cbtn{ font-size:12px; font-weight:700; color:var(--text-dim); background:var(--bg-elev); border:1.5px solid var(--border); border-radius:999px; padding:5px 13px; cursor:pointer; transition:all .12s; }
+  .crumb .cbtn:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .crumb .cbtn.active{ background:var(--accent-warm); border-color:var(--accent-warm); color:#fff; }
+  .crumb .sep{ color:var(--text-faint); }
+  .crumb .mid{ font-size:12px; font-weight:700; color:var(--text-dim); }
+
+  /* 상단 도구 모음 */
+  .plu-topright{ margin-left:auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+  .plu-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  .plu-tool-btn{ border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:9px; padding:8px 12px; font-family:var(--mono); font-size:13px; font-weight:700; cursor:pointer; transition:background .12s, border-color .12s, color .12s; }
+  .plu-tool-btn:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .plu-tool-btn.icon{ padding:8px 10px; font-size:15px; line-height:1; }
+  .plu-tool-btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .plu-tool-btn.primary:hover{ filter:brightness(1.18); border-color:var(--accent); color:#fff; }
+  .plu-tool-btn.warm{ background:var(--accent-warm); border-color:var(--accent-warm); color:#fff; }
+  .plu-tool-btn.warm:hover{ filter:brightness(1.06); color:#fff; }
+
+  /* 카테고리(서브탭) — 매니저 .plu-subbar / .plu-subtab 동일 */
+  .plu-subbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .plu-subtabs{ display:flex; flex-wrap:wrap; gap:7px; flex:1 1 auto; }
+  .plu-subtab{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:20px; padding:7px 14px; font-family:var(--mono); font-size:13px; font-weight:600; cursor:pointer; transition:background .15s, border-color .15s, color .15s; }
+  .plu-subtab:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .plu-subtab.active{ background:#1e40af; border-color:#1e40af; color:#fff; font-weight:700; }
+  .plu-subtab .cnt{ display:inline-block; min-width:18px; text-align:center; margin-left:6px; font-size:11px; font-weight:800; color:#fff; background:var(--text-faint); border-radius:999px; padding:1px 6px; }
+  .plu-subtab.active .cnt{ background:rgba(255,255,255,.28); }
+  .plu-count{ font-size:13px; font-weight:700; color:var(--text-dim); white-space:nowrap; }
+
+  /* 업로드 드롭존 */
+  .drop{ border:2px dashed var(--border); border-radius:16px; padding:48px 24px; text-align:center; color:var(--text-faint); background:var(--bg-elev); margin-bottom:18px; transition:all .15s; }
+  .drop.over{ border-color:var(--accent-warm); background:var(--accent-soft); color:var(--text); }
+  .drop b{ display:block; font-family:var(--serif); font-size:16px; color:var(--text); margin-bottom:6px; }
+  .drop small{ font-size:12px; }
+  .stat{ font-size:13px; font-weight:700; color:var(--text-dim); margin-bottom:10px; }
+
+  /* 테이블 — 매니저 .plu-table-wrap / .plu-table 동일 */
+  .plu-table-wrap{ border:1.5px solid var(--border); border-radius:14px; overflow:auto; max-height:calc(48px + 20 * 33px); background:var(--bg-elev); transform:translateZ(0); will-change:scroll-position; }
+  table.plu-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .plu-table thead th{ position:sticky; top:0; z-index:30; background:#e8f0fb; color:#3b5b8c; font-family:var(--mono); font-size:11px; font-weight:700; text-align:left; text-transform:uppercase; padding:13.5px 9px; border-bottom:1.5px solid var(--border); white-space:nowrap; }
+  .plu-table thead th.ctr{ text-align:center; }
+  .plu-table thead th.col-no{ width:40px; min-width:34px; text-align:center; color:#3b5b8c; }
+  .plu-table thead th.col-del{ width:30px; }
+  .plu-table tbody td{ padding:0; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
+  .plu-table tbody tr:nth-child(even){ background:rgba(0,0,0,0.05); }
+  .plu-table tbody tr:hover td{ background:var(--accent-soft); }
+  .plu-table tbody td .cell{ padding:8px 9px; min-height:34px; outline:none; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
+  .plu-table tbody td.ctr .cell{ text-align:center; }
+  .plu-table tbody td .cell:focus{ background:#fff; box-shadow:inset 0 0 0 2px var(--accent-warm); border-radius:4px; }
+  .num{ font-variant-numeric:tabular-nums; }
+  .plu-table td.col-no{ width:40px; min-width:34px; text-align:center; font-family:var(--code); font-weight:700; color:#c0392b; white-space:nowrap; vertical-align:middle; }
+  .col-cat-cell{ font-size:11px; font-weight:800; color:var(--accent-warm); }
+  .plu-table td.col-del{ width:30px; text-align:center; vertical-align:middle; }
+  .rowdel{ border:none; background:none; color:var(--text-faint); cursor:pointer; font-size:14px; }
+  .rowdel:hover{ color:var(--danger); }
+  .upcc-cell{ color:#c0392b; font-weight:700; }
+  .plu-table td:not(.col-no):not(.col-del){ max-width:160px; }
+  .empty{ text-align:center; color:var(--text-faint); padding:40px; font-size:13px; }
+
+  /* 토스트 */
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:var(--text); color:#fff; padding:11px 20px; border-radius:12px; font-size:13px; font-weight:700; opacity:0; pointer-events:none; transition:all .25s; z-index:5000; box-shadow:0 10px 30px rgba(0,0,0,.2); }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.error{ background:var(--danger); } .toast.success{ background:var(--success); }
+
+  /* 모달 — 매니저 .pcm-* 동일 (다크 그라데이션 헤더) */
+  .pcm-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; display:none; align-items:center; justify-content:center; padding:20px; }
+  .pcm-overlay.show{ display:flex; }
+  .pcm-modal{ background:#fff; border-radius:18px; width:96%; max-width:480px; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,0.25); overflow:hidden; }
+  .pcm-head{ display:flex; align-items:center; gap:8px; padding:18px 22px; font-family:var(--serif); font-size:18px; font-weight:700; background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; }
+  .pcm-x{ margin-left:auto; border:none; background:none; font-size:18px; cursor:pointer; color:#fff; opacity:.75; }
+  .pcm-x:hover{ opacity:1; }
+  .pcm-body{ padding:18px 22px; overflow:auto; background:#fbfaf7; }
+  .pcm-body p{ margin:0 0 14px; font-size:12px; color:var(--text-faint); line-height:1.6; }
+  .pcm-body textarea{ width:100%; min-height:90px; border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; font-family:var(--mono); font-size:14px; resize:vertical; background:#fff; color:var(--text); }
+  .pcm-body textarea:focus{ outline:none; border-color:var(--accent-warm); }
+  .pcm-foot{ display:flex; gap:8px; justify-content:flex-end; padding:14px 22px; border-top:1px solid #efeee9; background:#fbfaf7; }
+
+  @media (max-width:760px){
+    .egmm-sub-screen{ padding:8px 14px 40px; }
+    .page-topbar{ padding:18px 14px 0; }
+    .plu-topright{ width:100%; margin-left:0; justify-content:flex-start; }
+  }
+</style>
+</head>
+<body>
+  <div class="page-topbar">
+    <h1 class="page-title">🔄 UPC LIST CONVERT</h1>
+    <div class="crumb" id="vendorSel"></div>
+    <div class="plu-topright">
+      <div class="plu-tools">
+        <button class="plu-tool-btn" id="addRowBtn">＋ 행 추가</button>
+        <button class="plu-tool-btn" id="wordBtn">🧹 특정단어 제거</button>
+        <button class="plu-tool-btn" id="word2Btn">✦ 후처리</button>
+        <button class="plu-tool-btn" id="uploadBtn">📥 엑셀 업로드</button>
+        <button class="plu-tool-btn" id="imgBtn">📷 이미지 인식(AI)</button>
+        <button class="plu-tool-btn icon" id="keyBtn" title="Anthropic API 키 설정">🔑</button>
+        <button class="plu-tool-btn primary" id="exportBtn">⬆ 엑셀 내보내기</button>
+      </div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
+    <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
+  </div>
+  <div class="egmm-screen">
+    <div class="egmm-sub-screen">
+      <div class="plu-subbar">
+        <div class="plu-subtabs" id="subtabs"></div>
+        <div class="plu-count" id="stat"></div>
+      </div>
+      <div class="drop" id="drop">
+        <b>여기로 엑셀 파일을 끌어다 놓거나 “엑셀 업로드”를 누르세요</b>
+        <small>New Item Introduction 양식을 자동 인식 · 브랜드/규격/UPC 변환 자동 처리 · 여러 파일 동시 업로드</small>
+      </div>
+      <div id="tableHost"></div>
+    </div>
+  </div>
+
+  <div class="pcm-overlay" id="wordOv"><div class="pcm-modal">
+    <div class="pcm-head">🧹 특정단어 제거<button class="pcm-x" id="wordCancel" type="button">✕</button></div>
+    <div class="pcm-body">
+      <p>여기 적은 단어들은 KOR DESC · ENG DESC에서 자동으로 제거됩니다(쉼표 또는 줄바꿈으로 구분). 저장하면 기존 데이터에도 즉시 적용됩니다.</p>
+      <textarea id="wordTa" placeholder="예: (식), 번들, (번들), PET"></textarea>
+    </div>
+    <div class="pcm-foot"><button class="plu-tool-btn" id="wordCancel2">취소</button><button class="plu-tool-btn primary" id="wordSave">저장 후 적용</button></div>
+  </div></div>
+
+  <div class="toast" id="toast"></div>
+
+<!-- Firebase: 변환 데이터를 컬렉션 upc-ocr-list / 문서=벤더명 에 저장 (PLU·UPC 매니저와 동일 프로젝트) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+    authDomain: "the-shawn.firebaseapp.com",
+    projectId: "the-shawn",
+    storageBucket: "the-shawn.firebasestorage.app",
+    messagingSenderId: "519898602513",
+    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+    measurementId: "G-NKGYGC63JN"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  window.firebaseDb  = db;
+  window.firebaseFns = { doc, setDoc, getDoc, collection, getDocs };
+  /* 로그인 제거 — 인증 없이 동작 (Firestore 규칙 공개 필요) */
+</script>
+
+<script>
+/* ===== 설정 ===== */
+var SUBS=['DRY','COOL','FROZEN','RICE','NOODLE'];
+var VENDORS=['STI','JFC','WISMETIC'];   // 벤더(공급처) — 각 벤더 동일 카테고리(SUBS) 사용, export 명칭에 반영
+var VENDOR='STI';                        // 현재 선택된 벤더
+
+/* ===== Firebase 저장/불러오기 ===== */
+var OCR_COL='upc-ocr-list';               // 컬렉션
+function vendorDocId(v){ return String(v==null?VENDOR:v).toLowerCase(); }  // 문서ID = 벤더명(sti/jfc/wismetic)
+var __saveTimer=null;
+function fb(){ return (window.firebaseDb && window.firebaseFns) ? window.firebaseFns : null; }
+function whenFb(cb){ if(fb()){ cb(); return; } var t=setInterval(function(){ if(fb()){ clearInterval(t); cb(); } },120); setTimeout(function(){ clearInterval(t); },8000); }
+async function saveVendor(notify){
+  var F=fb(); if(!F){ if(notify) toast('Firebase 미연결 — 잠시 후 다시 시도','error'); return false; }
+  try{
+    await F.setDoc(F.doc(window.firebaseDb, OCR_COL, vendorDocId(VENDOR)), { vendor: VENDOR, rows: ROWS, count: ROWS.length, updatedAt: Date.now() });
+    if(notify) toast(VENDOR+' · '+ROWS.length+'건 Firebase 저장됨','success');
+    return true;
+  }catch(e){ toast('저장 실패 — '+(e&&e.message?e.message:'규칙 확인'),'error'); return false; }
+}
+function scheduleSave(){ if(__saveTimer) clearTimeout(__saveTimer); __saveTimer=setTimeout(function(){ __saveTimer=null; saveVendor(false); },800); }
+async function loadVendor(v){
+  var F=fb(); if(!F){ ROWS=[]; renderTabs(); renderTable(); return; }
+  try{
+    var snap=await F.getDoc(F.doc(window.firebaseDb, OCR_COL, vendorDocId(v)));
+    var d=(snap && snap.exists && snap.exists())?(snap.data()||{}):null;
+    ROWS=(d && Array.isArray(d.rows))?d.rows:[];
+  }catch(e){ ROWS=[]; }
+  renderTabs(); renderTable();
+}
+var FIELDS=[
+  {key:'upco',  label:'UPC(O)',     ctr:true,  num:true},
+  {key:'upcc',  label:'UPC(C)',     ctr:true,  num:true, red:true},
+  {key:'brandK',label:'BRAND(KOR)'},
+  {key:'brandE',label:'BRAND(ENG)'},
+  {key:'kor',   label:'KOR DESC'},
+  {key:'eng',   label:'ENG DESC'},
+  {key:'code',  label:'ITEM CODE',  ctr:true},
+  {key:'cost',  label:'COST',       ctr:true,  money:true},
+  {key:'u1',    label:'CASE QTY',   ctr:true,  num:true},
+  {key:'u2',    label:'UNIT QTY',   ctr:true,  num:true},
+  {key:'size',  label:'UNIT SIZE',  ctr:true,  num:true},
+  {key:'sizecode',label:'UOM',      ctr:true},
+  {key:'category',label:'CATEGORY', ctr:true}
+];
+var ROWS=[];          // 단일 배열(전체)
+var cur='전체';       // 현재 하위 탭
+var removeWords=[];   // 특정단어 제거 목록
+
+function $(id){ return document.getElementById(id); }
+var toastTimer;
+function toast(msg,type){ var t=$('toast'); clearTimeout(toastTimer); t.textContent=msg; t.className='toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='toast '+(type||''); },2600); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+function digits(s){ return String(s==null?'':s).replace(/[^0-9]/g,''); }
+function norm(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim().toUpperCase(); }
+
+/* ===== UPC(O) → UPC(C) 자동 변환 (UPC 매니저 동일 알고리즘) ===== */
+function upcExpandE(u8){
+  var ns=u8.charAt(0), x1=u8.charAt(1), x2=u8.charAt(2), x3=u8.charAt(3), x4=u8.charAt(4), x5=u8.charAt(5), x6=u8.charAt(6);
+  var man, prod;
+  switch(x6){
+    case '0': case '1': case '2': man=x1+x2+x6+'00'; prod='00'+x3+x4+x5; break;
+    case '3': man=x1+x2+x3+'00'; prod='000'+x4+x5; break;
+    case '4': man=x1+x2+x3+x4+'0'; prod='0000'+x5; break;
+    default:  man=x1+x2+x3+x4+x5; prod='0000'+x6; break;
+  }
+  return ns+man+prod;
+}
+function upcConvert(raw){
+  if(raw==null) return '';
+  var code=digits(raw);
+  if(code==='') return '';
+  var n=code.length;
+  if(n>=14) return code;
+  switch(n){
+    case 8:  return (code.charAt(0)==='0') ? upcExpandE(code) : code.substring(0,7);
+    case 12: return code.substring(0,11);
+    case 13: return code.substring(0,12);
+    case 10:
+    case 11:
+      var tmp=code; if(tmp.charAt(0)==='0') tmp=tmp.substring(1);
+      return (tmp.length>1) ? tmp.substring(0,tmp.length-1) : tmp;
+    default: return code;
+  }
+}
+
+/* ===== 파싱 ===== */
+function subOf(temp, kor){
+  var t=norm(temp)+' '+norm(kor);
+  if(/\bFZ\b|FROZEN|냉동/.test(t)) return 'FROZEN';
+  if(/\bCH\b|\bCL\b|\bRF\b|COOL|REF|냉장|CHILL/.test(t)) return 'COOL';
+  if(/\bRICE\b|쌀|미곡|햇반|즉석밥/.test(t)) return 'RICE';
+  if(/NOODLE|라면|국수|냉면|우동|소면|당면/.test(t)) return 'NOODLE';
+  return 'DRY';
+}
+// 규격 분리: 끝쪽 "a/b/c UNIT(괄호)" → UNIT#1/#2, SIZE, SIZE CODE + 이름(규격 제거)
+function parseSpec(desc){
+  var d=String(desc==null?'':desc).trim();
+  if(!d) return {name:'',u1:'',u2:'',size:'',code:'',tail:''};
+  // 끝쪽 보관/부가 표시 괄호들을 먼저 떼어낸다: (FZ) (CH) (DRY) (식) (번들) ...
+  var tails=[];
+  var changed=true;
+  while(changed){
+    changed=false;
+    var tm=d.match(/\s*\(([^()]*)\)\s*$/);
+    if(tm){
+      var inside=tm[1];
+      // 괄호 안에 '숫자+단위'(용량)면 규격의 일부이므로 멈춤 (예: (360g), (1.2KG))
+      if(/\d\s*(FL\s?OZ|OZ|LB|KG|ML|L|G)S?\.?/i.test(inside)){ break; }
+      tails.unshift('('+inside+')'); d=d.slice(0, d.length-tm[0].length).trim(); changed=true;
+    }
+  }
+  var tail=tails.join(' ');
+  var m=d.match(/(\d+(?:\.\d+)?)(?:\/(\d+(?:\.\d+)?))?(?:\/(\d+(?:\.\d+)?))?\s*(FL\s?OZ|OZ|LB|KG|ML|L|G)S?\.?\s*(?:\(([^)]*)\))?\s*$/i);
+  if(!m || (!m[4] && !m[2] && !/\d/.test(m[1]||''))) return {name:(d+(tail?(' '+tail):'')).trim(),u1:'',u2:'',size:'',code:'',tail:tail};
+  var hasUnit=!!m[4]; var nums=[m[1],m[2],m[3]].filter(function(x){return x!=null;});
+  if(!hasUnit && nums.length<2) return {name:(d+(tail?(' '+tail):'')).trim(),u1:'',u2:'',size:'',code:'',tail:tail};
+  var unit=(m[4]||'').toUpperCase().replace(/\s+/g,''); var paren=m[5]||'';
+  var size=nums.length?nums[nums.length-1]:'';
+  var u2=nums.length>=2?nums[nums.length-2]:'';
+  var u1=nums.length>=3?nums[nums.length-3]:'';
+  var code='';
+  if(unit==='FLOZ'||unit==='LB'||unit==='OZ'||unit==='ML'||unit==='L'||unit==='KG') code=unit;
+  else if(unit==='G') code='G';
+  else if(paren && /\d\s*G\b/i.test(paren)) code='G';
+  var name=d.slice(0, d.length-m[0].length).trim();
+  if(tail) name=(name+' '+tail).trim();
+  return {name:name, u1:u1, u2:u2, size:size, code:code, tail:tail};
+}
+// 브랜드 분리: 첫 ')' 앞 = 브랜드, 뒤 = 상품명
+function brandSplit(s){
+  var d=String(s==null?'':s).trim(); var i=d.indexOf(')');
+  if(i>0 && i<=14) return {brand:d.slice(0,i).trim(), rest:d.slice(i+1).trim()};
+  return {brand:'', rest:d};
+}
+function stripWords(s){
+  var out=String(s==null?'':s);
+  removeWords.forEach(function(w){ if(!w) return; var re=new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'); out=out.replace(re,''); });
+  return out.replace(/\s{2,}/g,' ').trim();
+}
+
+function colOf(rowtxt, keys){ for(var i=0;i<rowtxt.length;i++){ for(var k=0;k<keys.length;k++){ if(rowtxt[i].indexOf(keys[k])>=0) return i; } } return -1; }
+function findHeader(aoa){
+  for(var r=0;r<Math.min(aoa.length,15);r++){
+    var rowtxt=(aoa[r]||[]).map(norm); var j=rowtxt.join(' ');
+    if(j.indexOf('ITEM CODE')>=0 && j.indexOf('DESCRIP')>=0) return {r:r, rowtxt:rowtxt};
+  }
+  return null;
+}
+function parseSheet(aoa){
+  var h=findHeader(aoa); if(!h) return [];
+  var rt=h.rowtxt;
+  var cCode=colOf(rt,['ITEM CODE']);
+  var cDescK=colOf(rt,['DESCRIPTION(KOREAN)','KOREAN']);
+  var cDescE=colOf(rt,['DESCRIPTION(ENGLISH)','ENGLISH']);
+  var cDesc=(cDescK<0)?colOf(rt,['DESCRIPTRION','DESCRIPTION']):-1;
+  var cBar=colOf(rt,['BAR CODE','UPC','CBM']);
+  var cTemp=colOf(rt,['STORAGE','TEMP']);
+  var cPrice=colOf(rt,['PRICE']);
+  var formB=(cDescK>=0 && cDescE>=0);
+  var recs=[]; var r=h.r+1;
+  function gv(rr,cc){ if(cc<0||rr<0||rr>=aoa.length) return ''; var v=(aoa[rr]||[])[cc]; return v==null?'':v; }
+  while(r<aoa.length){
+    var code=String(gv(r,cCode)).trim();
+    if(formB){
+      if(code){ recs.push({code:code, kor:gv(r,cDescK), eng:gv(r,cDescE), upc:gv(r,cBar), cost:gv(r,cPrice), temp:''}); }
+      r++;
+    } else {
+      if(code){
+        var kor=gv(r,cDesc), cost=gv(r,cPrice), temp=gv(r,cTemp);
+        var eng=gv(r+1,cDesc), upcRow=gv(r+1,cBar), upcThis=gv(r,cBar);
+        var upc = digits(upcRow).length>=8 ? upcRow : (digits(upcThis).length>=8 ? upcThis : upcRow);
+        recs.push({code:code, kor:kor, eng:eng, upc:upc, cost:cost, temp:temp});
+        r+=2;
+      } else r++;
+    }
+  }
+  return recs;
+}
+function recToRow(x){
+  var ks=parseSpec(x.kor), es=parseSpec(x.eng);
+  var kb=brandSplit(ks.name), eb=brandSplit(es.name);
+  var upco=digits(x.upc);
+  return {
+    upco: upco,
+    upcc: upcConvert(upco),
+    brandK: kb.brand,
+    brandE: eb.brand,
+    kor: stripWords(kb.rest),
+    eng: stripWords(eb.rest),
+    code: String(x.code||'').trim(),
+    cost: String(x.cost==null?'':x.cost).replace(/[^0-9.]/g,''),
+    u1: ks.u1, u2: ks.u2, size: ks.size, sizecode: ks.code,
+    category: subOf((x.temp||'')+' '+(ks.tail||''), x.kor)
+  };
+}
+function ingestWorkbook(wb){
+  var n=0;
+  wb.SheetNames.forEach(function(sn){
+    var aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''});
+    parseSheet(aoa).forEach(function(x){ ROWS.push(recToRow(x)); n++; });
+  });
+  return n;
+}
+
+/* ===== COST 표시 ===== */
+function fmtCost(v){ var n=parseFloat(String(v==null?'':v).replace(/[^0-9.]/g,'')); if(isNaN(n)) return ''; return '$'+n.toFixed(2); }
+
+/* ===== 렌더 ===== */
+function tabsList(){ return ['전체'].concat(SUBS); }
+function renderVendors(){
+  var host=$('vendorSel'); if(!host) return;
+  host.innerHTML=VENDORS.map(function(v){
+    return '<button class="cbtn'+(v===VENDOR?' active':'')+'" data-vendor="'+esc(v)+'">'+esc(v)+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(host.querySelectorAll('.cbtn'), function(b){
+    b.onclick=async function(){ var nv=b.getAttribute('data-vendor'); if(nv===VENDOR) return; if(__saveTimer){ clearTimeout(__saveTimer); __saveTimer=null; await saveVendor(false); } VENDOR=nv; cur='전체'; renderVendors(); await loadVendor(VENDOR); };
+  });
+}
+function rowsForTab(t){ return t==='전체'?ROWS:ROWS.filter(function(r){ return (r.category||'DRY')===t; }); }
+function renderTabs(){
+  $('subtabs').innerHTML=tabsList().map(function(s){
+    var n=(s==='전체')?ROWS.length:rowsForTab(s).length;
+    return '<button class="plu-subtab'+(s===cur?' active':'')+'" data-sub="'+esc(s)+'">'+esc(s)+'<span class="cnt">'+n+'</span></button>';
+  }).join('');
+  Array.prototype.forEach.call($('subtabs').querySelectorAll('.plu-subtab'), function(b){
+    b.onclick=function(){ cur=b.getAttribute('data-sub'); renderTabs(); renderTable(); };
+  });
+}
+function renderTable(){
+  var rows=rowsForTab(cur);
+  $('drop').style.display=ROWS.length?'none':'';
+  $('stat').textContent=ROWS.length?('전체 '+ROWS.length+'건 · 현재 ['+cur+'] '+rows.length+'건'):'';
+  if(!ROWS.length){ $('tableHost').innerHTML=''; return; }
+  if(!rows.length){ $('tableHost').innerHTML='<div class="empty">['+cur+'] 항목이 없습니다</div>'; return; }
+  var ths='<th class="col-no">#</th>'+FIELDS.map(function(f){ return '<th class="'+(f.ctr?'ctr':'')+'">'+esc(f.label)+'</th>'; }).join('')+'<th class="col-del"></th>';
+  var body=rows.map(function(row){
+    var gi=ROWS.indexOf(row);
+    var tds=FIELDS.map(function(f){
+      var v=row[f.key]==null?'':row[f.key];
+      var disp = f.money? fmtCost(v) : v;
+      var cls=(f.ctr?'ctr ':'')+(f.num?'num ':'')+(f.key==='category'?'col-cat-cell ':'');
+      var cellcls='cell'+(f.red?' upcc-cell':'');
+      return '<td class="'+cls.trim()+'"><div class="'+cellcls+'" contenteditable="true" data-g="'+gi+'" data-k="'+f.key+'" data-money="'+(f.money?1:0)+'">'+esc(disp)+'</div></td>';
+    }).join('');
+    return '<tr><td class="col-no">'+(rows.indexOf(row)+1)+'</td>'+tds+'<td class="col-del"><button class="rowdel" data-g="'+gi+'" title="삭제">✕</button></td></tr>';
+  }).join('');
+  $('tableHost').innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr>'+ths+'</tr></thead><tbody>'+body+'</tbody></table></div>';
+  Array.prototype.forEach.call($('tableHost').querySelectorAll('.cell'), function(c){
+    c.addEventListener('focus', function(){ if(c.getAttribute('data-money')==='1'){ var raw=ROWS[+c.getAttribute('data-g')][c.getAttribute('data-k')]; c.textContent=(raw==null?'':String(raw)); } });
+    c.addEventListener('blur', function(){
+      var gi=+c.getAttribute('data-g'), k=c.getAttribute('data-k'); var val=c.textContent.trim();
+      if(c.getAttribute('data-money')==='1') val=val.replace(/[^0-9.]/g,'');
+      ROWS[gi][k]=val;
+      if(k==='upco') ROWS[gi].upcc=upcConvert(val);
+      if(k==='category'){ renderTabs(); renderTable(); scheduleSave(); return; }
+      if(k==='upco' || c.getAttribute('data-money')==='1') renderTable();
+      scheduleSave();
+    });
+  });
+  Array.prototype.forEach.call($('tableHost').querySelectorAll('.rowdel'), function(b){
+    b.onclick=function(){ ROWS.splice(+b.getAttribute('data-g'),1); renderTabs(); renderTable(); scheduleSave(); };
+  });
+}
+
+/* ===== 이미지 인식 (Claude 비전) ===== */
+function fileToBase64(file){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(){ res(String(r.result).split(',')[1]); };
+    r.onerror=function(){ rej(new Error('읽기 실패')); };
+    r.readAsDataURL(file);
+  });
+}
+function mediaType(file){
+  var t=(file.type||'').toLowerCase();
+  if(t.indexOf('png')>=0) return 'image/png';
+  if(t.indexOf('webp')>=0) return 'image/webp';
+  if(t.indexOf('gif')>=0) return 'image/gif';
+  return 'image/jpeg';
+}
+var IMG_PROMPT=
+'You are extracting product rows from a Korean grocery "New Item Introduction" sheet image. '+
+'Each product usually spans two lines: a Korean line and an English line. '+
+'Return ONLY a JSON array, no prose, no markdown. Each element has these keys: '+
+'"code" (ITEM CODE), "kor" (full Korean description line including the spec like 8/4/137g), '+
+'"eng" (full English description line including the spec), "upc" (the long barcode number, digits only), '+
+'"cost" (the price number, no $), "temp" (storage temp/category text such as DRY, FZ, FROZEN, CH, COOL, RICE, NOODLE if present, else ""). '+
+'Keep the spec (numbers/slashes/units like 8/4/137g, 4/4/4.23oz, 18/1.1LB(500g)) inside kor and eng exactly as shown. '+
+'Do not invent values. If a field is missing, use "". Output JSON array only.';
+
+/* ===== API 키 (이 브라우저에만 저장) ===== */
+function getApiKey(){ try{ return localStorage.getItem('anthropicApiKey')||''; }catch(e){ return ''; } }
+function setApiKey(k){ try{ if(k) localStorage.setItem('anthropicApiKey',k); else localStorage.removeItem('anthropicApiKey'); }catch(e){} }
+function ensureApiKey(){
+  var k=getApiKey();
+  if(k) return k;
+  var input=window.prompt('Anthropic API 키를 입력하세요 (sk-ant-...).\n이 브라우저에만 저장되며, 파일을 남과 공유하지 마세요.');
+  if(input){ input=input.trim(); setApiKey(input); return input; }
+  return '';
+}
+
+async function recognizeImages(files){
+  var arr=Array.prototype.slice.call(files||[]).filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); });
+  if(!arr.length){ toast('이미지 파일을 올려주세요','error'); return; }
+  var apiKey=ensureApiKey();
+  if(!apiKey){ toast('API 키가 필요합니다','error'); return; }
+  toast('AI가 이미지를 읽는 중… ('+arr.length+'장)');
+  var grand=0, errs=0, authErr=false;
+  for(var i=0;i<arr.length;i++){
+    try{
+      var b64=await fileToBase64(arr[i]);
+      var content=[
+        { type:'image', source:{ type:'base64', media_type:mediaType(arr[i]), data:b64 } },
+        { type:'text', text:IMG_PROMPT }
+      ];
+      var resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:4000, messages:[{role:'user', content:content}] })
+      });
+      if(resp.status===401||resp.status===403){ authErr=true; errs++; continue; }
+      var data=await resp.json();
+      if(data.error){ errs++; continue; }
+      var txt=(data.content||[]).map(function(it){ return it.type==='text'?it.text:''; }).join('').trim();
+      txt=txt.replace(/^```(json)?/i,'').replace(/```$/,'').trim();
+      var recs=JSON.parse(txt);
+      if(Array.isArray(recs)){ recs.forEach(function(x){ if(x && (x.code||x.kor||x.eng||x.upc)) { ROWS.push(recToRow(x)); grand++; } }); }
+    }catch(e){ errs++; }
+  }
+  renderTabs(); renderTable();
+  if(grand){ toast('이미지에서 '+grand+'건 인식 완료'+(errs?(' · '+errs+'장 실패'):''),'success'); saveVendor(true); }
+  else if(authErr){ setApiKey(''); toast('API 키가 올바르지 않습니다 — 다시 입력해 주세요','error'); }
+  else toast('인식 실패 — 네트워크/키/사용량을 확인하세요','error');
+}
+
+/* ===== 업로드 ===== */
+function handleFiles(files){
+  var arr=Array.prototype.slice.call(files||[]).filter(function(f){ return /\.xlsx?$/i.test(f.name); });
+  if(!arr.length){ toast('엑셀 파일(.xlsx/.xls)을 올려주세요','error'); return; }
+  var done=0, grand=0;
+  arr.forEach(function(file){
+    var r=new FileReader();
+    r.onload=function(){ try{ grand+=ingestWorkbook(XLSX.read(r.result,{type:'array'})); }catch(e){ toast(file.name+' 읽기 실패','error'); }
+      if(++done===arr.length){ renderTabs(); renderTable(); toast(grand?('총 '+grand+'건 변환 완료'):'인식된 항목이 없습니다','error'.replace('error',grand?'success':'error')); if(grand) saveVendor(true); } };
+    r.onerror=function(){ if(++done===arr.length){ renderTabs(); renderTable(); } toast(file.name+' 오류','error'); };
+    r.readAsArrayBuffer(file);
+  });
+}
+
+/* ===== 내보내기 ===== */
+function exportXlsx(){
+  if(!ROWS.length){ toast('내보낼 데이터가 없습니다','error'); return; }
+  var wb=XLSX.utils.book_new();
+  SUBS.forEach(function(s){
+    var rows=ROWS.filter(function(r){ return (r.category||'DRY')===s; });
+    if(!rows.length) return;
+    var aoa=[FIELDS.map(function(f){ return f.label; })];
+    rows.forEach(function(row){ aoa.push(FIELDS.map(function(f){ var v=row[f.key]==null?'':row[f.key]; if(f.money){ var n=parseFloat(String(v).replace(/[^0-9.]/g,'')); return isNaN(n)?'':Number(n.toFixed(2)); } return v; })); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), (VENDOR+'-'+s).substring(0,31));
+  });
+  var d=new Date(), ymd=String(d.getFullYear()).slice(-2)+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
+  XLSX.writeFile(wb, VENDOR+'('+ymd+').xlsx'); toast('내보냈습니다','success');
+}
+
+/* ===== 특정단어 제거 ===== */
+function applyWordsToAll(){ ROWS.forEach(function(r){ r.kor=stripWords(r.kor); r.eng=stripWords(r.eng); }); }
+
+/* ===== 이벤트 ===== */
+$('uploadBtn').onclick=function(){ $('fileInput').click(); };
+$('fileInput').onchange=function(e){ handleFiles(e.target.files); e.target.value=''; };
+$('imgBtn').onclick=function(){ $('imgInput').click(); };
+$('keyBtn').onclick=function(){ var cur=getApiKey(); var k=window.prompt('Anthropic API 키 (sk-ant-...).\n비우고 확인하면 저장된 키가 삭제됩니다.', cur); if(k!==null){ setApiKey(k.trim()); toast(k.trim()?'API 키 저장됨':'API 키 삭제됨','success'); } };
+$('imgInput').onchange=function(e){ recognizeImages(e.target.files); e.target.value=''; };
+$('exportBtn').onclick=exportXlsx;
+$('addRowBtn').onclick=function(){ var row={}; FIELDS.forEach(function(f){ row[f.key]=''; }); row.category=(cur==='전체'?'DRY':cur); ROWS.push(row); renderTabs(); renderTable(); scheduleSave(); };
+$('wordBtn').onclick=function(){ $('wordTa').value=removeWords.join(', '); $('wordOv').classList.add('show'); };
+$('wordCancel').onclick=function(){ $('wordOv').classList.remove('show'); };
+$('wordCancel2').onclick=function(){ $('wordOv').classList.remove('show'); };
+$('wordOv').onclick=function(e){ if(e.target===$('wordOv')) $('wordOv').classList.remove('show'); };
+$('wordSave').onclick=function(){ removeWords=$('wordTa').value.split(/[,\n]/).map(function(s){return s.trim();}).filter(Boolean); applyWordsToAll(); $('wordOv').classList.remove('show'); renderTable(); toast('특정단어 제거 적용','success'); scheduleSave(); };
+$('word2Btn').onclick=function(){ toast('후처리 규칙(4번)을 알려주시면 연결하겠습니다'); };
+renderVendors();
+var drop=$('drop');
+['dragenter','dragover'].forEach(function(ev){ document.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+document.addEventListener('dragleave',function(e){ if(e.target===drop) drop.classList.remove('over'); });
+document.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); var fs=(e.dataTransfer&&e.dataTransfer.files)?Array.prototype.slice.call(e.dataTransfer.files):[]; if(!fs.length) return; var imgs=fs.filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); }); var xls=fs.filter(function(f){ return /\.xlsx?$/i.test(f.name); }); if(imgs.length) recognizeImages(imgs); if(xls.length) handleFiles(xls); });
+
+renderTabs(); renderTable();
+whenFb(function(){ loadVendor(VENDOR); });   // Firebase 준비되면 현재 벤더(STI) 데이터 불러오기
+</script>
+</body>
+</html>
