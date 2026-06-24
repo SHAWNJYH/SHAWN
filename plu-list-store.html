@@ -503,12 +503,15 @@
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(typeof renderContent==='function') renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
-  const BASE=[{key:'PLU',field:'plu',label:'PLU'},{key:'ITEMCODE1',field:'itemCode1',label:'ITEMCODE1'},{key:'ITEMCODE2',field:'itemCode2',label:'ITEMCODE2'},{key:'LOCAL',field:'local',label:'LOCAL'},{key:'ORGANIC',field:'organic',label:'ORGANIC'},{key:'KOR',field:'kor',label:'KOR'},{key:'ENG',field:'eng',label:'ENG'},{key:'CATE',field:'cate',label:'CATE'}];
+  const BASE=[{key:'PLU',field:'plu',label:'PLU'},{key:'ITEMCODE1',field:'itemCode1',label:'ITEMCODE1'},{key:'LOCAL',field:'local',label:'LOCAL'},{key:'ORGANIC',field:'organic',label:'ORGANIC'},{key:'KOR',field:'kor',label:'KOR'},{key:'ENG',field:'eng',label:'ENG'},{key:'CATE',field:'cate',label:'CATE'}];
   const BASE_KEYS=BASE.map(function(b){return b.key;});
   var BASE_FIELD={}; BASE.forEach(function(b){ BASE_FIELD[b.key]=b.field; });
   function isBase(key){ return BASE_KEYS.indexOf(String(key||'').toUpperCase())>=0; }
   function fieldOf(key){ var u=String(key||'').toUpperCase(); return BASE_FIELD[u]||null; }
   function defaultLayout(extra){ var L=BASE.map(function(b){return {key:b.key,label:b.label,hidden:false,type:'text'};}); (extra||[]).forEach(function(n){ L.push({key:n,label:String(n),hidden:false,type:'text'}); }); return L; }
+  // ITEMCODE2 폐기: 다중 ITEM CODE는 itemCodes 배열로 통합됨. 저장 레이아웃에 남은 잔존 컬럼 제거(표시용)
+  var RETIRED_KEYS=['ITEMCODE2'];
+  function stripRetiredCols(lay){ return (lay||[]).filter(function(c){ return RETIRED_KEYS.indexOf(String((c&&c.key)||'').toUpperCase())<0; }); }
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return L; var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return L; }
@@ -642,7 +645,7 @@
         subOrder.forEach(function(s){ bySub[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ rows=rows.concat(c.rows); }); });
       } else if(Array.isArray(md.rows)){ rows=md.rows; }     // 구버전 단일(비압축) 문서
       cloud[lab]=rows;
-      layoutByCat[lab]=(Array.isArray(md.layout)&&md.layout.length)?normLayout(md.layout):defaultLayout(Array.isArray(md.fields)?md.fields:[]);
+      layoutByCat[lab]=stripRetiredCols((Array.isArray(md.layout)&&md.layout.length)?normLayout(md.layout):defaultLayout(Array.isArray(md.fields)?md.fields:[]));
       truncLenByCat[lab]=(typeof md.truncLen==='number'&&md.truncLen>0)?md.truncLen:20;
     }
     // (안전장치) 메타는 없는데 청크만 존재하는 경우에도 데이터 유실 방지 복원
