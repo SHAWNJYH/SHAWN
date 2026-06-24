@@ -225,6 +225,14 @@
   #pluPhotoPop.noimg img { display: none; }
   #pluPhotoPop .nophoto { display: none; }
   #pluPhotoPop.noimg .nophoto { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--text-dim); font-size: 13px; text-align: center; padding: 0 12px; box-sizing: border-box; }
+  /* ITEM CODE 다중값: 대표 코드 + +N 뱃지 + 말풍선 */
+  .plu-table td.plu-c-ic .plu-ic-cell { display: inline-flex; align-items: center; gap: 4px; cursor: help; }
+  .plu-ic-badge { display: inline-block; padding: 0 6px; height: 16px; line-height: 16px; border-radius: 9px; background: #1e40af; color: #fff; font-family: var(--mono); font-size: 10px; font-weight: 800; vertical-align: middle; }
+  .plu-ic-cell-edit { margin-left: 6px; }
+  #pluIcTip { position: fixed; z-index: 3000; display: none; min-width: 120px; max-width: 280px; background: #1f1d1a; color: #fff; border-radius: 10px; padding: 9px 11px; box-shadow: 0 12px 34px rgba(0,0,0,0.28); pointer-events: none; }
+  #pluIcTip .plu-ic-tip-h { font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .04em; color: #d9c79a; text-transform: uppercase; margin-bottom: 7px; }
+  #pluIcTip .plu-ic-tip-row { font-family: var(--mono); font-size: 12px; padding: 2px 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  #pluIcTip .plu-ic-tip-n { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; border-radius: 5px; background: rgba(255,255,255,0.14); color: #cdd6e6; font-size: 9px; font-weight: 700; }
   .plu-table th.plu-col-check { font-size: 11px; }
   .plu-table td.plu-c-check { color: var(--text); font-weight: 400; vertical-align: middle; }
   .plu-table td.plu-c-check .pluchk { display: inline-block; line-height: 1; }
@@ -668,7 +676,21 @@
   // 매장관리에서 쓰는 훅: 특정 카테고리의 모든 필드 목록 / 카테고리 목록
   window.__catColsFor = function(catLabel){ var lay = layoutByCat[catLabel] || defaultLayout([]); return (lay||[]).filter(function(c){ return c && c.key!=null; }).map(function(c){ return {key:c.key, label:c.label, type:c.type, hidden:!!c.hidden}; }); };
   window.__catList = function(){ return PLU_TABS.map(function(t){ return {label:t.label, doc:(DOCID[t.label]||t.label)}; }); };
-  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
+  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; if(r&&Array.isArray(r.itemCodes)) o.itemCodes=r.itemCodes.slice(); return o; }
+  // ===== ITEM CODE 다중값 =====
+  //  한 PLU에 여러 ITEM CODE가 있을 수 있다. 전체 목록은 r.itemCodes(배열)에 저장하고,
+  //  r.itemCode1(=ITEMCODE1 기본필드)은 항상 첫 번째 코드와 동기화한다(기존 표시/검색/내보내기 호환).
+  //  배열이 없거나 1개면 단일 코드(itemCode1)로 취급한다.
+  function isItemCodeCol(c){ return String((c&&c.key)||'').toUpperCase()==='ITEMCODE1'; }
+  function itemCodesOf(r){
+    if(!r) return [];
+    var src=Array.isArray(r.itemCodes)?r.itemCodes:[];
+    var out=[], seen={};
+    src.forEach(function(v){ v=String(v==null?'':v).trim(); if(v!=='' && !seen[v]){ seen[v]=1; out.push(v); } });
+    if(out.length) return out;
+    var one=String((r.itemCode1!=null?r.itemCode1:'')||'').trim();
+    return one?[one]:[];
+  }
 
   // ===== CSV (청과 fallback) =====
   let csvRows=null, csvPromise=null;
@@ -1051,6 +1073,18 @@
     var tds=v.map(function(c){
       if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"'+colorStyle(c)+'><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; }
       if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); }
+      if(isItemCodeCol(c)){
+        var codesD=itemCodesOf(r);
+        if(codesD.length>1){
+          var alignClsD=c.align?(' align-'+c.align):'';
+          var TLd=(c.trunc>0)?c.trunc:TL;
+          var primD=codesD[0];
+          var svD=primD.length>TLd?(escapeHtml(primD.slice(0,TLd))+'…'):escapeHtml(primD);
+          var dataC=escapeHtml(codesD.join('\n'));
+          return '<td class="'+clsFor(c.key)+alignClsD+' plu-c-ic"'+colorStyle(c)+'><span class="plu-ic-cell" data-codes="'+dataC+'">'+svD+'<span class="plu-ic-badge">+'+(codesD.length-1)+'</span></span></td>';
+        }
+        // 단일/없음 → 아래 일반 처리(itemCode1)로 진행
+      }
       var limit=(c.trunc>0)?c.trunc:TL;                 // 열별 표시 글자수(없으면 전체 공통값)
       var alignCls=c.align?(' align-'+c.align):'';        // 열별 정렬
       var fv=String(getVal(r,c.key)||'');
@@ -1089,6 +1123,7 @@
     var tds=cols.map(function(c){
       var cls=(c.hidden?'plu-col-hidden':'')+((c.type==='check'||c.type==='rcheck')?' plu-c-check':'')+(c.type==='rcheck'?' plu-c-rcheck':'')+(c.align?(' align-'+c.align):'');
       var inner=(c.type==='check'||c.type==='rcheck') ? inpCheck(idx,c,getVal(r,c.key)) : inpCol(idx,c,getVal(r,c.key));
+      if(isItemCodeCol(c)){ var codesE=itemCodesOf(r); if(codesE.length>1){ inner+='<span class="plu-ic-cell plu-ic-cell-edit" data-codes="'+escapeHtml(codesE.join('\n'))+'"><span class="plu-ic-badge">+'+(codesE.length-1)+'</span></span>'; } }
       return '<td class="'+cls.trim()+'"'+colorStyle(c)+'>'+inner+'</td>';
     }).join('');
     return '<tr data-plu="'+escapeHtml(pluValOf(r))+'">'+tds+refRowHTML(r)+'<td><button class="plu-row-del" data-del="'+idx+'" title="삭제">✕</button></td></tr>';
@@ -1106,6 +1141,17 @@
     document.addEventListener('mouseout', function(e){ var b=e.target.closest?e.target.closest('.plu-photo-btn[data-plu]'):null; if(!b) return; var to=e.relatedTarget; if(!to || !to.closest || to.closest('.plu-photo-btn[data-plu]')!==b) hidePop(); });
     window.addEventListener('scroll', hidePop, true);
     window.showPluPhoto=function(){};
+  })();
+  // ITEM CODE 말풍선: .plu-ic-cell[data-codes] 위에 마우스를 올리면 모든 코드를 표시
+  (function(){
+    var tip=null;
+    function ensureTip(){ if(tip) return tip; tip=document.createElement('div'); tip.id='pluIcTip'; document.body.appendChild(tip); return tip; }
+    function position(p, el){ var r=el.getBoundingClientRect(); var pw=p.offsetWidth||160, ph=p.offsetHeight||60; var left=r.left; if(left+pw>window.innerWidth-8) left=window.innerWidth-pw-8; if(left<8) left=8; var top=r.bottom+8; if(top+ph>window.innerHeight-8){ top=r.top-ph-8; } if(top<8) top=8; p.style.left=left+'px'; p.style.top=top+'px'; }
+    function show(el){ var raw=el.getAttribute('data-codes')||''; var codes=raw.split('\n').filter(function(s){return s!=='';}); if(!codes.length) return; var p=ensureTip(); p.innerHTML='<div class="plu-ic-tip-h">ITEM CODE · '+codes.length+'</div>'+codes.map(function(c,i){ return '<div class="plu-ic-tip-row"><span class="plu-ic-tip-n">'+(i+1)+'</span>'+escapeHtml(c)+'</div>'; }).join(''); p.style.display='block'; position(p, el); }
+    function hide(){ if(tip) tip.style.display='none'; }
+    document.addEventListener('mouseover', function(e){ var el=e.target.closest?e.target.closest('.plu-ic-cell[data-codes]'):null; if(el) show(el); });
+    document.addEventListener('mouseout', function(e){ var el=e.target.closest?e.target.closest('.plu-ic-cell[data-codes]'):null; if(!el) return; var to=e.relatedTarget; if(!to || !to.closest || to.closest('.plu-ic-cell[data-codes]')!==el) hide(); });
+    window.addEventListener('scroll', hide, true);
   })();
   var __photoCache={}, __photoQueue=[], __photoActive=0, __PHOTO_MAX=3;
   function __photoPump(){
@@ -1423,7 +1469,7 @@
     }
     var tb=$('pluTbody');
     if(tb){
-      tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var base=t.getAttribute('data-base')==='1'; if(work&&work[idx]){ if(base){ work[idx][fieldOf(key)]=t.value; } else { if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=t.value; }
+      tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var base=t.getAttribute('data-base')==='1'; if(work&&work[idx]){ if(base){ work[idx][fieldOf(key)]=t.value; if(String(key).toUpperCase()==='ITEMCODE1' && Array.isArray(work[idx].itemCodes) && work[idx].itemCodes.length){ work[idx].itemCodes[0]=t.value; } } else { if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=t.value; }
         var _nk=tareNormKey(key);
         if(_nk==='TARE(LB)'){ var g=lbToG(t.value); if(g!=null){ var gv=String(g)+' G'; if(!work[idx].extra) work[idx].extra={}; work[idx].extra['TARE(G)']=gv; var ins=tb.querySelectorAll('input.plu-edit-input[data-idx="'+idx+'"]'); Array.prototype.forEach.call(ins,function(ii){ if(tareNormKey(ii.getAttribute('data-key'))==='TARE(G)'){ ii.value=gv; } }); } }
         else if(_nk==='TARE(G)'){ var lb=gToLb(t.value); if(lb!=null){ var lv=String(lb)+' LB'; if(!work[idx].extra) work[idx].extra={}; work[idx].extra['TARE(LB)']=lv; var ins2=tb.querySelectorAll('input.plu-edit-input[data-idx="'+idx+'"]'); Array.prototype.forEach.call(ins2,function(ii){ if(tareNormKey(ii.getAttribute('data-key'))==='TARE(LB)'){ ii.value=lv; } }); } }
@@ -1454,6 +1500,32 @@
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']}];
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } var nk=tareNormKey(col&&col.key); if(nk==='TARE(LB)'||nk==='TARE(G)'){ var s=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); return s; } return raw==null?'':raw; }
+  // 내보내기 본문 생성 (header 제외):
+  //  · ITEM CODE 1개 이하 → 화면에 보이는 대로 한 행
+  //  · ITEM CODE 2개 이상 → 마지막 코드만 본 행에 두고, 나머지(마지막 제외)는 PLU+코드만 채운 행으로 맨 아래에 쭉 모음
+  function buildExportBody(rows, cols){
+    var icIsCol=(cols||[]).some(isItemCodeCol);
+    var main=[], overflow=[];
+    (rows||[]).forEach(function(r){
+      var codes=icIsCol?itemCodesOf(r):[];
+      if(codes.length>1){
+        var lastCode=codes[codes.length-1];
+        main.push(cols.map(function(c){ return isItemCodeCol(c)?lastCode:exportCell(r,c); }));
+        for(var qi=0; qi<codes.length-1; qi++){
+          (function(code){
+            overflow.push(cols.map(function(c){
+              if(String((c&&c.key)||'').toLowerCase()==='plu') return exportCell(r,c);
+              if(isItemCodeCol(c)) return code;
+              return '';
+            }));
+          })(codes[qi]);
+        }
+      } else {
+        main.push(cols.map(function(c){ return exportCell(r,c); }));
+      }
+    });
+    return main.concat(overflow);
+  }
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
     var headFill={patternType:'solid', fgColor:{rgb:'FFD9E1F2'}};
@@ -1489,7 +1561,7 @@
     function addSheet(name, rows){
       rows=rows.slice().sort(byPluAsc);
       var aoa=[cols.map(function(c){return c.label;})];
-      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportCell(r,c); })); });
+      buildExportBody(rows, cols).forEach(function(line){ aoa.push(line); });
       var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length);
       var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
       var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
@@ -1519,7 +1591,7 @@
     function addSheet(name, rows, cols){
       rows=rows.slice().sort(byPluAsc);
       var aoa=[cols.map(function(c){return c.label;})];
-      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportCell(r,c); })); });
+      buildExportBody(rows, cols).forEach(function(line){ aoa.push(line); });
       var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length);
       var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
       var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
@@ -1576,7 +1648,7 @@
     var rows=visibleCache||[]; if(!rows.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
     var v=exportColsFor();
     var aoa=[v.map(function(c){return c.label;})];
-    rows.forEach(function(r){ aoa.push(v.map(function(c){ return exportCell(r,c); })); });
+    buildExportBody(rows, v).forEach(function(line){ aoa.push(line); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, v, aoa.length); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,curCat().substring(0,28));
     var sub=curSub(); var fname='PLU_'+curCat()+(sub?'_'+sub:'')+'.xlsx';
@@ -1592,7 +1664,7 @@
     function addSheet(name, rows){
       rows=rows.slice().sort(byPluAsc);
       var aoa=[cols.map(function(c){return c.label;})];
-      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportCell(r,c); })); });
+      buildExportBody(rows, cols).forEach(function(line){ aoa.push(line); });
       var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length);
       var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
       var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
@@ -1782,8 +1854,56 @@
     $('histClear').onclick=function(){ saveHist('price', []); open={}; refresh(); };
   }
 
-  function importToCategory(cat, file){
-    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
+  // 엑셀 → 행 배열 (PLU별 그룹화 + ITEM CODE 다중 수집)
+  //  · 같은 PLU가 여러 줄 반복되거나, PLU 빈칸 + 코드만 있는 줄이 이어지면 → 직전 PLU에 코드를 추가
+  //  · 헤더가 "ITEM CODE" 등으로 ITEMCODE1 라벨과 달라도 자동 인식
+  //  · cols 배열에 ITEMCODE1 보강 컬럼을 push할 수 있음(호출부의 cols에 그대로 반영)
+  function __buildImportRows(aoa, cols, hasHeader, headerNm, header){
+    var pluCol=null, icCol=null;
+    cols.forEach(function(col){ if(isPluKey(col.key)) pluCol=col; if(String(col.key).toUpperCase()==='ITEMCODE1') icCol=col; });
+    if(hasHeader && !icCol){
+      var icIdx=-1; for(var hI=0;hI<headerNm.length;hI++){ if(/item\s*_?code/.test(headerNm[hI])){ icIdx=hI; break; } }
+      if(icIdx>=0){ icCol={key:'ITEMCODE1', label:String((header&&header[icIdx])||'ITEMCODE1'), base:true, ci:icIdx}; cols.push(icCol); }
+    }
+    var start=hasHeader?1:0; var rows=[]; var byPluImp={}; var lastImp=null;
+    for(var i=start;i<aoa.length;i++){
+      var c=aoa[i]; if(!c) continue;
+      var empty=true; for(var k=0;k<c.length;k++){ if(String(c[k]==null?'':c[k]).trim()!==''){ empty=false; break; } } if(empty) continue;
+      var pluV=pluCol?String(c[pluCol.ci]==null?'':c[pluCol.ci]).trim():'';
+      var icV =icCol ?String(c[icCol.ci ]==null?'':c[icCol.ci ]).trim():'';
+      if(pluV!=='' && byPluImp[pluV]){
+        var exr=byPluImp[pluV];
+        if(icCol && icV!=='') exr.itemCodes.push(icV);
+        cols.forEach(function(col){ if(isPluKey(col.key)||col===icCol) return; var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(v==='') return; if(col.base){ if(!exr[fieldOf(col.key)]) exr[fieldOf(col.key)]=v; } else { if(!exr.extra[col.key]) exr.extra[col.key]=v; } });
+        lastImp=exr;
+      } else if(pluV!==''){
+        var row={extra:{}, itemCodes:[]};
+        cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } });
+        if(icCol && icV!=='') row.itemCodes.push(icV);
+        rows.push(row); byPluImp[pluV]=row; lastImp=row;
+      } else if(icCol && icV!=='' && lastImp){
+        lastImp.itemCodes.push(icV);
+      } else {
+        var row2={extra:{}, itemCodes:[]};
+        cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row2[fieldOf(col.key)]=v; } else { row2.extra[col.key]=v; } });
+        rows.push(row2); lastImp=row2;
+      }
+    }
+    rows.forEach(function(r){
+      var codes=(r.itemCodes||[]).map(function(v){return String(v==null?'':v).trim();}).filter(function(v){return v!=='';});
+      var seen={},uniq=[]; codes.forEach(function(v){ if(!seen[v]){seen[v]=1;uniq.push(v);} });
+      if(uniq.length){ r.itemCode1=uniq[0]; }
+      if(uniq.length>1){ r.itemCodes=uniq; } else { delete r.itemCodes; }
+    });
+    return rows;
+  }
+  // ITEM CODE(ITEMCODE1) 칸을 대상 행에 적용 — 다중 코드(itemCodes) 동기화
+  function __applyItemCodes(tgt, er){
+    var codes=itemCodesOf(er);
+    if(codes.length>1){ tgt.itemCodes=codes.slice(); } else if(tgt.itemCodes){ delete tgt.itemCodes; }
+    tgt.itemCode1=codes.length?codes[0]:'';
+  }
+  function importToCategory(cat, file){    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     var reader=new FileReader();
     reader.onload=async function(){
       try{
@@ -1798,8 +1918,7 @@
         if(hasHeader){ lay.forEach(function(c){ var ci=headerNm.indexOf(nm(c.label)); if(ci<0) return; cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:ci}); }); }
         else { lay.forEach(function(c,bi){ cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:bi}); }); }
         if(!cols.length){ showToast('가져올 필드가 없습니다','error'); return; }
-        var start = hasHeader?1:0; var rows=[];
-        for(var i=start;i<aoa.length;i++){ var c=aoa[i]; if(!c) continue; var empty=true; for(var k=0;k<c.length;k++){ if(String(c[k]==null?'':c[k]).trim()!==''){ empty=false; break; } } if(empty) continue; var row={extra:{}}; cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } }); rows.push(row); }
+        var start = hasHeader?1:0; var rows=__buildImportRows(aoa, cols, hasHeader, headerNm, header);
         if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
         var chosen=cols.filter(function(c){ return !isPluKey(c.key); });
         var existing=rowsFor(cat).slice(); var byPlu={}; existing.forEach(function(r){ var p=String(pluValOf(r)).trim(); if(p) byPlu[p]=r; });
@@ -1814,12 +1933,13 @@
         var nMatch=0, nMiss=0;
         rows.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; if(!tgt){ nMiss++; return; } nMatch++;
           var __oldPrice=(__priceInChosen)?String(getVal(tgt, __priceKey)||''):'';
-          chosen.forEach(function(col){ var v; if(col.base){ v=er[fieldOf(col.key)]; } else { v=(er.extra||{})[col.key]; } v=String(v==null?'':v); if(col.base){ tgt[fieldOf(col.key)]=v; } else { tgt.extra=tgt.extra||{}; tgt.extra[col.key]=v; } });
+          chosen.forEach(function(col){ if(String(col.key).toUpperCase()==='ITEMCODE1'){ __applyItemCodes(tgt, er); return; } var v; if(col.base){ v=er[fieldOf(col.key)]; } else { v=(er.extra||{})[col.key]; } v=String(v==null?'':v); if(col.base){ tgt[fieldOf(col.key)]=v; } else { tgt.extra=tgt.extra||{}; tgt.extra[col.key]=v; } });
           if(tareTouched) normalizeTareRow(tgt, gFirst);
           if(__priceInChosen){ var __newPrice=String(getVal(tgt, __priceKey)||''); if(__oldPrice!==__newPrice && __newPrice!==''){ tgt.extra=tgt.extra||{}; tgt.extra['__PRICEUPD']=String(__now); __priceRecs.push({ ts:__now, cat:cat, sub:(tgt.sub||''), plu:String(p), eng:String(getVal(tgt,'ENG')||''), kor:String(getVal(tgt,'KOR')||''), oldp:__oldPrice, newp:__newPrice }); } }
         });
         if(!nMatch){ showToast('PLU가 일치하는 행이 없습니다','error'); return; }
-        if(!(await uiConfirm('['+cat+'] PLU 기준으로 데이터를 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+(__priceRecs.length?(' · 가격변경 '+__priceRecs.length+'건'):'')+(nMiss?(' · 미일치 '+nMiss+'행 무시'):'')))) return;
+        var __icMulti=rows.filter(function(r){return Array.isArray(r.itemCodes)&&r.itemCodes.length>1;}).length;
+        if(!(await uiConfirm('['+cat+'] PLU 기준으로 데이터를 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+(__icMulti?(' · ITEM CODE 다중 '+__icMulti+'건'):'')+(__priceRecs.length?(' · 가격변경 '+__priceRecs.length+'건'):'')+(nMiss?(' · 미일치 '+nMiss+'행 무시'):'')))) return;
         var ok=await saveCat(cat, existing, layoutByCat[cat]||defaultLayout([]));
         if(ok){ if(__priceRecs.length){ try{ addHist('price', __priceRecs); }catch(e){} } editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 업데이트 완료 ('+nMatch+'행'+(__priceRecs.length?(', 가격변경 '+__priceRecs.length+'건'):'')+')','success'); }
         else showToast('저장 실패','error');
@@ -1847,13 +1967,7 @@
           lay.forEach(function(c,bi){ cols.push({key:c.key,label:c.label,base:isBase(c.key),ci:bi,isNew:false,hidden:!!c.hidden}); });
         }
         if(!cols.length){ showToast('가져올 필드가 없습니다','error'); return; }
-        var start = hasHeader?1:0;
-        var rows=[];
-        for(var i=start;i<aoa.length;i++){ var c=aoa[i]; if(!c) continue;
-          var empty=true; for(var k=0;k<c.length;k++){ if(String(c[k]==null?'':c[k]).trim()!==''){ empty=false; break; } } if(empty) continue;
-          var row={extra:{}};
-          cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } });
-          rows.push(row); }
+        var rows=__buildImportRows(aoa, cols, hasHeader, headerNm, header);
         if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
         pendingImport={cat:cat, cols:cols, rows:rows};
         openImportModal();
@@ -1878,7 +1992,8 @@
     $('pluImpHint').innerHTML='['+escapeHtml(pendingImport.cat)+'] 카테고리 · 엑셀 '+pendingImport.rows.length+'행 · 체크한 필드만 <b>PLU 기준</b>으로 기존 데이터에 업데이트됩니다.';
     $('pluImpList').innerHTML=cols.map(function(c,i){
       var pk=isPluKey(c.key);
-      var tag=(pk?' <em>기준</em>':(c.hidden?' <em class="imp-new">숨김</em>':''));
+      var isIc=(String(c.key).toUpperCase()==='ITEMCODE1');
+      var tag=(pk?' <em>기준</em>':(isIc?' <em class="imp-new">모든 코드</em>':(c.hidden?' <em class="imp-new">숨김</em>':'')));
       return '<label class="plu-imp-item'+(pk?' plu-imp-pk':'')+'"><input type="checkbox" class="plu-imp-col" data-i="'+i+'"'+(pk?' checked disabled':' checked')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>';
     }).join('');
     $('pluImpAll').onclick=function(){ $('pluImpList').querySelectorAll('.plu-imp-col:not(:disabled)').forEach(function(ch){ ch.checked=true; }); };
@@ -1901,7 +2016,7 @@
     var tareTouched = lbTouched || gTouched;
     var gFirst = (gTouched && !lbTouched);
     imp.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; if(!tgt){ nMiss++; return; } nMatch++;
-      chosen.forEach(function(col){ var v; if(col.base){ v=er[fieldOf(col.key)]; } else { v=(er.extra||{})[col.key]; } v=String(v==null?'':v);
+      chosen.forEach(function(col){ if(String(col.key).toUpperCase()==='ITEMCODE1'){ __applyItemCodes(tgt, er); return; } var v; if(col.base){ v=er[fieldOf(col.key)]; } else { v=(er.extra||{})[col.key]; } v=String(v==null?'':v);
         if(col.base){ tgt[fieldOf(col.key)]=v; } else { tgt.extra=tgt.extra||{}; tgt.extra[col.key]=v; } });
       if(tareTouched) normalizeTareRow(tgt, gFirst);
     });
@@ -1928,7 +2043,7 @@
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button><button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody>'+
           (rows.map(viewRowHTML).join('')||'<tr><td colspan="'+(visibleCols().length+1)+'" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
-      var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var EC=exportColsFor(); var aoa=[EC.map(function(c){return c.label;})]; rows.forEach(function(r){ aoa.push(EC.map(function(c){ return exportCell(r,c); })); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EC, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
+      var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var EC=exportColsFor(); var aoa=[EC.map(function(c){return c.label;})]; buildExportBody(rows, EC).forEach(function(line){ aoa.push(line); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EC, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'PLU_검색결과.xlsx'); };
       var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(rows); };
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };

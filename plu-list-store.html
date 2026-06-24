@@ -215,6 +215,12 @@
   #pluPhotoPop.noimg img { display: none; }
   #pluPhotoPop .nophoto { display: none; }
   #pluPhotoPop.noimg .nophoto { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--text-dim); font-size: 13px; text-align: center; padding: 0 12px; box-sizing: border-box; }
+  .plu-table td.plu-c-ic .plu-ic-cell { display: inline-flex; align-items: center; gap: 4px; cursor: help; }
+  .plu-ic-badge { display: inline-block; padding: 0 6px; height: 16px; line-height: 16px; border-radius: 9px; background: #1e40af; color: #fff; font-family: var(--mono); font-size: 10px; font-weight: 800; vertical-align: middle; }
+  #pluIcTip { position: fixed; z-index: 3000; display: none; min-width: 120px; max-width: 280px; background: #1f1d1a; color: #fff; border-radius: 10px; padding: 9px 11px; box-shadow: 0 12px 34px rgba(0,0,0,0.28); pointer-events: none; }
+  #pluIcTip .plu-ic-tip-h { font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .04em; color: #d9c79a; text-transform: uppercase; margin-bottom: 7px; }
+  #pluIcTip .plu-ic-tip-row { font-family: var(--mono); font-size: 12px; padding: 2px 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+  #pluIcTip .plu-ic-tip-n { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; border-radius: 5px; background: rgba(255,255,255,0.14); color: #cdd6e6; font-size: 9px; font-weight: 700; }
   .plu-table th.plu-col-check { font-size: 11px; }
   .plu-table td.plu-c-check { color: var(--text); font-weight: 400; vertical-align: middle; }
   .plu-table td.plu-c-check .pluchk { display: inline-block; line-height: 1; }
@@ -543,7 +549,17 @@
     });
     return out;
   }
-  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
+  function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; if(r&&Array.isArray(r.itemCodes)) o.itemCodes=r.itemCodes.slice(); return o; }
+  function isItemCodeCol(c){ return String((c&&c.key)||'').toUpperCase()==='ITEMCODE1'; }
+  function itemCodesOf(r){
+    if(!r) return [];
+    var src=Array.isArray(r.itemCodes)?r.itemCodes:[];
+    var out=[], seen={};
+    src.forEach(function(v){ v=String(v==null?'':v).trim(); if(v!=='' && !seen[v]){ seen[v]=1; out.push(v); } });
+    if(out.length) return out;
+    var one=String((r.itemCode1!=null?r.itemCode1:'')||'').trim();
+    return one?[one]:[];
+  }
 
   // ===== CSV (청과 fallback) =====
   let csvRows=null, csvPromise=null;
@@ -740,6 +756,7 @@
       }
       if(c.type==='check'||c.type==='rcheck'){ var onc=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"'+colorStyle(c)+'><span class="pluchk'+(onc?'':' off')+'">'+(onc?'☑':'☐')+'</span></td>'; }
       if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); }
+      if(isItemCodeCol(c)){ var codesD=itemCodesOf(r); if(codesD.length>1){ var repD=codesD[0]; var svD=repD.length>limit?(escapeHtml(repD.slice(0,limit))+'…'):escapeHtml(repD); var dataC=escapeHtml(codesD.join('\n')); return '<td class="'+clsFor(c.key)+acl+' plu-c-ic"'+colorStyle(c)+'><span class="plu-ic-cell" data-codes="'+dataC+'">'+svD+'<span class="plu-ic-badge">+'+(codesD.length-1)+'</span></span></td>'; } }
       var fv=String(getVal(r,c.key)||''); if(c.fmt==='price') fv=fmtPrice(fv); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv);
       return '<td class="'+clsFor(c.key)+acl+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
     }).join('');
@@ -769,6 +786,17 @@
     document.addEventListener('mouseout', function(e){ var b=e.target.closest?e.target.closest('.plu-photo-btn[data-plu]'):null; if(!b) return; var to=e.relatedTarget; if(!to || !to.closest || to.closest('.plu-photo-btn[data-plu]')!==b) hidePop(); });
     window.addEventListener('scroll', hidePop, true);
     window.showPluPhoto=function(){};
+  })();
+  // ITEM CODE 말풍선: .plu-ic-cell[data-codes] 위에 마우스를 올리면 모든 코드를 표시
+  (function(){
+    var tip=null;
+    function ensureTip(){ if(tip) return tip; tip=document.createElement('div'); tip.id='pluIcTip'; document.body.appendChild(tip); return tip; }
+    function position(p, el){ var r=el.getBoundingClientRect(); var pw=p.offsetWidth||160, ph=p.offsetHeight||60; var left=r.left; if(left+pw>window.innerWidth-8) left=window.innerWidth-pw-8; if(left<8) left=8; var top=r.bottom+8; if(top+ph>window.innerHeight-8){ top=r.top-ph-8; } if(top<8) top=8; p.style.left=left+'px'; p.style.top=top+'px'; }
+    function show(el){ var raw=el.getAttribute('data-codes')||''; var codes=raw.split('\n').filter(function(s){return s!=='';}); if(!codes.length) return; var p=ensureTip(); p.innerHTML='<div class="plu-ic-tip-h">ITEM CODE · '+codes.length+'</div>'+codes.map(function(c,i){ return '<div class="plu-ic-tip-row"><span class="plu-ic-tip-n">'+(i+1)+'</span>'+escapeHtml(c)+'</div>'; }).join(''); p.style.display='block'; position(p, el); }
+    function hide(){ if(tip) tip.style.display='none'; }
+    document.addEventListener('mouseover', function(e){ var el=e.target.closest?e.target.closest('.plu-ic-cell[data-codes]'):null; if(el) show(el); });
+    document.addEventListener('mouseout', function(e){ var el=e.target.closest?e.target.closest('.plu-ic-cell[data-codes]'):null; if(!el) return; var to=e.relatedTarget; if(!to || !to.closest || to.closest('.plu-ic-cell[data-codes]')!==el) hide(); });
+    window.addEventListener('scroll', hide, true);
   })();
   var __photoCache={}, __photoQueue=[], __photoActive=0, __PHOTO_MAX=3;
   function __photoPump(){
