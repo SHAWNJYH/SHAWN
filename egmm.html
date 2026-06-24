@@ -2252,43 +2252,77 @@
   .egmm-screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
   .egmm-screen.active { display: block; }
 
-  /* EGMM 메인 메뉴 (3개 버튼) */
-  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; align-items: center; justify-content: center; padding: 24px; overflow-y: auto; flex-direction: column; }
+  /* ===== EGMM 런처 홈 (정제 리디자인) ===== */
+  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; overflow-y: auto;
+    flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: clamp(28px, 6vh, 72px) 24px 52px;
+    background: radial-gradient(125% 85% at 50% -12%, #ffffff 0%, var(--bg) 44%, #f1efe6 100%); }
   #egmmMenu.active { display: flex; }
-  .egmm-cards { display: flex; gap: 18px; align-items: stretch; justify-content: center; width: 100%; max-width: 1200px; flex-wrap: wrap; }
-  .egmm-card {
-    flex: 1 1 0; min-width: 280px; max-width: 380px; background: var(--bg-elev);
-    border: 1px solid var(--border); border-radius: 16px;
-    padding: 32px 24px 24px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
-  }
-  .egmm-title {
-    font-family: var(--serif); font-weight: 700; font-size: 28px; line-height: 1.1;
-    text-align: center; color: var(--text); letter-spacing: 1px; margin-bottom: 20px;
-  }
-  .egmm-sub { text-align: center; font-size: 13px; color: var(--text-dim); margin-bottom: 28px; }
-  .egmm-menu-btn {
-    width: 100%; display: flex; align-items: center; gap: 14px;
-    background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
-    padding: 18px 18px; border-radius: 12px; font-family: var(--mono);
-    font-size: 17px; font-weight: 700; cursor: pointer; margin-bottom: 12px;
-    transition: border-color .15s, background .15s, transform .12s; text-align: left;
-  }
-  .egmm-menu-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
-  .egmm-menu-btn:active { transform: scale(0.985); }
-  .egmm-menu-ico {
-    width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px;
-    display: flex; align-items: center; justify-content: center; font-size: 20px;
-  }
-  .egmm-menu-arrow { margin-left: auto; color: var(--text-faint); font-size: 20px; font-weight: 700; }
-  .egmm-back-link {
-    display: block; width: 100%; margin-top: 8px; background: transparent; border: none;
-    color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600;
-    cursor: pointer; padding: 10px;
-  }
-  .egmm-back-link:hover { color: var(--text); }
 
-  .egmm-section-title { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--text-faint); text-transform: uppercase; margin: 2px 4px 12px; }
-  .egmm-section-title.gap { margin-top: 22px; }
+  /* 마스트헤드 */
+  .egmm-masthead { text-align: center; margin-bottom: clamp(26px, 4.5vh, 46px); max-width: 760px; }
+  .egmm-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 14px; }
+  .egmm-wordmark { font-family: var(--serif); font-weight: 800; font-size: clamp(44px, 8vw, 66px);
+    line-height: .9; letter-spacing: -.045em; color: var(--text);
+    display: inline-flex; align-items: flex-end; }
+  .egmm-wordmark .dot { color: var(--accent-warm); }
+  .egmm-substore { margin-top: 16px; font-size: 12px; font-weight: 700; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--text-dim); }
+  .egmm-rule { width: min(420px, 74%); height: 1px; margin: 22px auto 0;
+    background: linear-gradient(90deg, transparent, var(--accent-warm) 20%, var(--accent-warm) 80%, transparent);
+    opacity: .75; }
+
+  /* 도메인 패널 */
+  .egmm-cards { display: flex; gap: 18px; align-items: flex-start; justify-content: center;
+    width: 100%; max-width: 1140px; flex-wrap: wrap; }
+  .egmm-card { flex: 1 1 300px; min-width: 278px; max-width: 366px; background: var(--bg-elev);
+    border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
+    box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
+    opacity: 0; transform: translateY(14px); animation: egmmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
+  .egmm-card:nth-child(1) { animation-delay: .05s; }
+  .egmm-card:nth-child(2) { animation-delay: .13s; }
+  .egmm-card:nth-child(3) { animation-delay: .21s; }
+  @keyframes egmmRise { to { opacity: 1; transform: none; } }
+
+  .egmm-card-head { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border); }
+  .egmm-card-tick { width: 6px; height: 19px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
+  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 21px; letter-spacing: .03em; color: var(--text); }
+
+  .egmm-section-title { font-size: 11px; font-weight: 800; letter-spacing: .16em; color: var(--text-faint);
+    text-transform: uppercase; margin: 0 2px 10px; }
+  .egmm-section-title.gap { margin-top: 20px; }
+
+  .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 12px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 15px 16px; border-radius: 12px; font-family: var(--mono);
+    font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 9px; text-align: left;
+    overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
+  .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
+  .egmm-menu-btn:hover { border-color: var(--border-bright); background: #fff; box-shadow: 0 6px 18px rgba(26,26,29,.06); }
+  .egmm-menu-btn:hover::before { transform: scaleY(1); }
+  .egmm-menu-btn:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 2px; }
+  .egmm-menu-btn:active { transform: scale(.99); }
+  .egmm-menu-label { flex: 1 1 auto; min-width: 0; }
+  .egmm-menu-arrow { margin-left: auto; color: var(--text-faint); font-size: 17px; font-weight: 700;
+    transition: transform .18s ease, color .16s; }
+  .egmm-menu-btn:hover .egmm-menu-arrow { color: var(--accent-warm); transform: translateX(3px); }
+
+  .egmm-back-link { margin-top: 30px; background: transparent; border: none; color: var(--text-dim);
+    font-family: var(--mono); font-size: 12.5px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
+    padding: 10px 16px; border-radius: 8px; transition: color .15s, background .15s; }
+  .egmm-back-link:hover { color: var(--text); background: rgba(0,0,0,.035); }
+
+  @media (max-width: 760px) {
+    .egmm-cards { gap: 14px; }
+    .egmm-card { max-width: 520px; flex-basis: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .egmm-card { animation: none; opacity: 1; transform: none; }
+    .egmm-menu-btn, .egmm-menu-arrow, .egmm-menu-btn::before { transition: none; }
+  }
 
   /* PLU / ITEM CODE 화면 공통 레이아웃 */
   .egmm-sub-screen { max-width: 1100px; margin: 0 auto; padding: 22px 20px 40px; }
@@ -2409,70 +2443,51 @@
 
 <!-- EGMM 메인 메뉴 -->
 <div id="egmmMenu">
+ <div class="egmm-masthead">
+   <div class="egmm-eyebrow">운영 콘솔 · Operations</div>
+   <div class="egmm-wordmark">EGMM<span class="dot">.</span></div>
+   <div class="egmm-rule"></div>
+ </div>
  <div class="egmm-cards">
   <!-- 박스 1: EGMM -->
   <div class="egmm-card">
-    <h1 class="egmm-title">EGMM</h1>
+    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">EGMM</span></div>
 
     <div class="egmm-section-title">ITEM LIST</div>
-    <button class="egmm-menu-btn" id="egmmPluListBtn">
-      <span>PLU LIST</span><span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmUpcListBtn">
-      <span>UPC LIST / ITEM CODE</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmPluListBtn"><span class="egmm-menu-label">PLU LIST</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmUpcListBtn"><span class="egmm-menu-label">UPC LIST / ITEM CODE</span><span class="egmm-menu-arrow">→</span></button>
 
     <div class="egmm-section-title gap">MEMORIZE</div>
-    <button class="egmm-menu-btn" id="egmmPluMemorizeBtn">
-      <span>PLU MEMORIZE</span><span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn">
-      <span>DELI MEMORIZE</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmPluMemorizeBtn"><span class="egmm-menu-label">PLU MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn"><span class="egmm-menu-label">DELI MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
 
     <div class="egmm-section-title gap">SCHEDULE</div>
-    <button class="egmm-menu-btn" id="egmmCalendarBtn">
-      <span>CALENDER</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label">CALENDAR</span><span class="egmm-menu-arrow">→</span></button>
 
     <div class="egmm-section-title gap">MANAGER</div>
-    <button class="egmm-menu-btn" id="egmmStoreManagerBtn">
-      <span>STORE MANAGER</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmStoreManagerBtn"><span class="egmm-menu-label">STORE MANAGER</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
   <!-- 박스 2: ODP -->
   <div class="egmm-card">
-    <h1 class="egmm-title">ODP</h1>
+    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ODP</span></div>
 
     <div class="egmm-section-title">CONVERT</div>
-    <button class="egmm-menu-btn" id="egmmOcrBtn">
-      <span>OCR</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmOcrBtn"><span class="egmm-menu-label">OCR</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
   <!-- 박스 3: GUIDE -->
   <div class="egmm-card">
-    <h1 class="egmm-title">GUIDE</h1>
+    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">GUIDE</span></div>
 
     <div class="egmm-section-title">TAX</div>
-    <button class="egmm-menu-btn" id="egmmTaxBtn">
-      <span>TAX</span><span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmEbtBtn">
-      <span>EBT</span><span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmHardLiquorBtn">
-      <span>HARD LIQUOR</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmTaxBtn"><span class="egmm-menu-label">TAX</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmEbtBtn"><span class="egmm-menu-label">EBT</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmHardLiquorBtn"><span class="egmm-menu-label">HARD LIQUOR</span><span class="egmm-menu-arrow">→</span></button>
 
     <div class="egmm-section-title gap">GUIDE</div>
-    <button class="egmm-menu-btn" id="egmmProductNameMakerBtn">
-      <span>PRODUCT NAME MAKER</span><span class="egmm-menu-arrow">›</span>
-    </button>
-    <button class="egmm-menu-btn" id="egmmDeliMgmtBtn">
-      <span>DELI MANAGEMENT</span><span class="egmm-menu-arrow">›</span>
-    </button>
+    <button class="egmm-menu-btn" id="egmmProductNameMakerBtn"><span class="egmm-menu-label">PRODUCT NAME MAKER</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmDeliMgmtBtn"><span class="egmm-menu-label">DELI MANAGEMENT</span><span class="egmm-menu-arrow">→</span></button>
   </div>
  </div>
  <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
