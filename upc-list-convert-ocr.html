@@ -6,6 +6,8 @@
 <title>UPC LIST CONVERT</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- PDF.js: 텍스트 기반(디지털) PDF에서 AI 없이 직접 표 추출 -->
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <style>
   :root{
     --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f3f3ee; --border:#e5e5e0; --border-bright:#c8c8c0;
@@ -132,6 +134,7 @@
         <button class="plu-tool-btn" id="wordBtn">🧹 특정단어 제거</button>
         <button class="plu-tool-btn" id="word2Btn">✦ 후처리</button>
         <button class="plu-tool-btn" id="uploadBtn">📥 엑셀 업로드</button>
+        <button class="plu-tool-btn" id="pdfBtn">📄 PDF 불러오기</button>
         <button class="plu-tool-btn" id="imgBtn">📷 이미지 인식(AI)</button>
         <button class="plu-tool-btn icon" id="keyBtn" title="Anthropic API 키 설정">🔑</button>
         <button class="plu-tool-btn primary" id="exportBtn">⬆ 엑셀 내보내기</button>
@@ -144,6 +147,7 @@
     </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
     <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
+    <input type="file" id="pdfInput" accept="application/pdf,.pdf" multiple style="display:none">
   </div>
   <div class="egmm-screen">
     <div class="egmm-sub-screen">
@@ -531,6 +535,64 @@ async function recognizeImages(files){
   else toast('인식 실패 — 네트워크/키/사용량을 확인하세요','error');
 }
 
+/* ===== PDF (텍스트 기반) → 표 격자 복원 → parseSheet (AI 미사용) ===== */
+function __clusterX(xsIn, tol){ var xs=xsIn.slice().sort(function(a,b){return a-b;}); var a=[]; xs.forEach(function(x){ if(!a.length||x-a[a.length-1].max>tol){ a.push({min:x,max:x}); } else a[a.length-1].max=x; }); return a.map(function(b){return b.min;}); }
+// PDF 텍스트 아이템(페이지별 [{str,x,y}]) → 2차원 격자(aoa)
+function itemsToAoa(pages, opt){
+  opt=opt||{}; var yTol=opt.yTol||4, hdrTol=opt.hdrTol||30, fbTol=opt.fallbackTol||40;
+  var pageRows=pages.map(function(page){
+    var its=page.filter(function(it){return String(it.str).trim()!=='';}).slice().sort(function(a,b){return b.y-a.y;});
+    var rows=[],cur=null,cy=null;
+    its.forEach(function(it){ if(cur===null||Math.abs(it.y-cy)>yTol){cur=[];rows.push(cur);cy=it.y;} cur.push(it); });
+    rows.forEach(function(r){ r.sort(function(a,b){return a.x-b.x;}); });
+    return rows;
+  });
+  // 헤더 행(ITEM CODE + DESCRIP)을 찾아 열 앵커로 사용
+  var headerRow=null;
+  for(var p=0;p<pageRows.length&&!headerRow;p++){ for(var i=0;i<pageRows[p].length;i++){ var jt=norm(pageRows[p][i].map(function(it){return it.str;}).join(' ')); if(jt.indexOf('ITEM CODE')>=0 && jt.indexOf('DESCRIP')>=0){ headerRow=pageRows[p][i]; break; } } }
+  var anchors;
+  if(headerRow){ anchors=__clusterX(headerRow.map(function(it){return it.x;}), hdrTol); }
+  else { var allx=[]; pages.forEach(function(pg){pg.forEach(function(it){if(String(it.str).trim()!=='')allx.push(it.x);});}); anchors=__clusterX(allx, fbTol); }
+  if(!anchors.length) return [];
+  function nearestCol(x){ var b=0,bd=Infinity; for(var i=0;i<anchors.length;i++){ var d=Math.abs(x-anchors[i]); if(d<bd){bd=d;b=i;} } return b; }
+  var aoa=[];
+  pageRows.forEach(function(rows){ rows.forEach(function(ri){ var cells=[]; ri.forEach(function(it){ var c=nearestCol(it.x); cells[c]=(cells[c]?cells[c]+' ':'')+String(it.str).trim(); }); for(var i=0;i<anchors.length;i++) if(cells[i]==null) cells[i]=''; aoa.push(cells); }); });
+  return aoa;
+}
+async function __pdfToData(arrayBuffer){
+  if(pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc){ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; }
+  var pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
+  var pages=[], textCount=0;
+  for(var p=1;p<=pdf.numPages;p++){
+    var page=await pdf.getPage(p);
+    var tc=await page.getTextContent();
+    var items=tc.items.map(function(it){ var t=it.transform||[0,0,0,0,0,0]; return { str:String(it.str||''), x:t[4], y:t[5] }; }).filter(function(it){ return it.str.trim()!==''; });
+    textCount+=items.length; pages.push(items);
+  }
+  var aoa=itemsToAoa(pages);
+  return { recs: parseSheet(aoa), textCount: textCount };
+}
+async function handlePdf(files){
+  var arr=Array.prototype.slice.call(files||[]).filter(function(f){ return /\.pdf$/i.test(f.name)||f.type==='application/pdf'; });
+  if(!arr.length){ toast('PDF 파일을 올려주세요','error'); return; }
+  if(typeof pdfjsLib==='undefined'){ toast('PDF 모듈 로딩 중입니다 — 잠시 후 다시 시도하세요','error'); return; }
+  var grand=0, noText=0, noTable=0, fail=0;
+  for(var i=0;i<arr.length;i++){
+    try{
+      var buf=await arr[i].arrayBuffer();
+      var out=await __pdfToData(buf);
+      if(out.textCount===0){ noText++; continue; }       // 스캔본(텍스트 없음)
+      if(!out.recs.length){ noTable++; continue; }         // 표 헤더 못 찾음
+      out.recs.forEach(function(x){ ROWS.push(recToRow(x)); grand++; });
+    }catch(e){ fail++; }
+  }
+  renderTabs(); renderTable();
+  if(grand){ toast('PDF에서 '+grand+'건 변환 완료'+(noText?(' · 스캔본 '+noText+'개 건너뜀'):'')+(noTable?(' · 표 미인식 '+noTable+'개'):'')+(fail?(' · 실패 '+fail):''),'success'); saveVendor(true); }
+  else if(noText){ toast('텍스트가 없는 스캔 PDF로 보입니다 — 📷 이미지 인식(AI)을 사용하세요','error'); }
+  else if(noTable){ toast('PDF에서 표(ITEM CODE / DESCRIPTION)를 찾지 못했습니다','error'); }
+  else toast('PDF 처리 실패 — 파일을 확인하세요','error');
+}
+
 /* ===== 업로드 ===== */
 function handleFiles(files){
   var arr=Array.prototype.slice.call(files||[]).filter(function(f){ return /\.xlsx?$/i.test(f.name); });
@@ -566,6 +628,8 @@ function applyWordsToAll(){ ROWS.forEach(function(r){ r.kor=stripWords(r.kor); r
 /* ===== 이벤트 ===== */
 $('uploadBtn').onclick=function(){ $('fileInput').click(); };
 $('fileInput').onchange=function(e){ handleFiles(e.target.files); e.target.value=''; };
+$('pdfBtn')&&($('pdfBtn').onclick=function(){ $('pdfInput').click(); });
+$('pdfInput')&&($('pdfInput').onchange=function(e){ handlePdf(e.target.files); e.target.value=''; });
 $('imgBtn').onclick=function(){ $('imgInput').click(); };
 $('keyBtn').onclick=function(){ var cur=getApiKey(); var k=window.prompt('Anthropic API 키 (sk-ant-...).\n비우고 확인하면 저장된 키가 삭제됩니다.', cur); if(k!==null){ setApiKey(k.trim()); toast(k.trim()?'API 키 저장됨':'API 키 삭제됨','success'); } };
 $('imgInput').onchange=function(e){ recognizeImages(e.target.files); e.target.value=''; };
@@ -586,7 +650,7 @@ $('ocrBackBtn')&&($('ocrBackBtn').onclick=async function(){ await ocrFlush(); if
 var drop=$('drop');
 ['dragenter','dragover'].forEach(function(ev){ document.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('over'); }); });
 document.addEventListener('dragleave',function(e){ if(e.target===drop) drop.classList.remove('over'); });
-document.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); var fs=(e.dataTransfer&&e.dataTransfer.files)?Array.prototype.slice.call(e.dataTransfer.files):[]; if(!fs.length) return; var imgs=fs.filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); }); var xls=fs.filter(function(f){ return /\.xlsx?$/i.test(f.name); }); if(imgs.length) recognizeImages(imgs); if(xls.length) handleFiles(xls); });
+document.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); var fs=(e.dataTransfer&&e.dataTransfer.files)?Array.prototype.slice.call(e.dataTransfer.files):[]; if(!fs.length) return; var imgs=fs.filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); }); var xls=fs.filter(function(f){ return /\.xlsx?$/i.test(f.name); }); var pdfs=fs.filter(function(f){ return /\.pdf$/i.test(f.name)||f.type==='application/pdf'; }); if(imgs.length) recognizeImages(imgs); if(xls.length) handleFiles(xls); if(pdfs.length) handlePdf(pdfs); });
 
 renderTabs(); renderTable();
 whenFb(function(){ loadVendor(VENDOR); });   // Firebase 준비되면 현재 벤더(STI) 데이터 불러오기
