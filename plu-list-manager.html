@@ -83,6 +83,9 @@
   }
   .page-back:hover { background: #a02525; border-color: #a02525; color: #fff; }
   .page-back:active { transform: scale(0.98); }
+  /* 이동 버튼(매니저/OCR 상호이동): 돌아가기와 동일 크기, 짙은 파란색 */
+  .page-back.goblue { background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+  .page-back.goblue:hover { background:#1e40af; border-color:#1e40af; color:#fff; }
 
   /* PLU 보기 탭 */
   .plu-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -520,8 +523,8 @@
       <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·PLU 검색" autocomplete="off">
     </div>
   </div>
-  <button class="page-back topbar-mini mainact" id="pluGoOcr">🔄 UPC OCR</button>
-  <button class="page-back topbar-mini mainact" id="pluGoOther">🏷️ UPC 매니저</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOcr">🔄 UPC OCR</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOther">🏷️ UPC 매니저</button>
   <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
   <!-- 관리자 모드/툴바 공용 파일 입력기: 항상 DOM에 존재해야 편집/보기 모드 관계없이 동작 (UPC 매니저 방식) -->
   <input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none">

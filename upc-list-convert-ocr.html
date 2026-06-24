@@ -49,6 +49,13 @@
   .plu-tool-btn.primary:hover{ filter:brightness(1.18); border-color:var(--accent); color:#fff; }
   .plu-tool-btn.warm{ background:var(--accent-warm); border-color:var(--accent-warm); color:#fff; }
   .plu-tool-btn.warm:hover{ filter:brightness(1.06); color:#fff; }
+  /* 상호이동/돌아가기 버튼 — 매니저의 돌아가기와 동일 규격(160px) */
+  #ocrNav .nav-btn{ display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:160px; box-sizing:border-box; padding:8px 12px; font-family:var(--mono); font-size:13px; font-weight:700; border-radius:8px; border:1px solid; cursor:pointer; transition:background .12s,border-color .12s,color .12s,transform .12s; }
+  #ocrNav .nav-btn:active{ transform:scale(0.98); }
+  #ocrNav .nav-btn.blue{ background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+  #ocrNav .nav-btn.blue:hover{ background:#1e40af; border-color:#1e40af; }
+  #ocrNav .nav-btn.red{ background:#8b1e1e; border-color:#8b1e1e; color:#fff; }
+  #ocrNav .nav-btn.red:hover{ background:#a02525; border-color:#a02525; }
 
   /* 카테고리(서브탭) — 매니저 .plu-subbar / .plu-subtab 동일 */
   .plu-subbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
@@ -131,9 +138,9 @@
       </div>
     </div>
     <div class="plu-tools" id="ocrNav">
-      <button class="plu-tool-btn" id="ocrGoPlu">🗂️ PLU 매니저</button>
-      <button class="plu-tool-btn" id="ocrGoUpc">🏷️ UPC 매니저</button>
-      <button class="plu-tool-btn" id="ocrBackBtn">← 돌아가기</button>
+      <button class="nav-btn blue" id="ocrGoPlu">🗂️ PLU 매니저</button>
+      <button class="nav-btn blue" id="ocrGoUpc">🏷️ UPC 매니저</button>
+      <button class="nav-btn red" id="ocrBackBtn">← 돌아가기</button>
     </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
     <input type="file" id="imgInput" accept="image/*" multiple style="display:none">

@@ -124,6 +124,9 @@
   }
   .page-back:hover { background: #a02525; border-color: #a02525; color: #fff; }
   .page-back:active { transform: scale(0.98); }
+  /* 이동 버튼(매니저/OCR 상호이동): 돌아가기와 동일 크기, 짙은 파란색 */
+  .page-back.goblue { background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+  .page-back.goblue:hover { background:#1e40af; border-color:#1e40af; color:#fff; }
 
   /* PLU 보기 탭 */
   .plu-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
@@ -700,8 +703,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   </div>
   <input type="file" id="upcRestoreFile" accept="application/json,.json" style="display:none;">
   <input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none;">
-  <button class="page-back topbar-mini mainact" id="pluGoOther">🗂️ PLU 매니저</button>
-  <button class="page-back topbar-mini mainact" id="pluGoOcr">🔄 UPC OCR</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOther">🗂️ PLU 매니저</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOcr">🔄 UPC OCR</button>
   <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
 </div>
 <div class="egmm-screen">
