@@ -1587,7 +1587,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 검색박스·돌아가기 버튼 위치: 편집모드면 검색→데이터복원 옆, 돌아가기→저장 옆. 아니면 상단 원위치
   function placeFloatingControls(){
     var se=$('pluSearchTop'), bk=$('pluBackBtn');
-    if(bk) bk.disabled=!editMode;   // 메인(뷰)에서는 돌아가기 비활성화, 편집모드에서만 활성
+    if(bk) bk.disabled=false;   // 돌아가기: 뷰모드=이전 화면 이동 / 편집모드=편집 종료 (항상 활성)
     if(editMode){
       var ss=$('editSearchSlot'), bs=$('editBackSlot');
       if(ss && se && se.parentNode!==ss) ss.appendChild(se);
@@ -3243,7 +3243,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function ensureNiScreen(){
     if($('niScreen')) return;
     var d=document.createElement('div'); d.id='niScreen'; d.className='ni-screen';
-    d.innerHTML='<div class="ni-top">'+
+    d.innerHTML='<div class="ni-card">'+
+      '<div class="ni-top">'+
         '<div class="ni-ttl">🆕 NEW ITEM <small>(<span id="niCount">0</span>개 · UPC OCR)</small></div>'+
         '<div class="ni-tools">'+
           '<button class="plu-tool-btn" id="niConvBtn" type="button">🔧 데이터 변환</button>'+
@@ -3251,8 +3252,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<button class="plu-tool-btn" id="niCloseBtn" type="button">✕ 닫기</button>'+
         '</div>'+
       '</div>'+
-      '<div class="ni-body" id="niBody"></div>';
+      '<div class="ni-body" id="niBody"></div>'+
+      '</div>';
     document.body.appendChild(d);
+    d.addEventListener('click', function(e){ if(e.target===d) closeNiScreen(); });
     $('niCloseBtn').onclick=closeNiScreen;
     $('niConvBtn').onclick=openNiConvModal;
     $('niMoveBtn').onclick=openNiMoveModal;
@@ -3718,13 +3721,14 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   /* NEW ITEM (UPC OCR) */
   @keyframes niblink { 0%,100%{ box-shadow:0 0 0 0 rgba(200,58,58,0); } 50%{ box-shadow:0 0 0 5px rgba(200,58,58,0.35); } }
   .ni-btn.ni-blink { background:#c83a3a !important; border-color:#c83a3a !important; color:#fff !important; animation:niblink 1s ease-in-out infinite; }
-  .ni-screen { position:fixed; inset:0; z-index:1500; background:var(--bg); display:none; flex-direction:column; padding:18px 22px 20px; overflow:hidden; }
+  .ni-screen { position:fixed; inset:0; z-index:1500; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; padding:20px; }
   .ni-screen.show { display:flex; }
-  .ni-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
-  .ni-ttl { font-family:var(--serif); font-size:22px; font-weight:800; color:var(--text); }
-  .ni-ttl small { font-size:14px; font-weight:700; color:var(--text-dim); }
+  .ni-card { background:var(--bg-elev); border-radius:18px; width:96vw; max-width:1400px; height:92vh; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 18px 60px rgba(0,0,0,0.32); }
+  .ni-top { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 22px; flex-wrap:wrap; background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; flex:0 0 auto; }
+  .ni-ttl { font-family:var(--serif); font-size:22px; font-weight:800; color:#fff; }
+  .ni-ttl small { font-size:14px; font-weight:700; color:rgba(255,255,255,0.7); }
   .ni-tools { display:flex; gap:8px; flex-wrap:wrap; }
-  .ni-body { flex:1 1 auto; min-height:0; overflow:auto; }
+  .ni-body { flex:1 1 auto; min-height:0; overflow:auto; padding:18px 22px 20px; background:#fbfaf7; }
   .ni-body .plu-table-wrap { max-height:none; }
   .ni-ov { position:fixed; inset:0; z-index:1600; background:rgba(20,20,24,0.5); display:none; align-items:center; justify-content:center; padding:20px; }
   .ni-ov.show { display:flex; }
