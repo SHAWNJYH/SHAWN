@@ -2149,6 +2149,58 @@
   }
   .ev-pill, .shift-pill { cursor: pointer; }
 
+  .ev-tooltip .ett-close {
+    position: absolute; top: 8px; right: 8px;
+    width: 22px; height: 22px; line-height: 1;
+    border: none; background: transparent;
+    color: var(--text-faint); font-size: 19px; font-weight: 700;
+    cursor: pointer; border-radius: 6px; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .ev-tooltip .ett-close:hover { color: var(--danger); background: var(--bg-elev-2); }
+  .ev-tooltip { padding-right: 30px; }
+
+  /* === 메모 전용 팝업 (자세히) === */
+  .memo-pop-bg {
+    position: fixed; inset: 0;
+    background: rgba(26, 26, 29, 0.35);
+    backdrop-filter: blur(6px);
+    z-index: 340;
+    display: none; align-items: center; justify-content: center;
+    padding: 24px; animation: fadeIn 0.18s;
+  }
+  .memo-pop-bg.show { display: flex; }
+  .memo-pop {
+    position: relative;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-bright);
+    border-radius: 16px;
+    width: 100%; max-width: 440px;
+    max-height: 80vh; overflow-y: auto;
+    padding: 34px 26px 26px;
+    box-shadow: 0 30px 80px rgba(26,26,29,0.18);
+    animation: cardIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .memo-pop-close {
+    position: absolute; top: 14px; right: 14px;
+    background: var(--bg); border: 1.5px solid var(--border);
+    color: var(--text-dim); width: 32px; height: 32px;
+    cursor: pointer; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .memo-pop-close:hover { color: var(--danger); border-color: var(--danger); background: #fff0f0; }
+  .memo-pop-body {
+    font-family: var(--mono);
+    font-size: 15px; font-weight: 500; line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .memo-pop-body.empty {
+    color: var(--text-faint); font-weight: 600; text-align: center; padding: 16px 0;
+  }
+
   .lunar-picker {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -3274,6 +3326,18 @@
 <!-- 일정 메모 팝업 -->
 <div class="ev-tooltip" id="evTooltip"></div>
 
+<!-- 메모 전용 팝업 (자세히) -->
+<div class="memo-pop-bg" id="memoPopBg">
+  <div class="memo-pop">
+    <button class="memo-pop-close" id="memoPopClose" aria-label="닫기">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <div class="memo-pop-body" id="memoPopBody"></div>
+  </div>
+</div>
+
 <!-- Confirm Modal -->
 <div class="modal-bg" id="modal">
   <div class="modal">
@@ -4190,7 +4254,6 @@
   function positionTooltip(pill) {
     const r = pill.getBoundingClientRect();
     evTooltip.style.visibility = 'hidden';
-    evTooltip.style.display = 'block';
     const tw = evTooltip.offsetWidth, th = evTooltip.offsetHeight;
     let left = r.left + r.width / 2 - tw / 2;
     let top = r.bottom + 8;
@@ -4212,14 +4275,18 @@
     const notesHtml = ev.notes
       ? `<div class="ett-notes">${escapeHtml(ev.notes)}</div>`
       : `<div class="ett-empty">메모 없음</div>`;
+    const detailBtn = ev.notes
+      ? `<button type="button" class="ett-open" data-id="${id}">자세히</button>`
+      : '';
     evTooltip.innerHTML = `
+      <button type="button" class="ett-close" aria-label="닫기">&times;</button>
       <div class="ett-head">
         <span class="ev-cat-tag cat-${cat}">${catLabel}</span>
         <span class="ett-title">${escapeHtml(ev.title)}</span>
       </div>
       <div class="ett-time">${tipTimeLabel(ev)}</div>
       ${notesHtml}
-      <button type="button" class="ett-open" data-date="${ev.date}">이 날 일정 열기 →</button>
+      ${detailBtn}
     `;
     evTooltip.classList.add('show');
     currentTipId = id;
@@ -4241,6 +4308,26 @@
   function scheduleHide() { clearTimeout(tipHideTimer); tipHideTimer = setTimeout(hideEvTooltip, 150); }
   function cancelHide() { clearTimeout(tipHideTimer); }
 
+  // 메모 전용 팝업
+  const memoPopBg = $('memoPopBg');
+  function openMemoPopup(ev) {
+    const body = $('memoPopBody');
+    if (ev && ev.notes) {
+      body.textContent = ev.notes;
+      body.classList.remove('empty');
+    } else {
+      body.textContent = '메모 없음';
+      body.classList.add('empty');
+    }
+    memoPopBg.classList.add('show');
+  }
+  function closeMemoPopup() { memoPopBg.classList.remove('show'); }
+  $('memoPopClose').onclick = closeMemoPopup;
+  memoPopBg.addEventListener('click', e => { if (e.target === memoPopBg) closeMemoPopup(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && memoPopBg.classList.contains('show')) closeMemoPopup();
+  });
+
   // 호버로 표시
   calendarEl.addEventListener('mouseover', e => {
     const pill = e.target.closest('.ev-pill, .shift-pill');
@@ -4258,13 +4345,14 @@
   evTooltip.addEventListener('mouseover', cancelHide);
   evTooltip.addEventListener('mouseleave', scheduleHide);
 
-  // 툴팁 내부 "일정 열기" 버튼
+  // 툴팁 내부 버튼 처리
   evTooltip.addEventListener('click', e => {
+    if (e.target.closest('.ett-close')) { forceHideTooltip(); return; }
     const openBtn = e.target.closest('.ett-open');
     if (!openBtn) return;
-    const date = openBtn.dataset.date;
+    const ev = state.events.find(x => x.id === openBtn.dataset.id);
     forceHideTooltip();
-    if (date) openDayPanel(date);
+    openMemoPopup(ev);
   });
 
   // 바깥 클릭 시 고정 팝업 닫기
@@ -4281,6 +4369,11 @@
     if (pill && calendarEl.contains(pill)) {
       e.stopPropagation();
       cancelHide();
+      // 같은 일정 다시 클릭 → 팝업 닫기 (토글)
+      if (tooltipPinned && pill.dataset.id === currentTipId) {
+        forceHideTooltip();
+        return;
+      }
       tooltipPinned = false;
       showEvTooltip(pill);
       tooltipPinned = true;
