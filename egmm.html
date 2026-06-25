@@ -2436,6 +2436,72 @@
   @media (max-width: 420px) {
     .odp-wgrid { grid-template-columns: 1fr; }
   }
+
+  /* === HANA INSERT GUIDE === */
+  .hana-note {
+    font-size: 13px; color: var(--text-dim); line-height: 1.5;
+    background: var(--accent-soft); border: 1.5px solid #e8dcbb;
+    border-radius: 10px; padding: 11px 14px; margin-bottom: 16px;
+  }
+  .hana-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .hana-field {
+    position: relative; background: var(--bg-elev); border: 1.5px solid var(--border);
+    border-radius: 11px; padding: 11px 13px 12px; cursor: default;
+    transition: border-color .14s, box-shadow .14s, transform .1s;
+  }
+  .hana-field:hover {
+    border-color: var(--accent-warm);
+    box-shadow: 0 6px 20px rgba(201,169,97,0.16);
+    transform: translateY(-1px);
+  }
+  .hana-field-num {
+    position: absolute; top: 9px; right: 11px;
+    font-family: var(--mono); font-size: 10px; font-weight: 800; color: var(--text-faint);
+  }
+  .hana-field-label {
+    font-family: var(--serif); font-size: 14px; font-weight: 800; color: var(--text);
+    letter-spacing: .01em; line-height: 1.2; padding-right: 22px;
+  }
+  .hana-field-key {
+    font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 3px;
+  }
+  .hana-field-hint {
+    margin-top: 8px; font-size: 12px; color: var(--text-dim); line-height: 1.4;
+    border-top: 1px dashed var(--border); padding-top: 7px;
+  }
+  .hana-field.pending { background: var(--bg-elev-2); border-style: dashed; }
+  .hana-field.pending .hana-field-label { color: var(--text-dim); }
+  .hana-field.pending:hover { border-color: var(--border-bright); box-shadow: none; }
+
+  /* 호버 툴팁 (suite의 IC 툴팁과 동일 스킨) */
+  .hana-tip {
+    position: fixed; z-index: 4000; display: none;
+    min-width: 150px; max-width: 320px;
+    background: #1f1d1a; color: #fff; border-radius: 11px;
+    padding: 11px 13px; box-shadow: 0 14px 38px rgba(0,0,0,0.30);
+    pointer-events: none;
+  }
+  .hana-tip-h {
+    font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .05em;
+    color: #d9c79a; text-transform: uppercase; margin-bottom: 8px;
+    border-bottom: 1px solid rgba(217,199,154,0.25); padding-bottom: 6px;
+  }
+  .hana-tip-note { font-family: var(--mono); font-size: 13px; line-height: 1.5; color: #efeae0; }
+  .hana-tip-row {
+    font-family: var(--mono); font-size: 12px; line-height: 1.5;
+    display: flex; gap: 10px; padding: 2px 0; white-space: nowrap;
+  }
+  .hana-tip-v {
+    flex: 0 0 auto; min-width: 26px; text-align: center;
+    background: rgba(255,255,255,0.12); color: #d9c79a; font-weight: 800;
+    border-radius: 5px; padding: 0 6px;
+  }
+  .hana-tip-d { color: #efeae0; overflow: hidden; text-overflow: ellipsis; }
+  .hana-tip-d.empty { color: #8a857c; font-style: italic; }
+  .hana-tip-pending { font-family: var(--mono); font-size: 12px; color: #c7b98f; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -2474,6 +2540,9 @@
 
     <div class="egmm-section-title">CONVERT</div>
     <button class="egmm-menu-btn" id="egmmOcrBtn"><span class="egmm-menu-label">OCR</span><span class="egmm-menu-arrow">→</span></button>
+
+    <div class="egmm-section-title gap">INSERT GUIDE</div>
+    <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label">HANA</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
   <!-- 박스 3: GUIDE -->
@@ -2518,6 +2587,19 @@
     <div class="guide-body" id="guideBody"></div>
   </div>
 </div>
+
+<!-- HANA INSERT GUIDE 화면 -->
+<div class="egmm-screen" id="hanaScreen">
+  <div class="egmm-sub-screen">
+    <div class="egmm-sub-top">
+      <h1>🗂️ HANA INSERT GUIDE</h1>
+      <button class="egmm-sub-back" id="hanaBackBtn">← EGMM</button>
+    </div>
+    <div class="hana-note">필드에 마우스를 올리면 값·설명이 표시됩니다. 가이드 전용 화면이며, 추후 UPC 관리 메뉴와 연결해 이 양식으로 EXPORT할 예정입니다.</div>
+    <div class="hana-grid" id="hanaGrid"></div>
+  </div>
+</div>
+<div class="hana-tip" id="hanaTip"></div>
 
 <div id="odpDash">
   <div class="odp-top">
@@ -2636,11 +2718,135 @@
     $('odpDash').classList.remove('active');
     $('itemCodeScreen').classList.remove('active');
     $('guideScreen').classList.remove('active');
+    $('hanaScreen').classList.remove('active');
   }
   function showMenu(){ hideAll(); $('egmmMenu').classList.add('active'); window.scrollTo(0,0); }
   function showOdp(){ hideAll(); $('odpDash').classList.add('active'); odp.init(); window.scrollTo(0,0); }
   function showItemCode(){ hideAll(); $('itemCodeScreen').classList.add('active'); window.scrollTo(0,0); }
   function showGuide(){ hideAll(); $('guideScreen').classList.add('active'); renderGuide(); window.scrollTo(0,0); }
+  function showHana(){ hideAll(); $('hanaScreen').classList.add('active'); renderHana(); window.scrollTo(0,0); }
+
+  // ----- HANA INSERT GUIDE -----
+  // 필드 순서·이름은 HANA-BULK.xlsx 열과 동일. rows=[값,설명] / note=자유설명 / pending=정의 예정
+  const HANA_FIELDS = [
+    { key:'item_code', label:'ITEM CODE', note:'VENDER(벤더) 상품코드' },
+    { key:'item_type', label:'ITEM TYPE', rows:[
+      ['0','Normal Item'],['1','Deposit'],['2','Refund'],['3','Deposit Return'],
+      ['4','Misc Sale/Payin'],['5','Misc Payout'],['6','MFR Coupon'],['7','Coupon'],
+      ['9','Delete'],['10','Weight Item'] ] },
+    { key:'regular_price', label:'REGULAR PRICE', pending:true },
+    { key:'regular_qty', label:'REGULAR QTY', pending:true },
+    { key:'aisle_no', label:'AISLE NO', pending:true },
+    { key:'tare_code_value', label:'TARE CODE VALUE', pending:true },
+    { key:'primary_vendor_code', label:'PRIMARY VENDOR CODE', pending:true },
+    { key:'department_id', label:'DEPARTMENT ID', rows:[
+      ['1','Meat'],['2','Produce'],['3','Asian Grocery'],['4','Seafood'],['5','RTC'],
+      ['6','Western Grocery'],['61','Liquor'],['7','Houseware'],['8','Others'] ] },
+    { key:'size', label:'SIZE', pending:true },
+    { key:'unit_code', label:'UNIT CODE', rows:[
+      ['BG','Bag'],['BU','Bunch'],['BX','Box'],['CS','Case'],['CT','Count'],['DZ','Dozen'],
+      ['EA','Each'],['FL','Fluid Ounce'],['FT','Feet'],['GL','Gallon'],['GR','Gram'],
+      ['HG','Half Gallon'],['KG','Kilogram'],['LB','Pound'],['LT','Liter'],['ML','Milliliter'],
+      ['OZ','Ounce'],['PA','Pair'],['PK','Pack'],['PT','Pint'],['QT','Quart'],['RL','Roll'],
+      ['SF','Square Feet'],['SH','Sheet'],['ST','Set'],['TR','Tray'] ] },
+    { key:'pack', label:'PACK', pending:true },
+    { key:'pos_description', label:'POS DESC.', note:'최대 18자' },
+    { key:'eng_description', label:'ENG DESC.', note:'최대 50자 · 특수문자 사용금지' },
+    { key:'language_type', label:'LANGUAGE TYPE', rows:[
+      ['1','POS Description'],['2','English'],['3','Korean'],['4','Chinese'],['5','Espanol'],
+      ['6','Japanese'],['7','Vietnamese'],['8','Russian'] ] },
+    { key:'item_description', label:'ITEM DESCRIPTION', pending:true },
+    { key:'brand', label:'BRAND', pending:true },
+    { key:'flavor', label:'FLAVOR', pending:true },
+    { key:'origin', label:'ORIGIN', pending:true },
+    { key:'manufacturer', label:'MANUFACTURER', pending:true },
+    { key:'food_stampable', label:'FOOD STAMP', rows:[
+      ['0','not for foodstamp'],['1','food stampable'] ] },
+    { key:'price_required', label:'PRICE REQUIRED', pending:true },
+    { key:'restricted_sale_type', label:'RESTRICTED SALE TYPE', rows:[
+      ['0','No age restriction'],['1','Alcohol'],['2','Tobacco'] ] },
+    { key:'health_care_product', label:'HEALTH CARE PRODUCT', rows:[ ['0',''],['1',''] ] },
+    { key:'wic_flag', label:'WIC FLAG', pending:true },
+    { key:'quantity_required', label:'QUANTITY REQUIRED', rows:[ ['0',''],['1',''] ] },
+    { key:'taxable_A', label:'TAXABLE A', rows:[ ['0',''],['1',''] ] },
+    { key:'taxable_B', label:'TAXABLE B', pending:true },
+    { key:'taxable_C', label:'TAXABLE C', pending:true },
+    { key:'taxable_D', label:'TAXABLE D', pending:true },
+    { key:'flavor_group_id', label:'FLAVOR GROUP ID', pending:true },
+    { key:'mp_group', label:'MP GROUP', pending:true },
+    { key:'large_linked_to', label:'LARGE LINKED TO', pending:true },
+    { key:'linked_to', label:'LINKED TO', pending:true },
+    { key:'category1', label:'CATEGORY 1', pending:true },
+    { key:'category2', label:'CATEGORY 2', pending:true },
+    { key:'category3', label:'CATEGORY 3', pending:true },
+    { key:'tax_selling_type', label:'TAX SELLING TYPE', rows:[
+      ['0','N/A'],['1','Dry'],['2','Frozen'],['3','Refrigeration'],['4','Hot Food'],['5','(Non-Food)'] ] },
+    { key:'tax_item_type', label:'TAX ITEM TYPE', rows:[
+      ['0','N/A'],['1','Nutrition Facts'],['2','Supplement Facts'],['3','Drug Facts'],['4','(Non-Food)'] ] },
+    { key:'tax_flour_type', label:'TAX FLOUR TYPE', rows:[
+      ['0','Flour Not Included'],['1','Flour included'] ] },
+    { key:'tax_drink_carbonated', label:'TAX DRINK CARBONATED', rows:[ ['0',''],['1',''] ] },
+    { key:'tax_drink_sweeten', label:'TAX DRINK SWEETEN', rows:[ ['0',''],['1',''] ] },
+    { key:'tax_drink_contain_milk', label:'TAX DRINK CONTAIN MILK', rows:[ ['0',''],['1',''] ] },
+    { key:'tax_drink_juice_percent', label:'TAX DRINK JUICE PERCENT', note:'0 ~ 100 (juice %)' },
+    { key:'not_for_sale', label:'NOT FOR SALE', rows:[
+      ['0',''],['1','the item will be disabled and cannot be sold'] ] }
+  ];
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function hanaTipHTML(f){
+    let h = '<div class="hana-tip-h">'+esc(f.label)+' &middot; '+esc(f.key)+'</div>';
+    if (f.pending) { h += '<div class="hana-tip-pending">정의 예정 — 설명을 알려주시면 채워 넣겠습니다.</div>'; return h; }
+    if (f.note)    { h += '<div class="hana-tip-note">'+esc(f.note)+'</div>'; return h; }
+    if (f.rows) {
+      h += f.rows.map(r =>
+        '<div class="hana-tip-row"><span class="hana-tip-v">'+esc(r[0])+'</span>'+
+        '<span class="hana-tip-d'+(r[1]?'':' empty')+'">'+(r[1]?esc(r[1]):'(설명 없음)')+'</span></div>'
+      ).join('');
+    }
+    return h;
+  }
+
+  function renderHana(){
+    const grid = $('hanaGrid');
+    grid.innerHTML = HANA_FIELDS.map((f, i) =>
+      '<div class="hana-field'+(f.pending?' pending':'')+'" data-idx="'+i+'">'+
+        '<div class="hana-field-num">'+(i+1)+'</div>'+
+        '<div class="hana-field-label">'+esc(f.label)+'</div>'+
+        '<div class="hana-field-key">'+esc(f.key)+'</div>'+
+        ( f.note ? '<div class="hana-field-hint">'+esc(f.note)+'</div>'
+          : (f.pending ? '<div class="hana-field-hint">설명 예정</div>' : '') )+
+      '</div>'
+    ).join('');
+  }
+
+  // HANA 필드 호버 툴팁 (이벤트 위임)
+  (function(){
+    const tip = $('hanaTip');
+    const grid = $('hanaGrid');
+    function place(e){
+      const pad = 14, tw = tip.offsetWidth, th = tip.offsetHeight;
+      let x = e.clientX + 16, y = e.clientY + 16;
+      if (x + tw + pad > window.innerWidth)  x = e.clientX - tw - 16;
+      if (y + th + pad > window.innerHeight) y = e.clientY - th - 16;
+      tip.style.left = Math.max(pad, x) + 'px';
+      tip.style.top  = Math.max(pad, y) + 'px';
+    }
+    grid.addEventListener('mouseover', e => {
+      const cell = e.target.closest('.hana-field'); if (!cell) return;
+      const f = HANA_FIELDS[+cell.dataset.idx]; if (!f) return;
+      tip.innerHTML = hanaTipHTML(f);
+      tip.style.display = 'block';
+      place(e);
+    });
+    grid.addEventListener('mousemove', e => { if (tip.style.display === 'block') place(e); });
+    grid.addEventListener('mouseout', e => {
+      const to = e.relatedTarget;
+      if (to && to.closest && to.closest('.hana-field')) return;
+      tip.style.display = 'none';
+    });
+  })();
 
   // ----- 상품명 등록 가이드 -----
   const GUIDE_IMG_CANDIDATES = [
@@ -2832,6 +3038,8 @@
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
   $('guideBackBtn').onclick = showMenu;
+  $('egmmHanaBtn').onclick = showHana;
+  $('hanaBackBtn').onclick = showMenu;
 
   // 진입 시 EGMM 메뉴 표시
   showMenu();
