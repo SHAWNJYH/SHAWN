@@ -92,6 +92,8 @@
     --cat-gbk-soft: #fceadb;
     --cat-facility: #9c6b3e;
     --cat-facility-soft: #f3e8dc;
+    --cat-ad: #b5388a;
+    --cat-ad-soft: #f9e3f1;
     --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --code: 'Pretendard', ui-monospace, monospace;
@@ -838,6 +840,7 @@
   .summary-item.cat-hanaro .summary-date { color: var(--cat-hanaro); background: var(--cat-hanaro-soft); }
   .summary-item.cat-gbk .summary-date { color: var(--cat-gbk); background: var(--cat-gbk-soft); }
   .summary-item.cat-facility .summary-date { color: var(--cat-facility); background: var(--cat-facility-soft); }
+  .summary-item.cat-ad .summary-date { color: var(--cat-ad); background: var(--cat-ad-soft); }
   .summary-empty {
     font-family: var(--mono);
     font-size: 12px;
@@ -1722,6 +1725,7 @@
   .ev-pill.cat-hanaro { background: var(--cat-hanaro); }
   .ev-pill.cat-gbk { background: var(--cat-gbk); }
   .ev-pill.cat-facility { background: var(--cat-facility); }
+  .ev-pill.cat-ad { background: var(--cat-ad); }
   .ev-pill.cat-birthday {
     background: var(--cat-birthday-soft);
     color: var(--cat-birthday);
@@ -1887,6 +1891,7 @@
   .ev-row.cat-hanaro .ev-time-label { color: var(--cat-hanaro); }
   .ev-row.cat-gbk .ev-time-label { color: var(--cat-gbk); }
   .ev-row.cat-facility .ev-time-label { color: var(--cat-facility); }
+  .ev-row.cat-ad .ev-time-label { color: var(--cat-ad); }
   .ev-row.done .ev-time-label { color: var(--text-faint); }
   .ev-cat-tag {
     display: inline-block;
@@ -1925,6 +1930,10 @@
   .ev-cat-tag.cat-facility {
     background: var(--cat-facility-soft);
     color: var(--cat-facility);
+  }
+  .ev-cat-tag.cat-ad {
+    background: var(--cat-ad-soft);
+    color: var(--cat-ad);
   }
   .ev-cat-tag.cat-shift {
     background: #fff3b0;
@@ -2053,6 +2062,11 @@
   .cat-btn.active.cat-facility {
     background: var(--cat-facility);
     border-color: var(--cat-facility);
+    color: #ffffff;
+  }
+  .cat-btn.active.cat-ad {
+    background: var(--cat-ad);
+    border-color: var(--cat-ad);
     color: #ffffff;
   }
   /* 달력 칸 하단 근무시간 목록 (노란 바탕) */
@@ -3175,6 +3189,7 @@
           <button type="button" class="cat-btn cat-hanaro" data-cat="hanaro">하나로</button>
           <button type="button" class="cat-btn cat-gbk" data-cat="gbk">GBK</button>
           <button type="button" class="cat-btn cat-facility" data-cat="facility">시설</button>
+          <button type="button" class="cat-btn cat-ad" data-cat="ad">광고</button>
         </div>
       </div>
       <div class="field">
@@ -3291,7 +3306,7 @@
   const MONTH_NAMES_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const DAY_NAMES_KO = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
-  const CAT_LABELS = { work:'회사', personal:'개인', birthday:'생일', shift:'근무시간', store:'매장', hanaro:'하나로', gbk:'GBK', facility:'시설' };
+  const CAT_LABELS = { work:'회사', personal:'개인', birthday:'생일', shift:'근무시간', store:'매장', hanaro:'하나로', gbk:'GBK', facility:'시설', ad:'광고' };
 
   // ========== CRYPTO ==========
   function encrypt(data, password) {
