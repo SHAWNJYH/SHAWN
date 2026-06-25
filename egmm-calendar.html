@@ -84,6 +84,14 @@
     --cat-personal-soft: #efe9fc;
     --cat-birthday: #e57ba5;
     --cat-birthday-soft: #fce9f1;
+    --cat-store: #2f9e5e;
+    --cat-store-soft: #e3f5ea;
+    --cat-hanaro: #0e9aa7;
+    --cat-hanaro-soft: #dcf2f4;
+    --cat-gbk: #e07b1f;
+    --cat-gbk-soft: #fceadb;
+    --cat-facility: #9c6b3e;
+    --cat-facility-soft: #f3e8dc;
     --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --code: 'Pretendard', ui-monospace, monospace;
@@ -826,6 +834,10 @@
   .summary-item.cat-work .summary-date { color: var(--cat-work); background: var(--cat-work-soft); }
   .summary-item.cat-personal .summary-date { color: var(--cat-personal); background: var(--cat-personal-soft); }
   .summary-item.cat-birthday .summary-date { color: var(--cat-birthday); background: var(--cat-birthday-soft); }
+  .summary-item.cat-store .summary-date { color: var(--cat-store); background: var(--cat-store-soft); }
+  .summary-item.cat-hanaro .summary-date { color: var(--cat-hanaro); background: var(--cat-hanaro-soft); }
+  .summary-item.cat-gbk .summary-date { color: var(--cat-gbk); background: var(--cat-gbk-soft); }
+  .summary-item.cat-facility .summary-date { color: var(--cat-facility); background: var(--cat-facility-soft); }
   .summary-empty {
     font-family: var(--mono);
     font-size: 12px;
@@ -1706,6 +1718,10 @@
   }
   .ev-pill.cat-work { background: var(--cat-work); }
   .ev-pill.cat-personal { background: var(--cat-personal); }
+  .ev-pill.cat-store { background: var(--cat-store); }
+  .ev-pill.cat-hanaro { background: var(--cat-hanaro); }
+  .ev-pill.cat-gbk { background: var(--cat-gbk); }
+  .ev-pill.cat-facility { background: var(--cat-facility); }
   .ev-pill.cat-birthday {
     background: var(--cat-birthday-soft);
     color: var(--cat-birthday);
@@ -1867,6 +1883,10 @@
   .ev-row.cat-work .ev-time-label { color: var(--cat-work); }
   .ev-row.cat-personal .ev-time-label { color: var(--cat-personal); }
   .ev-row.cat-birthday .ev-time-label { color: var(--cat-birthday); }
+  .ev-row.cat-store .ev-time-label { color: var(--cat-store); }
+  .ev-row.cat-hanaro .ev-time-label { color: var(--cat-hanaro); }
+  .ev-row.cat-gbk .ev-time-label { color: var(--cat-gbk); }
+  .ev-row.cat-facility .ev-time-label { color: var(--cat-facility); }
   .ev-row.done .ev-time-label { color: var(--text-faint); }
   .ev-cat-tag {
     display: inline-block;
@@ -1889,6 +1909,26 @@
   .ev-cat-tag.cat-birthday {
     background: var(--cat-birthday-soft);
     color: var(--cat-birthday);
+  }
+  .ev-cat-tag.cat-store {
+    background: var(--cat-store-soft);
+    color: var(--cat-store);
+  }
+  .ev-cat-tag.cat-hanaro {
+    background: var(--cat-hanaro-soft);
+    color: var(--cat-hanaro);
+  }
+  .ev-cat-tag.cat-gbk {
+    background: var(--cat-gbk-soft);
+    color: var(--cat-gbk);
+  }
+  .ev-cat-tag.cat-facility {
+    background: var(--cat-facility-soft);
+    color: var(--cat-facility);
+  }
+  .ev-cat-tag.cat-shift {
+    background: #fff3b0;
+    color: #4a3b00;
   }
   .ev-row.cat-birthday .ev-title-text {
     font-size: 15px;
@@ -1995,6 +2035,26 @@
     border-color: #f5c518;
     color: #3a2e00;
   }
+  .cat-btn.active.cat-store {
+    background: var(--cat-store);
+    border-color: var(--cat-store);
+    color: #ffffff;
+  }
+  .cat-btn.active.cat-hanaro {
+    background: var(--cat-hanaro);
+    border-color: var(--cat-hanaro);
+    color: #ffffff;
+  }
+  .cat-btn.active.cat-gbk {
+    background: var(--cat-gbk);
+    border-color: var(--cat-gbk);
+    color: #ffffff;
+  }
+  .cat-btn.active.cat-facility {
+    background: var(--cat-facility);
+    border-color: var(--cat-facility);
+    color: #ffffff;
+  }
   /* 달력 칸 하단 근무시간 목록 (노란 바탕) */
   .shift-list { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
   .shift-pill {
@@ -2021,6 +2081,59 @@
   .dayoff-row .dayoff-text { position: relative; top: 11px; }
   /* 메모 영역 여유 */
   #evNotes { min-height: 56px; }
+
+  /* === 일정 메모 팝업 (호버/클릭) === */
+  .ev-tooltip {
+    position: fixed;
+    z-index: 320;
+    max-width: 300px;
+    min-width: 180px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-bright);
+    border-radius: 12px;
+    box-shadow: 0 14px 44px rgba(26,26,29,0.20);
+    padding: 13px 15px;
+    font-family: var(--mono);
+    display: none;
+  }
+  .ev-tooltip.show { display: block; animation: fadeIn 0.12s; }
+  .ev-tooltip .ett-head {
+    display: flex; align-items: center; gap: 6px;
+    flex-wrap: wrap; margin-bottom: 5px;
+  }
+  .ev-tooltip .ett-head .ev-cat-tag { margin-left: 0; }
+  .ev-tooltip .ett-title {
+    font-family: var(--serif);
+    font-size: 15px; font-weight: 700; line-height: 1.3;
+    color: var(--text); word-break: break-word;
+  }
+  .ev-tooltip .ett-time {
+    font-family: var(--code);
+    font-size: 11px; font-weight: 600;
+    color: var(--text-dim); margin-bottom: 8px;
+  }
+  .ev-tooltip .ett-notes {
+    font-size: 13px; font-weight: 500; line-height: 1.55;
+    color: var(--text); white-space: pre-wrap; word-break: break-word;
+    border-top: 1px solid var(--border); padding-top: 8px;
+    max-height: 240px; overflow-y: auto;
+  }
+  .ev-tooltip .ett-empty {
+    font-size: 12px; font-weight: 600; color: var(--text-faint);
+    border-top: 1px solid var(--border); padding-top: 8px;
+  }
+  .ev-tooltip .ett-open {
+    margin-top: 11px; width: 100%;
+    background: var(--bg-elev-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 7px;
+    font-family: var(--mono); font-size: 12px; font-weight: 700;
+    color: var(--text-dim); cursor: pointer; transition: all .15s;
+  }
+  .ev-tooltip .ett-open:hover {
+    color: var(--text); border-color: var(--border-bright);
+    background: var(--bg);
+  }
+  .ev-pill, .shift-pill { cursor: pointer; }
 
   .lunar-picker {
     display: grid;
@@ -3058,6 +3171,10 @@
           <button type="button" class="cat-btn cat-personal" data-cat="personal">개인</button>
           <button type="button" class="cat-btn cat-birthday" data-cat="birthday">생일 🎂</button>
           <button type="button" class="cat-btn cat-shift" data-cat="shift">근무시간</button>
+          <button type="button" class="cat-btn cat-store" data-cat="store">매장</button>
+          <button type="button" class="cat-btn cat-hanaro" data-cat="hanaro">하나로</button>
+          <button type="button" class="cat-btn cat-gbk" data-cat="gbk">GBK</button>
+          <button type="button" class="cat-btn cat-facility" data-cat="facility">시설</button>
         </div>
       </div>
       <div class="field">
@@ -3139,6 +3256,9 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- 일정 메모 팝업 -->
+<div class="ev-tooltip" id="evTooltip"></div>
+
 <!-- Confirm Modal -->
 <div class="modal-bg" id="modal">
   <div class="modal">
@@ -3171,6 +3291,7 @@
   const MONTH_NAMES_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const DAY_NAMES_KO = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  const CAT_LABELS = { work:'회사', personal:'개인', birthday:'생일', shift:'근무시간', store:'매장', hanaro:'하나로', gbk:'GBK', facility:'시설' };
 
   // ========== CRYPTO ==========
   function encrypt(data, password) {
@@ -3873,11 +3994,11 @@
 
         if (e.isBirthday) {
           const lunarMark = e.isLunar ? '🌙 ' : '';
-          return `<div class="ev-pill ${classes}">${lunarMark}${escapeHtml(e.title)}</div>`;
+          return `<div class="ev-pill ${classes}" data-id="${e.id}">${lunarMark}${escapeHtml(e.title)}</div>`;
         }
         const showTime = e._multiPos === 'start' || !e._multiPos;
         const showTitle = e._multiPos !== 'mid';
-        return `<div class="ev-pill ${classes}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(e.title) : ''}</div>`;
+        return `<div class="ev-pill ${classes}" data-id="${e.id}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(e.title) : ''}</div>`;
       }).join('');
 
       const moreHtml = remain > 0 ? `<div class="ev-more">+${remain} more</div>` : '';
@@ -3885,9 +4006,9 @@
       // 근무시간: 칸 하단 노란 바탕 (근무시간 : 이름 시작~종료)
       const shiftHtml = shiftEvents.length ? `<div class="shift-list">${
         shiftEvents.map(e => {
-          if (e.dayOff) return `<div class="shift-pill">근무일정 : ${escapeHtml(e.title)} 휴무</div>`;
+          if (e.dayOff) return `<div class="shift-pill" data-id="${e.id}">근무일정 : ${escapeHtml(e.title)} 휴무</div>`;
           const t = e.start ? (e.start + '~' + (e.end || '')) : '';
-          return `<div class="shift-pill">근무일정 : ${escapeHtml(e.title)}${t ? ' ' + t : ''}</div>`;
+          return `<div class="shift-pill" data-id="${e.id}">근무일정 : ${escapeHtml(e.title)}${t ? ' ' + t : ''}</div>`;
         }).join('')
       }</div>` : '';
 
@@ -4030,7 +4151,126 @@
     }
   });
 
+  // ========== 일정 메모 팝업 (호버 / 클릭) ==========
+  const evTooltip = $('evTooltip');
+  let tooltipPinned = false;
+  let currentTipId = null;
+  let tipHideTimer = null;
+
+  function tipTimeLabel(ev) {
+    if (ev.dayOff) return '휴무';
+    if (ev.isBirthday) {
+      const { m: bm, d: bd } = parseDateKey(ev.date);
+      return ev.isLunar ? `🌙 음력 ${bm + 1}/${bd}` : `🎂 양력 ${bm + 1}/${bd}`;
+    }
+    if (ev.endDate && ev.endDate > ev.date) {
+      const s = formatDateShort(ev.date), e2 = formatDateShort(ev.endDate);
+      return `${s}${ev.start ? ' ' + ev.start : ''} → ${e2}${ev.end ? ' ' + ev.end : ''}`;
+    }
+    if (ev.start && ev.end) return `${ev.start} – ${ev.end}`;
+    if (ev.start) return ev.start;
+    return '종일';
+  }
+
+  function positionTooltip(pill) {
+    const r = pill.getBoundingClientRect();
+    evTooltip.style.visibility = 'hidden';
+    evTooltip.style.display = 'block';
+    const tw = evTooltip.offsetWidth, th = evTooltip.offsetHeight;
+    let left = r.left + r.width / 2 - tw / 2;
+    let top = r.bottom + 8;
+    if (top + th > window.innerHeight - 8) top = r.top - th - 8;
+    if (top < 8) top = 8;
+    left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+    evTooltip.style.left = left + 'px';
+    evTooltip.style.top = top + 'px';
+    evTooltip.style.visibility = '';
+  }
+
+  function showEvTooltip(pill) {
+    const id = pill.dataset.id;
+    if (!id) return;
+    const ev = state.events.find(x => x.id === id);
+    if (!ev) return;
+    const cat = ev.category || 'work';
+    const catLabel = CAT_LABELS[cat] || '회사';
+    const notesHtml = ev.notes
+      ? `<div class="ett-notes">${escapeHtml(ev.notes)}</div>`
+      : `<div class="ett-empty">메모 없음</div>`;
+    evTooltip.innerHTML = `
+      <div class="ett-head">
+        <span class="ev-cat-tag cat-${cat}">${catLabel}</span>
+        <span class="ett-title">${escapeHtml(ev.title)}</span>
+      </div>
+      <div class="ett-time">${tipTimeLabel(ev)}</div>
+      ${notesHtml}
+      <button type="button" class="ett-open" data-date="${ev.date}">이 날 일정 열기 →</button>
+    `;
+    evTooltip.classList.add('show');
+    currentTipId = id;
+    positionTooltip(pill);
+  }
+
+  function hideEvTooltip() {
+    if (tooltipPinned) return;
+    evTooltip.classList.remove('show');
+    currentTipId = null;
+  }
+  function forceHideTooltip() {
+    tooltipPinned = false;
+    evTooltip.classList.remove('show');
+    currentTipId = null;
+  }
+  window.__forceHideTooltip = forceHideTooltip;
+
+  function scheduleHide() { clearTimeout(tipHideTimer); tipHideTimer = setTimeout(hideEvTooltip, 150); }
+  function cancelHide() { clearTimeout(tipHideTimer); }
+
+  // 호버로 표시
+  calendarEl.addEventListener('mouseover', e => {
+    const pill = e.target.closest('.ev-pill, .shift-pill');
+    if (!pill || !calendarEl.contains(pill)) return;
+    if (tooltipPinned) return;
+    cancelHide();
+    if (pill.dataset.id === currentTipId && evTooltip.classList.contains('show')) return;
+    showEvTooltip(pill);
+  });
+  calendarEl.addEventListener('mouseout', e => {
+    const pill = e.target.closest('.ev-pill, .shift-pill');
+    if (!pill) return;
+    scheduleHide();
+  });
+  evTooltip.addEventListener('mouseover', cancelHide);
+  evTooltip.addEventListener('mouseleave', scheduleHide);
+
+  // 툴팁 내부 "일정 열기" 버튼
+  evTooltip.addEventListener('click', e => {
+    const openBtn = e.target.closest('.ett-open');
+    if (!openBtn) return;
+    const date = openBtn.dataset.date;
+    forceHideTooltip();
+    if (date) openDayPanel(date);
+  });
+
+  // 바깥 클릭 시 고정 팝업 닫기
+  document.addEventListener('click', e => {
+    if (!evTooltip.classList.contains('show')) return;
+    if (e.target.closest('.ev-pill, .shift-pill')) return;
+    if (evTooltip.contains(e.target)) return;
+    forceHideTooltip();
+  });
+
   calendarEl.addEventListener('click', e => {
+    // 일정(pill) 클릭 → 메모 팝업 고정 표시 (패널 열지 않음)
+    const pill = e.target.closest('.ev-pill, .shift-pill');
+    if (pill && calendarEl.contains(pill)) {
+      e.stopPropagation();
+      cancelHide();
+      tooltipPinned = false;
+      showEvTooltip(pill);
+      tooltipPinned = true;
+      return;
+    }
     const day = e.target.closest('.day');
     if (!day) return;
     const key = day.dataset.key;
@@ -4038,16 +4278,19 @@
   });
 
   $('prevBtn').onclick = () => {
+    if (window.__forceHideTooltip) window.__forceHideTooltip();
     state.viewMonth--;
     if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
     renderCalendar();
   };
   $('nextBtn').onclick = () => {
+    if (window.__forceHideTooltip) window.__forceHideTooltip();
     state.viewMonth++;
     if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
     renderCalendar();
   };
   $('todayBtn').onclick = () => {
+    if (window.__forceHideTooltip) window.__forceHideTooltip();
     const now = new Date();
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
@@ -4069,6 +4312,7 @@
   let editingId = null;   // 수정 중인 일정 id
 
   function openDayPanel(key) {
+    if (window.__forceHideTooltip) window.__forceHideTooltip();
     state.selectedDate = key;
     const { y, m, d } = parseDateKey(key);
     const dateObj = new Date(y, m, d);
@@ -4210,7 +4454,7 @@
 
     listEl.innerHTML = dayEvents.map(ev => {
       const cat = ev.category || 'work';
-      const catLabel = cat === 'work' ? '회사' : cat === 'personal' ? '개인' : cat === 'shift' ? '근무시간' : '생일';
+      const catLabel = CAT_LABELS[cat] || '회사';
       const colorCls = (ev.color && ev.color !== 'default') ? 'color-' + ev.color : '';
       let timeLabel;
       if (ev.isBirthday) {
@@ -4429,6 +4673,21 @@
 
   $('addEvBtn').onclick = addEvent;
   $('evTitle').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
+
+  // 일정 입력 팝업: 영문 입력 시 자동 대문자 변환 (커서 위치 유지)
+  function attachUppercase(el) {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const up = el.value.toUpperCase();
+      if (up !== el.value) {
+        const s = el.selectionStart, e = el.selectionEnd;
+        el.value = up;
+        try { el.setSelectionRange(s, e); } catch (_) {}
+      }
+    });
+  }
+  attachUppercase($('evTitle'));
+  attachUppercase($('evNotes'));
 
   // ========== NOTES ==========
   const NOTE_COLORS = ['c-yellow', 'c-pink', 'c-blue', 'c-green', 'c-purple', 'c-orange'];
