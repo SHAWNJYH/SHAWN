@@ -1726,13 +1726,14 @@
   .ev-pill.cat-gbk { background: var(--cat-gbk); }
   .ev-pill.cat-facility { background: var(--cat-facility); }
   .ev-pill.cat-ad { background: var(--cat-ad); }
-  .ev-pill.cat-birthday {
-    background: var(--cat-birthday-soft);
-    color: var(--cat-birthday);
-    font-size: 10px;
-    padding: 2px 6px;
-    font-weight: 700;
-  }
+  .ev-pill.cat-birthday { background: var(--cat-birthday); }
+  .ev-pill.cat-shift { background: #f5c518; color: #3a2e00; }
+  /* 통일 형식 하위 요소: 카테고리 · 내용 · 날짜 · 시간 */
+  .ev-pill .ep-cat { font-weight: 800; }
+  .ev-pill .ep-title { font-weight: 700; }
+  .ev-pill .ep-date,
+  .ev-pill .ep-time { font-family: var(--code); font-size: 0.92em; opacity: 0.85; }
+  .ev-pill .ep-sep { opacity: 0.5; margin: 0 3px; font-weight: 700; }
   .ev-pill.done {
     background: var(--bg-elev-2);
     color: var(--text-faint);
@@ -4059,43 +4060,25 @@
       if (weekday === 0) classes.push('sun');
       if (weekday === 6) classes.push('sat');
 
-      const shiftEvents = dayEvents.filter(e => e.category === 'shift');
-      const normalEvents = dayEvents.filter(e => e.category !== 'shift');
-      const maxShow = 3;
-      const shown = normalEvents.slice(0, maxShow);
-      const remain = normalEvents.length - shown.length;
+      // 모든 카테고리 동일 형식: 카테고리 · 내용 · 날짜 · 시간
+      const maxShow = 4;
+      const shown = dayEvents.slice(0, maxShow);
+      const remain = dayEvents.length - shown.length;
 
       const pillsHtml = shown.map(e => {
-        const cat = e.category ? 'cat-' + e.category : '';
+        const cat = e.category ? 'cat-' + e.category : 'cat-work';
         const color = (e.color && e.color !== 'default') ? 'color-' + e.color : '';
         const multi = e._multiPos ? 'multi-' + e._multiPos : '';
-        const classes = [cat, color, multi, e.done ? 'done' : ''].filter(Boolean).join(' ');
-
-        if (e.isBirthday) {
-          const lunarMark = e.isLunar ? '🌙 ' : '';
-          return `<div class="ev-pill ${classes}" data-id="${e.id}">${lunarMark}${escapeHtml(e.title)}</div>`;
-        }
-        const showTime = e._multiPos === 'start' || !e._multiPos;
-        const showTitle = e._multiPos !== 'mid';
-        return `<div class="ev-pill ${classes}" data-id="${e.id}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(e.title) : ''}</div>`;
+        const classes = ['ev-pill', cat, color, multi, e.done ? 'done' : ''].filter(Boolean).join(' ');
+        return `<div class="${classes}" data-id="${e.id}">${buildPillContent(e, c.m, c.d)}</div>`;
       }).join('');
 
       const moreHtml = remain > 0 ? `<div class="ev-more">+${remain} more</div>` : '';
-
-      // 근무시간: 칸 하단 노란 바탕 (근무시간 : 이름 시작~종료)
-      const shiftHtml = shiftEvents.length ? `<div class="shift-list">${
-        shiftEvents.map(e => {
-          if (e.dayOff) return `<div class="shift-pill" data-id="${e.id}">근무일정 : ${escapeHtml(e.title)} 휴무</div>`;
-          const t = e.start ? (e.start + '~' + (e.end || '')) : '';
-          return `<div class="shift-pill" data-id="${e.id}">근무일정 : ${escapeHtml(e.title)}${t ? ' ' + t : ''}</div>`;
-        }).join('')
-      }</div>` : '';
 
       return `
         <div class="${classes.join(' ')}" data-key="${key}">
           <div class="day-num">${c.d}</div>
           <div class="events">${pillsHtml}${moreHtml}</div>
-          ${shiftHtml}
         </div>`;
     }).join('');
 
@@ -4627,6 +4610,31 @@
   function formatDateShort(key) {
     const [y, m, d] = key.split('-').map(Number);
     return `${m}/${d}`;
+  }
+
+  // 달력 알약 통일 형식: 카테고리 · 내용 · 날짜 · 시간
+  function buildPillContent(e, cellM, cellD) {
+    const catLabel = CAT_LABELS[e.category] || '회사';
+    // 날짜 (다일 일정은 범위, 그 외는 해당 칸 날짜)
+    let dateStr;
+    if (e.endDate && e.endDate > e.date) {
+      dateStr = `${formatDateShort(e.date)}~${formatDateShort(e.endDate)}`;
+    } else {
+      dateStr = `${cellM + 1}/${cellD}`;
+    }
+    // 시간
+    let timeStr = '';
+    if (e.dayOff) timeStr = '휴무';
+    else if (e.isBirthday) timeStr = e.isLunar ? '음력' : '양력';
+    else if (e.start && e.end) timeStr = `${e.start}~${e.end}`;
+    else if (e.start) timeStr = e.start;
+    const parts = [
+      `<span class="ep-cat">${escapeHtml(catLabel)}</span>`,
+      `<span class="ep-title">${escapeHtml(e.title)}</span>`,
+      `<span class="ep-date">${dateStr}</span>`
+    ];
+    if (timeStr) parts.push(`<span class="ep-time">${escapeHtml(timeStr)}</span>`);
+    return parts.join('<span class="ep-sep">·</span>');
   }
 
   $('evList').addEventListener('click', e => {
