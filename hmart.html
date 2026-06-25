@@ -55,71 +55,88 @@
     mix-blend-mode: multiply;
   }
 
-  /* 공통 상단 바 (모든 메뉴 동일) */
-  .page-topbar {
-    position: relative; z-index: 1;
-    max-width: 1100px; margin: 0 auto;
-    padding: 28px 24px 0;
-    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  /* ===== H-MART 런처 홈 (EGMM 스타일 정제 리디자인) ===== */
+  .hm-home {
+    position: relative; z-index: 1; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    padding: clamp(30px, 6vh, 72px) 24px 56px;
+    background: radial-gradient(125% 85% at 50% -12%, #ffffff 0%, var(--bg) 46%, #f1efe6 100%);
   }
-  .page-title { font-family: var(--serif); font-weight: 700; font-size: 26px; line-height: 1.1; color: var(--text); }
-  .page-back {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
-    padding: 10px 14px; font-family: var(--mono); font-size: 13px; font-weight: 700;
-    border-radius: 10px; cursor: pointer; flex-shrink: 0;
-    transition: border-color .15s, color .15s, transform .12s;
-  }
-  .page-back:hover { border-color: var(--accent-warm); color: var(--text); }
-  .page-back:active { transform: scale(0.98); }
 
-  /* H-MART 메뉴 (EGMM 메뉴와 동일 구성) */
-  .hmart-menu {
-    position: relative; z-index: 1;
-    min-height: calc(100vh - 86px);
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: 4vh 24px 24px;
-  }
-  .egmm-card {
-    width: 100%; max-width: 420px; background: var(--bg-elev);
-    border: 1px solid var(--border); border-radius: 16px;
-    padding: 32px 28px 28px; box-shadow: 0 10px 40px rgba(26,26,29,0.06);
-  }
-  .egmm-menu-btn {
-    width: 100%; display: flex; align-items: center; gap: 14px;
-    background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
-    padding: 18px 18px; border-radius: 12px; font-family: var(--mono);
-    font-size: 17px; font-weight: 700; cursor: pointer; margin-bottom: 12px;
-    transition: border-color .15s, background .15s, transform .12s; text-align: left;
-  }
-  .egmm-menu-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
-  .egmm-menu-btn:active { transform: scale(0.985); }
-  .egmm-menu-ico {
-    width: 40px; height: 40px; flex: 0 0 auto; border-radius: 11px;
-    display: flex; align-items: center; justify-content: center; font-size: 20px;
-  }
-  .egmm-menu-arrow { margin-left: auto; color: var(--text-faint); font-size: 20px; font-weight: 700; }
-  .egmm-section-title { font-size: 12px; font-weight: 800; letter-spacing: .08em; color: var(--text-faint); text-transform: uppercase; margin: 2px 4px 12px; }
-  .egmm-section-title.gap { margin-top: 22px; }
-  .egmm-menu-btn.soon { color: var(--text-dim); }
-  .egmm-menu-btn.soon:hover { border-color: var(--border-bright); background: var(--bg-elev-2); }
-  .egmm-soon { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--accent-warm); border: 1.5px solid var(--accent-warm); border-radius: 999px; padding: 2px 9px; }
-  .egmm-back-link {
-    display: block; width: 100%; margin-top: 8px; background: transparent; border: none;
-    color: var(--text-dim); font-family: var(--mono); font-size: 13px; font-weight: 600;
-    cursor: pointer; padding: 10px;
-  }
-  .egmm-back-link:hover { color: var(--text); }
+  /* 마스트헤드 */
+  .hm-masthead { text-align: center; margin-bottom: clamp(26px, 4.5vh, 46px); max-width: 760px; }
+  .hm-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 14px; }
+  .hm-wordmark { font-family: var(--serif); font-weight: 800; font-size: clamp(42px, 8vw, 64px);
+    line-height: .9; letter-spacing: -.045em; color: var(--text); display: inline-flex; align-items: flex-end; }
+  .hm-wordmark .dot { color: var(--accent-warm); }
+  .hm-substore { margin-top: 16px; font-size: 12px; font-weight: 800; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--text-dim); min-height: 14px; }
+  .hm-rule { width: min(420px, 74%); height: 1px; margin: 22px auto 0;
+    background: linear-gradient(90deg, transparent, var(--accent-warm) 20%, var(--accent-warm) 80%, transparent); opacity: .75; }
 
-  /* 매장명 접미사 */
-  .hm-store-suffix { color: var(--accent-warm); font-weight: 700; }
-  /* 로그아웃 FAB */
-  .hm-fab { position: fixed; top: 22px; right: 22px; z-index: 50; display: inline-flex; align-items: center; gap: 7px;
-    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
-    padding: 9px 14px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
-    box-shadow: 0 6px 20px rgba(26,26,29,0.08); transition: border-color .15s, color .15s; }
+  /* 도메인 패널 */
+  .hm-cards { display: flex; gap: 18px; align-items: flex-start; justify-content: center;
+    width: 100%; max-width: 820px; flex-wrap: wrap; }
+  .egmm-card { flex: 1 1 320px; min-width: 290px; max-width: 392px; background: var(--bg-elev);
+    border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
+    box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
+    opacity: 0; transform: translateY(14px); animation: hmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
+  .egmm-card:nth-child(1) { animation-delay: .05s; }
+  .egmm-card:nth-child(2) { animation-delay: .15s; }
+  @keyframes hmRise { to { opacity: 1; transform: none; } }
+
+  .egmm-card-head { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border); }
+  .egmm-card-tick { width: 6px; height: 19px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
+  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 21px; letter-spacing: .03em; color: var(--text); }
+
+  .egmm-section-title { font-size: 11px; font-weight: 800; letter-spacing: .16em; color: var(--text-faint);
+    text-transform: uppercase; margin: 0 2px 10px; }
+  .egmm-section-title.gap { margin-top: 20px; }
+
+  .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 12px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 15px 16px; border-radius: 12px; font-family: var(--mono);
+    font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 9px; text-align: left;
+    overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
+  .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
+  .egmm-menu-btn:hover { border-color: var(--border-bright); background: #fff; box-shadow: 0 6px 18px rgba(26,26,29,.06); }
+  .egmm-menu-btn:hover::before { transform: scaleY(1); }
+  .egmm-menu-btn:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 2px; }
+  .egmm-menu-btn:active { transform: scale(.99); }
+  .egmm-menu-btn > span:first-child { flex: 1 1 auto; min-width: 0; }
+  .egmm-menu-arrow { margin-left: auto; color: var(--text-faint); font-size: 17px; font-weight: 700;
+    transition: transform .18s ease, color .16s; }
+  .egmm-menu-btn:hover .egmm-menu-arrow { color: var(--accent-warm); transform: translateX(3px); }
+
+  .egmm-menu-btn.soon { color: var(--text-dim); cursor: default; }
+  .egmm-menu-btn.soon::before { display: none; }
+  .egmm-menu-btn.soon:hover { border-color: var(--border); background: var(--bg); box-shadow: none; }
+  .egmm-soon { margin-left: auto; font-size: 10px; font-weight: 800; letter-spacing: .1em; color: var(--accent-warm);
+    border: 1.5px solid var(--accent-warm); border-radius: 999px; padding: 3px 10px; }
+
+  @media (max-width: 720px) {
+    .hm-cards { gap: 14px; }
+    .egmm-card { max-width: 520px; flex-basis: 100%; }
+  }
+  @media (max-width: 480px) {
+    .hm-home { padding-top: 66px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .egmm-card { animation: none; opacity: 1; transform: none; }
+    .egmm-menu-btn, .egmm-menu-arrow, .egmm-menu-btn::before { transition: none; }
+  }
+
+  /* 로그아웃 FAB (정제) */
+  .hm-fab { position: fixed; top: 22px; right: 22px; z-index: 50; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 9px 15px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(26,26,29,0.08); transition: border-color .15s, color .15s, transform .12s; }
   .hm-fab:hover { border-color: var(--accent-warm); color: var(--text); }
-  .hm-fab b { color: var(--text); }
+  .hm-fab:active { transform: scale(.97); }
+  .hm-fab b { color: var(--text); letter-spacing: .04em; }
 
   /* PLU REQUEST 모달 (다크 그라데이션 헤더 — 깔끔 디자인) */
   .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 20px; }
@@ -197,52 +214,42 @@
 })();
 </script>
   <button class="hm-fab" id="hmLogoutFab" type="button" title="로그아웃">👤 <b id="hmFabStore"></b></button>
-  <div class="page-topbar">
-    <h1 class="page-title">H-MART<span class="hm-store-suffix" id="hmStoreSuffix"></span></h1>
-  </div>
-  <div class="hmart-menu">
-    <div class="egmm-card">
-      <div class="egmm-section-title">PLU / UPC / ITEM CODE</div>
-      <button class="egmm-menu-btn" id="hmartToListBtn">
-        <span>PLU LIST</span>
-        <span class="egmm-menu-arrow">›</span>
-      </button>
-      <button class="egmm-menu-btn" id="hmartToUpcBtn">
-        <span>UPC / ITEM CODE LOOKUP</span>
-        <span class="egmm-menu-arrow">›</span>
-      </button>
-      <button class="egmm-menu-btn" id="hmartToQuizBtn">
-        <span>PLU MEMORIZE</span>
-        <span class="egmm-menu-arrow">›</span>
-      </button>
 
-      <div class="egmm-section-title gap">REQUEST</div>
-      <button class="egmm-menu-btn" id="hmartDeliBtn">
-        <span>DELI</span>
-        <span class="egmm-menu-arrow">›</span>
-      </button>
+  <div class="hm-home">
+    <div class="hm-masthead">
+      <div class="hm-eyebrow">매장 콘솔 · STORE OPERATIONS</div>
+      <div class="hm-wordmark">H-MART<span class="dot">.</span></div>
+      <div class="hm-substore" id="hmStoreSuffix"></div>
+      <div class="hm-rule"></div>
+    </div>
 
-      <div class="egmm-section-title gap">GUIDE</div>
-      <button class="egmm-menu-btn soon" data-soon="1">
-        <span>PRODUCT NAME MAKER</span>
-        <span class="egmm-soon">SOON</span>
-      </button>
-      <button class="egmm-menu-btn soon" data-soon="1">
-        <span>DELI MANAGEMENT</span>
-        <span class="egmm-soon">SOON</span>
-      </button>
-      <button class="egmm-menu-btn soon" data-soon="1">
-        <span>EBT</span>
-        <span class="egmm-soon">SOON</span>
-      </button>
-      <button class="egmm-menu-btn soon" data-soon="1">
-        <span>TAX</span>
-        <span class="egmm-soon">SOON</span>
-      </button>
-      <button class="egmm-menu-btn soon" data-soon="1">
-        <span>HARD LIQUOR</span>
-        <span class="egmm-soon">SOON</span>
-      </button>
+    <div class="hm-cards">
+      <!-- 카드 1: H-MART -->
+      <div class="egmm-card">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">H-MART</span></div>
+
+        <div class="egmm-section-title">PLU / UPC / ITEM CODE</div>
+        <button class="egmm-menu-btn" id="hmartToListBtn"><span>PLU LIST</span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span>UPC / ITEM CODE LOOKUP</span><span class="egmm-menu-arrow">→</span></button>
+
+        <div class="egmm-section-title gap">MEMORIZE</div>
+        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span>PLU MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
+
+        <div class="egmm-section-title gap">REQUEST</div>
+        <button class="egmm-menu-btn" id="hmartDeliBtn"><span>DELI</span><span class="egmm-menu-arrow">→</span></button>
+      </div>
+
+      <!-- 카드 2: GUIDE -->
+      <div class="egmm-card">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">GUIDE</span></div>
+
+        <div class="egmm-section-title">GUIDE</div>
+        <button class="egmm-menu-btn soon" data-soon="1"><span>PRODUCT NAME MAKER</span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span>DELI MANAGEMENT</span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span>EBT</span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span>TAX</span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span>HARD LIQUOR</span><span class="egmm-soon">SOON</span></button>
+      </div>
     </div>
   </div>
 
@@ -299,7 +306,7 @@
 
   // 타이틀 · FAB · 문서 제목에 매장명
   var st = activeStore();
-  var suf = $('hmStoreSuffix'); if(suf && st) suf.textContent = ' - ' + st;
+  var suf = $('hmStoreSuffix'); if(suf) suf.textContent = st || '';
   var fabName = $('hmFabStore'); if(fabName) fabName.textContent = st || 'MANAGER';
   document.title = 'H-MART' + (st ? (' - ' + st) : '') + ' · THE SHAWN';
 
