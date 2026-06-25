@@ -175,9 +175,9 @@
   .plu-table thead th {
     position: sticky; top: 0; z-index: 1; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
-    padding: 9px 9px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
+    padding: 9px 9px; border-bottom: 1.5px solid var(--border); border-right: 1px solid #cdddf2; white-space: nowrap;
   }
-  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
   .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
@@ -230,6 +230,8 @@
   /* 첫 열(PLU) 왼쪽 / 끝 열 오른쪽 여백 ~2글자 */
   .plu-table thead th:first-child, .plu-table tbody td:first-child { padding-left: 18px; }
   .plu-table thead th:last-child, .plu-table tbody td:last-child { padding-right: 18px; }
+  /* 마지막 열 오른쪽 구분선 제거 */
+  .plu-table thead th:last-child, .plu-table tbody td:last-child { border-right: none; }
   /* 체크박스 열: 보기 화면에서 빈/체크 모두 박스로 표시 */
   .plu-table td.plu-c-check .pluchk { font-size: 15px; line-height: 1; color: #15803d; }
   .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
@@ -431,6 +433,16 @@
 </style>
 </head>
 <body>
+<script>
+/* 통합 세션 가드 — theShawnStore 없으면 INDEX로. (HMART 진입 시 로그인) */
+(function(){
+  try{
+    var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+    var s=localStorage.getItem('theShawnStore');
+    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); }
+  }catch(e){ location.replace('index.html'); }
+})();
+</script>
 <div class="page-topbar">
   <h1 class="page-title">🗂️ PLU LIST</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
@@ -840,8 +852,10 @@
       '<button class="plu-tool-btn" id="pluCompareBtn">⇄ COMPARE</button>'+
       '<button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button>'+
       '<button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button>'+
+      /* PLU REQUEST · VIEW RESULTS — 추후 사용 위해 숨김(주석처리)
       '<button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button>'+
       '<button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button>'+
+      */
       '<button class="plu-tool-btn plu-cute-btn'+(unlocked?' open':'')+'" id="pluLockBtn" title="'+(unlocked?'잠그기':'편집 잠금 해제')+'">'+(unlocked?'🔓':'🔒')+'</button>'+
     '</div>';
   }
@@ -1131,7 +1145,7 @@
       var rows=all.filter(function(r){ return rowMatches(r,t); });
       if(pluHideReserve) rows=rows.filter(function(r){ return !isReserveRow(r); });
       visibleCache=rows;
-      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-req-btn" id="pluReqBtn">＋ PLU REQUEST</button><button class="plu-tool-btn plu-req-btn" id="pluReqViewBtn">VIEW RESULTS (<span id="pluReqCount">0</span>)</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🔓':'🔒')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
+      var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML='<div class="plu-tools"><button class="plu-tool-btn" id="pluExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="pluPrintBtn">🖨 PRINT</button><button class="plu-tool-btn plu-cute-btn'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?' open':'')+'" id="pluLockBtn" title="편집 잠금">'+((typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())?'🔓':'🔒')+'</button></div>'; if(window.__reqApply) window.__reqApply(); }
       var slot2=$('pluToolbarSlot2'); if(slot2) slot2.innerHTML='<div class="plu-tools"><label class="plu-toggle"><input type="checkbox" id="pluHideRes"'+(pluHideReserve?' checked':'')+'> 빈 슬롯(RESERVE) 숨기기</label><button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button><button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button><span class="plu-count">'+rows.length+'개</span></div>';
       el.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody>'+
           (rows.map(viewRowHTML).join('')||'<tr><td colspan="'+(visibleCols().length+1)+'" class="plu-no-result">검색 결과가 없습니다</td></tr>')+'</tbody></table></div>';
@@ -1399,7 +1413,7 @@
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='hmart.html'; }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='index.html'; }
   function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeShowCols=d.showCols||{}; rerender(); }, function(){}); }catch(e){} }
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 

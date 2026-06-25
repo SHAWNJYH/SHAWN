@@ -241,6 +241,16 @@
 </script>
 </head>
 <body>
+<script>
+/* 통합 세션 가드 — theShawnStore 없으면 INDEX로. (HMART 진입 시 로그인) */
+(function(){
+  try{
+    var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+    var s=localStorage.getItem('theShawnStore');
+    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); }
+  }catch(e){ location.replace('index.html'); }
+})();
+</script>
   <div class="pq-topbar">
     <div>
       <div class="pq-brand">PLU MEMORIZE</div>

@@ -110,11 +110,95 @@
     cursor: pointer; padding: 10px;
   }
   .egmm-back-link:hover { color: var(--text); }
+
+  /* 매장명 접미사 */
+  .hm-store-suffix { color: var(--accent-warm); font-weight: 700; }
+  /* 로그아웃 FAB */
+  .hm-fab { position: fixed; top: 22px; right: 22px; z-index: 50; display: inline-flex; align-items: center; gap: 7px;
+    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
+    padding: 9px 14px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(26,26,29,0.08); transition: border-color .15s, color .15s; }
+  .hm-fab:hover { border-color: var(--accent-warm); color: var(--text); }
+  .hm-fab b { color: var(--text); }
+
+  /* PLU REQUEST 모달 (다크 그라데이션 헤더 — 깔끔 디자인) */
+  .plureq-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 1200; padding: 20px; }
+  .plureq-ov.show { display: flex; }
+  .plureq-modal { background: #fff; border-radius: 18px; width: 96%; max-width: 680px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 18px 60px rgba(0,0,0,0.3); }
+  .plureq-head { display: flex; align-items: center; gap: 8px; padding: 18px 22px; font-family: var(--serif); font-size: 18px; font-weight: 800; background: linear-gradient(135deg,#1f1d1a,#3a352e); color: #fff; flex: 0 0 auto; }
+  .plureq-x { margin-left: auto; border: none; background: none; font-size: 18px; cursor: pointer; color: #fff; opacity: .75; }
+  .plureq-x:hover { opacity: 1; }
+  .plureq-body { padding: 16px 20px 18px; overflow: auto; background: #fbfaf7; }
+  .plureq-field { margin-bottom: 6px; }
+  .plureq-field label { display: block; font-size: 11px; font-weight: 700; color: #6b6b72; margin-bottom: 2px; }
+  .plureq-field input, .plureq-field select, .plureq-field textarea { width: 100%; box-sizing: border-box; border: 1.5px solid #e5e5e0; border-radius: 9px; padding: 7px 10px; font-family: inherit; font-size: 14px; color: #1a1a1d; background: #fff; }
+  .plureq-field input:focus, .plureq-field select:focus, .plureq-field textarea:focus { outline: none; border-color: #1e40af; }
+  .plureq-divider { border: none; border-top: 1.5px solid #e5e5e0; margin: 9px 0 7px; }
+  .plureq-section-title { font-size: 12px; font-weight: 800; color: #1e40af; margin-bottom: 6px; letter-spacing: .2px; }
+  #plureqFormOv .plureq-body { text-transform: uppercase; }
+  #plureqFormOv .plureq-body input, #plureqFormOv .plureq-body select, #plureqFormOv .plureq-body textarea { text-transform: none; }
+  .plureq-checks { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 0 2px; }
+  .plureq-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #c0392b; cursor: pointer; }
+  .plureq-check input { width: 16px; height: 16px; cursor: pointer; }
+  .plureq-3col { display: flex; gap: 10px; }
+  .plureq-col { flex: 1 1 0; min-width: 0; }
+  .plureq-ingredients { resize: vertical; min-height: 84px; line-height: 1.4; }
+  .plureq-memo { resize: vertical; min-height: 23px; line-height: 1.4; }
+  .plureq-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .plureq-btn { flex: 1; border: none; border-radius: 11px; padding: 11px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .plureq-btn.primary { background: #1a1a1d; color: #fff; }
+  .plureq-btn.primary:hover { filter: brightness(1.15); }
+  .plureq-btn.blue { background: #1e40af; color: #fff; }
+  .plureq-btn.ghost { background: transparent; color: #6b6b72; border: 1.5px solid #e5e5e0; }
+  .plureq-btn.ghost:hover { border-color: var(--accent-warm); color: var(--text); }
+  .plureq-list { display: flex; flex-direction: column; gap: 8px; }
+  .plureq-row { border: 1.5px solid #e5e5e0; border-radius: 10px; padding: 10px 12px; font-size: 14px; background: #fff; }
+  .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .plureq-row .name { font-weight: 700; color: #1a1a1d; }
+  .plureq-row .meta { color: #6b6b72; font-size: 13px; margin-top: 3px; }
+  .plureq-badge { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
+  .plureq-badge.done { background: #e2f3e6; color: #15803d; }
+  .plureq-empty { text-align: center; color: #6b6b72; padding: 20px; }
+  .rqlbl { color:#c0392b; font-weight:800; }
+
+  /* 토스트 */
+  .hm-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: #1a1a1d; color: #fff; padding: 11px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all .25s; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+  .hm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .hm-toast.success { background: #2a8a4a; } .hm-toast.error { background: #c0392b; }
 </style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+    authDomain: "the-shawn.firebaseapp.com",
+    projectId: "the-shawn",
+    storageBucket: "the-shawn.firebasestorage.app",
+    messagingSenderId: "519898602513",
+    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+    measurementId: "G-NKGYGC63JN"
+  };
+  const app = initializeApp(firebaseConfig);
+  window.firebaseDb = getFirestore(app);
+  window.firebaseFns = { doc, getDoc, setDoc, collection, onSnapshot };
+  window.dispatchEvent(new Event('plu-firebase-ready'));
+</script>
 </head>
 <body>
+<script>
+/* 통합 세션 가드 — theShawnStore 없으면 INDEX로 (HMART는 index에서 로그인 후 진입) */
+(function(){
+  try{
+    var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+    var s=localStorage.getItem('theShawnStore');
+    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); }
+  }catch(e){ location.replace('index.html'); }
+})();
+</script>
+  <button class="hm-fab" id="hmLogoutFab" type="button" title="로그아웃">👤 <b id="hmFabStore"></b></button>
   <div class="page-topbar">
-    <h1 class="page-title">H-MART</h1>
+    <h1 class="page-title">H-MART<span class="hm-store-suffix" id="hmStoreSuffix"></span></h1>
   </div>
   <div class="hmart-menu">
     <div class="egmm-card">
@@ -129,6 +213,12 @@
       </button>
       <button class="egmm-menu-btn" id="hmartToQuizBtn">
         <span>PLU MEMORIZE</span>
+        <span class="egmm-menu-arrow">›</span>
+      </button>
+
+      <div class="egmm-section-title gap">REQUEST</div>
+      <button class="egmm-menu-btn" id="hmartDeliBtn">
+        <span>DELI</span>
         <span class="egmm-menu-arrow">›</span>
       </button>
 
@@ -156,15 +246,140 @@
     </div>
   </div>
 
+<div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
+  <div class="plureq-head"><span id="rqTitle">DELI · PLU REQUEST</span><button class="plureq-x" id="rqFormX" type="button">✕</button></div>
+  <div class="plureq-body">
+    <div class="plureq-3col">
+      <div class="plureq-field plureq-col"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+      <div class="plureq-field plureq-col"><label>CATEGORY</label><select id="rqCategory"><option value="">SELECT</option><option>PRODUCE</option><option>DELI</option><option>FISH</option><option>MEAT</option><option>HOUSEWARE</option></select></div>
+    </div>
+    <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
+    <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
+    <div class="plureq-3col">
+      <div class="plureq-field plureq-col"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field plureq-col"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field plureq-col"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+    </div>
+    <hr class="plureq-divider">
+    <div class="plureq-section-title">Additional info for DELI PLU requests</div>
+    <div class="plureq-field"><label>INGREDIENTS (English only)</label><textarea id="rqIngredients" class="plureq-ingredients" maxlength="200" rows="4" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea></div>
+    <div class="plureq-3col">
+      <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
+      <div class="plureq-field plureq-col"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field plureq-col"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+    </div>
+    <div class="plureq-checks">
+      <label class="plureq-check"><input type="checkbox" id="rqHot"> HOT</label>
+      <label class="plureq-check"><input type="checkbox" id="rqCool"> COOL</label>
+      <label class="plureq-check"><input type="checkbox" id="rqAmbient"> ROOM</label>
+    </div>
+    <hr class="plureq-divider">
+    <div class="plureq-field"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="2" autocomplete="off"></textarea></div>
+    <div class="plureq-actions">
+      <button class="plureq-btn ghost" id="rqCancel">CANCEL</button>
+      <button class="plureq-btn blue" id="rqViewOpen">VIEW REQUEST</button>
+      <button class="plureq-btn primary" id="rqSubmit">SUBMIT</button>
+    </div>
+  </div>
+</div></div>
+<div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
+  <div class="plureq-head"><span>PLU REQUEST RESULTS</span><button class="plureq-x" id="rqViewX" type="button">✕</button></div>
+  <div class="plureq-body">
+    <div class="plureq-list" id="rqList"></div>
+    <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">CLOSE</button></div>
+  </div>
+</div></div>
+<div class="hm-toast" id="hmToast"></div>
+
 <script>
 (function(){
   'use strict';
   var $ = function(id){ return document.getElementById(id); };
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+
+  // 타이틀 · FAB · 문서 제목에 매장명
+  var st = activeStore();
+  var suf = $('hmStoreSuffix'); if(suf && st) suf.textContent = ' - ' + st;
+  var fabName = $('hmFabStore'); if(fabName) fabName.textContent = st || 'MANAGER';
+  document.title = 'H-MART' + (st ? (' - ' + st) : '') + ' · THE SHAWN';
+
+  // 토스트 / 얼럿
+  var toastTimer;
+  function showToast(msg, type){ var t=$('hmToast'); if(!t) return; clearTimeout(toastTimer); t.textContent=msg; t.className='hm-toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='hm-toast '+(type||''); }, 2500); }
+  function uiAlert(msg){ showToast(msg, 'error'); }
+
+  // 네비게이션
   $('hmartToListBtn').onclick = function(){ window.location.href = 'plu-list-store.html'; };
   $('hmartToUpcBtn').onclick = function(){ window.location.href = 'upc-list-store.html'; };
   $('hmartToQuizBtn').onclick = function(){ window.location.href = 'plu-quiz.html'; };
-  Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){
-    b.onclick = function(){ /* 준비 중 — 동작 없음 */ };
+  Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){ b.onclick = function(){}; });
+
+  // 로그아웃 → 세션 정리 후 INDEX
+  $('hmLogoutFab').onclick = function(){
+    if(!confirm('로그아웃할까요?')) return;
+    try{ localStorage.removeItem('theShawnStore'); }catch(e){}
+    try{ localStorage.removeItem('theShawnUpcStore'); }catch(e){}
+    try{ localStorage.removeItem('hmartAutoLogin'); }catch(e){}
+    window.location.href = 'index.html';
+  };
+
+  // ===== PLU REQUEST (DELI) — plu-requests 컬렉션 =====
+  var REQ_COL='plu-requests';
+  var reqs=[], seenDone={}, firstSnap=true;
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+  function openForm(){ var s=activeStore(); var ti=$('rqTitle'); if(ti) ti.textContent=(s?(s+' STORE · '):'')+'PLU REQUEST'; ['rqRequester','rqCategory','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); $('plureqFormOv').classList.add('show'); }
+  function closeForm(){ $('plureqFormOv').classList.remove('show'); }
+  function submitReq(){
+    var store=activeStore(); var requester=($('rqRequester').value||'').trim();
+    if(!store){ uiAlert('매장 로그인이 필요합니다'); return; }
+    if(!requester){ uiAlert('Please enter REQUESTER'); return; }
+    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('ROOM');
+    var data={ store:store, requester:requester, category:($('rqCategory')?($('rqCategory').value||'').trim():''), kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
+      ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
+      status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
+    if(!fns()||!db()){ uiAlert('연결 준비 중 — 잠시 후 다시'); return; }
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); showToast('PLU request submitted','success'); }).catch(function(){ uiAlert('Submit failed (check network/permission)'); }); }
+    catch(e){ uiAlert('Submit failed'); }
+  }
+  function statusBadge(s){ return s==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
+  function openView(){
+    reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
+    var el=$('rqList');
+    var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
+    el.innerHTML = sorted.length ? sorted.map(function(r){
+      var done=r.status==='done';
+      var kor=done?(r.mgrKor||''):(r.kor||'');
+      var eng=done?(r.mgrEng||''):(r.eng||'');
+      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(NO NAME)')+'</span>'+statusBadge(r.status)+'</div>'+
+        '<div class="meta"><span class="rqlbl">STORE</span> '+esc(r.store||'-')+' · <span class="rqlbl">REQUESTER</span> '+esc(r.requester||'-')+'</div>'+
+        '<div class="meta"><span class="rqlbl">PLU</span> '+esc(r.plu||'-')+' · <span class="rqlbl">KOR</span> '+esc(kor||'-')+' · <span class="rqlbl">ENG</span> '+esc(eng||'-')+'</div>'+
+      '</div>';
+    }).join('') : '<div class="plureq-empty">No requests.</div>';
+    $('plureqViewOv').classList.add('show');
+  }
+  function closeView(){ $('plureqViewOv').classList.remove('show'); }
+
+  $('hmartDeliBtn').onclick = openForm;
+  $('rqCancel').onclick = closeForm;
+  $('rqFormX').onclick = closeForm;
+  $('rqSubmit').onclick = submitReq;
+  $('rqViewOpen').onclick = openView;
+  $('rqViewClose').onclick = closeView;
+  $('rqViewX').onclick = closeView;
+  $('plureqFormOv').addEventListener('click', function(e){ if(e.target===$('plureqFormOv')) closeForm(); });
+  $('plureqViewOv').addEventListener('click', function(e){ if(e.target===$('plureqViewOv')) closeView(); });
+
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
+        if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
+        var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+    }catch(e){}
   });
 })();
 </script>

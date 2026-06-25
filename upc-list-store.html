@@ -298,11 +298,11 @@
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
-    padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
+    padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); border-right: 1px solid #cdddf2; white-space: nowrap;
   }
   .plu-table thead th.upc-c-srp, .plu-table thead th.upc-c-srpp, .plu-table thead th.upc-c-blue { position: sticky; top: 0; z-index: 31; }
   .plu-table tbody td { position: relative; z-index: 0; }
-  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
   .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
@@ -364,6 +364,8 @@
   /* 첫 열(PLU) 왼쪽 / 끝 열 오른쪽 여백 ~2글자 */
   .plu-table thead th:first-child, .plu-table tbody td:first-child { padding-left: 18px; }
   .plu-table thead th:last-child, .plu-table tbody td:last-child { padding-right: 18px; }
+  /* 마지막 열 오른쪽 구분선 제거 */
+  .plu-table thead th:last-child, .plu-table tbody td:last-child { border-right: none; }
   /* 체크박스 열: 보기 화면에서 빈/체크 모두 박스로 표시 */
   .plu-table td.plu-c-check .pluchk { font-size: 15px; line-height: 1; color: #15803d; }
   .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
@@ -618,6 +620,17 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 </style>
 </head>
 <body>
+<script>
+/* 통합 세션 가드 — theShawnStore 없으면 INDEX로. 있으면 UPC 스토어 키로 미러링. */
+(function(){
+  try{
+    var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+    var s=localStorage.getItem('theShawnStore');
+    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); return; }
+    try{ localStorage.setItem('theShawnUpcStore', s); }catch(e){}
+  }catch(e){ location.replace('index.html'); }
+})();
+</script>
 <div class="page-topbar">
   <h1 class="page-title">🏷️ 아이템 UPC 관리</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
@@ -3317,7 +3330,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; applyStore(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; window.location.href='hmart.html'; }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} try{localStorage.removeItem('theShawnStore');}catch(e){} currentStore=null; window.location.href='index.html'; }
   document.addEventListener('click', function(e){ var t=e.target; if(t&&t.closest&&t.closest('#stlFab')){ if(window.confirm('로그아웃할까요?')) logout(); } });
   function initLogin(){
     fillStores();

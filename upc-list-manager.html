@@ -336,12 +336,12 @@
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
-    padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); white-space: nowrap;
+    padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); border-right: 1px solid #cdddf2; white-space: nowrap;
   }
   /* 색상 헤더도 같은 높이로 고정 + 데이터 위에 유지 (스크롤 오버랩 방지) */
   .plu-table thead th.upc-c-srp, .plu-table thead th.upc-c-srpp, .plu-table thead th.upc-c-blue { position: sticky; top: 0; z-index: 31; }
   .plu-table tbody td { position: relative; z-index: 0; }
-  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
   .plu-table tbody td.plu-c-no { font-family: var(--code); font-weight: 700; color: #c83a3a; white-space: nowrap; }
@@ -403,6 +403,8 @@
   /* 첫 열(PLU) 왼쪽 / 끝 열 오른쪽 여백 ~2글자 */
   .plu-table thead th:first-child, .plu-table tbody td:first-child { padding-left: 18px; }
   .plu-table thead th:last-child, .plu-table tbody td:last-child { padding-right: 18px; }
+  /* 마지막 열 오른쪽 구분선 제거 */
+  .plu-table thead th:last-child, .plu-table tbody td:last-child { border-right: none; }
   /* 체크박스 열: 보기 화면에서 빈/체크 모두 박스로 표시 */
   .plu-table td.plu-c-check .pluchk { font-size: 15px; line-height: 1; color: #15803d; }
   .plu-table td.plu-c-check .pluchk.off { color: #c2c2c8; }
