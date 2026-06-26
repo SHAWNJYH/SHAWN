@@ -2085,11 +2085,13 @@
     color: #ffffff;
   }
   /* 매장 선택 picker */
-  .store-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .store-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .store-btn {
+    width: 100%; text-align: center;
     background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
-    padding: 8px 13px; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
-    cursor: pointer; border-radius: 999px; transition: all .15s;
+    padding: 9px 6px; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+    cursor: pointer; border-radius: 10px; transition: all .15s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .store-btn:hover { border-color: var(--border-bright); color: var(--text); }
   .store-btn.active { background: var(--accent-warm); border-color: var(--accent-warm); color: #fff; }
