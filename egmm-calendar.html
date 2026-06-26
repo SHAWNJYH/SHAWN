@@ -1610,6 +1610,8 @@
     font-weight: 700;
   }
   .nav-btn:hover { color: var(--accent-warm); border-color: var(--accent-warm); background: var(--accent-soft); }
+  .nav-btn.active { color: #fff; background: var(--accent-warm); border-color: var(--accent-warm); }
+  .nav-btn svg { display: block; }
   .today-btn {
     background: var(--bg-elev);
     border: 1.5px solid var(--border);
@@ -3190,6 +3192,10 @@
       <h2 class="cal-title" id="calMonth">May <em>2026</em></h2>
     </div>
     <div class="cal-nav">
+      <button class="nav-btn" id="fullscreenBtn" title="전체화면 (F11)" aria-label="전체화면">
+        <svg class="fs-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        <svg class="fs-close" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+      </button>
       <button class="today-btn" id="openNotesBtn" title="메모장">📝 메모</button>
       <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
       <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
@@ -4447,6 +4453,38 @@
   $('addEventBtn').onclick = () => {
     openDayPanel(todayKey());
   };
+
+  // ========== 전체화면 ==========
+  (function () {
+    const btn = $('fullscreenBtn');
+    if (!btn) return;
+    const root = document.documentElement;
+    function isFs() {
+      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+    }
+    function enter() {
+      const el = root;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if (fn) { const r = fn.call(el); if (r && r.catch) r.catch(() => {}); }
+    }
+    function exit() {
+      const fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (fn) { const r = fn.call(document); if (r && r.catch) r.catch(() => {}); }
+    }
+    btn.addEventListener('click', () => { isFs() ? exit() : enter(); });
+    function sync() {
+      const on = !!isFs();
+      const o = btn.querySelector('.fs-open'), c = btn.querySelector('.fs-close');
+      if (o) o.style.display = on ? 'none' : '';
+      if (c) c.style.display = on ? '' : 'none';
+      btn.title = on ? '전체화면 종료 (ESC)' : '전체화면 (F11)';
+      btn.classList.toggle('active', on);
+    }
+    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(ev =>
+      document.addEventListener(ev, sync)
+    );
+    sync();
+  })();
 
   // ========== DAY PANEL ==========
   // 폼의 현재 선택 상태
