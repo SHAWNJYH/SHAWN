@@ -428,6 +428,30 @@
   .cfd-empty { grid-column:1/-1; text-align:center; color:#9a9aa0; font-size:12px; padding:14px 0; }
   .cfd-add { margin-top:10px; text-align:center; }
   .cfd-add:disabled { opacity:.45; cursor:not-allowed; }
+
+  /* 필드 관리(마스터) 모달 */
+  .mf-modal{ width:min(560px,94vw); text-align:left; }
+  .mf-addrow{ display:flex; gap:8px; margin:6px 0 12px; }
+  .mf-addrow input{ flex:1 1 auto; min-width:0; border:1.5px solid #e5e5e0; border-radius:9px; padding:9px 11px; font-family:inherit; font-size:14px; }
+  .mf-addrow input:focus{ outline:none; border-color:var(--accent-warm); }
+  .mf-type{ border:1.5px solid #e5e5e0; border-radius:9px; padding:9px 8px; font-family:inherit; font-size:13px; font-weight:700; background:#fff; cursor:pointer; }
+  .mf-btn{ border:1.5px solid #e5e5e0; background:#fff; color:#6b6b72; border-radius:9px; padding:9px 13px; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; transition:all .15s; }
+  .mf-btn:hover{ border-color:var(--accent-warm); color:#1a1a1d; }
+  .mf-btn.primary{ background:#1a1a1d; color:#fff; border-color:#1a1a1d; }
+  .mf-btn.primary:hover{ background:#000; }
+  .mf-btn.warm{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .mf-list{ max-height:44vh; overflow-y:auto; border:1px solid #e5e5e0; border-radius:12px; padding:8px; background:#fbfaf7; display:flex; flex-direction:column; gap:6px; }
+  .mf-row{ display:flex; align-items:center; gap:6px; background:#fff; border:1.5px solid #e5e5e0; border-radius:9px; padding:6px 8px; }
+  .mf-row .mf-ord{ font-size:11px; font-weight:800; color:#b0b0b0; width:22px; text-align:center; flex:0 0 auto; }
+  .mf-row .mf-name{ flex:1 1 auto; min-width:0; border:1px solid transparent; background:transparent; font-family:inherit; font-size:14px; font-weight:700; color:#1a1a1d; padding:4px 6px; border-radius:6px; }
+  .mf-row .mf-name:focus{ outline:none; border-color:var(--accent-warm); background:#fffdf6; }
+  .mf-row .mf-rtype{ border:1px solid #e5e5e0; border-radius:7px; font-family:inherit; font-size:11px; font-weight:700; color:#6b6b72; padding:4px 4px; background:#fafaf7; cursor:pointer; }
+  .mf-row .mf-mini{ border:none; background:transparent; color:#9a9aa0; font-size:14px; font-weight:800; cursor:pointer; padding:2px 5px; border-radius:6px; line-height:1; }
+  .mf-row .mf-mini:hover{ background:#f0eee5; color:#1a1a1d; }
+  .mf-row .mf-del:hover{ color:#c0392b; }
+  .mf-empty{ text-align:center; color:#9a9aa0; font-size:12px; padding:18px 0; font-weight:700; }
+  .mf-foot{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .mf-count{ font-size:12px; font-weight:800; color:#8a6d2b; }
   .plu-modal-choice { border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text); border-radius: 12px; padding: 14px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; text-align: left; }
   .plu-modal-choice:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
@@ -736,10 +760,30 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       <button class="plu-modal-choice" id="pluColRCheck">🔴 상품정보추가<small>체크박스 · 붉은색 · 원하는 위치로 이동 가능</small></button>
       <button class="plu-modal-choice" id="pluColText">📝 상품필드추가<small>글자 입력 · 검은색 · 원하는 위치로 이동 가능 (예: 원산지·비고)</small></button>
     </div>
-    <div class="cfd-divider"><span>또는 다른 카테고리에서 쓰는 필드 가져오기</span></div>
+    <div class="cfd-divider"><span>또는 필드 관리(마스터)에서 가져오기</span></div>
     <div class="cfd-list" id="pluColImportList"></div>
     <button class="plu-modal-choice cfd-add" id="pluColImportAdd" disabled>✓ 선택한 필드 추가</button>
     <button class="plu-modal-cancel" id="pluColCancel">취소</button>
+  </div>
+</div>
+
+<div class="plu-modal-ov" id="pluMasterModal">
+  <div class="plu-modal mf-modal">
+    <h3>🗂 필드 관리 (마스터)</h3>
+    <p>모든 카테고리가 공통으로 쓰는 <b>필드 이름</b>을 여기서 관리합니다. 다른 카테고리에서 필드를 추가할 때 여기 이름을 그대로 가져다 쓰므로 이름이 항상 일치합니다.</p>
+    <div class="mf-addrow">
+      <input id="mfNewName" placeholder="새 필드 이름 (예: UPC(C))" maxlength="40" autocomplete="off">
+      <select class="mf-type" id="mfNewType"><option value="text">텍스트</option><option value="rcheck">체크(빨강)</option><option value="check">매장체크(초록)</option></select>
+      <button class="mf-btn warm" id="mfAdd" type="button">＋ 추가</button>
+    </div>
+    <div class="mf-list" id="mfList"></div>
+    <div class="mf-foot">
+      <button class="mf-btn" id="mfCollect" type="button" title="모든 카테고리에 이미 만들어진 필드를 마스터로 한 번에 수집">⤵ 현재 카테고리들에서 수집</button>
+      <span class="mf-count" id="mfCount"></span>
+      <span style="flex:1 1 auto"></span>
+      <button class="mf-btn" id="mfClose" type="button">닫기</button>
+      <button class="mf-btn primary" id="mfSave" type="button">💾 저장</button>
+    </div>
   </div>
 </div>
 
@@ -775,6 +819,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var PLU_TABS=DEFAULT_TABS.map(function(t){ return {label:t.label, doc:t.doc, subs:t.subs.slice()}; });
   const COL='upc-list';
   var CFG_COL='upc-config', CFG_DOC='main';
+  // ===== 필드 관리(마스터) — 모든 카테고리 공통 필드 이름 레지스트리 (upc-config/main.masterFields) =====
+  var masterFields=[];  // [{key,label,type}]  key=label=대문자 이름
+  function normMaster(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var K=String(m.key).trim().toUpperCase(); if(!K||seen[K])return; seen[K]=1; out.push({key:K,label:K,type:(m.type==='check'?'check':(m.type==='rcheck'?'rcheck':'text'))}); }); return out; }
+  async function saveMasterFields(){ try{ if(fns()&&fns().setDoc) await fns().setDoc(fns().doc(db(),CFG_COL,CFG_DOC),{masterFields:masterFields,updatedAt:Date.now()},{merge:true}); }catch(e){} }
+  // 어디서든 필드를 만들면 마스터에도 등록(없을 때만)
+  function registerMaster(name,type){ var K=String(name||'').trim().toUpperCase(); if(!K) return; if(masterFields.some(function(m){return m.key===K;})) return; masterFields.push({key:K,label:K,type:(type==='check'?'check':(type==='rcheck'?'rcheck':'text'))}); saveMasterFields(); }
   var DOCID={};
   // 문서 ID 재구성
   function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
@@ -792,7 +842,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     renderTabs(); if(!editMode && typeof renderContent==='function') renderContent();
   }
   // 전역 설정(plu-config) 실시간 구독
-  function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
+  function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(Array.isArray(d.masterFields)){ masterFields=normMaster(d.masterFields); if($('pluMasterModal') && $('pluMasterModal').classList.contains('show')) renderMasterList(); } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
   const BASE=[];
@@ -1549,6 +1599,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<button class="plu-tool-btn editact" id="pluDataConvBtn" title="UPC 변환 · SALES(MSRP) 계산 · MARGIN 계산">🔧 데이터 변환</button>'+
           '<button class="plu-tool-btn editact" id="pluAddBtn">＋ 데이터추가</button>'+
           '<button class="plu-tool-btn editact" id="pluAddColBtn">＋ 필드추가</button>'+
+          '<button class="plu-tool-btn editact" id="pluMasterBtn" title="모든 카테고리 공통 필드(마스터) 이름 관리">🗂 필드 관리</button>'+
           '<button class="plu-tool-btn editact'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'+
           '<span class="edit-slot" id="editBackSlot"></span>'+
         '</div>'+
@@ -2178,33 +2229,28 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(!workLayout) workLayout=[];
     if(type==='check'){ workLayout.push({key:name,label:name,hidden:false,type:'check'}); }
     else { workLayout.unshift({key:name,label:name,hidden:false,type:(type==='rcheck'?'rcheck':'text')}); }
+    registerMaster(name, type);
     markDirty(); renderContent();
   }
   // 열 추가/관리 모달 열기
   function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); fillColImportList(); }
   var __cfdItems=[];
+  // 가져오기 후보 = 필드 관리(마스터)에 등록된 필드 중, 현재 카테고리에 아직 없는 것
   function otherCatFields(){
     var curKeys={}; (workLayout||[]).forEach(function(c){ if(c&&c.key!=null) curKeys[String(c.key).toUpperCase()]=1; });
-    var seen={}, out=[];
-    PLU_TABS.forEach(function(t){
-      if(t.label===curCat()) return;
-      var lay=layoutByCat[t.label]||[];
-      lay.forEach(function(c){
-        if(!c||c.key==null) return;
-        var K=String(c.key).toUpperCase();
-        if(isBase(c.key)) return;
-        if(curKeys[K]) return;
-        if(seen[K]){ if(seen[K].cats.indexOf(t.label)<0) seen[K].cats.push(t.label); return; }
-        var item={ key:c.key, label:c.label, type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')), fmt:(c.fmt==='price'?'price':'text'), fg:(c.fg||''), bg:(c.bg||''), bold:!!c.bold, cats:[t.label] };
-        seen[K]=item; out.push(item);
-      });
+    var out=[];
+    (masterFields||[]).forEach(function(m){
+      var K=String(m.key).toUpperCase();
+      if(isBase(K)) return;
+      if(curKeys[K]) return;
+      out.push({ key:K, label:m.label||K, type:(m.type==='check'?'check':(m.type==='rcheck'?'rcheck':'text')), fmt:'text', fg:'', bg:'', bold:false, cats:['마스터'] });
     });
     return out;
   }
   function fillColImportList(){
     var box=$('pluColImportList'); if(!box) return;
     __cfdItems=otherCatFields();
-    if(!__cfdItems.length){ box.innerHTML='<div class="cfd-empty">가져올 수 있는 다른 카테고리 필드가 없습니다</div>'; var ab=$('pluColImportAdd'); if(ab) ab.disabled=true; return; }
+    if(!__cfdItems.length){ box.innerHTML='<div class="cfd-empty">필드 관리(마스터)에 추가할 수 있는 필드가 없습니다 · 🗂 필드 관리에서 등록하세요</div>'; var ab=$('pluColImportAdd'); if(ab) ab.disabled=true; return; }
     box.innerHTML=__cfdItems.map(function(it,i){ var tt=(it.type==='check'||it.type==='rcheck')?' (체크)':(it.fmt==='price'?' ($)':''); return '<label class="em-cfg-item"><input type="checkbox" class="cfd-col" data-i="'+i+'"> <span>'+escapeHtml(it.label)+tt+' <span class="em-cfg-tag">'+escapeHtml(it.cats.join(', '))+'</span></span></label>'; }).join('');
     var refresh=function(){ var any=box.querySelectorAll('.cfd-col:checked').length>0; var ab=$('pluColImportAdd'); if(ab) ab.disabled=!any; };
     box.querySelectorAll('.cfd-col').forEach(function(ch){ ch.onchange=refresh; });
@@ -2227,6 +2273,78 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
   // 열 모달 닫기
   function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
+
+  // ===== 필드 관리(마스터) 모달 =====
+  var mfWork=null;
+  function collectAllCatFields(){
+    var seen={}, out=[];
+    PLU_TABS.forEach(function(t){
+      var lay=layoutByCat[t.label]||[];
+      lay.forEach(function(c){ if(!c||c.key==null) return; var K=String(c.key).toUpperCase(); if(isBase(K)||seen[K]) return; seen[K]=1; out.push({key:K,label:K,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text'))}); });
+    });
+    return out;
+  }
+  function openMasterModal(){
+    mfWork = (masterFields&&masterFields.length) ? masterFields.map(function(m){return {key:m.key,label:m.key,type:m.type};}) : collectAllCatFields();
+    renderMasterList();
+    var ov=$('pluMasterModal'); if(ov) ov.classList.add('show');
+    var nn=$('mfNewName'); if(nn){ nn.value=''; setTimeout(function(){ try{nn.focus();}catch(e){} },30); }
+  }
+  function closeMasterModal(){ var ov=$('pluMasterModal'); if(ov) ov.classList.remove('show'); }
+  function renderMasterList(){
+    var box=$('mfList'); if(!box||!mfWork) return;
+    if(!mfWork.length){ box.innerHTML='<div class="mf-empty">아직 등록된 필드가 없습니다. 위에서 추가하거나 ⤵ 수집을 누르세요.</div>'; }
+    else {
+      box.innerHTML=mfWork.map(function(m,i){
+        var topt='<option value="text"'+(m.type==='text'?' selected':'')+'>텍스트</option><option value="rcheck"'+(m.type==='rcheck'?' selected':'')+'>체크(빨강)</option><option value="check"'+(m.type==='check'?' selected':'')+'>매장체크</option>';
+        return '<div class="mf-row" data-i="'+i+'">'+
+          '<span class="mf-ord">'+(i+1)+'</span>'+
+          '<input class="mf-name" value="'+escapeHtml(m.key)+'" maxlength="40" autocomplete="off">'+
+          '<select class="mf-rtype">'+topt+'</select>'+
+          '<button class="mf-mini mf-up" type="button" title="위로">↑</button>'+
+          '<button class="mf-mini mf-down" type="button" title="아래로">↓</button>'+
+          '<button class="mf-mini mf-del" type="button" title="삭제">✕</button>'+
+        '</div>';
+      }).join('');
+      box.querySelectorAll('.mf-row').forEach(function(row){
+        var i=parseInt(row.getAttribute('data-i'),10);
+        row.querySelector('.mf-name').addEventListener('input', function(){ mfWork[i].key=this.value.trim().toUpperCase(); mfWork[i].label=mfWork[i].key; });
+        row.querySelector('.mf-rtype').addEventListener('change', function(){ mfWork[i].type=this.value; });
+        row.querySelector('.mf-up').onclick=function(){ if(i>0){ var t=mfWork[i-1]; mfWork[i-1]=mfWork[i]; mfWork[i]=t; renderMasterList(); } };
+        row.querySelector('.mf-down').onclick=function(){ if(i<mfWork.length-1){ var t=mfWork[i+1]; mfWork[i+1]=mfWork[i]; mfWork[i]=t; renderMasterList(); } };
+        row.querySelector('.mf-del').onclick=function(){ mfWork.splice(i,1); renderMasterList(); };
+      });
+    }
+    var cnt=$('mfCount'); if(cnt) cnt.textContent=(mfWork?mfWork.length:0)+'개';
+  }
+  function mfAddNew(){
+    var nn=$('mfNewName'), tt=$('mfNewType'); if(!nn||!mfWork) return;
+    var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
+    if(mfWork.some(function(m){return m.key===name;})){ showToast('이미 있는 필드입니다','error'); nn.select(); return; }
+    mfWork.push({key:name,label:name,type:(tt?tt.value:'text')});
+    nn.value=''; renderMasterList(); try{nn.focus();}catch(e){}
+  }
+  async function mfSaveAll(){
+    masterFields = normMaster(mfWork);
+    await saveMasterFields();
+    showToast('필드 관리(마스터) 저장됨 · '+masterFields.length+'개','success');
+    closeMasterModal();
+  }
+  function mfCollectNow(){
+    if(!mfWork) mfWork=[];
+    var found=collectAllCatFields(), have={}; mfWork.forEach(function(m){ have[m.key]=1; }); var add=0;
+    found.forEach(function(f){ if(!have[f.key]){ mfWork.push(f); have[f.key]=1; add++; } });
+    renderMasterList(); showToast(add?(add+'개 수집됨 · 💾 저장 필요'):'추가로 수집할 필드가 없습니다', add?'success':'');
+  }
+  (function wireMasterModal(){
+    var a=$('mfAdd'), c=$('mfClose'), s=$('mfSave'), col=$('mfCollect'), nn=$('mfNewName'), ov=$('pluMasterModal');
+    if(a) a.onclick=mfAddNew;
+    if(nn) nn.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); mfAddNew(); } });
+    if(c) c.onclick=closeMasterModal;
+    if(s) s.onclick=mfSaveAll;
+    if(col) col.onclick=mfCollectNow;
+    if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) closeMasterModal(); });
+  })();
   var __ingCat=null,__ingPlu=null,__ingKey=null;
   // 성분 입력 모달 열기
   function openIngModal(plu,key){ var cat=curCat(); var rows=rowsFor(cat)||[]; var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } var full=row?String(getVal(row,key)||''):''; __ingCat=cat; __ingPlu=plu; __ingKey=key; var ta=$('pluIngText'); if(ta){ ta.value=full; ta.readOnly=false; } var ti=$('pluIngTitle'); if(ti) ti.textContent=key; var sb=$('pluIngSub'); if(sb) sb.textContent='PLU '+plu; var ov=$('pluIngModal'); if(ov) ov.classList.add('show'); }
@@ -2589,6 +2707,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       '<div class="pcm-body adm-body">'+
         '<button class="adm-btn" id="admEdit" type="button">✎ 편집모드</button>'+
         '<button class="adm-btn" id="admCat" type="button">🗂 카테고리설정</button>'+
+        '<button class="adm-btn" id="admMaster" type="button">🗂 필드 관리 (마스터)</button>'+
         '<button class="adm-btn" id="admHist" type="button">📦 신제품 및 변경상품 보기</button>'+
         '<button class="adm-btn" id="admImport" type="button">⬇︎ 데이터 불러오기</button>'+
         '<button class="adm-btn" id="admExport" type="button">⬆︎ 데이터 내보내기</button>'+
@@ -2603,6 +2722,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('admClose').onclick=close; $('admOverlay').onclick=function(e){ if(e.target&&e.target.id==='admOverlay') close(); };
     $('admEdit').onclick=function(){ close(); if(!editMode) enterEdit(); };
     $('admCat').onclick=function(){ close(); openCatEditor(); };
+    var amf=$('admMaster'); if(amf) amf.onclick=function(){ close(); openMasterModal(); };
     $('admHist').onclick=function(){ close(); showHistModal('all'); };
     $('admImport').onclick=function(){ close(); importXlsx(); };
     $('admExport').onclick=function(){ close(); openExportMenu(true); };
@@ -2626,6 +2746,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var ed=$('pluEditBtn'); if(ed) ed.onclick=async function(){ if(!editMode){ enterEdit(); } else { if(await leaveEditGuard()) renderContent(); } };
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
     var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
+    var mstb=$('pluMasterBtn'); if(mstb) mstb.onclick=function(){ openMasterModal(); };
     var apl=$('pluApplyAllBtn'); if(apl) apl.onclick=function(){ applyLayoutToAll(); };
     var cdv=$('pluDataConvBtn'); if(cdv) cdv.onclick=function(){ openDataConvModal(); };
     var seldel=$('pluSelDelBtn'); if(seldel) seldel.onclick=async function(){
