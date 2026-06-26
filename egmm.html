@@ -2283,6 +2283,7 @@
   .egmm-card:nth-child(1) { animation-delay: .05s; }
   .egmm-card:nth-child(2) { animation-delay: .13s; }
   .egmm-card:nth-child(3) { animation-delay: .21s; }
+  .egmm-card:nth-child(4) { animation-delay: .29s; }
   @keyframes egmmRise { to { opacity: 1; transform: none; } }
 
   .egmm-card-head { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; margin-bottom: 16px;
@@ -2543,6 +2544,14 @@
 
     <div class="egmm-section-title gap">INSERT GUIDE</div>
     <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label">HANA</span><span class="egmm-menu-arrow">→</span></button>
+  </div>
+
+  <!-- 박스: REQUEST -->
+  <div class="egmm-card">
+    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
+
+    <div class="egmm-section-title">DELI</div>
+    <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label">DELI REQUEST</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
   <!-- 박스 3: GUIDE -->
@@ -3045,5 +3054,256 @@
   showMenu();
 })();
 </script>
+
+<!-- ===== DELI REQUEST (hmart에서 이식) ===== -->
+<style>
+  /* ===== DELI REQUEST 모달 (정제 리디자인 · 골드 악센트) ===== */
+  .plureq-ov { position: fixed; inset: 0; background: rgba(26,26,29,0.42); backdrop-filter: blur(7px);
+    display: none; align-items: center; justify-content: center; z-index: 1200; padding: 20px; animation: hmFade .18s ease; }
+  .plureq-ov.show { display: flex; }
+  @keyframes hmFade { from { opacity: 0; } to { opacity: 1; } }
+  .plureq-modal { background: var(--bg-elev); border: 1px solid var(--border-bright); border-radius: 20px;
+    width: 96%; max-width: 600px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(26,26,29,0.30); animation: hmRiseModal .32s cubic-bezier(.2,.8,.2,1); }
+  @keyframes hmRiseModal { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* 헤더: 다크 + 골드 틱 + 골드 헤어라인 */
+  .plureq-head { position: relative; display: flex; align-items: center; gap: 12px; padding: 19px 22px;
+    background: linear-gradient(135deg, #1f1d1a, #34302a); color: #fff; flex: 0 0 auto; }
+  .plureq-head::after { content: ""; position: absolute; left: 22px; right: 22px; bottom: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-warm) 18%, var(--accent-warm) 82%, transparent); opacity: .7; }
+  .plureq-tick { width: 6px; height: 24px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
+  .plureq-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .plureq-eyebrow { font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent-warm); }
+  .plureq-head-title { font-family: var(--serif); font-size: 18px; font-weight: 800; letter-spacing: .01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .plureq-x { margin-left: auto; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06);
+    width: 32px; height: 32px; border-radius: 9px; font-size: 14px; cursor: pointer; color: #fff; opacity: .9;
+    display: flex; align-items: center; justify-content: center; flex: 0 0 auto; transition: all .15s; }
+  .plureq-x:hover { opacity: 1; background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
+
+  /* 본문: 크림 */
+  .plureq-body { padding: 20px 22px 22px; overflow: auto; background: #fbfaf7; }
+  .plureq-body::-webkit-scrollbar { width: 10px; }
+  .plureq-body::-webkit-scrollbar-thumb { background: #dcdcd4; border-radius: 8px; border: 3px solid #fbfaf7; }
+
+  .plureq-field { margin-bottom: 11px; }
+  .plureq-field label { display: block; font-family: var(--mono); font-size: 10.5px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 5px; }
+  .plureq-field input, .plureq-field select, .plureq-field textarea { width: 100%; box-sizing: border-box;
+    border: 1.5px solid var(--border); border-radius: 11px; padding: 10px 12px; font-family: inherit;
+    font-size: 14px; font-weight: 600; color: var(--text); background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .plureq-field input::placeholder, .plureq-field textarea::placeholder { color: var(--text-faint); font-weight: 500; }
+  .plureq-field input:focus, .plureq-field select:focus, .plureq-field textarea:focus { outline: none;
+    border-color: var(--accent-warm); box-shadow: 0 0 0 3px rgba(201,169,97,.18); }
+  .plureq-field select { cursor: pointer; -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9aa0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  .plureq-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0 14px; }
+  .plureq-section-title { position: relative; font-family: var(--mono); font-size: 11px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 12px; padding-left: 12px; }
+  .plureq-section-title::before { content: ""; position: absolute; left: 0; top: 1px; bottom: 1px; width: 4px;
+    border-radius: 2px; background: var(--accent-warm); }
+
+  #plureqFormOv .plureq-body { text-transform: uppercase; }
+  #plureqFormOv .plureq-body input, #plureqFormOv .plureq-body select, #plureqFormOv .plureq-body textarea { text-transform: none; }
+
+  /* STORAGE 토글 pill (:has 미사용 — 호환성) */
+  .plureq-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plureq-check { display: inline-flex; cursor: pointer; user-select: none; }
+  .plureq-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .plureq-check span { display: inline-flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 17px; background: #fff;
+    font-family: var(--mono); font-size: 12.5px; font-weight: 800; letter-spacing: .04em; color: var(--text-dim);
+    transition: all .15s; }
+  .plureq-check:hover span { border-color: var(--border-bright); color: var(--text); }
+  .plureq-check input:focus-visible + span { box-shadow: 0 0 0 3px rgba(201,169,97,.25); }
+  .plureq-check.hot input:checked + span { background: #fdecec; border-color: #d9534f; color: #b3322e; }
+  .plureq-check.cool input:checked + span { background: #e8f0fb; border-color: #3a6fc9; color: #2a52a0; }
+  .plureq-check.room input:checked + span { background: var(--accent-soft); border-color: var(--accent-warm); color: #8a6d2e; }
+
+  /* 액션 버튼 */
+  .plureq-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .plureq-btn { flex: 1; border: 1.5px solid transparent; border-radius: 12px; padding: 12px; font-family: var(--mono);
+    font-size: 13.5px; font-weight: 800; letter-spacing: .03em; cursor: pointer; transition: all .15s; }
+  .plureq-btn:active { transform: scale(.98); }
+  .plureq-btn.primary { background: var(--text); color: #fff; }
+  .plureq-btn.primary:hover { background: #000; box-shadow: 0 6px 18px rgba(26,26,29,.2); }
+  .plureq-btn.blue { background: #fff; color: var(--text-dim); border-color: var(--border); }
+  .plureq-btn.blue:hover { border-color: var(--accent-warm); color: var(--text); }
+  .plureq-btn.ghost { background: transparent; color: var(--text-dim); border-color: var(--border); }
+  .plureq-btn.ghost:hover { border-color: var(--border-bright); color: var(--text); background: var(--bg-elev-2); }
+
+  /* 결과 리스트 */
+  .plureq-list { display: flex; flex-direction: column; gap: 9px; }
+  .plureq-row { position: relative; border: 1px solid var(--border); border-radius: 13px; padding: 13px 15px;
+    font-size: 14px; background: #fff; box-shadow: 0 2px 8px rgba(26,26,29,.04); transition: border-color .15s, box-shadow .15s; }
+  .plureq-row:hover { border-color: var(--border-bright); box-shadow: 0 6px 18px rgba(26,26,29,.07); }
+  .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .plureq-row .name { font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--text); }
+  .plureq-row .meta { color: var(--text-dim); font-size: 12.5px; margin-top: 3px; line-height: 1.5; }
+  .plureq-badge { font-family: var(--mono); font-size: 10.5px; font-weight: 800; letter-spacing: .06em;
+    padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+  .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
+  .plureq-badge.done { background: #e2f3e6; color: #15803d; }
+  .plureq-empty { text-align: center; color: var(--text-faint); font-weight: 700; padding: 30px 20px; }
+  .rqlbl { color: var(--accent-warm); font-weight: 800; letter-spacing: .04em; }
+
+  /* === 폼 컴팩트(무스크롤) 2열 레이아웃 === */
+  .plureq-3col { display: flex; gap: 10px; }
+  .plureq-col { flex: 1 1 0; min-width: 0; }
+  #plureqFormOv .plureq-modal { max-width: 900px; }
+  #plureqFormOv .plureq-head { padding: 15px 22px; }
+  #plureqFormOv .plureq-body { padding: 16px 22px 18px; overflow: auto; }
+  .plureq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px; align-items: start; }
+  .plureq-grid > .span2 { grid-column: 1 / -1; }
+  .plureq-grid .plureq-field { margin-bottom: 0; }
+  #plureqFormOv .plureq-field label { margin-bottom: 3px; }
+  #plureqFormOv .plureq-field input, #plureqFormOv .plureq-field select, #plureqFormOv .plureq-field textarea { padding: 8px 11px; border-radius: 10px; }
+  #plureqFormOv .plureq-divider { margin: 6px 0 2px; }
+  #plureqFormOv .plureq-section-title { margin: 0 0 6px; }
+  .plureq-ingredients { resize: none; min-height: 34px; line-height: 1.35; }
+  .plureq-memo { resize: none; min-height: 32px; line-height: 1.35; }
+  #plureqFormOv .plureq-checks { gap: 7px; }
+  #plureqFormOv .plureq-check span { padding: 7px 14px; }
+  #plureqFormOv .plureq-actions { margin-top: 12px; }
+  @media (max-width: 680px) {
+    #plureqFormOv .plureq-modal { max-width: 600px; }
+    .plureq-grid { grid-template-columns: 1fr; }
+  }
+
+
+</style>
+
+<div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
+  <div class="plureq-head">
+    <span class="plureq-tick"></span>
+    <span class="plureq-head-text">
+      <span class="plureq-eyebrow">DELI · REQUEST</span>
+      <span class="plureq-head-title" id="rqTitle">DELI · PLU REQUEST</span>
+    </span>
+    <button class="plureq-x" id="rqFormX" type="button">✕</button>
+  </div>
+  <div class="plureq-body">
+    <div class="plureq-grid">
+      <div class="plureq-field"><label>STORE</label><input id="rqStore" maxlength="30" autocomplete="off"></div>
+      <div class="plureq-field"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+      <div class="plureq-field"><label>CATEGORY</label><select id="rqCategory"><option value="">SELECT</option><option>PRODUCE</option><option>DELI</option><option>FISH</option><option>MEAT</option><option>HOUSEWARE</option></select></div>
+      <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
+      <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
+      <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+      <div class="plureq-field"><label>STORAGE</label>
+        <div class="plureq-checks">
+          <label class="plureq-check hot"><input type="checkbox" id="rqHot"><span>HOT</span></label>
+          <label class="plureq-check cool"><input type="checkbox" id="rqCool"><span>COOL</span></label>
+          <label class="plureq-check room"><input type="checkbox" id="rqAmbient"><span>ROOM</span></label>
+        </div>
+      </div>
+      <hr class="plureq-divider span2">
+      <div class="plureq-section-title span2">Additional info for DELI PLU requests</div>
+      <div class="plureq-field span2"><label>INGREDIENTS (English only)</label><textarea id="rqIngredients" class="plureq-ingredients" maxlength="200" rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea></div>
+      <div class="plureq-3col span2">
+        <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
+        <div class="plureq-field plureq-col"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
+        <div class="plureq-field plureq-col"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+      </div>
+      <div class="plureq-field span2"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="2" autocomplete="off"></textarea></div>
+      <div class="plureq-actions span2">
+        <button class="plureq-btn ghost" id="rqCancel">CANCEL</button>
+        <button class="plureq-btn blue" id="rqViewOpen">VIEW REQUEST</button>
+        <button class="plureq-btn primary" id="rqSubmit">SUBMIT</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+<div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
+  <div class="plureq-head">
+    <span class="plureq-tick"></span>
+    <span class="plureq-head-text">
+      <span class="plureq-eyebrow">DELI · REQUEST</span>
+      <span class="plureq-head-title">PLU REQUEST RESULTS</span>
+    </span>
+    <button class="plureq-x" id="rqViewX" type="button">✕</button>
+  </div>
+  <div class="plureq-body">
+    <div class="plureq-list" id="rqList"></div>
+    <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">CLOSE</button></div>
+  </div>
+</div></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = { apiKey:"AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0", authDomain:"the-shawn.firebaseapp.com", projectId:"the-shawn", storageBucket:"the-shawn.firebasestorage.app", messagingSenderId:"519898602513", appId:"1:519898602513:web:0f35e3dc9c29dce21665b0", measurementId:"G-NKGYGC63JN" };
+  const app = initializeApp(firebaseConfig);
+  window.firebaseDb = getFirestore(app);
+  window.firebaseFns = { doc, getDoc, setDoc, collection, onSnapshot };
+  window.dispatchEvent(new Event('plu-firebase-ready'));
+</script>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  function showToast(m,t){ if(window.showToast) window.showToast(m,t); }
+  function uiAlert(m){ showToast(m,'error'); }
+  var REQ_COL='plu-requests';
+  var reqs=[], firstSnap=true;
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+  function openForm(){ ['rqStore','rqRequester','rqCategory','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); var s=activeStore(); if(s && $('rqStore')) $('rqStore').value=s; $('plureqFormOv').classList.add('show'); }
+  function closeForm(){ $('plureqFormOv').classList.remove('show'); }
+  function submitReq(){
+    var store=($('rqStore').value||'').trim() || activeStore();
+    var requester=($('rqRequester').value||'').trim();
+    if(!store){ uiAlert('STORE\uB97C \uC785\uB825\uD558\uC138\uC694'); return; }
+    if(!requester){ uiAlert('Please enter REQUESTER'); return; }
+    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('ROOM');
+    var data={ store:store, requester:requester, category:($('rqCategory')?($('rqCategory').value||'').trim():''), kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
+      ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
+      status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
+    if(!fns()||!db()){ uiAlert('\uC5F0\uACB0 \uC900\uBE44 \uC911 \u2014 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC'); return; }
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); showToast('PLU request submitted','success'); }).catch(function(){ uiAlert('Submit failed (check network/permission)'); }); }
+    catch(e){ uiAlert('Submit failed'); }
+  }
+  function statusBadge(s){ return s==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
+  function openView(){
+    var el=$('rqList');
+    var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
+    el.innerHTML = sorted.length ? sorted.map(function(r){
+      var done=r.status==='done'; var kor=done?(r.mgrKor||''):(r.kor||''); var eng=done?(r.mgrEng||''):(r.eng||'');
+      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(NO NAME)')+'</span>'+statusBadge(r.status)+'</div>'+
+        '<div class="meta"><span class="rqlbl">STORE</span> '+esc(r.store||'-')+' \u00b7 <span class="rqlbl">REQUESTER</span> '+esc(r.requester||'-')+'</div>'+
+        '<div class="meta"><span class="rqlbl">PLU</span> '+esc(r.plu||'-')+' \u00b7 <span class="rqlbl">KOR</span> '+esc(kor||'-')+' \u00b7 <span class="rqlbl">ENG</span> '+esc(eng||'-')+'</div>'+
+      '</div>';
+    }).join('') : '<div class="plureq-empty">No requests.</div>';
+    $('plureqViewOv').classList.add('show');
+  }
+  function closeView(){ $('plureqViewOv').classList.remove('show'); }
+
+  var btn=$('egmmDeliReqBtn'); if(btn) btn.onclick=openForm;
+  $('rqCancel').onclick=closeForm; $('rqFormX').onclick=closeForm; $('rqSubmit').onclick=submitReq;
+  $('rqViewOpen').onclick=openView; $('rqViewClose').onclick=closeView; $('rqViewX').onclick=closeView;
+  $('plureqFormOv').addEventListener('click', function(e){ if(e.target===$('plureqFormOv')) closeForm(); });
+  $('plureqViewOv').addEventListener('click', function(e){ if(e.target===$('plureqViewOv')) closeView(); });
+
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
+        firstSnap=false; var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+    }catch(e){}
+  });
+})();
+</script>
+
 </body>
 </html>
