@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>STORE MANAGER · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
-    --bg:#fafaf7; --bg-elev:#ffffff; --border:#e5e5e0; --border-bright:#c8c8c0;
-    --text:#1a1a1d; --text-dim:#6b6b72; --text-faint:#9a9aa0; --accent:#1a1a1d; --accent-warm:#c9a961;
+    --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f4f3ee; --border:#e5e5e0; --border-bright:#c8c8c0;
+    --text:#1a1a1d; --text-dim:#6b6b72; --text-faint:#9a9aa0; --accent:#1a1a1d; --accent-warm:#c9a961; --accent-soft:#f5efe0;
     --mono:'Pretendard','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -25,7 +26,69 @@
   .sm-body{ flex:1 1 auto; min-height:0; position:relative; background:var(--bg-elev); border-top:1px solid var(--border); }
   .sm-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; display:none; }
   .sm-frame.active{ display:block; }
+  .sm-panel{ position:absolute; inset:0; display:none; flex-direction:column; }
+  .sm-panel.active{ display:flex; }
   .sm-hint{ flex:0 0 auto; padding:8px 22px; font-size:12px; color:var(--text-faint); background:var(--bg-elev); border-top:1px dashed var(--border); }
+
+  /* ===== EXPORT 설정 패널 ===== */
+  .ex-toolbar{ flex:0 0 auto; display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:14px 22px; border-bottom:1px solid var(--border); background:var(--bg-elev-2); }
+  .ex-tb-group{ display:inline-flex; align-items:center; gap:7px; }
+  .ex-tb-label{ font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); }
+  .ex-sel{ border:1.5px solid var(--border); background:#fff; color:var(--text); border-radius:9px; padding:8px 30px 8px 11px; font-family:var(--mono); font-size:13px; font-weight:700; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9aa0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center; }
+  .ex-btn{ border:1.5px solid var(--border); background:#fff; color:var(--text-dim); border-radius:9px; padding:8px 14px; font-family:var(--mono); font-size:12.5px; font-weight:800; letter-spacing:.02em; cursor:pointer; transition:all .15s; }
+  .ex-btn:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .ex-btn.primary{ background:var(--text); color:#fff; border-color:var(--text); }
+  .ex-btn.primary:hover{ background:#000; }
+  .ex-btn.warm{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .ex-spacer{ flex:1 1 auto; }
+
+  .ex-canvas-wrap{ flex:1 1 auto; min-height:0; overflow:auto; padding:18px 22px 28px; }
+  .ex-canvas{ position:relative; display:grid; grid-template-columns:1fr 1fr; gap:0; align-items:start; max-width:980px; margin:0 auto; }
+  .ex-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; overflow:visible; }
+  .ex-svg path{ pointer-events:stroke; cursor:pointer; }
+
+  .ex-col{ position:relative; z-index:2; }
+  .ex-col.left{ padding-right:46px; }
+  .ex-col.right{ padding-left:46px; }
+  .ex-col-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .ex-col-head .tick{ width:5px; height:16px; border-radius:2px; background:var(--accent-warm); }
+  .ex-col-name{ font-size:13px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text); }
+  .ex-col-sub{ font-size:11px; font-weight:700; color:var(--text-faint); margin-left:4px; }
+
+  /* 필드 행 (관리/EXPORT 공통) — 글자 작게, 박스형 */
+  .fld{ position:relative; display:flex; align-items:center; gap:7px; background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:6px 9px; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--text); min-height:30px; }
+  .fld-name{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fld-idx{ font-family:var(--mono); font-size:10px; font-weight:800; color:var(--text-faint); }
+  .anchor{ position:absolute; top:50%; transform:translateY(-50%); width:13px; height:13px; border-radius:50%; background:#fff; border:2px solid var(--border-bright); cursor:pointer; z-index:3; transition:all .12s; }
+  .mfld .anchor{ right:-6.5px; }
+  .efld .anchor{ left:-6.5px; }
+  .anchor:hover{ transform:translateY(-50%) scale(1.25); border-color:var(--accent-warm); }
+
+  /* 관리 필드: 색상칩 + armed 상태 */
+  .mfld{ cursor:pointer; }
+  .mfld .swatch{ width:10px; height:10px; border-radius:3px; flex:0 0 auto; }
+  .mfld.armed{ border-color:var(--accent-warm); box-shadow:0 0 0 3px var(--accent-soft); }
+  .mfld .anchor{ background:var(--mf-color,#888); border-color:#fff; box-shadow:0 0 0 1.5px var(--mf-color,#888); }
+
+  /* EXPORT 필드: 매핑 태그 + 매핑 select + 해제 */
+  .efld .map-tag{ font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:6px; color:#fff; white-space:nowrap; }
+  .efld.mapped{ border-color:var(--mf-color,var(--border)); }
+  .efld .map-sel{ border:1px solid var(--border); background:var(--bg-elev-2); border-radius:6px; font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--text-dim); padding:2px 4px; max-width:96px; cursor:pointer; }
+  .efld .map-x{ border:none; background:transparent; color:var(--text-faint); font-size:13px; font-weight:800; cursor:pointer; padding:0 2px; line-height:1; }
+  .efld .map-x:hover{ color:#c0392b; }
+
+  .ex-empty{ grid-column:1 / -1; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; padding:40px 20px; border:1.5px dashed var(--border); border-radius:14px; }
+  .ex-empty b{ color:var(--text-dim); }
+
+  .ex-legend{ display:flex; flex-wrap:wrap; gap:10px; margin:0 auto 14px; max-width:980px; padding:10px 12px; background:var(--bg-elev-2); border:1px solid var(--border); border-radius:10px; }
+  .ex-legend .lg{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--text-dim); }
+  .ex-legend .sw{ width:11px; height:11px; border-radius:3px; }
+  .ex-armed-note{ font-size:11px; font-weight:700; color:var(--accent-warm); }
+
+  input[type=file]{ display:none; }
 </style>
 </head>
 <body>
@@ -34,38 +97,297 @@
     <button class="sm-back" id="smBack" type="button">← EGMM</button>
   </div>
   <div class="sm-tabs">
-    <button class="sm-tab active" id="smTabPlu" type="button">PLU 매장관리</button>
-    <button class="sm-tab" id="smTabUpc" type="button">UPC 매장관리</button>
+    <button class="sm-tab active" id="smTabPin" type="button">매장별 PIN 설정</button>
+    <button class="sm-tab" id="smTabExport" type="button">EXPORT 설정</button>
   </div>
   <div class="sm-body">
-    <iframe class="sm-frame active" id="smFramePlu" title="PLU 매장관리"></iframe>
-    <iframe class="sm-frame" id="smFrameUpc" title="UPC 매장관리"></iframe>
+    <!-- 매장별 PIN 설정: 기존 PLU 매니저(스토어 관리/PIN) iframe -->
+    <iframe class="sm-frame active" id="smFramePin" title="매장별 PIN 설정"></iframe>
+
+    <!-- EXPORT 설정: 자체 구현 매핑 도구 -->
+    <div class="sm-panel" id="smPanelExport">
+      <div class="ex-toolbar">
+        <div class="ex-tb-group">
+          <span class="ex-tb-label">연결도</span>
+          <select class="ex-sel" id="exProfileSel"><option value="">— 엑셀을 업로드하세요 —</option></select>
+        </div>
+        <button class="ex-btn" id="exUploadBtn" type="button">＋ 엑셀 업로드</button>
+        <input type="file" id="exFile" accept=".xlsx,.xls,.csv" multiple>
+        <button class="ex-btn" id="exClearBtn" type="button">연결 초기화</button>
+        <button class="ex-btn" id="exDeleteBtn" type="button">프로필 삭제</button>
+        <span class="ex-spacer"></span>
+        <span class="ex-armed-note" id="exArmedNote"></span>
+        <button class="ex-btn primary" id="exExportBtn" type="button">⬇ EXPORT</button>
+      </div>
+      <div class="ex-canvas-wrap">
+        <div class="ex-legend" id="exLegend"></div>
+        <div class="ex-canvas" id="exCanvas">
+          <svg class="ex-svg" id="exSvg"></svg>
+          <div class="ex-col left" id="exMgrCol"></div>
+          <div class="ex-col right" id="exExpCol"></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="sm-hint">매장을 선택해 PIN 부여, 매장 전용 필드, 보여줄 필드를 설정합니다. PLU·UPC 각 탭에서 따로 관리됩니다.</div>
+  <div class="sm-hint" id="smHint">매장별 PIN 설정: 매장 선택·PIN 부여 / EXPORT 설정: 관리필드(왼쪽)를 업로드한 엑셀필드(오른쪽)에 연결하면 EXPORT 시 데이터가 매핑되어 들어갑니다.</div>
 
 <script>
 (function(){
   function $(id){ return document.getElementById(id); }
-  var PLU_SRC='plu-list-manager.html?storemgmt=1';
-  var UPC_SRC='upc-list-manager.html?storemgmt=1';
-  var loaded={plu:false, upc:false};
-  function ensure(which){
-    if(which==='plu' && !loaded.plu){ $('smFramePlu').src=PLU_SRC; loaded.plu=true; }
-    if(which==='upc' && !loaded.upc){ $('smFrameUpc').src=UPC_SRC; loaded.upc=true; }
-  }
+
+  /* ===== 매장별 PIN 설정 (기존 PLU 매니저 iframe) ===== */
+  // 주의: '이 매장에 보여줄 필드 선택' 기능 제거는 plu-list-manager.html 쪽에서
+  //       hidefields=1 플래그를 처리하도록 해야 합니다(이 파일에는 해당 화면이 없음).
+  var PIN_SRC = 'plu-list-manager.html?storemgmt=1&hidefields=1';
+  var pinLoaded = false;
+  function ensurePin(){ if(!pinLoaded){ $('smFramePin').src = PIN_SRC; pinLoaded = true; } }
+
   function activate(which){
-    var isPlu=(which==='plu');
-    $('smTabPlu').classList.toggle('active', isPlu);
-    $('smTabUpc').classList.toggle('active', !isPlu);
-    $('smFramePlu').classList.toggle('active', isPlu);
-    $('smFrameUpc').classList.toggle('active', !isPlu);
-    ensure(which);
+    var isPin = (which==='pin');
+    $('smTabPin').classList.toggle('active', isPin);
+    $('smTabExport').classList.toggle('active', !isPin);
+    $('smFramePin').classList.toggle('active', isPin);
+    $('smPanelExport').classList.toggle('active', !isPin);
+    if(isPin){ ensurePin(); } else { renderExport(); requestAnimationFrame(drawLines); }
   }
-  $('smTabPlu').onclick=function(){ activate('plu'); };
-  $('smTabUpc').onclick=function(){ activate('upc'); };
-  $('smBack').onclick=function(){ window.location.href='egmm.html'; };
-  // 첫 탭(PLU) 로드
-  ensure('plu');
+  $('smTabPin').onclick = function(){ activate('pin'); };
+  $('smTabExport').onclick = function(){ activate('export'); };
+  $('smBack').onclick = function(){ window.location.href='egmm.html'; };
+  ensurePin();
+
+  /* ===== EXPORT 설정 ===== */
+  // 관리 필드(고정 순서). 숨겨진 필드 포함 — 새 필드는 끝에 추가 가능.
+  var MANAGER_FIELDS = ['UPC(O)','UPC(C)','PLU','ENG DESC','KOR DESC','COST','SRP'];
+  var MF_COLORS = {
+    'UPC(O)':'#4a6cc9', 'UPC(C)':'#2f9e5e', 'PLU':'#e07b1f', 'ENG DESC':'#8b5cf6',
+    'KOR DESC':'#e57ba5', 'COST':'#0e9aa7', 'SRP':'#b5388a'
+  };
+  var EXTRA_PALETTE = ['#7a6cc4','#3a8f6a','#c0653a','#5b7083','#a8703e','#1c8fa0','#9c6b3e','#2d6cb0'];
+  function mfColor(name){
+    if(MF_COLORS[name]) return MF_COLORS[name];
+    var idx = MANAGER_FIELDS.indexOf(name);
+    return EXTRA_PALETTE[(idx<0?0:idx) % EXTRA_PALETTE.length];
+  }
+
+  var LS_KEY = 'theShawn_exportConfig_v1';
+  // state.profiles: [{ id, name, fields:[...], mappings:{ exportField: managerField } }]
+  var state = { profiles: [], activeId: '', managerFields: MANAGER_FIELDS.slice(), armed: null };
+
+  function loadConfig(){
+    try{
+      var raw = localStorage.getItem(LS_KEY);
+      if(raw){
+        var c = JSON.parse(raw);
+        if(c && Array.isArray(c.profiles)){
+          state.profiles = c.profiles;
+          state.activeId = c.activeId || (c.profiles[0] && c.profiles[0].id) || '';
+          if(Array.isArray(c.managerFields) && c.managerFields.length) state.managerFields = c.managerFields;
+        }
+      }
+    }catch(e){ console.warn('config load fail', e); }
+  }
+  function saveConfig(){
+    try{
+      localStorage.setItem(LS_KEY, JSON.stringify({
+        profiles: state.profiles, activeId: state.activeId, managerFields: state.managerFields
+      }));
+    }catch(e){ console.warn('config save fail', e); }
+  }
+  function activeProfile(){ return state.profiles.find(function(p){ return p.id===state.activeId; }) || null; }
+  function uid(){ return 'pf_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+  /* ---- 엑셀 업로드 → 프로필 생성 ---- */
+  $('exUploadBtn').onclick = function(){ $('exFile').click(); };
+  $('exFile').onchange = function(e){
+    var files = Array.prototype.slice.call(e.target.files||[]);
+    if(!files.length) return;
+    if(!window.XLSX){ alert('엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.'); return; }
+    var done = 0;
+    files.forEach(function(file){
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          var wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:false });
+          var header = (rows[0]||[]).map(function(h){ return (h==null?'':String(h)).trim(); }).filter(function(h){ return h!==''; });
+          if(!header.length){ alert(file.name+' : 헤더(첫 행)를 찾을 수 없습니다.'); }
+          else{
+            var name = file.name.replace(/\.(xlsx|xls|csv)$/i,'').replace(/_?export$/i,'').replace(/[_\s]+$/,'').toUpperCase() || 'EXPORT';
+            var prof = { id: uid(), name: name, fields: header, mappings: {} };
+            // 같은 이름이 있으면 (2),(3)… 부여
+            var base=name, n=2; while(state.profiles.some(function(p){return p.name===prof.name;})){ prof.name = base+' ('+(n++)+')'; }
+            state.profiles.push(prof);
+            state.activeId = prof.id;
+          }
+        }catch(err){ console.error(err); alert(file.name+' : 읽기 실패'); }
+        done++;
+        if(done===files.length){ saveConfig(); renderExport(); requestAnimationFrame(drawLines); }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+    e.target.value='';
+  };
+
+  $('exProfileSel').onchange = function(){ state.activeId = this.value; state.armed=null; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
+  $('exClearBtn').onclick = function(){ var p=activeProfile(); if(!p) return; if(!confirm('현재 연결도("'+p.name+'")의 모든 연결을 초기화할까요?')) return; p.mappings={}; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
+  $('exDeleteBtn').onclick = function(){ var p=activeProfile(); if(!p) return; if(!confirm('프로필 "'+p.name+'" 을(를) 삭제할까요?')) return; state.profiles=state.profiles.filter(function(x){return x.id!==p.id;}); state.activeId=(state.profiles[0]&&state.profiles[0].id)||''; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
+
+  /* ---- 매핑 조작 ---- */
+  function setMap(exportField, managerField){
+    var p = activeProfile(); if(!p) return;
+    if(managerField){ p.mappings[exportField] = managerField; }
+    else { delete p.mappings[exportField]; }
+    saveConfig();
+  }
+  function armManager(field){
+    state.armed = (state.armed===field) ? null : field;
+    renderExport(); requestAnimationFrame(drawLines);
+  }
+
+  /* ---- 렌더링 ---- */
+  function renderProfileSel(){
+    var sel = $('exProfileSel');
+    if(!state.profiles.length){ sel.innerHTML='<option value="">— 엑셀을 업로드하세요 —</option>'; return; }
+    sel.innerHTML = state.profiles.map(function(p){ return '<option value="'+p.id+'"'+(p.id===state.activeId?' selected':'')+'>'+esc(p.name)+'</option>'; }).join('');
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function renderLegend(){
+    var lg = $('exLegend');
+    lg.innerHTML = state.managerFields.map(function(f){
+      return '<span class="lg"><span class="sw" style="background:'+mfColor(f)+'"></span>'+esc(f)+'</span>';
+    }).join('');
+  }
+
+  function renderManagerCol(){
+    var col = $('exMgrCol');
+    var html = '<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">관리 필드</span><span class="ex-col-sub">MANAGER · 고정순서</span></div>';
+    html += state.managerFields.map(function(f,i){
+      var c = mfColor(f);
+      var armed = state.armed===f ? ' armed' : '';
+      return '<div class="fld mfld'+armed+'" data-field="'+esc(f)+'" style="--mf-color:'+c+'">'+
+               '<span class="swatch" style="background:'+c+'"></span>'+
+               '<span class="fld-name">'+esc(f)+'</span>'+
+               '<span class="fld-idx">'+(i+1)+'</span>'+
+               '<span class="anchor mf-anchor"></span>'+
+             '</div>';
+    }).join('');
+    col.innerHTML = html;
+    col.querySelectorAll('.mfld').forEach(function(row){
+      row.addEventListener('click', function(e){ if(e.target.classList.contains('anchor')) return; armManager(row.dataset.field); });
+      row.querySelector('.anchor').addEventListener('click', function(){ armManager(row.dataset.field); });
+    });
+  }
+
+  function renderExportCol(){
+    var col = $('exExpCol');
+    var p = activeProfile();
+    if(!p){ col.innerHTML = '<div class="ex-empty">오른쪽에 표시할 <b>EXPORT 프로필</b>이 없습니다.<br>상단 <b>＋ 엑셀 업로드</b>로 장비/프로그램별 엑셀을 추가하세요.<br>(엑셀 첫 행의 필드명이 EXPORT 대상 필드가 됩니다)</div>'; return; }
+    var mgrOpts = '<option value="">— 없음 —</option>' + state.managerFields.map(function(f){ return '<option value="'+esc(f)+'">'+esc(f)+'</option>'; }).join('');
+    var html = '<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">EXPORT 필드 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
+    html += p.fields.map(function(f){
+      var mapped = p.mappings[f];
+      var c = mapped ? mfColor(mapped) : '';
+      var mappedCls = mapped ? ' mapped' : '';
+      var style = mapped ? ' style="--mf-color:'+c+'"' : '';
+      var tag = mapped ? '<span class="map-tag" style="background:'+c+'">'+esc(mapped)+'</span>' : '';
+      var selHtml = '<select class="map-sel" data-field="'+esc(f)+'">'+mgrOpts.replace('value="'+esc(mapped)+'"','value="'+esc(mapped)+'" selected')+'</select>';
+      var xBtn = mapped ? '<button class="map-x" data-field="'+esc(f)+'" title="연결 해제">✕</button>' : '';
+      return '<div class="fld efld'+mappedCls+'" data-field="'+esc(f)+'"'+style+'>'+
+               '<span class="anchor ef-anchor"></span>'+
+               '<span class="fld-name" title="'+esc(f)+'">'+esc(f)+'</span>'+
+               tag + selHtml + xBtn +
+             '</div>';
+    }).join('');
+    col.innerHTML = html;
+
+    // 행 클릭(armed 적용) + anchor + select + 해제
+    col.querySelectorAll('.efld').forEach(function(row){
+      var field = row.dataset.field;
+      row.addEventListener('click', function(e){
+        if(e.target.closest('.map-sel') || e.target.closest('.map-x')) return;
+        if(state.armed){ setMap(field, state.armed); renderExport(); requestAnimationFrame(drawLines); }
+      });
+      var sel = row.querySelector('.map-sel');
+      if(sel){ sel.value = activeProfile().mappings[field] || ''; sel.addEventListener('change', function(){ setMap(field, this.value); renderExport(); requestAnimationFrame(drawLines); }); }
+      var x = row.querySelector('.map-x');
+      if(x){ x.addEventListener('click', function(){ setMap(field,''); renderExport(); requestAnimationFrame(drawLines); }); }
+    });
+  }
+
+  function renderArmedNote(){
+    $('exArmedNote').textContent = state.armed ? ('"'+state.armed+'" 선택됨 → 오른쪽 필드를 클릭해 연결') : '';
+  }
+
+  function renderExport(){
+    renderProfileSel();
+    renderLegend();
+    renderManagerCol();
+    renderExportCol();
+    renderArmedNote();
+  }
+
+  /* ---- 연결선(SVG) ---- */
+  function drawLines(){
+    var svg = $('exSvg'), canvas = $('exCanvas');
+    if(!svg || !canvas) return;
+    svg.innerHTML='';
+    var p = activeProfile(); if(!p) return;
+    var crect = canvas.getBoundingClientRect();
+    svg.setAttribute('width', canvas.scrollWidth);
+    svg.setAttribute('height', canvas.scrollHeight);
+    Object.keys(p.mappings).forEach(function(exportField){
+      var mf = p.mappings[exportField];
+      var mEl = $('exMgrCol').querySelector('.mfld[data-field="'+cssEsc(mf)+'"] .anchor');
+      var eEl = $('exExpCol').querySelector('.efld[data-field="'+cssEsc(exportField)+'"] .anchor');
+      if(!mEl || !eEl) return;
+      var mr = mEl.getBoundingClientRect(), er = eEl.getBoundingClientRect();
+      var x1 = mr.left + mr.width/2 - crect.left, y1 = mr.top + mr.height/2 - crect.top;
+      var x2 = er.left + er.width/2 - crect.left, y2 = er.top + er.height/2 - crect.top;
+      var dx = Math.max(40, Math.abs(x2-x1)*0.5);
+      var d = 'M '+x1+' '+y1+' C '+(x1+dx)+' '+y1+', '+(x2-dx)+' '+y2+', '+x2+' '+y2;
+      var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke', mfColor(mf));
+      path.setAttribute('stroke-width','2.4');
+      path.setAttribute('opacity','0.9');
+      path.addEventListener('click', function(){ if(confirm('이 연결을 해제할까요? ('+mf+' → '+exportField+')')){ setMap(exportField,''); renderExport(); requestAnimationFrame(drawLines); } });
+      svg.appendChild(path);
+    });
+  }
+  function cssEsc(s){ return String(s).replace(/["\\]/g,'\\$&'); }
+
+  $('.ex-canvas-wrap'); // noop
+  document.querySelector('.ex-canvas-wrap').addEventListener('scroll', function(){ drawLines(); });
+  window.addEventListener('resize', function(){ drawLines(); });
+
+  /* ---- EXPORT 생성 ---- */
+  // 관리 데이터 연동 지점: 실제 UPC 매니저 데이터를 여기에 연결하면 행이 채워집니다.
+  function getManagerRows(){
+    try{ var raw=localStorage.getItem('theShawn_managerRows'); if(raw){ var a=JSON.parse(raw); if(Array.isArray(a)) return a; } }catch(e){}
+    return []; // 비어있으면 헤더(템플릿)만 생성
+  }
+  $('exExportBtn').onclick = function(){
+    var p = activeProfile();
+    if(!p){ alert('먼저 EXPORT 프로필(엑셀)을 업로드/선택하세요.'); return; }
+    if(!window.XLSX){ alert('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+    var headers = p.fields.slice();
+    var rows = getManagerRows();
+    var aoa = [headers];
+    rows.forEach(function(r){
+      aoa.push(headers.map(function(h){ var src=p.mappings[h]; return src ? (r[src]!=null?r[src]:'') : ''; }));
+    });
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, (p.name||'EXPORT').slice(0,31));
+    XLSX.writeFile(wb, (p.name||'EXPORT')+'_EXPORT.xlsx');
+  };
+
+  // 초기화
+  loadConfig();
+  renderExport();
 })();
 </script>
 </body>
