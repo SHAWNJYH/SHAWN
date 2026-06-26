@@ -94,6 +94,8 @@
     --cat-facility-soft: #f3e8dc;
     --cat-ad: #b5388a;
     --cat-ad-soft: #f9e3f1;
+    --cat-usasia: #27408b;
+    --cat-usasia-soft: #e1e6f5;
     --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --code: 'Pretendard', ui-monospace, monospace;
@@ -841,6 +843,7 @@
   .summary-item.cat-gbk .summary-date { color: var(--cat-gbk); background: var(--cat-gbk-soft); }
   .summary-item.cat-facility .summary-date { color: var(--cat-facility); background: var(--cat-facility-soft); }
   .summary-item.cat-ad .summary-date { color: var(--cat-ad); background: var(--cat-ad-soft); }
+  .summary-item.cat-usasia .summary-date { color: var(--cat-usasia); background: var(--cat-usasia-soft); }
   .summary-empty {
     font-family: var(--mono);
     font-size: 12px;
@@ -1726,6 +1729,7 @@
   .ev-pill.cat-gbk { background: var(--cat-gbk); }
   .ev-pill.cat-facility { background: var(--cat-facility); }
   .ev-pill.cat-ad { background: var(--cat-ad); }
+  .ev-pill.cat-usasia { background: var(--cat-usasia); }
   .ev-pill.cat-birthday { background: var(--cat-birthday); }
   .ev-pill.cat-shift { background: #f5c518; color: #3a2e00; }
   /* 통일 형식 하위 요소: 카테고리 · 내용 · 날짜 · 시간 */
@@ -1893,6 +1897,7 @@
   .ev-row.cat-gbk .ev-time-label { color: var(--cat-gbk); }
   .ev-row.cat-facility .ev-time-label { color: var(--cat-facility); }
   .ev-row.cat-ad .ev-time-label { color: var(--cat-ad); }
+  .ev-row.cat-usasia .ev-time-label { color: var(--cat-usasia); }
   .ev-row.done .ev-time-label { color: var(--text-faint); }
   .ev-cat-tag {
     display: inline-block;
@@ -1935,6 +1940,10 @@
   .ev-cat-tag.cat-ad {
     background: var(--cat-ad-soft);
     color: var(--cat-ad);
+  }
+  .ev-cat-tag.cat-usasia {
+    background: var(--cat-usasia-soft);
+    color: var(--cat-usasia);
   }
   .ev-cat-tag.cat-shift {
     background: #fff3b0;
@@ -2070,6 +2079,20 @@
     border-color: var(--cat-ad);
     color: #ffffff;
   }
+  .cat-btn.active.cat-usasia {
+    background: var(--cat-usasia);
+    border-color: var(--cat-usasia);
+    color: #ffffff;
+  }
+  /* 매장 선택 picker */
+  .store-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+  .store-btn {
+    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
+    padding: 8px 13px; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
+    cursor: pointer; border-radius: 999px; transition: all .15s;
+  }
+  .store-btn:hover { border-color: var(--border-bright); color: var(--text); }
+  .store-btn.active { background: var(--accent-warm); border-color: var(--accent-warm); color: #fff; }
   /* 달력 칸 하단 근무시간 목록 (노란 바탕) */
   .shift-list { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
   .shift-pill {
@@ -2149,6 +2172,14 @@
     background: var(--bg);
   }
   .ev-pill, .shift-pill { cursor: pointer; }
+  .ett-store, .ev-store-tag {
+    display: inline-flex; align-items: center;
+    font-family: var(--mono); font-size: 11px; font-weight: 800;
+    letter-spacing: .02em; color: var(--accent-warm);
+    border: 1.5px solid var(--accent-warm); border-radius: 999px;
+    padding: 1px 9px; white-space: nowrap;
+  }
+  .ev-row.ev-oneline .ev-store-tag { flex: 0 0 auto; font-size: 11px; padding: 1px 8px; }
 
   .ev-tooltip .ett-close {
     position: absolute; top: 8px; right: 8px;
@@ -3235,14 +3266,33 @@
         <label>카테고리</label>
         <div class="cat-picker">
           <button type="button" class="cat-btn cat-work active" data-cat="work">회사</button>
+          <button type="button" class="cat-btn cat-store" data-cat="store">매장</button>
+          <button type="button" class="cat-btn cat-facility" data-cat="facility">시설</button>
+          <button type="button" class="cat-btn cat-hanaro" data-cat="hanaro">하나로</button>
+          <button type="button" class="cat-btn cat-usasia" data-cat="usasia">USASIA</button>
+          <button type="button" class="cat-btn cat-gbk" data-cat="gbk">GBK</button>
+          <button type="button" class="cat-btn cat-ad" data-cat="ad">주간광고</button>
           <button type="button" class="cat-btn cat-personal" data-cat="personal">개인</button>
           <button type="button" class="cat-btn cat-birthday" data-cat="birthday">생일 🎂</button>
           <button type="button" class="cat-btn cat-shift" data-cat="shift">근무시간</button>
-          <button type="button" class="cat-btn cat-store" data-cat="store">매장</button>
-          <button type="button" class="cat-btn cat-hanaro" data-cat="hanaro">하나로</button>
-          <button type="button" class="cat-btn cat-gbk" data-cat="gbk">GBK</button>
-          <button type="button" class="cat-btn cat-facility" data-cat="facility">시설</button>
-          <button type="button" class="cat-btn cat-ad" data-cat="ad">광고</button>
+        </div>
+      </div>
+
+      <!-- 매장 선택 (회사/매장/시설/하나로/USASIA/GBK 일 때만) -->
+      <div class="field" id="storeField" style="display:none;">
+        <label>매장 선택</label>
+        <div class="store-picker" id="storePicker">
+          <button type="button" class="store-btn" data-store="TACOMA">TACOMA</button>
+          <button type="button" class="store-btn" data-store="FEDERAL WAY">FEDERAL WAY</button>
+          <button type="button" class="store-btn" data-store="BELLEVUE">BELLEVUE</button>
+          <button type="button" class="store-btn" data-store="BALLARD">BALLARD</button>
+          <button type="button" class="store-btn" data-store="LYNNWOOD">LYNNWOOD</button>
+          <button type="button" class="store-btn" data-store="REDMOND">REDMOND</button>
+          <button type="button" class="store-btn" data-store="MELLOW WAY">MELLOW WAY</button>
+          <button type="button" class="store-btn" data-store="DISTRICT H">DISTRICT H</button>
+          <button type="button" class="store-btn" data-store="M2M">M2M</button>
+          <button type="button" class="store-btn" data-store="G-MART">G-MART</button>
+          <button type="button" class="store-btn" data-store="CAMPEON">CAMPEON</button>
         </div>
       </div>
       <div class="field">
@@ -3371,7 +3421,8 @@
   const MONTH_NAMES_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const DAY_NAMES_KO = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
-  const CAT_LABELS = { work:'회사', personal:'개인', birthday:'생일', shift:'근무시간', store:'매장', hanaro:'하나로', gbk:'GBK', facility:'시설', ad:'광고' };
+  const CAT_LABELS = { work:'회사', personal:'개인', birthday:'생일', shift:'근무시간', store:'매장', hanaro:'하나로', gbk:'GBK', facility:'시설', usasia:'USASIA', ad:'주간광고' };
+  const STORE_CATS = new Set(['work','store','facility','hanaro','usasia','gbk']);
 
   // ========== CRYPTO ==========
   function encrypt(data, password) {
@@ -4152,7 +4203,7 @@
             ${dayNameKo}
           </div>
           <div class="summary-body">
-            <div class="summary-title-text">${escapeHtml(ev.title)}</div>
+            <div class="summary-title-text">${escapeHtml(ev.store || ev.title)}</div>
             ${timeInfo ? `<div class="summary-time">${timeInfo}</div>` : ''}
           </div>
         </div>`;
@@ -4265,6 +4316,7 @@
       <button type="button" class="ett-close" aria-label="닫기">&times;</button>
       <div class="ett-head">
         <span class="ev-cat-tag cat-${cat}">${catLabel}</span>
+        ${ev.store ? `<span class="ett-store">${escapeHtml(ev.store)}</span>` : ''}
         <span class="ett-title">${escapeHtml(ev.title)}</span>
       </div>
       <div class="ett-time">${tipTimeLabel(ev)}</div>
@@ -4398,7 +4450,8 @@
   let formState = {
     category: 'work',   // 'work' | 'personal' | 'birthday'
     lunar: 'solar',     // 'solar' | 'lunar'
-    color: 'default'    // 'default' | 'red' | 'orange' | ...
+    color: 'default',   // 'default' | 'red' | 'orange' | ...
+    store: ''           // 매장 카테고리일 때 선택된 매장명
   };
   let editingId = null;   // 수정 중인 일정 id
 
@@ -4422,6 +4475,7 @@
     formState.category = 'work';
     formState.lunar = 'solar';
     formState.color = 'default';
+    formState.store = '';
     updateFormUI();
     const wasOpen = panelBg.classList.contains('show');
     panelBg.classList.add('show');
@@ -4444,6 +4498,12 @@
     // 색상 버튼
     document.querySelectorAll('.color-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.color === formState.color);
+    });
+    // 매장 선택 picker (회사/매장/시설/하나로/USASIA/GBK 일 때만)
+    const needStore = STORE_CATS.has(formState.category);
+    var __sf = $('storeField'); if (__sf) __sf.style.display = needStore ? '' : 'none';
+    document.querySelectorAll('.store-btn').forEach(btn => {
+      btn.classList.toggle('active', needStore && btn.dataset.store === formState.store);
     });
     // 생일 카테고리면 시간 숨기고 음력 선택 표시
     const isBirthday = formState.category === 'birthday';
@@ -4502,6 +4562,14 @@
   document.querySelectorAll('.cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       formState.category = btn.dataset.cat;
+      if (!STORE_CATS.has(formState.category)) formState.store = '';
+      updateFormUI();
+    });
+  });
+  // 매장 버튼 클릭 (같은 매장 다시 누르면 해제)
+  document.querySelectorAll('.store-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      formState.store = (formState.store === btn.dataset.store) ? '' : btn.dataset.store;
       updateFormUI();
     });
   });
@@ -4588,7 +4656,7 @@
         <li class="ev-row ev-oneline cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}" data-id="${ev.id}">
           <div class="ev-check" data-action="toggle" title="${ev.done ? '미완료로 표시' : '완료(X) 표시'}"></div>
           <div class="ev-body">
-            <div class="ev-line"><span class="ev-cat-tag cat-${cat}">${catLabel}</span><span class="ev-title-text">${escapeHtml(ev.title)}</span><span class="ev-time-inline">${timeLabel}</span></div>
+            <div class="ev-line"><span class="ev-cat-tag cat-${cat}">${catLabel}</span>${ev.store ? `<span class="ev-store-tag">${escapeHtml(ev.store)}</span>` : ''}<span class="ev-title-text">${escapeHtml(ev.title)}</span><span class="ev-time-inline">${timeLabel}</span></div>
             ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
           </div>
           <button class="ev-edit" data-action="edit" title="수정">
@@ -4630,7 +4698,7 @@
     else if (e.start) timeStr = e.start;
     const parts = [
       `<span class="ep-cat">${escapeHtml(catLabel)}</span>`,
-      `<span class="ep-title">${escapeHtml(e.title)}</span>`,
+      `<span class="ep-title">${escapeHtml(e.store || e.title || '')}</span>`,
       `<span class="ep-date">${dateStr}</span>`
     ];
     if (timeStr) parts.push(`<span class="ep-time">${escapeHtml(timeStr)}</span>`);
@@ -4667,6 +4735,7 @@
     formState.category = ev.category || 'work';
     formState.color = ev.color || 'default';
     formState.lunar = ev.isLunar ? 'lunar' : 'solar';
+    formState.store = ev.store || '';
     $('evTitle').value = ev.title || '';
     var sp = ev.start ? ev.start.split(':') : ['',''];
     var epp = ev.end ? ev.end.split(':') : ['',''];
@@ -4704,12 +4773,18 @@
     const color = formState.color;
     const isBirthday = category === 'birthday';
     const isShift = category === 'shift';
+    const needStore = STORE_CATS.has(category);
+    const store = needStore ? formState.store : '';
     const dayOff = isShift && $('evDayOff') && $('evDayOff').checked;
     const isLunar = isBirthday && formState.lunar === 'lunar';
 
     if (!title) {
       showToast('제목을 입력하세요', 'error');
       $('evTitle').focus();
+      return;
+    }
+    if (needStore && !store) {
+      showToast('매장을 선택하세요', 'error');
       return;
     }
     if (!dayOff && (start === 'INVALID' || end === 'INVALID')) {
@@ -4735,6 +4810,7 @@
       notes: notes || null,
       done: false,
       category: category,
+      store: store || '',
       color: isBirthday ? 'default' : color,
       isBirthday: isBirthday,
       isLunar: isLunar,
