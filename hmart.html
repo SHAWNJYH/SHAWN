@@ -472,10 +472,12 @@
   }
   function statusBadge(s){ return s==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
   function openView(){
-    reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
+    var myStore=activeStore();
+    var mine=reqs.filter(function(r){ return myStore ? (r.store===myStore) : true; });
+    mine.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
     newApprovals=0; refreshDot();
     var el=$('rqList');
-    var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
+    var sorted=mine.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
       var done=r.status==='done', id=esc(r.__id);
       var kor=done?(r.mgrKor||r.kor||''):(r.kor||'');
@@ -507,6 +509,8 @@
   $('rqSubmit').onclick = submitReq;
   $('rqViewOpen').onclick = openView;
   var __vb=$('hmReqViewBtn'); if(__vb) __vb.onclick = openView;
+  // STORAGE: 하나만 선택 (한 개 체크 시 나머지 해제)
+  ['rqHot','rqCool','rqAmbient'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', function(){ if(el.checked){ ['rqHot','rqCool','rqAmbient'].forEach(function(o){ if(o!==id && $(o)) $(o).checked=false; }); } }); });
   $('rqViewClose').onclick = closeView;
   $('rqViewX').onclick = closeView;
   $('plureqFormOv').addEventListener('click', function(e){ if(e.target===$('plureqFormOv')) closeForm(); });
@@ -516,7 +520,7 @@
     try{
       fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
         if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
-        else { var fresh=0; reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]){ seenDone[r.__id]=1; fresh++; } }); if(fresh>0){ newApprovals+=fresh; playBeep(); } }
+        else { var myStore=activeStore(); var fresh=0; reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]){ seenDone[r.__id]=1; if(!myStore || r.store===myStore) fresh++; } }); if(fresh>0){ newApprovals+=fresh; playBeep(); } }
         refreshDot();
         var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
     }catch(e){}
