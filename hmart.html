@@ -262,7 +262,7 @@
 </style>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -274,7 +274,7 @@
   };
   const app = initializeApp(firebaseConfig);
   window.firebaseDb = getFirestore(app);
-  window.firebaseFns = { doc, getDoc, setDoc, collection, onSnapshot };
+  window.firebaseFns = { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot };
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 </head>
@@ -343,6 +343,10 @@
   .egmm-menu-btn.hm-alarm{ animation:hmAlarmBlink 1s ease-in-out infinite; }
   .egmm-menu-btn.hm-alarm > span:first-child{ color:#c0392b; }
   .hm-req-dot{ display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; margin-left:8px; border-radius:9px; background:#c0392b; color:#fff; font-family:var(--mono); font-size:10px; font-weight:800; }
+  .plureq-row.pending{ border-color:#e3a3a3 !important; background:#fffafa; }
+  .rqtop-right{ display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .plureq-cancel{ border:1px solid #e3a3a3; background:#fff; color:#c0392b; border-radius:8px; padding:4px 10px; font-family:var(--mono); font-size:12px; font-weight:800; cursor:pointer; }
+  .plureq-cancel:hover{ background:#c0392b; color:#fff; border-color:#c0392b; }
   @media (prefers-reduced-motion: reduce){ .egmm-menu-btn.hm-alarm{ animation:none; background:#fdecec; border-color:#c0392b; } }
 </style>
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
@@ -473,17 +477,29 @@
     var el=$('rqList');
     var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
-      var done=r.status==='done';
-      var kor=done?(r.mgrKor||''):(r.kor||'');
-      var eng=done?(r.mgrEng||''):(r.eng||'');
-      return '<div class="plureq-row"><div class="top"><span class="name">'+esc(kor||eng||'(NO NAME)')+'</span>'+statusBadge(r.status)+'</div>'+
-        '<div class="meta"><span class="rqlbl">STORE</span> '+esc(r.store||'-')+' · <span class="rqlbl">REQUESTER</span> '+esc(r.requester||'-')+'</div>'+
-        '<div class="meta"><span class="rqlbl">PLU</span> '+esc(r.plu||'-')+' · <span class="rqlbl">KOR</span> '+esc(kor||'-')+' · <span class="rqlbl">ENG</span> '+esc(eng||'-')+'</div>'+
-      '</div>';
+      var done=r.status==='done', id=esc(r.__id);
+      var kor=done?(r.mgrKor||r.kor||''):(r.kor||'');
+      var eng=done?(r.mgrEng||r.eng||''):(r.eng||'');
+      var L=function(t){ return '<span class="rqlbl">'+t+'</span> '; };
+      var topName='<span class="rqlbl">PLU</span> '+esc(done?(r.plu||'-'):'-')+' / '+esc(kor||'-')+' / '+esc(eng||'-');
+      var lines=[];
+      var m=[]; if(r.price)m.push(L('PRICE')+esc(r.price)); if(r.storage)m.push(L('STORAGE')+esc(r.storage)); if(r.tare)m.push(L('TARE')+esc(r.tare)); if(r.sellByTime)m.push(L('SELL BY TIME')+esc(r.sellByTime)); if(r.sellByDate)m.push(L('SELL BY DATE')+esc(r.sellByDate)); if(m.length) lines.push(m.join(' · '));
+      if(r.ingredients) lines.push(L('INGREDIENTS')+esc(r.ingredients));
+      if(r.memo) lines.push(L('MEMO')+esc(r.memo));
+      var metaHtml=lines.map(function(s){ return '<div class="meta">'+s+'</div>'; }).join('');
+      var cancelBtn = done ? '' : '<button class="plureq-cancel" data-cancel="'+id+'">신청취소</button>';
+      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+topName+'</span><span class="rqtop-right">'+statusBadge(r.status)+cancelBtn+'</span></div>'+metaHtml+'</div>';
     }).join('') : '<div class="plureq-empty">No requests.</div>';
     $('plureqViewOv').classList.add('show');
   }
   function closeView(){ $('plureqViewOv').classList.remove('show'); }
+  function cancelReq(id){
+    if(!window.confirm('이 신청을 취소할까요?\n취소하면 EGMM 받은 목록에서도 사라집니다.')) return;
+    if(!fns()||!fns().deleteDoc){ uiAlert('취소 불가 — 잠시 후 다시'); return; }
+    try{ fns().deleteDoc(fns().doc(db(), REQ_COL, id)).then(function(){ showToast('신청이 취소되었습니다','success'); }).catch(function(){ uiAlert('취소 실패 — 권한/네트워크 확인'); }); }
+    catch(e){ uiAlert('취소 실패'); }
+  }
+  document.addEventListener('click', function(e){ var t=e.target; var cid=t.getAttribute&&t.getAttribute('data-cancel'); if(cid){ cancelReq(cid); } });
 
   $('hmartDeliBtn').onclick = openForm;
   $('rqCancel').onclick = closeForm;
