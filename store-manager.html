@@ -6,6 +6,24 @@
 <title>STORE MANAGER · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  try {
+    const app = initializeApp({
+      apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+      authDomain: "the-shawn.firebaseapp.com",
+      projectId: "the-shawn",
+      storageBucket: "the-shawn.firebasestorage.app",
+      messagingSenderId: "519898602513",
+      appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+      measurementId: "G-NKGYGC63JN"
+    });
+    const db = getFirestore(app);
+    window.smFb = { db, doc, getDoc, collection, getDocs };
+    window.dispatchEvent(new Event('smfb-ready'));
+  } catch (e) { console.error('firebase init fail', e); }
+</script>
 <style>
   :root{
     --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f4f3ee; --border:#e5e5e0; --border-bright:#c8c8c0;
@@ -89,6 +107,29 @@
   .ex-armed-note{ font-size:11px; font-weight:700; color:var(--accent-warm); }
 
   input[type=file]{ display:none; }
+
+  /* 소스 미리보기 모달 */
+  .ex-modal-bg{ position:fixed; inset:0; background:rgba(26,26,29,.42); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:1000; padding:24px; }
+  .ex-modal-bg.show{ display:flex; }
+  .ex-modal{ background:var(--bg-elev); border:1px solid var(--border-bright); border-radius:18px; width:100%; max-width:760px; max-height:84vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 30px 80px rgba(26,26,29,.3); }
+  .ex-modal-head{ display:flex; align-items:center; gap:11px; padding:16px 20px; background:linear-gradient(135deg,#1f1d1a,#34302a); color:#fff; }
+  .ex-modal-head .tick2{ width:5px; height:18px; border-radius:2px; background:var(--accent-warm); }
+  .ex-modal-head span:nth-child(2){ font-size:16px; font-weight:800; flex:1 1 auto; }
+  .ex-modal-x{ border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.06); color:#fff; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:800; }
+  .ex-modal-body{ padding:18px 20px; overflow:auto; background:#fbfaf7; font-size:13px; }
+  .ex-prev-stat{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .ex-prev-chip{ background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:7px 12px; font-size:12px; font-weight:800; color:var(--text-dim); }
+  .ex-prev-chip b{ color:var(--text); }
+  .ex-prev-sec{ font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); margin:14px 0 7px; }
+  .ex-prev-table{ width:100%; border-collapse:collapse; font-size:12px; background:#fff; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .ex-prev-table th,.ex-prev-table td{ text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+  .ex-prev-table th{ background:var(--bg-elev-2); font-weight:800; color:var(--text-dim); font-size:11px; }
+  .ex-prev-table td{ color:var(--text); word-break:break-all; }
+  .ex-prev-table tr:last-child td{ border-bottom:none; }
+  .ex-prev-keys{ display:flex; flex-wrap:wrap; gap:6px; }
+  .ex-prev-key{ background:var(--accent-soft); border:1px solid var(--accent-warm); color:#8a6d2e; border-radius:6px; padding:3px 9px; font-size:11px; font-weight:700; }
+  .ex-prev-empty{ color:var(--text-faint); font-weight:700; text-align:center; padding:20px; }
+  .ex-prev-loading{ color:var(--text-dim); font-weight:700; text-align:center; padding:30px; }
 </style>
 </head>
 <body>
@@ -117,6 +158,11 @@
         <button class="ex-btn" id="exDeleteBtn" type="button">프로필 삭제</button>
         <span class="ex-spacer"></span>
         <span class="ex-armed-note" id="exArmedNote"></span>
+        <div class="ex-tb-group">
+          <span class="ex-tb-label">소스</span>
+          <select class="ex-sel" id="exSrcSel"><option value="all">EGP + STI</option><option value="egp">EGP</option><option value="sti">STI</option></select>
+        </div>
+        <button class="ex-btn" id="exPreviewBtn" type="button">🔍 소스 확인</button>
         <button class="ex-btn primary" id="exExportBtn" type="button">⬇ EXPORT</button>
       </div>
       <div class="ex-canvas-wrap">
@@ -130,6 +176,14 @@
     </div>
   </div>
   <div class="sm-hint" id="smHint">매장별 PIN 설정: 매장 선택·PIN 부여 / EXPORT 설정: 관리필드(왼쪽)를 업로드한 엑셀필드(오른쪽)에 연결하면 EXPORT 시 데이터가 매핑되어 들어갑니다.</div>
+
+  <!-- 소스 미리보기 모달 -->
+  <div class="ex-modal-bg" id="exPrevBg">
+    <div class="ex-modal">
+      <div class="ex-modal-head"><span class="tick2"></span><span id="exPrevTitle">소스 데이터 확인 (upc-list)</span><button class="ex-modal-x" id="exPrevX" type="button">✕</button></div>
+      <div class="ex-modal-body" id="exPrevBody"></div>
+    </div>
+  </div>
 
 <script>
 (function(){
@@ -363,26 +417,133 @@
   document.querySelector('.ex-canvas-wrap').addEventListener('scroll', function(){ drawLines(); });
   window.addEventListener('resize', function(){ drawLines(); });
 
-  /* ---- EXPORT 생성 ---- */
-  // 관리 데이터 연동 지점: 실제 UPC 매니저 데이터를 여기에 연결하면 행이 채워집니다.
-  function getManagerRows(){
-    try{ var raw=localStorage.getItem('theShawn_managerRows'); if(raw){ var a=JSON.parse(raw); if(Array.isArray(a)) return a; } }catch(e){}
-    return []; // 비어있으면 헤더(템플릿)만 생성
+  /* ---- 소스 데이터: Firebase upc-list / egp · sti ---- */
+  // 관리필드 ↔ 소스 키 후보(표기 변형 허용). 정확한 키를 몰라도 매칭되도록.
+  var FIELD_KEYS = {
+    'UPC(O)':   ['UPC(O)','UPC (O)','UPCO','UPC_O','UPC O','UPC-O','UPCORIGIN'],
+    'UPC(C)':   ['UPC(C)','UPC (C)','UPCC','UPC_C','UPC C','UPC-C','UPCCONVERT','UPCCONVERTED'],
+    'PLU':      ['PLU','PLUCODE','PLU CODE'],
+    'ENG DESC': ['ENG DESC','PLU ENG DESC','ENG DESCRIPTION','ENG_DESC','ENGDESC','ENGLISH','ENG','ENGLISH DESC','ENGLISH DESCRIPTION','ENGNAME','ENG NAME','ENGLISHNAME'],
+    'KOR DESC': ['KOR DESC','KOR DESCRIPTION','KOR_DESC','KORDESC','KOREAN','KOR','KOREAN DESC','KORNAME','KOR NAME','한글','한글명','상품명','품목명'],
+    'COST':     ['COST','원가','입고가','매입가','COSTPRICE'],
+    'SRP':      ['SRP','PRICE','RETAIL','RETAILPRICE','RETAIL PRICE','판매가','소비자가','정가','SELLINGPRICE']
+  };
+  function norm(s){ return String(s==null?'':s).toLowerCase().replace(/[^a-z0-9가-힣]/g,''); }
+  function normalizeRow(item){
+    var nmap = {};
+    Object.keys(item||{}).forEach(function(k){ nmap[norm(k)] = item[k]; });
+    var out = {};
+    state.managerFields.forEach(function(mf){
+      var cands = [mf].concat(FIELD_KEYS[mf]||[]);
+      var val = '';
+      for(var i=0;i<cands.length;i++){ var nk = norm(cands[i]); if(nmap[nk]!=null && nmap[nk]!==''){ val = nmap[nk]; break; } }
+      out[mf] = val;
+    });
+    out.__raw = item;
+    return out;
   }
-  $('exExportBtn').onclick = function(){
+  // 문서에서 항목 배열 추출 (흔한 필드 → 없으면 객체 내 모든 배열 평탄화: 카테고리별 배열 대응)
+  function extractItems(data){
+    if(!data || typeof data!=='object') return [];
+    var prefer = ['items','list','rows','data','products','upc','plu'];
+    for(var i=0;i<prefer.length;i++){ if(Array.isArray(data[prefer[i]])) return data[prefer[i]]; }
+    var out = [];
+    (function dig(obj, depth){
+      if(depth>2 || !obj || typeof obj!=='object') return;
+      Object.keys(obj).forEach(function(k){
+        var v = obj[k];
+        if(Array.isArray(v)){ v.forEach(function(it){ if(it && typeof it==='object') out.push(it); }); }
+        else if(v && typeof v==='object'){ dig(v, depth+1); }
+      });
+    })(data, 0);
+    return out;
+  }
+  function waitForFb(ms){
+    return new Promise(function(resolve, reject){
+      if(window.smFb) return resolve();
+      var t0 = Date.now();
+      var iv = setInterval(function(){
+        if(window.smFb){ clearInterval(iv); resolve(); }
+        else if(Date.now()-t0 > (ms||6000)){ clearInterval(iv); reject(new Error('Firebase 로드 실패(인터넷/CDN 확인)')); }
+      }, 100);
+    });
+  }
+  async function fetchDocItems(baseId){
+    var fb = window.smFb;
+    var ids = [baseId, baseId.toUpperCase(), baseId.toLowerCase()];
+    var seen = {};
+    for(var i=0;i<ids.length;i++){
+      var id = ids[i]; if(seen[id]) continue; seen[id]=1;
+      try{
+        var snap = await fb.getDoc(fb.doc(fb.db, 'upc-list', id));
+        if(snap.exists()){ return { id:id, items: extractItems(snap.data()) }; }
+      }catch(e){ /* 다음 후보 */ }
+    }
+    return { id:null, items:[] };
+  }
+  function curSrcFilter(){ return ($('exSrcSel')||{}).value || 'all'; }
+  async function fetchSourceRows(filter){
+    await waitForFb();
+    var bases = filter==='egp' ? ['egp'] : filter==='sti' ? ['sti'] : ['egp','sti'];
+    var rows = [], meta = [];
+    for(var i=0;i<bases.length;i++){
+      var r = await fetchDocItems(bases[i]);
+      meta.push({ base:bases[i], id:r.id, count:r.items.length });
+      r.items.forEach(function(it){ var nr = normalizeRow(it); nr.__source = bases[i].toUpperCase(); rows.push(nr); });
+    }
+    return { rows:rows, meta:meta };
+  }
+
+  /* ---- 소스 미리보기 모달 ---- */
+  function openPrev(){ $('exPrevBg').classList.add('show'); }
+  function closePrev(){ $('exPrevBg').classList.remove('show'); }
+  $('exPrevX').onclick = closePrev;
+  $('exPrevBg').addEventListener('click', function(e){ if(e.target===$('exPrevBg')) closePrev(); });
+  $('exPreviewBtn').onclick = async function(){
+    openPrev();
+    $('exPrevBody').innerHTML = '<div class="ex-prev-loading">upc-list / '+esc(curSrcFilter().toUpperCase())+' 불러오는 중…</div>';
+    try{ renderPreview(await fetchSourceRows(curSrcFilter())); }
+    catch(err){ $('exPrevBody').innerHTML = '<div class="ex-prev-empty">불러오기 실패: '+esc(err.message)+'</div>'; }
+  };
+  function renderPreview(res){
+    var rows = res.rows, meta = res.meta;
+    var html = '<div class="ex-prev-stat">';
+    meta.forEach(function(m){ html += '<span class="ex-prev-chip">'+esc(m.base.toUpperCase())+' 문서: <b>'+(m.id?esc(m.id):'없음')+'</b> · 행 <b>'+m.count+'</b></span>'; });
+    html += '<span class="ex-prev-chip">총 <b>'+rows.length+'</b>행</span></div>';
+    if(!rows.length){ html += '<div class="ex-prev-empty">수집된 행이 없습니다.<br>문서 ID(egp / sti)와 항목 배열 구조를 확인하세요.</div>'; $('exPrevBody').innerHTML = html; return; }
+    var keys = {}; rows.slice(0,50).forEach(function(r){ Object.keys(r.__raw||{}).forEach(function(k){ keys[k]=1; }); });
+    html += '<div class="ex-prev-sec">감지된 원본 키 ('+Object.keys(keys).length+')</div><div class="ex-prev-keys">'+Object.keys(keys).map(function(k){ return '<span class="ex-prev-key">'+esc(k)+'</span>'; }).join('')+'</div>';
+    html += '<div class="ex-prev-sec">관리필드 매칭 미리보기 (상위 5행)</div>';
+    html += '<table class="ex-prev-table"><thead><tr><th>#</th><th>SRC</th>'+state.managerFields.map(function(f){ return '<th>'+esc(f)+'</th>'; }).join('')+'</tr></thead><tbody>';
+    rows.slice(0,5).forEach(function(r,i){
+      html += '<tr><td>'+(i+1)+'</td><td>'+esc(r.__source||'')+'</td>'+state.managerFields.map(function(f){ var v=r[f]; return '<td>'+esc(v==null||v===''?'—':v)+'</td>'; }).join('')+'</tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div class="ex-prev-sec">참고</div><div style="font-size:12px;color:var(--text-dim);line-height:1.6">매칭이 “—”로 비어 있으면 위 ‘원본 키’ 이름이 관리필드명과 달라서입니다. 그 키 이름을 알려주시면 매칭 규칙에 추가하겠습니다.</div>';
+    $('exPrevBody').innerHTML = html;
+  }
+
+  /* ---- EXPORT 생성 (소스 데이터 → 매핑된 EXPORT 필드) ---- */
+  $('exExportBtn').onclick = async function(){
     var p = activeProfile();
     if(!p){ alert('먼저 EXPORT 프로필(엑셀)을 업로드/선택하세요.'); return; }
     if(!window.XLSX){ alert('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
-    var headers = p.fields.slice();
-    var rows = getManagerRows();
-    var aoa = [headers];
-    rows.forEach(function(r){
-      aoa.push(headers.map(function(h){ var src=p.mappings[h]; return src ? (r[src]!=null?r[src]:'') : ''; }));
-    });
-    var ws = XLSX.utils.aoa_to_sheet(aoa);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, (p.name||'EXPORT').slice(0,31));
-    XLSX.writeFile(wb, (p.name||'EXPORT')+'_EXPORT.xlsx');
+    var btn = this, old = btn.textContent; btn.textContent = '수집 중…'; btn.disabled = true;
+    try{
+      var res = await fetchSourceRows(curSrcFilter());
+      var rows = res.rows;
+      var headers = p.fields.slice();
+      var aoa = [headers];
+      rows.forEach(function(r){
+        aoa.push(headers.map(function(h){ var src = p.mappings[h]; return src ? (r[src]!=null?r[src]:'') : ''; }));
+      });
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, (p.name||'EXPORT').slice(0,31));
+      XLSX.writeFile(wb, (p.name||'EXPORT')+'_EXPORT.xlsx');
+      if(!rows.length){ alert('소스(upc-list)에서 수집된 행이 없어 헤더(템플릿)만 생성했습니다. ‘🔍 소스 확인’으로 데이터를 점검하세요.'); }
+    }catch(err){ console.error(err); alert('EXPORT 실패: '+err.message); }
+    finally{ btn.textContent = old; btn.disabled = false; }
   };
 
   // 초기화
