@@ -77,7 +77,7 @@
 
   /* 도메인 패널 */
   .hm-cards { display: flex; gap: 18px; align-items: flex-start; justify-content: center;
-    width: 100%; max-width: 820px; flex-wrap: wrap; }
+    width: 100%; max-width: 1180px; flex-wrap: wrap; }
   .egmm-card { flex: 1 1 320px; min-width: 290px; max-width: 392px; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
@@ -310,9 +310,17 @@
 
         <div class="egmm-section-title gap">MEMORIZE</div>
         <button class="egmm-menu-btn" id="hmartToQuizBtn"><span>PLU MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
+      </div>
 
-        <div class="egmm-section-title gap">REQUEST</div>
-        <button class="egmm-menu-btn" id="hmartDeliBtn"><span>DELI</span><span class="egmm-menu-arrow">→</span></button>
+      <!-- 카드: REQUEST -->
+      <div class="egmm-card">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
+
+        <div class="egmm-section-title">DELI</div>
+        <button class="egmm-menu-btn" id="hmartDeliBtn"><span>DELI REQUEST</span><span class="egmm-menu-arrow">→</span></button>
+
+        <div class="egmm-section-title gap">RESULT</div>
+        <button class="egmm-menu-btn" id="hmReqViewBtn"><span>VIEW REQUEST</span><span class="hm-req-dot" id="hmReqDot"></span><span class="egmm-menu-arrow">→</span></button>
       </div>
 
       <!-- 카드 2: GUIDE -->
@@ -329,6 +337,14 @@
     </div>
   </div>
 
+<style>
+  /* 승인 알림: VIEW REQUEST 빨강 점멸 + 도트 */
+  @keyframes hmAlarmBlink { 0%,100%{ background:var(--bg); border-color:var(--border); } 50%{ background:#fdecec; border-color:#c0392b; box-shadow:0 0 0 2px rgba(192,57,43,.22); } }
+  .egmm-menu-btn.hm-alarm{ animation:hmAlarmBlink 1s ease-in-out infinite; }
+  .egmm-menu-btn.hm-alarm > span:first-child{ color:#c0392b; }
+  .hm-req-dot{ display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; margin-left:8px; border-radius:9px; background:#c0392b; color:#fff; font-family:var(--mono); font-size:10px; font-weight:800; }
+  @media (prefers-reduced-motion: reduce){ .egmm-menu-btn.hm-alarm{ animation:none; background:#fdecec; border-color:#c0392b; } }
+</style>
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
   <div class="plureq-head">
     <span class="plureq-tick"></span>
@@ -404,6 +420,14 @@
   function showToast(msg, type){ var t=$('hmToast'); if(!t) return; clearTimeout(toastTimer); t.textContent=msg; t.className='hm-toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='hm-toast '+(type||''); }, 2500); }
   function uiAlert(msg){ showToast(msg, 'error'); }
 
+  // ===== 알림음(Web Audio) + 승인 점멸 =====
+  var audioCtx=null;
+  function ensureAudio(){ try{ if(!audioCtx){ var AC=window.AudioContext||window.webkitAudioContext; if(AC) audioCtx=new AC(); } if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} return audioCtx; }
+  document.addEventListener('click', function(){ ensureAudio(); });   // 자동재생 정책: 첫 클릭에서 오디오 활성화
+  function playBeep(){ var ctx=ensureAudio(); if(!ctx) return; try{ var now=ctx.currentTime; [0,0.42,0.84].forEach(function(off){ var o=ctx.createOscillator(), g=ctx.createGain(); o.type='square'; o.frequency.setValueAtTime(880, now+off); g.gain.setValueAtTime(0.0001, now+off); g.gain.exponentialRampToValueAtTime(0.28, now+off+0.03); g.gain.exponentialRampToValueAtTime(0.0001, now+off+0.30); o.connect(g); g.connect(ctx.destination); o.start(now+off); o.stop(now+off+0.33); }); }catch(e){} }
+  var newApprovals=0;
+  function refreshDot(){ var d=$('hmReqDot'), b=$('hmReqViewBtn'); if(!d||!b) return; if(newApprovals>0){ d.textContent=newApprovals; d.style.display='inline-flex'; b.classList.add('hm-alarm'); } else { d.textContent=''; d.style.display='none'; b.classList.remove('hm-alarm'); } }
+
   // 네비게이션
   $('hmartToListBtn').onclick = function(){ window.location.href = 'plu-list-store.html'; };
   $('hmartToUpcBtn').onclick = function(){ window.location.href = 'upc-list-store.html'; };
@@ -445,6 +469,7 @@
   function statusBadge(s){ return s==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
   function openView(){
     reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
+    newApprovals=0; refreshDot();
     var el=$('rqList');
     var sorted=reqs.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
     el.innerHTML = sorted.length ? sorted.map(function(r){
@@ -465,6 +490,7 @@
   $('rqFormX').onclick = closeForm;
   $('rqSubmit').onclick = submitReq;
   $('rqViewOpen').onclick = openView;
+  var __vb=$('hmReqViewBtn'); if(__vb) __vb.onclick = openView;
   $('rqViewClose').onclick = closeView;
   $('rqViewX').onclick = closeView;
   $('plureqFormOv').addEventListener('click', function(e){ if(e.target===$('plureqFormOv')) closeForm(); });
@@ -474,6 +500,8 @@
     try{
       fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
         if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
+        else { var fresh=0; reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]){ seenDone[r.__id]=1; fresh++; } }); if(fresh>0){ newApprovals+=fresh; playBeep(); } }
+        refreshDot();
         var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
     }catch(e){}
   });
