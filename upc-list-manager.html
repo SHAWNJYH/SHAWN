@@ -2739,7 +2739,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         '<button class="adm-btn" id="admHist" type="button">📦 신제품 및 변경상품 보기</button>'+
         '<button class="adm-btn" id="admImport" type="button">⬇︎ 데이터 불러오기</button>'+
         '<button class="adm-btn" id="admExport" type="button">⬆︎ 데이터 내보내기</button>'+
-        '<button class="adm-btn" id="admStore" type="button">🏪 매장관리</button>'+
         '<button class="adm-btn adm-green" id="admBackup" type="button">💾 백업</button>'+
         '<button class="adm-btn adm-blue" id="admRestore" type="button">♻ 복원</button>'+
         '<button class="adm-btn adm-orange" id="admFb" type="button">☁ FB 내보내기</button>'+
@@ -2754,7 +2753,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('admHist').onclick=function(){ close(); showHistModal('all'); };
     $('admImport').onclick=function(){ close(); importXlsx(); };
     $('admExport').onclick=function(){ close(); openExportMenu(true); };
-    $('admStore').onclick=function(){ close(); if(window.__openStoreMgmt) window.__openStoreMgmt(); };
     $('admBackup').onclick=function(){ close(); if(window.__upcBackupPicker) window.__upcBackupPicker(); else if(window.__upcExportAll) window.__upcExportAll(); };
     $('admRestore').onclick=function(){ close(); var f=$('upcRestoreFile'); if(f) f.click(); };
     $('admFb').onclick=function(){ close(); if(window.__upcExportFirebase) window.__upcExportFirebase(); };

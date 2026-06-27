@@ -82,6 +82,8 @@
 
   /* EXPORT 끊긴 매핑 표시 */
   .efld.broken{ border-color:#d9534f !important; background:#fff8f8; }
+  .mfld.linked{ background:var(--accent-soft); }
+  .mfld .mf-linked{ color:#2a8a4a; font-weight:800; font-size:12px; margin-left:2px; }
   .efld .map-tag.broken{ background:#d9534f !important; }
   .efld .map-broken{ font-size:10px; font-weight:800; color:#b3322e; }
   .ex-tb-group{ display:inline-flex; align-items:center; gap:7px; }
@@ -435,10 +437,14 @@
   $('exClearBtn').onclick = function(){ var p=activeProfile(); if(!p) return; if(!confirm('현재 연결도("'+p.name+'")의 모든 연결을 초기화할까요?')) return; p.mappings={}; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
   $('exDeleteBtn').onclick = function(){ var p=activeProfile(); if(!p) return; if(!confirm('프로필 "'+p.name+'" 을(를) 삭제할까요?')) return; state.profiles=state.profiles.filter(function(x){return x.id!==p.id;}); state.activeId=(state.profiles[0]&&state.profiles[0].id)||''; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
 
-  /* ---- 매핑 조작 ---- */
+  /* ---- 매핑 조작 (단독 연결: 한 관리필드는 한 EXPORT 필드에만) ---- */
   function setMap(exportField, managerField){
     var p = activeProfile(); if(!p) return;
-    if(managerField){ p.mappings[exportField] = managerField; }
+    if(managerField){
+      // 같은 관리필드가 다른 EXPORT 필드에 이미 연결돼 있으면 해제(중복 금지)
+      Object.keys(p.mappings).forEach(function(ef){ if(ef!==exportField && p.mappings[ef]===managerField) delete p.mappings[ef]; });
+      p.mappings[exportField] = managerField;
+    }
     else { delete p.mappings[exportField]; }
     saveConfig();
   }
@@ -464,14 +470,20 @@
 
   function renderManagerCol(){
     var col = $('exMgrCol');
+    var p = activeProfile();
+    var used = {};
+    if(p){ Object.keys(p.mappings).forEach(function(ef){ var mf=p.mappings[ef]; if(state.managerFields.indexOf(mf)>=0) used[mf]=ef; }); }
     var srcNote = state.masterFromCloud ? 'MANAGER · 필드관리(마스터)' : 'MANAGER · 기본값(마스터 미연결)';
     var html = '<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">관리 필드</span><span class="ex-col-sub">'+srcNote+'</span></div>';
     html += state.managerFields.map(function(f,i){
       var c = mfColor(f);
       var armed = state.armed===f ? ' armed' : '';
-      return '<div class="fld mfld'+armed+'" data-field="'+esc(f)+'" style="--mf-color:'+c+'">'+
+      var linked = used[f] ? ' linked' : '';
+      var mark = used[f] ? '<span class="mf-linked" title="'+esc(used[f])+'에 연결됨">✓</span>' : '';
+      return '<div class="fld mfld'+armed+linked+'" data-field="'+esc(f)+'" style="--mf-color:'+c+'">'+
                '<span class="swatch" style="background:'+c+'"></span>'+
                '<span class="fld-name">'+esc(f)+'</span>'+
+               mark +
                '<span class="fld-idx">'+(i+1)+'</span>'+
                '<span class="anchor mf-anchor"></span>'+
              '</div>';
