@@ -763,13 +763,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 <div class="plu-modal-ov" id="pluColModal">
   <div class="plu-modal">
     <h3>필드추가</h3>
-    <p>어떤 형태의 열을 추가할까요?</p>
-    <div class="plu-modal-btns">
-      <button class="plu-modal-choice" id="pluColCheck">🏬 매장추가<small>체크박스 · 초록색 · 열 맨 끝(오른쪽)에 정렬 (예: BD·BV·FW)</small></button>
-      <button class="plu-modal-choice" id="pluColRCheck">🔴 상품정보추가<small>체크박스 · 붉은색 · 원하는 위치로 이동 가능</small></button>
-      <button class="plu-modal-choice" id="pluColText">📝 상품필드추가<small>글자 입력 · 검은색 · 원하는 위치로 이동 가능 (예: 원산지·비고)</small></button>
-    </div>
-    <div class="cfd-divider"><span>또는 필드 관리(마스터)에서 가져오기</span></div>
+    <p>필드 관리(STORE 매니저)에 등록된 필드만 추가할 수 있습니다.</p>
     <div class="cfd-list" id="pluColImportList"></div>
     <button class="plu-modal-choice cfd-add" id="pluColImportAdd" disabled>✓ 선택한 필드 추가</button>
     <button class="plu-modal-cancel" id="pluColCancel">취소</button>
@@ -1496,7 +1490,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 보기 모드 행 HTML
   function viewRowHTML(r, rowIdx){
     var v=visibleCols();
-    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getVal(r,c.key)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
+    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'){ var __mr=String(getVal(r,c.key)||'').trim(); var __mv=(__mr===''?'':(__mr.replace(/%+$/,'')+'%')); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+'"'+colorStyle(c)+(__mv.length>limit?(' title="'+escapeHtml(__mv)+'"'):'')+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getVal(r,c.key)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
     var isNewRow=flagFresh(r,'__NEWFLAG');
     var isPriceUpd=flagFresh(r,'__PRICEUPD');
     var mark=(isNewRow?'N':'')+(isPriceUpd?'$':'');
@@ -2263,7 +2257,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function fillColImportList(){
     var box=$('pluColImportList'); if(!box) return;
     __cfdItems=otherCatFields();
-    if(!__cfdItems.length){ box.innerHTML='<div class="cfd-empty">필드 관리(마스터)에 추가할 수 있는 필드가 없습니다 · 🗂 필드 관리에서 등록하세요</div>'; var ab=$('pluColImportAdd'); if(ab) ab.disabled=true; return; }
+    if(!__cfdItems.length){ box.innerHTML='<div class="cfd-empty">필드 관리(마스터)에 추가할 수 있는 필드가 없습니다 · STORE 매니저의 필드 관리 탭에서 등록하세요</div>'; var ab=$('pluColImportAdd'); if(ab) ab.disabled=true; return; }
     box.innerHTML=__cfdItems.map(function(it,i){ var tt=(it.type==='check'||it.type==='rcheck')?' (체크)':(it.fmt==='price'?' ($)':''); return '<label class="em-cfg-item"><input type="checkbox" class="cfd-col" data-i="'+i+'"> <span>'+escapeHtml(it.label)+tt+' <span class="em-cfg-tag">'+escapeHtml(it.cats.join(', '))+'</span></span></label>'; }).join('');
     var refresh=function(){ var any=box.querySelectorAll('.cfd-col:checked').length>0; var ab=$('pluColImportAdd'); if(ab) ab.disabled=!any; };
     box.querySelectorAll('.cfd-col').forEach(function(ch){ ch.onchange=refresh; });
