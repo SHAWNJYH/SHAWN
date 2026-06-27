@@ -430,32 +430,35 @@
   .cfd-add:disabled { opacity:.45; cursor:not-allowed; }
 
   /* 필드 관리(마스터) 모달 */
-  .mf-modal{ width:min(820px,94vw); max-width:820px; text-align:left; }
-  .mf-addrow{ display:flex; gap:8px; margin:6px 0 12px; }
-  .mf-addrow input{ flex:1 1 auto; min-width:0; border:1.5px solid #e5e5e0; border-radius:9px; padding:9px 11px; font-family:inherit; font-size:14px; }
+  .mf-modal{ width:min(1000px,96vw); max-width:1000px; text-align:left; }
+  .mf-modal h3{ font-size:15px; margin-bottom:10px; }
+  .mf-addrow{ display:flex; gap:8px; margin:4px 0 10px; }
+  .mf-addrow input{ flex:1 1 auto; min-width:0; border:1.5px solid #e5e5e0; border-radius:9px; padding:8px 10px; font-family:inherit; font-size:13px; }
   .mf-addrow input:focus{ outline:none; border-color:var(--accent-warm); }
-  .mf-type{ border:1.5px solid #e5e5e0; border-radius:9px; padding:9px 8px; font-family:inherit; font-size:13px; font-weight:700; background:#fff; cursor:pointer; }
-  .mf-btn{ border:1.5px solid #e5e5e0; background:#fff; color:#6b6b72; border-radius:9px; padding:9px 13px; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; transition:all .15s; }
+  .mf-type{ border:1.5px solid #e5e5e0; border-radius:9px; padding:8px 8px; font-family:inherit; font-size:12px; font-weight:700; background:#fff; cursor:pointer; }
+  .mf-btn{ border:1.5px solid #e5e5e0; background:#fff; color:#6b6b72; border-radius:9px; padding:8px 12px; font-family:inherit; font-size:12px; font-weight:800; cursor:pointer; transition:all .15s; }
   .mf-btn:hover{ border-color:var(--accent-warm); color:#1a1a1d; }
   .mf-btn.primary{ background:#1a1a1d; color:#fff; border-color:#1a1a1d; }
   .mf-btn.primary:hover{ background:#000; }
   .mf-btn.warm{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
-  .mf-list{ max-height:50vh; overflow-y:auto; border:1px solid #e5e5e0; border-radius:12px; padding:8px; background:#fbfaf7; display:grid; grid-template-columns:repeat(5,1fr); gap:8px; align-content:start; }
-  .mf-row{ display:flex; flex-direction:column; gap:5px; background:#fff; border:1.5px solid #e5e5e0; border-radius:9px; padding:7px 8px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
+  .mf-list{ max-height:52vh; overflow-y:auto; border:1px solid #e5e5e0; border-radius:12px; padding:7px; background:#fbfaf7; display:grid; grid-template-columns:repeat(8,1fr); gap:6px; align-content:start; }
+  .mf-row{ display:flex; flex-direction:column; gap:4px; background:#fff; border:1.5px solid #e5e5e0; border-radius:8px; padding:5px 6px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
   .mf-row:active{ cursor:grabbing; }
   .mf-row.dragging{ opacity:.45; }
   .mf-row.drag-over{ border-color:var(--accent-warm); box-shadow:0 0 0 3px rgba(201,169,97,.25); }
-  .mf-rtop{ display:flex; align-items:center; gap:5px; }
-  .mf-row .mf-grip{ font-size:12px; color:#c8c8c0; line-height:1; cursor:grab; user-select:none; }
-  .mf-row .mf-ord{ font-size:11px; font-weight:800; color:#b0b0b0; flex:1 1 auto; }
-  .mf-row .mf-name{ width:100%; min-width:0; border:1px solid #ececec; background:#fff; font-family:inherit; font-size:13px; font-weight:700; color:#1a1a1d; padding:5px 7px; border-radius:6px; box-sizing:border-box; }
+  .mf-rtop{ display:flex; align-items:center; gap:4px; }
+  .mf-row .mf-grip{ font-size:11px; color:#c8c8c0; line-height:1; cursor:grab; user-select:none; }
+  .mf-row .mf-ord{ font-size:10px; font-weight:800; color:#b0b0b0; flex:1 1 auto; }
+  .mf-row .mf-flag{ font-size:10px; font-weight:800; color:#8a6d2b; }
+  .mf-row .mf-name{ width:100%; min-width:0; border:1px solid #ececec; background:#fff; font-family:inherit; font-size:11.5px; font-weight:700; color:#1a1a1d; padding:4px 5px; border-radius:6px; box-sizing:border-box; }
   .mf-row .mf-name:focus{ outline:none; border-color:var(--accent-warm); background:#fffdf6; }
-  .mf-row .mf-rtype{ width:100%; border:1px solid #e5e5e0; border-radius:7px; font-family:inherit; font-size:11px; font-weight:700; color:#6b6b72; padding:4px; background:#fafaf7; cursor:pointer; box-sizing:border-box; }
-  .mf-row .mf-mini{ border:none; background:transparent; color:#9a9aa0; font-size:14px; font-weight:800; cursor:pointer; padding:0 3px; border-radius:6px; line-height:1; }
+  .mf-row .mf-rtype{ width:100%; border:1px solid #e5e5e0; border-radius:6px; font-family:inherit; font-size:10px; font-weight:700; color:#6b6b72; padding:3px 2px; background:#fafaf7; cursor:pointer; box-sizing:border-box; }
+  .mf-row .mf-mini{ border:none; background:transparent; color:#9a9aa0; font-size:13px; font-weight:800; cursor:pointer; padding:0 2px; border-radius:6px; line-height:1; }
   .mf-row .mf-mini:hover{ background:#f0eee5; color:#1a1a1d; }
   .mf-row .mf-del:hover{ color:#c0392b; }
   .mf-empty{ grid-column:1 / -1; text-align:center; color:#9a9aa0; font-size:12px; padding:18px 0; font-weight:700; }
-  @media (max-width:680px){ .mf-list{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:880px){ .mf-list{ grid-template-columns:repeat(4,1fr); } }
+  @media (max-width:560px){ .mf-list{ grid-template-columns:repeat(2,1fr); } }
   .mf-foot{ display:flex; align-items:center; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .mf-count{ font-size:12px; font-weight:800; color:#8a6d2b; }
   .plu-modal-choice { border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text); border-radius: 12px; padding: 14px; font-family: var(--mono); font-size: 15px; font-weight: 700; cursor: pointer; text-align: left; }
@@ -776,10 +779,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 <div class="plu-modal-ov" id="pluMasterModal">
   <div class="plu-modal mf-modal">
     <h3>🗂 필드 관리 (마스터)</h3>
-    <p>모든 카테고리가 공통으로 쓰는 <b>필드 이름</b>을 여기서 관리합니다. 다른 카테고리에서 필드를 추가할 때 여기 이름을 그대로 가져다 쓰므로 이름이 항상 일치합니다.</p>
     <div class="mf-addrow">
       <input id="mfNewName" placeholder="새 필드 이름 (예: UPC(C))" maxlength="40" autocomplete="off">
-      <select class="mf-type" id="mfNewType"><option value="text">텍스트</option><option value="rcheck">체크(빨강)</option><option value="check">매장체크(초록)</option></select>
+      <select class="mf-type" id="mfNewType"><option value="text">텍스트</option><option value="rcheck">체크</option><option value="check">매장체크</option><option value="price">가격 ($)</option><option value="margin">마진 (%)</option></select>
       <button class="mf-btn warm" id="mfAdd" type="button">＋ 추가</button>
     </div>
     <div class="mf-list" id="mfList"></div>
@@ -827,7 +829,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var CFG_COL='upc-config', CFG_DOC='main';
   // ===== 필드 관리(마스터) — 모든 카테고리 공통 필드 이름 레지스트리 (upc-config/main.masterFields) =====
   var masterFields=[];  // [{key,label,type}]  key=label=대문자 이름
-  function normMaster(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var K=String(m.key).trim().toUpperCase(); if(!K||seen[K])return; seen[K]=1; out.push({key:K,label:K,type:(m.type==='check'?'check':(m.type==='rcheck'?'rcheck':'text'))}); }); return out; }
+  function mfKind(t){ t=String(t||''); return (t==='check'||t==='rcheck'||t==='price'||t==='margin')?t:'text'; }
+  function mfTypeOptionsHTML(sel){ var o=[['text','텍스트'],['rcheck','체크'],['check','매장체크'],['price','가격 ($)'],['margin','마진 (%)']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
+  function mfFlag(t){ return t==='price'?'$':(t==='margin'?'%':''); }
+  // 마스터 종류 → 카테고리 열 속성
+  function mfKindToCol(kind){ if(kind==='check')return{type:'check',fmt:'text'}; if(kind==='rcheck')return{type:'rcheck',fmt:'text'}; if(kind==='price')return{type:'text',fmt:'price'}; if(kind==='margin')return{type:'text',fmt:'margin'}; return{type:'text',fmt:'text'}; }
+  function normMaster(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var K=String(m.key).trim().toUpperCase(); if(!K||seen[K])return; seen[K]=1; out.push({key:K,label:K,type:mfKind(m.type)}); }); return out; }
   async function saveMasterFields(){ try{ if(fns()&&fns().setDoc) await fns().setDoc(fns().doc(db(),CFG_COL,CFG_DOC),{masterFields:masterFields,updatedAt:Date.now()},{merge:true}); }catch(e){} }
   // 어디서든 필드를 만들면 마스터에도 등록(없을 때만)
   function registerMaster(name,type){ var K=String(name||'').trim().toUpperCase(); if(!K) return; if(masterFields.some(function(m){return m.key===K;})) return; masterFields.push({key:K,label:K,type:(type==='check'?'check':(type==='rcheck'?'rcheck':'text'))}); saveMasterFields(); }
@@ -881,7 +888,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return raw;
   }
   // 저장 레이아웃 정규화(라벨 표준화 포함)
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:canonColLabel(c.label,K),hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:canonColLabel(c.label,K),hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),fmt:(c.fmt==='price'?'price':(c.fmt==='margin'?'margin':'text')),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold}); }); return L; }
   // 행의 추가(extra) 열 키 목록
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   // 행에서 열 값 추출(base/extra 자동)
@@ -2249,7 +2256,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var K=String(m.key).toUpperCase();
       if(isBase(K)) return;
       if(curKeys[K]) return;
-      out.push({ key:K, label:m.label||K, type:(m.type==='check'?'check':(m.type==='rcheck'?'rcheck':'text')), fmt:'text', fg:'', bg:'', bold:false, cats:['마스터'] });
+      var col=mfKindToCol(mfKind(m.type));
+      out.push({ key:K, label:m.label||K, type:col.type, fmt:col.fmt, fg:'', bg:'', bold:false, cats:['마스터'] });
     });
     return out;
   }
@@ -2307,21 +2315,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(!mfWork.length){ box.innerHTML='<div class="mf-empty">아직 등록된 필드가 없습니다. 위에서 추가하거나 ⤵ 수집을 누르세요.</div>'; }
     else {
       box.innerHTML=mfWork.map(function(m,i){
-        var topt='<option value="text"'+(m.type==='text'?' selected':'')+'>텍스트</option><option value="rcheck"'+(m.type==='rcheck'?' selected':'')+'>체크(빨강)</option><option value="check"'+(m.type==='check'?' selected':'')+'>매장체크</option>';
+        var fl=mfFlag(m.type);
         return '<div class="mf-row" draggable="true" data-i="'+i+'">'+
           '<div class="mf-rtop">'+
             '<span class="mf-grip" title="드래그로 이동">⠿</span>'+
             '<span class="mf-ord">'+(i+1)+'</span>'+
+            (fl?'<span class="mf-flag">'+fl+'</span>':'')+
             '<button class="mf-mini mf-del" type="button" title="삭제">✕</button>'+
           '</div>'+
           '<input class="mf-name" value="'+escapeHtml(m.key)+'" maxlength="40" autocomplete="off">'+
-          '<select class="mf-rtype">'+topt+'</select>'+
+          '<select class="mf-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
         '</div>';
       }).join('');
       box.querySelectorAll('.mf-row').forEach(function(row){
         var i=parseInt(row.getAttribute('data-i'),10);
         row.querySelector('.mf-name').addEventListener('input', function(){ mfWork[i].key=this.value.trim().toUpperCase(); mfWork[i].label=mfWork[i].key; });
-        row.querySelector('.mf-rtype').addEventListener('change', function(){ mfWork[i].type=this.value; });
+        row.querySelector('.mf-rtype').addEventListener('change', function(){ mfWork[i].type=this.value; renderMasterList(); });
         row.querySelector('.mf-del').onclick=function(){ mfWork.splice(i,1); renderMasterList(); };
         // 입력/셀렉트에서 시작하는 드래그는 무시(텍스트 선택 보존)
         row.addEventListener('dragstart', function(e){
