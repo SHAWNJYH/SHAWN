@@ -809,9 +809,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 표시 글자수(공통/편집) 반환
   function getTruncLen(){ if(editMode) return (workTrunc>0?workTrunc:(globalTrunc>0?globalTrunc:20)); return (globalTrunc>0?globalTrunc:20); }
   // 현재 보기 기준 내보내기 열 목록
-  function exportColsFor(){ var lay = editMode ? (workLayout||[]) : withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
+  function exportColsFor(){ var lay = editMode ? (workLayout||[]) : withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp && !c.hidden; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   // 특정 카테고리의 EXPORT 열 (이력 내보내기에서 사용 · 메인과 동일 규칙)
-  function exportColsForCat(cat){ var lay=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
+  function exportColsForCat(cat){ var lay=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp && !c.hidden; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
 
   // 현재 선택 상위 카테고리
   function curCat(){ return PLU_TABS[pluBig].label; }
@@ -2529,14 +2529,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
 
   // ===== EXPORT (보이는 열 순서/이름대로) =====
+  function colHidden(key){ var lay=(typeof curLayout==='function'?curLayout():[])||[]; var K=String(key==null?'':key).toUpperCase(); for(var i=0;i<lay.length;i++){ if(lay[i]&&String(lay[i].key).toUpperCase()===K) return !!lay[i].hidden; } return false; }
+  function printCell(r,c){ var key=String((c&&c.key)||'').toUpperCase(); if((key==='MSRP'||key==='SRP') && !(c&&(c.type==='check'||c.type==='rcheck'))) return fmtPrice(exportVal(r,c)); return exportCell(r,c); }
   function printList(rowsArg){
     var rows=rowsArg||visibleCache||[];
     var cat=curCat(), sub=curSub();
     var title=(pluSearchTerm&&pluSearchTerm.trim())?('PLU 검색: '+pluSearchTerm.trim()):(cat+(sub?(' › '+sub):''));
     var dt=new Date(); var ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
-    var cols=exportColsFor();
+    var cols=exportColsFor().filter(function(c){ return !colHidden(c.key); });
     var head=''; cols.forEach(function(c){ head+='<th class="pp-'+escapeHtml(String(c.key).toLowerCase())+'">'+escapeHtml(c.label)+'</th>'; });
-    var body=''; rows.forEach(function(r){ var res=isReserveRow(r); body+='<tr'+(res?' class="res"':'')+'>'; cols.forEach(function(c){ body+='<td class="pp-'+escapeHtml(String(c.key).toLowerCase())+'">'+escapeHtml(String(exportCell(r,c)))+'</td>'; }); body+='</tr>'; });
+    var body=''; rows.forEach(function(r){ var res=isReserveRow(r); body+='<tr'+(res?' class="res"':'')+'>'; cols.forEach(function(c){ body+='<td class="pp-'+escapeHtml(String(c.key).toLowerCase())+'">'+escapeHtml(String(printCell(r,c)))+'</td>'; }); body+='</tr>'; });
     var css='body{margin:0;padding:16px;font-family:Calibri,Arial,sans-serif;color:#1a1a1d}.t{font-size:16px;font-weight:700;margin:0 0 10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:3px 6px;text-align:center;vertical-align:middle}thead th{background:#D9E1F2;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pp-plu{color:#C00000;font-weight:700}td.pp-kor,td.pp-eng{text-align:left}tr.res td{color:#999}@page{margin:12mm}';
     var doc='<!doctype html><html><head><meta charset="utf-8"><title>'+escapeHtml(title)+'</title><style>'+css+'</style></head><body><div class="t">'+escapeHtml(title)+'  ('+rows.length+'개)  ·  '+ds+'</div><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></body></html>';
     var win=window.open('','_blank');
@@ -2637,7 +2639,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<div class="em-row"><select id="emCatSel" class="em-sel">'+catOpts+'</select>'+
           '<button class="plu-tool-btn newlist-update" id="emCatExp" type="button">⬇ EXPORT</button></div>'+
         '</div>';
-      var cfgLay=(layoutByCat[curCat()]||[]);
+      var cfgLay=(layoutByCat[curCat()]||[]).filter(function(c){ return c && !c.hidden; });
       var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">열이 없습니다.</div>';
       var cfgSec='<div class="em-sec">'+
           '<div class="em-tt">내보내기필드설정</div>'+

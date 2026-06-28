@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   try {
     const app = initializeApp({
       apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
@@ -23,7 +23,7 @@
       measurementId: "G-NKGYGC63JN"
     });
     const db = getFirestore(app);
-    window.smFb = { db, doc, getDoc, collection, getDocs, onSnapshot };
+    window.smFb = { db, doc, getDoc, setDoc, collection, getDocs, onSnapshot };
     window.dispatchEvent(new Event('smfb-ready'));
   } catch (e) { console.error('firebase init fail', e); }
 </script>
