@@ -177,7 +177,7 @@
 <!-- Firebase: 변환 데이터를 컬렉션 upc-ocr-list / 문서=벤더명 에 저장 (PLU·UPC 매니저와 동일 프로젝트) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -190,7 +190,7 @@
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
   window.firebaseDb  = db;
-  window.firebaseFns = { doc, setDoc, getDoc, collection, getDocs };
+  window.firebaseFns = { doc, setDoc, getDoc, collection, getDocs, onSnapshot };
   /* 로그인 제거 — 인증 없이 동작 (Firestore 규칙 공개 필요) */
 </script>
 
@@ -205,6 +205,11 @@ var OCR_COL='upc-ocr-list';               // 컬렉션
 function vendorDocId(v){ return String(v==null?VENDOR:v).toLowerCase(); }  // 문서ID = 벤더명(sti/jfc/wismetic)
 var __saveTimer=null;
 function fb(){ return (window.firebaseDb && window.firebaseFns) ? window.firebaseFns : null; }
+/* ===== 마스터 필드 표시명(store-manager) 반영 — 기능은 내부 key 유지, 표시만 바뀐 이름 ===== */
+var __OCRMASTER={};
+function fieldLabel(f){ var k=norm(f.label); return (__OCRMASTER[k]!=null && __OCRMASTER[k]!=='') ? __OCRMASTER[k] : f.label; }
+function subscribeOcrMaster(){ try{ var F=window.firebaseFns, D=window.firebaseDb; if(!F||!F.onSnapshot||!D){ setTimeout(subscribeOcrMaster,500); return; } F.onSnapshot(F.doc(D,'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; var m={}; if(d && Array.isArray(d.masterFields)){ d.masterFields.forEach(function(x){ if(x&&x.key!=null){ var K=String(x.key).trim().toUpperCase(); if(K) m[K]=(x.label!=null?String(x.label):''); } }); } __OCRMASTER=m; if(typeof renderTable==='function') renderTable(); }, function(){}); }catch(e){} }
+
 function whenFb(cb){ if(fb()){ cb(); return; } var t=setInterval(function(){ if(fb()){ clearInterval(t); cb(); } },120); setTimeout(function(){ clearInterval(t); },8000); }
 async function saveVendor(notify){
   var F=fb(); if(!F){ if(notify) toast('Firebase 미연결 — 잠시 후 다시 시도','error'); return false; }
@@ -429,7 +434,7 @@ function renderTable(){
   $('stat').textContent=ROWS.length?('전체 '+ROWS.length+'건 · 현재 ['+cur+'] '+rows.length+'건'):'';
   if(!ROWS.length){ $('tableHost').innerHTML=''; return; }
   if(!rows.length){ $('tableHost').innerHTML='<div class="empty">['+cur+'] 항목이 없습니다</div>'; return; }
-  var ths='<th class="col-no">#</th>'+FIELDS.map(function(f){ return '<th class="'+(f.ctr?'ctr':'')+'">'+esc(f.label)+'</th>'; }).join('')+'<th class="col-del"></th>';
+  var ths='<th class="col-no">#</th>'+FIELDS.map(function(f){ return '<th class="'+(f.ctr?'ctr':'')+'">'+esc(fieldLabel(f))+'</th>'; }).join('')+'<th class="col-del"></th>';
   var body=rows.map(function(row){
     var gi=ROWS.indexOf(row);
     var tds=FIELDS.map(function(f){
@@ -653,7 +658,7 @@ document.addEventListener('dragleave',function(e){ if(e.target===drop) drop.clas
 document.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); var fs=(e.dataTransfer&&e.dataTransfer.files)?Array.prototype.slice.call(e.dataTransfer.files):[]; if(!fs.length) return; var imgs=fs.filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); }); var xls=fs.filter(function(f){ return /\.xlsx?$/i.test(f.name); }); var pdfs=fs.filter(function(f){ return /\.pdf$/i.test(f.name)||f.type==='application/pdf'; }); if(imgs.length) recognizeImages(imgs); if(xls.length) handleFiles(xls); if(pdfs.length) handlePdf(pdfs); });
 
 renderTabs(); renderTable();
-whenFb(function(){ loadVendor(VENDOR); });   // Firebase 준비되면 현재 벤더(STI) 데이터 불러오기
+whenFb(function(){ loadVendor(VENDOR); subscribeOcrMaster(); });   // Firebase 준비되면 현재 벤더(STI) 데이터 불러오기 + 마스터 표시명 구독
 </script>
 </body>
 </html>
