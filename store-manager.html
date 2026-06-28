@@ -65,7 +65,7 @@
   .fm-saved{ font-size:12px; font-weight:800; color:#2a8a4a; }
   .fm-wrap{ flex:1 1 auto; min-height:0; overflow:auto; padding:14px 22px 22px; }
   .fm-hint{ font-size:12px; color:var(--text-faint); font-weight:600; margin-bottom:12px; }
-  .fm-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(236px, 1fr)); gap:7px; align-content:start; }
+  .fm-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(248px, 1fr)); gap:7px; align-content:start; }
   .fm-row{ display:flex; flex-direction:column; gap:4px; background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:6px 7px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
   .fm-row:active{ cursor:grabbing; }
   .fm-row.dragging{ opacity:.45; }
@@ -79,22 +79,41 @@
   .fm-row.grp-msrp .fm-del, .fm-row.grp-srp .fm-del{ color:rgba(255,255,255,.7); }
   .fm-row.grp-msrp .fm-del:hover, .fm-row.grp-srp .fm-del:hover{ color:#fff; }
   /* 필드별 색상 설정 */
-  /* 필드별 스타일 설정 — 한 줄 압축 (A 글씨색 · ▦ 바탕색 · B 굵게 · L/C/R 정렬 · LEN 글자수 · ⟲ 초기화) */
-  .fm-ctl{ display:flex; align-items:center; gap:3px; margin-top:5px; flex-wrap:nowrap; }
+  /* 필드 카드 — 가로 압축 (이름·색상 / 타입·정렬 두 줄) */
+  .fm-line{ display:flex; align-items:center; gap:4px; flex-wrap:nowrap; }
+  .fm-key{ flex:0 0 auto; max-width:78px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono); font-size:10px; font-weight:800; color:var(--text-faint); background:var(--bg-elev-2); border:1px solid var(--border); border-radius:5px; padding:3px 5px; }
+  .fm-name{ flex:1 1 auto; min-width:50px; }
+  .fm-rtype{ flex:1 1 auto; min-width:60px; }
   .fm-sw{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border:1px solid var(--border); border-radius:5px; font-weight:900; font-size:12px; background:#fff; color:#1f2937; cursor:pointer; flex:0 0 auto; padding:0; }
   .fm-sw:hover{ border-color:var(--accent-warm); }
   .fm-b{ width:22px; height:22px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:5px; font-weight:900; font-size:12px; cursor:pointer; flex:0 0 auto; padding:0; }
   .fm-b.on{ background:#1f2937; color:#fff; border-color:#1f2937; }
-  .fm-sep{ width:1px; height:16px; background:var(--border); flex:0 0 auto; margin:0 1px; }
   .fm-align{ display:inline-flex; border:1px solid var(--border); border-radius:5px; overflow:hidden; flex:0 0 auto; }
   .fm-al{ width:22px; height:22px; border:none; border-right:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); font-size:11px; font-weight:900; cursor:pointer; padding:0; }
   .fm-al:last-child{ border-right:none; }
   .fm-al.on{ background:var(--accent-warm); color:#3a2e12; }
-  .fm-trunc-in{ width:48px; height:22px; border:1px solid var(--border); border-radius:5px; padding:0 5px; font-family:var(--mono); font-size:12px; box-sizing:border-box; flex:0 0 auto; }
+  .fm-trunc-in{ width:46px; height:22px; border:1px solid var(--border); border-radius:5px; padding:0 5px; font-family:var(--mono); font-size:12px; box-sizing:border-box; flex:0 0 auto; }
   .fm-reset{ width:24px; height:22px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-faint); border-radius:5px; font-size:13px; cursor:pointer; padding:0; flex:0 0 auto; margin-left:auto; }
   .fm-reset:hover{ color:#c0392b; border-color:#e0c0c0; }
-  .fm-row.grp-msrp .fm-b,.fm-row.grp-srp .fm-b,.fm-row.grp-msrp .fm-al,.fm-row.grp-srp .fm-al,.fm-row.grp-msrp .fm-reset,.fm-row.grp-srp .fm-reset{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
+  .fm-row.grp-msrp .fm-key,.fm-row.grp-srp .fm-key,.fm-row.grp-msrp .fm-b,.fm-row.grp-srp .fm-b,.fm-row.grp-msrp .fm-al,.fm-row.grp-srp .fm-al,.fm-row.grp-msrp .fm-reset,.fm-row.grp-srp .fm-reset{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
   .fm-row.grp-msrp .fm-trunc-in,.fm-row.grp-srp .fm-trunc-in{ background:#fff; }
+  /* 색상 팔레트 팝업 */
+  .fm-pal-ov{ position:fixed; inset:0; background:rgba(26,26,29,.45); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; z-index:3000; padding:20px; }
+  .fm-pal-ov.show{ display:flex; }
+  .fm-pal{ background:var(--bg-elev); border:1px solid var(--border-bright); border-radius:16px; padding:18px; width:96%; max-width:360px; box-shadow:0 24px 70px rgba(26,26,29,.3); }
+  .fm-pal-title{ font-weight:800; font-size:15px; color:var(--text); margin-bottom:12px; }
+  .pal-special{ display:flex; gap:6px; margin-bottom:8px; }
+  .pal-grid{ display:grid; grid-template-columns:auto repeat(4, 1fr); gap:6px; align-items:center; }
+  .pal-rowlabel{ font-size:12px; font-weight:800; color:var(--text-dim); text-align:center; }
+  .pal-sw{ height:30px; min-width:30px; border:1.5px solid var(--border); border-radius:7px; cursor:pointer; padding:0; font-size:11px; font-weight:800; color:var(--text-dim); background:#fff; }
+  .pal-special .pal-sw{ flex:1; }
+  .pal-sw.pal-trans{ background:repeating-conic-gradient(#e5e5e5 0% 25%, #fff 0% 50%) 50%/12px 12px; color:#555; }
+  .pal-sw:hover{ border-color:var(--accent-warm); }
+  .pal-sw.sel{ border-color:#1f2937; box-shadow:0 0 0 2px rgba(31,41,55,.35); }
+  .fm-pal-btns{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  .fm-pal-cancel,.fm-pal-ok{ border-radius:8px; padding:8px 18px; font-weight:800; font-size:13px; cursor:pointer; border:1px solid var(--border); }
+  .fm-pal-cancel{ background:var(--bg-elev-2); color:var(--text-dim); }
+  .fm-pal-ok{ background:var(--accent-warm); color:#3a2e12; border-color:var(--accent-warm); }
   .fm-rtop{ display:flex; align-items:center; gap:4px; }
   .fm-grip{ font-size:11px; color:var(--border-bright); line-height:1; user-select:none; }
   .fm-ord{ font-size:11px; font-weight:900; color:#d63a3a; flex:1 1 auto; }
@@ -324,13 +343,13 @@
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
-    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold}); });
+    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold}); });
     if(!names.length) return false;
     state.managerFields = names;
     state.masterRaw = raw;
     state.masterFromCloud = true;
     // 필드 관리 탭이 열려 있고 편집 중이 아니면 갱신
-    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}); fmRender(); }
+    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}); fmRender(); }
     return true;
   }
   function subscribeMaster(){
@@ -350,11 +369,19 @@
   /* ===== 필드 관리 (마스터) 편집기 ===== */
   var fmWork = null, fmDirty = false, __fmDrag = -1;
   function fmOpen(){
-    fmWork = (state.masterRaw && state.masterRaw.length) ? state.masterRaw.map(function(m){return {key:m.key,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false};});
+    fmWork = (state.masterRaw && state.masterRaw.length) ? state.masterRaw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false};});
     fmDirty = false; fmSetSaved(''); fmRender();
     var nn=$('fmNewName'); if(nn){ nn.value=''; setTimeout(function(){ try{nn.focus();}catch(e){} },30); }
   }
   function fmSetSaved(t){ var e=$('fmSaved'); if(e) e.textContent=t||''; }
+  // ===== 색상 팔레트 (투명/하양/검정 + 빨주노초파남보 × 옅은·보통·짙은·아주짙은) =====
+  var PAL_COLORS=[['빨',['#fca5a5','#ef4444','#b91c1c','#7f1d1d']],['주',['#fdba74','#f97316','#c2410c','#7c2d12']],['노',['#fde047','#eab308','#a16207','#713f12']],['초',['#86efac','#22c55e','#15803d','#14532d']],['파',['#93c5fd','#3b82f6','#1d4ed8','#1e3a8a']],['남',['#a5b4fc','#6366f1','#4338ca','#312e81']],['보',['#d8b4fe','#a855f7','#7e22ce','#581c87']]];
+  var PAL_SHADE=['옅은','보통','짙은','아주짙은'];
+  var __pal={i:-1,which:'fg',val:''}, __palWired=false;
+  function palEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function markPalSel(){ var b=document.getElementById('fmPalBody'); if(!b) return; var v=(__pal.val||''); var nm=b.querySelectorAll('.pal-sw'); for(var j=0;j<nm.length;j++){ nm[j].classList.toggle('sel',(nm[j].getAttribute('data-c')||'')===v); } }
+  function wirePalette(){ if(__palWired) return; __palWired=true; var b=document.getElementById('fmPalBody'); if(b) b.addEventListener('click', function(e){ var sw=e.target&&e.target.closest?e.target.closest('.pal-sw'):null; if(!sw) return; __pal.val=sw.getAttribute('data-c')||''; markPalSel(); }); var ok=document.getElementById('fmPalOk'); if(ok) ok.onclick=function(){ if(__pal.i>=0&&fmWork[__pal.i]){ fmWork[__pal.i][__pal.which]=__pal.val||''; fmDirty=true; fmRender(); } var ov=document.getElementById('fmPalOv'); if(ov) ov.classList.remove('show'); }; var cc=document.getElementById('fmPalCancel'); if(cc) cc.onclick=function(){ var ov=document.getElementById('fmPalOv'); if(ov) ov.classList.remove('show'); }; var ov=document.getElementById('fmPalOv'); if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); }); }
+  function openPalette(i, which){ wirePalette(); if(!fmWork[i]) return; __pal={i:i, which:which, val:(fmWork[i][which]||'')}; var t=document.getElementById('fmPalTitle'); if(t) t.textContent=(which==='fg'?'글씨색':'바탕색')+' 선택 — '+palEsc(fmWork[i].key); var html='<div class="pal-special">'; html+='<button class="pal-sw pal-trans" data-c="" title="투명/기본">투명</button>'; html+='<button class="pal-sw" data-c="#ffffff" style="background:#ffffff" title="하양"></button>'; html+='<button class="pal-sw" data-c="#000000" style="background:#000000" title="검정"></button>'; html+='</div>'; html+='<div class="pal-grid">'; for(var r=0;r<PAL_COLORS.length;r++){ html+='<div class="pal-rowlabel">'+PAL_COLORS[r][0]+'</div>'; for(var s=0;s<PAL_COLORS[r][1].length;s++){ var c=PAL_COLORS[r][1][s]; html+='<button class="pal-sw" data-c="'+c+'" style="background:'+c+'" title="'+PAL_COLORS[r][0]+' '+PAL_SHADE[s]+'"></button>'; } } html+='</div>'; var bd=document.getElementById('fmPalBody'); if(bd) bd.innerHTML=html; markPalSel(); var ov=document.getElementById('fmPalOv'); if(ov) ov.classList.add('show'); }
   function markCnt(){ var c=$('fmCount'); if(c) c.textContent=(fmWork?fmWork.length:0)+'개'+(fmDirty?' · 미저장':''); }
   function fmRender(){
     var box=$('fmList'); if(!box||!fmWork) return;
@@ -365,24 +392,22 @@
         var k=String(m.key||'').toUpperCase();
         var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
         var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
-        var fgVal=m.fg||'#1f2937', bgVal=m.bg||'#ffffff';
         return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
           '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+'<button class="fm-del" type="button" title="삭제">✕</button></div>'+
-          '<input class="fm-name" style="'+prev+'" value="'+esc(m.key)+'" maxlength="40" autocomplete="off">'+
-          '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
-          '<div class="fm-ctl">'+
+          '<div class="fm-line">'+
+            '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
+            '<input class="fm-name" style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
             '<button class="fm-sw fm-sw-fg" data-pick="fg" type="button" title="글씨색"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</button>'+
             '<button class="fm-sw fm-sw-bg" data-pick="bg" type="button" title="바탕색"'+(m.bg?(' style="background:'+m.bg+';color:#fff"'):'')+'>▦</button>'+
-            '<input type="color" class="fm-fg" value="'+fgVal+'" hidden>'+
-            '<input type="color" class="fm-bg" value="'+bgVal+'" hidden>'+
             '<button class="fm-b fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
-            '<span class="fm-sep"></span>'+
+          '</div>'+
+          '<div class="fm-line">'+
+            '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
             '<div class="fm-align" title="정렬 (L 왼쪽 / C 가운데 / R 오른쪽)">'+
               '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button" title="왼쪽">L</button>'+
               '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button" title="가운데">C</button>'+
               '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button" title="오른쪽">R</button>'+
             '</div>'+
-            '<span class="fm-sep"></span>'+
             '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="LEN" title="표시 글자수 (비우면 전체)">'+
             '<button class="fm-reset" type="button" title="초기화">⟲</button>'+
           '</div>'+
@@ -390,13 +415,10 @@
       }).join('');
       box.querySelectorAll('.fm-row').forEach(function(row){
         var i=parseInt(row.getAttribute('data-i'),10);
-        row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].key=this.value.trim().toUpperCase(); fmDirty=true; });
+        row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].label=this.value; fmDirty=true; });
         row.querySelector('.fm-rtype').addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
         row.querySelector('.fm-del').onclick=function(){ fmWork.splice(i,1); fmDirty=true; fmRender(); };
-        var fgIn=row.querySelector('.fm-fg'), bgIn=row.querySelector('.fm-bg');
-        row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ var w=btn.getAttribute('data-pick'); var inp=(w==='fg')?fgIn:bgIn; if(inp){ try{inp.click();}catch(e){} } }; });
-        if(fgIn) fgIn.addEventListener('change', function(){ fmWork[i].fg=this.value; fmDirty=true; fmRender(); });
-        if(bgIn) bgIn.addEventListener('change', function(){ fmWork[i].bg=this.value; fmDirty=true; fmRender(); });
+        row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
         var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; fmRender(); };
         var rs=row.querySelector('.fm-reset'); if(rs) rs.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmWork[i].align=''; fmWork[i].trunc=0; fmDirty=true; fmRender(); };
         row.querySelectorAll('.fm-al').forEach(function(btn){ btn.onclick=function(){ var a=btn.getAttribute('data-al'); fmWork[i].align=(fmWork[i].align===a?'':a); fmDirty=true; fmRender(); }; });
@@ -415,9 +437,9 @@
     var nn=$('fmNewName'), tt=$('fmNewType'); if(!nn||!fmWork) return;
     var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
     if(fmWork.some(function(m){return m.key===name;})){ alert('이미 있는 필드입니다'); nn.select(); return; }
-    fmWork.push({key:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
+    fmWork.push({key:name, label:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
   }
-  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:k, type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold}); }); return out; }
+  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold}); }); return out; }
   async function fmSave(){
     if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
     var btn=$('fmSave'), old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
@@ -834,5 +856,12 @@
   waitForFb().then(subscribeMaster).catch(function(){});
 })();
 </script>
+<div class="fm-pal-ov" id="fmPalOv">
+  <div class="fm-pal">
+    <div class="fm-pal-title" id="fmPalTitle">색상 선택</div>
+    <div class="fm-pal-body" id="fmPalBody"></div>
+    <div class="fm-pal-btns"><button class="fm-pal-cancel" id="fmPalCancel" type="button">취소</button><button class="fm-pal-ok" id="fmPalOk" type="button">확인</button></div>
+  </div>
+</div>
 </body>
 </html>
