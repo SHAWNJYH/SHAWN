@@ -626,7 +626,7 @@
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
   function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; }
-  function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt&&ms.fmt!=='text') __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; if(ms.fg) __c.fg=ms.fg; if(ms.bg) __c.bg=ms.bg; if(ms.bold) __c.bold=true; if(ms.ctype && __c.type!=='rcheck') __c.type=ms.ctype; } } } return lay; }
+  function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; if(ms.fg) __c.fg=ms.fg; if(ms.bg) __c.bg=ms.bg; if(ms.bold) __c.bold=true; } } } return lay; }
   function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(d && Array.isArray(d.masterFields)){ buildMFSTY(d.masterFields); if(typeof renderContent==='function') renderContent(); } }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
@@ -1314,14 +1314,17 @@
   function isCore(k){ return CORE_KEYS.indexOf(k)>=0; }
   // 시스템 열(6개) 외에는 key를 label과 같게 유지(데이터 안전 이전). 충돌 시 거부.
   function applyColName(col, newLabel){
-    newLabel=String(newLabel==null?'':newLabel).trim().toUpperCase(); if(!newLabel) return false;
-    var newKey=newLabel;
-    if(newKey===col.key){ col.label=newLabel; return true; }
-    if(isBase(newKey)){ showToast('그 이름은 시스템 키와 충돌합니다','error'); return false; }
-    for(var x=0;x<workLayout.length;x++){ if(workLayout[x]!==col && workLayout[x].key===newKey){ showToast('같은 이름(키)의 필드가 이미 있습니다','error'); return false; } }
-    var oldKey=col.key;
-    (work||[]).forEach(function(r){ if(!r) return; if(!r.extra) r.extra={}; var v=isBase(oldKey)?r[fieldOf(oldKey)]:r.extra[oldKey]; if(v!==undefined&&v!==null&&v!=='') r.extra[newKey]=v; if(isBase(oldKey)){ r[fieldOf(oldKey)]=''; } else { delete r.extra[oldKey]; } });
-    col.key=newKey; col.label=newLabel; return true;
+    newLabel=String(newLabel==null?'':newLabel).trim(); if(!newLabel) return false;
+    var up=newLabel.toUpperCase();
+    // 기능 코드(고정 key)는 이름을 바꿔도 그대로 유지 → 표시이름(label)만 변경. 기능·데이터 불변.
+    var CANON={'ITEMCODE1':1,'ITEM CODE':1,'ENG DESC':1,'KOR DESC':1,'UPC(O)':1,'UPC(C)':1};
+    if(CANON[up] && String(col.key).toUpperCase()!==up && !isBase(up)){
+      for(var x=0;x<workLayout.length;x++){ if(workLayout[x]!==col && String(workLayout[x].key).toUpperCase()===up){ showToast('같은 기능키("'+up+'")의 필드가 이미 있습니다','error'); return false; } }
+      var oldKey=col.key;
+      (work||[]).forEach(function(r){ if(!r) return; if(!r.extra) r.extra={}; var v=isBase(oldKey)?r[fieldOf(oldKey)]:r.extra[oldKey]; if(v!==undefined&&v!==null&&v!=='') r.extra[up]=v; if(isBase(oldKey)){ r[fieldOf(oldKey)]=''; } else { delete r.extra[oldKey]; } });
+      col.key=up; col.label=newLabel; return true;
+    }
+    col.label=newLabel; return true;
   }
   async function addColumnOfType(type){
     var hint = type==='check' ? ' (매장추가 예: BD, BV, FW)' : (type==='rcheck' ? ' (상품정보추가 체크박스)' : ' (상품필드추가 예: 원산지, 비고)');
