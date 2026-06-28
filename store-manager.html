@@ -79,15 +79,24 @@
   .fm-row.grp-msrp .fm-del, .fm-row.grp-srp .fm-del{ color:rgba(255,255,255,.7); }
   .fm-row.grp-msrp .fm-del:hover, .fm-row.grp-srp .fm-del:hover{ color:#fff; }
   /* 필드별 색상 설정 */
-  .fm-color{ display:flex; align-items:center; gap:6px; margin-top:4px; }
-  .fm-clr{ display:inline-flex; align-items:center; gap:3px; font-size:12px; font-weight:900; color:var(--text-dim); cursor:pointer; user-select:none; }
-  .fm-clr input[type=color]{ width:24px; height:20px; border:1px solid var(--border); border-radius:5px; padding:0; background:none; cursor:pointer; }
-  .fm-bold{ border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:6px; font-weight:900; font-size:12px; padding:2px 9px; cursor:pointer; }
+  /* 필드별 스타일 설정 (색/정렬/글자수) */
+  .fm-color{ display:flex; align-items:center; gap:6px; margin-top:5px; flex-wrap:wrap; }
+  .fm-sw{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border:1px solid var(--border); border-radius:5px; font-weight:900; font-size:13px; background:#fff; color:#1f2937; }
+  .fm-pick{ border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:6px; font-size:11px; font-weight:800; padding:3px 9px; cursor:pointer; }
+  .fm-pick:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .fm-bold,.fm-reset{ border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:6px; font-weight:800; font-size:11px; padding:3px 10px; cursor:pointer; }
   .fm-bold.on{ background:#1f2937; color:#fff; border-color:#1f2937; }
-  .fm-clrx{ border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-faint); border-radius:6px; font-size:10px; font-weight:800; padding:3px 7px; cursor:pointer; margin-left:auto; }
-  .fm-clrx:hover{ color:#c0392b; border-color:#e0c0c0; }
-  .fm-row.grp-msrp .fm-clr, .fm-row.grp-srp .fm-clr{ color:#fff; }
-  .fm-row.grp-msrp .fm-bold, .fm-row.grp-srp .fm-bold, .fm-row.grp-msrp .fm-clrx, .fm-row.grp-srp .fm-clrx{ background:rgba(255,255,255,.15); color:#fff; border-color:rgba(255,255,255,.32); }
+  .fm-reset{ margin-left:auto; }
+  .fm-reset:hover{ color:#c0392b; border-color:#e0c0c0; }
+  .fm-fmt{ display:flex; align-items:center; gap:10px; margin-top:5px; flex-wrap:wrap; }
+  .fm-align{ display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+  .fm-al{ border:none; border-right:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); font-size:11px; font-weight:800; padding:3px 9px; cursor:pointer; }
+  .fm-al:last-child{ border-right:none; }
+  .fm-al.on{ background:var(--accent-warm); color:#3a2e12; }
+  .fm-trunc{ font-size:11px; font-weight:800; color:var(--text-dim); display:inline-flex; align-items:center; gap:5px; }
+  .fm-trunc-in{ width:66px; border:1px solid var(--border); border-radius:6px; padding:3px 6px; font-family:var(--mono); font-size:12px; }
+  .fm-row.grp-msrp .fm-pick,.fm-row.grp-srp .fm-pick,.fm-row.grp-msrp .fm-bold,.fm-row.grp-srp .fm-bold,.fm-row.grp-msrp .fm-reset,.fm-row.grp-srp .fm-reset,.fm-row.grp-msrp .fm-al,.fm-row.grp-srp .fm-al{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
+  .fm-row.grp-msrp .fm-trunc,.fm-row.grp-srp .fm-trunc,.fm-row.grp-msrp .fm-sw,.fm-row.grp-srp .fm-sw{ color:#1f2937; }
   .fm-rtop{ display:flex; align-items:center; gap:4px; }
   .fm-grip{ font-size:11px; color:var(--border-bright); line-height:1; user-select:none; }
   .fm-ord{ font-size:11px; font-weight:900; color:#d63a3a; flex:1 1 auto; }
@@ -317,13 +326,13 @@
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
-    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,type:mfKind(m.type),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold}); });
+    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold}); });
     if(!names.length) return false;
     state.managerFields = names;
     state.masterRaw = raw;
     state.masterFromCloud = true;
     // 필드 관리 탭이 열려 있고 편집 중이 아니면 갱신
-    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,type:m.type,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}); fmRender(); }
+    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}); fmRender(); }
     return true;
   }
   function subscribeMaster(){
@@ -343,7 +352,7 @@
   /* ===== 필드 관리 (마스터) 편집기 ===== */
   var fmWork = null, fmDirty = false, __fmDrag = -1;
   function fmOpen(){
-    fmWork = (state.masterRaw && state.masterRaw.length) ? state.masterRaw.map(function(m){return {key:m.key,type:m.type,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,type:'text',bg:'',fg:'',bold:false};});
+    fmWork = (state.masterRaw && state.masterRaw.length) ? state.masterRaw.map(function(m){return {key:m.key,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false};});
     fmDirty = false; fmSetSaved(''); fmRender();
     var nn=$('fmNewName'); if(nn){ nn.value=''; setTimeout(function(){ try{nn.focus();}catch(e){} },30); }
   }
@@ -364,10 +373,22 @@
           '<input class="fm-name" style="'+prev+'" value="'+esc(m.key)+'" maxlength="40" autocomplete="off">'+
           '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
           '<div class="fm-color">'+
-            '<label class="fm-clr" title="글씨색">A<input type="color" class="fm-fg" value="'+fgVal+'"></label>'+
-            '<label class="fm-clr" title="바탕색">▦<input type="color" class="fm-bg" value="'+bgVal+'"></label>'+
-            '<button class="fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
-            '<button class="fm-clrx" type="button" title="색 지우기">색지움</button>'+
+            '<span class="fm-sw fm-sw-fg"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</span>'+
+            '<button class="fm-pick" data-pick="fg" type="button">색상선택</button>'+
+            '<input type="color" class="fm-fg" value="'+fgVal+'" hidden>'+
+            '<span class="fm-sw fm-sw-bg"'+(m.bg?(' style="background:'+m.bg+'"'):'')+'>▦</span>'+
+            '<button class="fm-pick" data-pick="bg" type="button">색상선택</button>'+
+            '<input type="color" class="fm-bg" value="'+bgVal+'" hidden>'+
+            '<button class="fm-bold'+(m.bold?' on':'')+'" type="button">BOLD</button>'+
+            '<button class="fm-reset" type="button">RESET</button>'+
+          '</div>'+
+          '<div class="fm-fmt">'+
+            '<div class="fm-align" title="정렬">'+
+              '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button">왼쪽</button>'+
+              '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button">가운데</button>'+
+              '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button">오른쪽</button>'+
+            '</div>'+
+            '<label class="fm-trunc">표시 글자수 <input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="전체"></label>'+
           '</div>'+
         '</div>';
       }).join('');
@@ -376,12 +397,14 @@
         row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].key=this.value.trim().toUpperCase(); fmDirty=true; });
         row.querySelector('.fm-rtype').addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
         row.querySelector('.fm-del').onclick=function(){ fmWork.splice(i,1); fmDirty=true; fmRender(); };
-        var nameInp=row.querySelector('.fm-name');
-        var applyPrev=function(){ if(!nameInp) return; nameInp.style.color=fmWork[i].fg||''; nameInp.style.background=fmWork[i].bg||''; nameInp.style.fontWeight=fmWork[i].bold?'800':''; };
-        var fgIn=row.querySelector('.fm-fg'); if(fgIn) fgIn.addEventListener('input', function(){ fmWork[i].fg=this.value; fmDirty=true; applyPrev(); markCnt(); });
-        var bgIn=row.querySelector('.fm-bg'); if(bgIn) bgIn.addEventListener('input', function(){ fmWork[i].bg=this.value; fmDirty=true; applyPrev(); markCnt(); });
-        var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; bdBtn.classList.toggle('on'); applyPrev(); markCnt(); };
-        var clrx=row.querySelector('.fm-clrx'); if(clrx) clrx.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmDirty=true; fmRender(); };
+        var fgIn=row.querySelector('.fm-fg'), bgIn=row.querySelector('.fm-bg');
+        row.querySelectorAll('.fm-pick').forEach(function(btn){ btn.onclick=function(){ var w=btn.getAttribute('data-pick'); var inp=(w==='fg')?fgIn:bgIn; if(inp){ try{inp.click();}catch(e){} } }; });
+        if(fgIn) fgIn.addEventListener('change', function(){ fmWork[i].fg=this.value; fmDirty=true; fmRender(); });
+        if(bgIn) bgIn.addEventListener('change', function(){ fmWork[i].bg=this.value; fmDirty=true; fmRender(); });
+        var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; fmRender(); };
+        var rs=row.querySelector('.fm-reset'); if(rs) rs.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmWork[i].align=''; fmWork[i].trunc=0; fmDirty=true; fmRender(); };
+        row.querySelectorAll('.fm-al').forEach(function(btn){ btn.onclick=function(){ var a=btn.getAttribute('data-al'); fmWork[i].align=(fmWork[i].align===a?'':a); fmDirty=true; fmRender(); }; });
+        var trIn=row.querySelector('.fm-trunc-in'); if(trIn) trIn.addEventListener('change', function(){ var n=parseInt(this.value,10); fmWork[i].trunc=(n>0?n:0); fmDirty=true; markCnt(); });
         row.addEventListener('dragstart', function(e){ var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='OPTION')){ e.preventDefault(); return; } __fmDrag=i; row.classList.add('dragging'); try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(i)); }catch(err){} });
         row.addEventListener('dragend', function(){ __fmDrag=-1; box.querySelectorAll('.fm-row').forEach(function(r){ r.classList.remove('dragging'); r.classList.remove('drag-over'); }); });
         row.addEventListener('dragover', function(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} if(__fmDrag>=0 && i!==__fmDrag) row.classList.add('drag-over'); });
@@ -396,9 +419,9 @@
     var nn=$('fmNewName'), tt=$('fmNewType'); if(!nn||!fmWork) return;
     var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
     if(fmWork.some(function(m){return m.key===name;})){ alert('이미 있는 필드입니다'); nn.select(); return; }
-    fmWork.push({key:name, type:(tt?tt.value:'text'), bg:'', fg:'', bold:false}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
+    fmWork.push({key:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
   }
-  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:k, type:mfKind(m.type), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold}); }); return out; }
+  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:k, type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold}); }); return out; }
   async function fmSave(){
     if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
     var btn=$('fmSave'), old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
