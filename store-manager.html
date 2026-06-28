@@ -538,6 +538,7 @@
     sel.innerHTML = state.profiles.map(function(p){ return '<option value="'+p.id+'"'+(p.id===state.activeId?' selected':'')+'>'+esc(p.name)+'</option>'; }).join('');
   }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function mfLabel(k){ var arr=state.masterRaw||[]; for(var i=0;i<arr.length;i++){ if(arr[i] && arr[i].key===k) return (arr[i].label!=null?arr[i].label:k); } return k; }
 
   function renderLegend(){
     var lg = $('exLegend');
@@ -560,7 +561,7 @@
       var mark = used[f] ? '<span class="mf-linked" title="'+esc(used[f])+'에 연결됨">✓</span>' : '';
       return '<div class="fld mfld'+armed+linked+'" data-field="'+esc(f)+'" style="--mf-color:'+c+'">'+
                '<span class="swatch" style="background:'+c+'"></span>'+
-               '<span class="fld-name">'+esc(f)+'</span>'+
+               '<span class="fld-name">'+esc(mfLabel(f))+'</span>'+
                mark +
                '<span class="fld-idx">'+(i+1)+'</span>'+
                '<span class="anchor mf-anchor"></span>'+
@@ -577,7 +578,7 @@
     var col = $('exExpCol');
     var p = activeProfile();
     if(!p){ col.innerHTML = '<div class="ex-empty">오른쪽에 표시할 <b>EXPORT 프로필</b>이 없습니다.<br>상단 <b>＋ 엑셀 업로드</b>로 장비/프로그램별 엑셀을 추가하세요.<br>(엑셀 첫 행의 필드명이 EXPORT 대상 필드가 됩니다)</div>'; return; }
-    var mgrOpts = '<option value="">— 없음 —</option>' + state.managerFields.map(function(f){ return '<option value="'+esc(f)+'">'+esc(f)+'</option>'; }).join('');
+    var mgrOpts = '<option value="">— 없음 —</option>' + state.managerFields.map(function(f){ return '<option value="'+esc(f)+'">'+esc(mfLabel(f))+'</option>'; }).join('');
     var html = '<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">EXPORT 필드 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
     html += p.fields.map(function(f){
       var mapped = p.mappings[f];
@@ -585,7 +586,7 @@
       var c = (mapped && !broken) ? mfColor(mapped) : '';
       var mappedCls = mapped ? (broken ? ' mapped broken' : ' mapped') : '';
       var style = (mapped && !broken) ? ' style="--mf-color:'+c+'"' : '';
-      var tag = mapped ? ('<span class="map-tag'+(broken?' broken':'')+'"'+(broken?'':' style="background:'+c+'"')+'>'+esc(mapped)+(broken?' ⚠':'')+'</span>') : '';
+      var tag = mapped ? ('<span class="map-tag'+(broken?' broken':'')+'"'+(broken?'':' style="background:'+c+'"')+'>'+esc(broken?mapped:mfLabel(mapped))+(broken?' ⚠':'')+'</span>') : '';
       var selHtml = '<select class="map-sel" data-field="'+esc(f)+'">'+mgrOpts.replace('value="'+esc(mapped)+'"','value="'+esc(mapped)+'" selected')+'</select>';
       var xBtn = mapped ? '<button class="map-x" data-field="'+esc(f)+'" title="연결 해제">✕</button>' : '';
       return '<div class="fld efld'+mappedCls+'" data-field="'+esc(f)+'"'+style+'>'+

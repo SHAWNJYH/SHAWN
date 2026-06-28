@@ -1302,22 +1302,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 열 키별 CSS 클래스
   function clsFor(key){ var lk=String(key||'').toLowerCase(); return lk==='plu'?'plu-c-no':lk==='local'?'plu-c-local':lk==='organic'?'plu-c-organic':lk==='eng'?'plu-c-eng':lk==='cate'?'plu-c-cat':lk==='kor'?'':'plu-c-extra'; }
   // 가격 열(EA PRICE / SALES PRICE 등 'PRICE' 포함) → $0.00 표시
-  function isPriceCol(c){ var s=String((c&&(c.label||c.key))||''); return /price/i.test(s) || isEaPriceCol(c) || isSalesPriceCol(c) || isSrpCol(c); }
+  function isPriceCol(c){ var s=String((c&&(c.key||c.label))||''); return /price/i.test(s) || isEaPriceCol(c) || isSalesPriceCol(c) || isSrpCol(c); }
   // SRP = 매장판매가 (MSRP와 별개의 신규 열)
-  function isSrpCol(c){ var s=String((c&&(c.label||c.key))||''); return /^\s*srp\s*$/i.test(s); }
+  function isSrpCol(c){ var s=String((c&&(c.key||c.label))||''); return /^\s*srp\s*$/i.test(s); }
   // SRP(%) 열 여부 — SRP 대비 마진(자동계산). MSRP(%)와 구분되도록 정확히 'SRP(%)'만 매칭
   function isSrpMarginCol(c){ var k=String((c&&c.key)||''), l=String((c&&c.label)||''); return /^\s*srp\s*\(\s*%\s*\)\s*$/i.test(k)||/^\s*srp\s*\(\s*%\s*\)\s*$/i.test(l); }
   // 열 헤더 마우스오버 설명 (UPC LIST 각 열)
   function colTooltip(c, cat, sub){
-    if(isUpcOCol(c)) return 'UPC(O) — 상품에 표시되어 있는 UPC';
-    if(isUpcCCol(c)) return 'UPC(C) — 판매를 위한 컨버팅 UPC';
-    if(isEaPriceCol(c)) return 'COST — 입고가';
-    if(isSrpCol(c)) return 'SRP — 매장판매가';
-    if(isSalesPriceCol(c)){ var cfg=getSalesCfg(cat,sub); return 'MSRP — 권장판매가' + (cfg.salesOn ? (' (평균 마진 '+cfg.margin+'%)') : ' (마진 미설정)'); }
+    if(isUpcOCol(c)) return (c.label||'UPC(O)')+' — 상품에 표시되어 있는 UPC';
+    if(isUpcCCol(c)) return (c.label||'UPC(C)')+' — 판매를 위한 컨버팅 UPC';
+    if(isEaPriceCol(c)) return (c.label||'COST')+' — 입고가';
+    if(isSrpCol(c)) return (c.label||'SRP')+' — 매장판매가';
+    if(isSalesPriceCol(c)){ var cfg=getSalesCfg(cat,sub); return (c.label||'MSRP')+' — 권장판매가' + (cfg.salesOn ? (' (평균 마진 '+cfg.margin+'%)') : ' (마진 미설정)'); }
     return '';
   }
   // UPC(C) 열 → 붉은색 표시
-  function isRedCol(c){ var u=String((c&&(c.label||c.key))||'').toUpperCase().replace(/\s+/g,''); return u==='UPC(C)' || /UPC\(C\)/.test(u) || isSalesPriceCol(c); }
+  function isRedCol(c){ var u=String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,''); return u==='UPC(C)' || /UPC\(C\)/.test(u) || isSalesPriceCol(c); }
   // 가격 $0.00 형식 변환
   function fmtPrice(v){ if(v==null) return ''; var t=String(v).trim(); if(t==='') return ''; var n=Number(t.replace(/[^0-9.\-]/g,'')); if(isNaN(n)) return t; return '$'+n.toFixed(2); }
   var PLU_PAL=[
@@ -1405,9 +1405,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return (bestT/100).toFixed(2);
   }
   // COST(원가) 열 여부
-  function isEaPriceCol(c){ var s=String((c&&(c.label||c.key))||''); return /ea[\s_]*price/i.test(s) || /^\s*cost\s*$/i.test(s); }
+  function isEaPriceCol(c){ var s=String((c&&(c.key||c.label))||''); return /ea[\s_]*price/i.test(s) || /^\s*cost\s*$/i.test(s); }
   // MSRP(판매가) 열 여부
-  function isSalesPriceCol(c){ var s=String((c&&(c.label||c.key))||''); return /sales\s*price/i.test(s) || /^\s*msrp\s*$/i.test(s); }
+  function isSalesPriceCol(c){ var s=String((c&&(c.key||c.label))||''); return /sales\s*price/i.test(s) || /^\s*msrp\s*$/i.test(s); }
   // MARGIN 열 여부
   function isMarginCol(c){ var k=String((c&&c.key)||''), l=String((c&&c.label)||''); return /margin/i.test(k)||/margin/i.test(l)||/msrp\s*\(\s*%\s*\)/i.test(k)||/msrp\s*\(\s*%\s*\)/i.test(l); }
   // 마진율(%) = (판매가 - 원가) / 판매가 × 100
@@ -1418,9 +1418,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return ((S-E)/S*100).toFixed(1)+'%';
   }
   // UPC(O) 열 여부
-  function isUpcOCol(c){ return /upc\s*\(\s*o\s*\)/i.test(String((c&&(c.label||c.key))||'')); }
+  function isUpcOCol(c){ return /upc\s*\(\s*o\s*\)/i.test(String((c&&(c.key||c.label))||'')); }
   // UPC(C) 열 여부
-  function isUpcCCol(c){ return /upc\s*\(\s*c\s*\)/i.test(String((c&&(c.label||c.key))||'')); }
+  function isUpcCCol(c){ return /upc\s*\(\s*c\s*\)/i.test(String((c&&(c.key||c.label))||'')); }
   // UPC-E (8자리: 0 + 6자리 + 체크디짓) → 11자리 UPC-A 본체
   function upcExpandE(u8){
     var ns=u8.charAt(0), x1=u8.charAt(1), x2=u8.charAt(2), x3=u8.charAt(3), x4=u8.charAt(4), x5=u8.charAt(5), x6=u8.charAt(6);
@@ -1812,7 +1812,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var sp2 = price?calcSalesPrice(price):'';
     setIf(spCol, sp2);
     if(mgCol && sp2!==''){ var mv2=calcMargin(sp2, price); if(mv2!=='') ex[mgCol.key]=mv2; }
-    (lay||[]).forEach(function(c){ var L=String(c.label||c.key||'').toUpperCase(); if(/ENG/.test(L) && rec.eng) ex[c.key]=rec.eng; if((/KOR/.test(L)||/한글/.test(L)) && rec.kor) ex[c.key]=rec.kor; });
+    (lay||[]).forEach(function(c){ var L=String(c.key||c.label||'').toUpperCase(); if(/ENG/.test(L) && rec.eng) ex[c.key]=rec.eng; if((/KOR/.test(L)||/한글/.test(L)) && rec.kor) ex[c.key]=rec.kor; });
     return { extra: ex };
   }
   // HANARO 형식 EXPORT — 고정 6필드: UPC / ENG DESC / KOR DESC / ITEM CODE / EA COST / SRP
@@ -1843,11 +1843,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     records=records||[];
     if(!records.length){ showToast('내보낼 데이터가 없습니다','error'); return; }
     // ENG DESC 열 여부
-    function isEngCol(c){ return /eng/i.test(String((c&&(c.label||c.key))||'')); }
+    function isEngCol(c){ return /eng/i.test(String((c&&(c.key||c.label))||'')); }
     // KOR DESC 열 여부
-    function isKorCol(c){ return /kor|한글/i.test(String((c&&(c.label||c.key))||'')); }
+    function isKorCol(c){ return /kor|한글/i.test(String((c&&(c.key||c.label))||'')); }
     // ITEM CODE 열 여부
-    function isItemCodeCol(c){ return /item\s*code/i.test(String((c&&(c.label||c.key))||'')); }
+    function isItemCodeCol(c){ return /item\s*code/i.test(String((c&&(c.key||c.label))||'')); }
     var headers=['UPC','ENG DESC','KOR DESC','ITEM CODE','EA COST','SRP'];
     var aoa=[headers];
     records.forEach(function(rec){
@@ -1979,7 +1979,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('histClear').onclick=async function(){ var kinds=isAll?['new','price']:[kind]; for(var i=0;i<kinds.length;i++){ var k=kinds[i]; saveHist(k, []); try{ await clearAllMarks(k); }catch(e){} } open={}; refresh(); };
   }
   // 레이아웃에서 UPC(O)/EA PRICE/ENG/KOR 키 찾기
-  function dupKeys(lay){ var k={uo:null,ea:null,eng:null,kor:null}; (lay||[]).forEach(function(c){ if(isUpcOCol(c))k.uo=c.key; if(isEaPriceCol(c))k.ea=c.key; var L=String(c.label||c.key||'').toUpperCase(); if(!k.eng && /ENG/.test(L))k.eng=c.key; if(!k.kor && (/KOR/.test(L)||/한글/.test(L)))k.kor=c.key; }); if(!k.eng)k.eng='ENG'; if(!k.kor)k.kor='KOR'; return k; }
+  function dupKeys(lay){ var k={uo:null,ea:null,eng:null,kor:null}; (lay||[]).forEach(function(c){ if(isUpcOCol(c))k.uo=c.key; if(isEaPriceCol(c))k.ea=c.key; var L=String(c.key||c.label||'').toUpperCase(); if(!k.eng && /ENG/.test(L))k.eng=c.key; if(!k.kor && (/KOR/.test(L)||/한글/.test(L)))k.kor=c.key; }); if(!k.eng)k.eng='ENG'; if(!k.kor)k.kor='KOR'; return k; }
   // 레이아웃에서 조건에 맞는 열 객체 찾기
   function findInLay(lay, pred){ for(var i=0;i<(lay||[]).length;i++){ if(pred(lay[i])) return lay[i]; } return null; }
   // 체크 열 값 해석: 빈칸=null(정보없음·건너뜀) / X·N·0·OFF·- =false / 그 외 비어있지 않으면=true
