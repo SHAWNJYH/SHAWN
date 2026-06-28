@@ -6,6 +6,9 @@
 <title>STORE MANAGER · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- 바코드: 실제 스캔 가능한 UPC-A/EAN 생성(JsBarcode) + 엑셀 이미지 임베드(ExcelJS) -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -67,6 +70,14 @@
   .fm-row:active{ cursor:grabbing; }
   .fm-row.dragging{ opacity:.45; }
   .fm-row.drag-over{ border-color:var(--accent-warm); box-shadow:0 0 0 3px rgba(201,169,97,.25); }
+  /* MSRP쌍 / SRP쌍: 항상 함께 작동 — 짙은 파랑 그룹 배경 */
+  .fm-row.grp-msrp{ background:#1e3a8a; border-color:#1e3a8a; }
+  .fm-row.grp-srp{ background:#2563eb; border-color:#2563eb; }
+  .fm-row.grp-msrp .fm-grip, .fm-row.grp-srp .fm-grip{ color:rgba(255,255,255,.55); }
+  .fm-row.grp-msrp .fm-ord, .fm-row.grp-srp .fm-ord{ color:#fff; }
+  .fm-row.grp-msrp .fm-flag, .fm-row.grp-srp .fm-flag{ color:#ffe9a8; }
+  .fm-row.grp-msrp .fm-del, .fm-row.grp-srp .fm-del{ color:rgba(255,255,255,.7); }
+  .fm-row.grp-msrp .fm-del:hover, .fm-row.grp-srp .fm-del:hover{ color:#fff; }
   .fm-rtop{ display:flex; align-items:center; gap:4px; }
   .fm-grip{ font-size:11px; color:var(--border-bright); line-height:1; user-select:none; }
   .fm-ord{ font-size:11px; font-weight:900; color:#d63a3a; flex:1 1 auto; }
@@ -186,7 +197,7 @@
       <div class="ex-toolbar">
         <div class="ex-tb-group">
           <input class="fm-newname" id="fmNewName" placeholder="새 필드 이름 (예: UPC(C))" maxlength="40" autocomplete="off">
-          <select class="ex-sel" id="fmNewType"><option value="text">텍스트</option><option value="price">가격 ($)</option><option value="margin">마진 (%)</option></select>
+          <select class="ex-sel" id="fmNewType"><option value="text">텍스트</option><option value="price">가격 ($)</option><option value="margin">마진 (%)</option><option value="checkbox">체크박스</option><option value="image">이미지</option></select>
           <button class="ex-btn warm" id="fmAdd" type="button">＋ 추가</button>
         </div>
         <span class="ex-spacer"></span>
@@ -288,9 +299,9 @@
   // state.profiles: [{ id, name, fields:[...], mappings:{ exportField: managerField } }]
   var state = { profiles: [], activeId: '', managerFields: DEFAULT_MANAGER_FIELDS.slice(), masterRaw: [], masterFromCloud: false, armed: null };
 
-  function mfKind(t){ t=String(t||''); return (t==='price'||t==='margin')?t:'text'; }
-  function mfTypeOptionsHTML(sel){ var o=[['text','텍스트'],['price','가격 ($)'],['margin','마진 (%)']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
-  function mfFlag(t){ return t==='price'?'$':(t==='margin'?'%':''); }
+  function mfKind(t){ t=String(t||''); return (t==='price'||t==='margin'||t==='checkbox'||t==='image')?t:'text'; }
+  function mfTypeOptionsHTML(sel){ var o=[['text','텍스트'],['price','가격 ($)'],['margin','마진 (%)'],['checkbox','체크박스'],['image','이미지']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
+  function mfFlag(t){ return t==='price'?'$':(t==='margin'?'%':(t==='checkbox'?'☑':(t==='image'?'🖼':''))); }
 
   /* ---- 마스터 필드 로드/실시간 구독 (upc-config/main.masterFields) ---- */
   function applyMaster(fields){
@@ -333,7 +344,9 @@
     else {
       box.innerHTML = fmWork.map(function(m,i){
         var fl=mfFlag(m.type);
-        return '<div class="fm-row" draggable="true" data-i="'+i+'">'+
+        var k=String(m.key||'').toUpperCase();
+        var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
+        return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
           '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+'<button class="fm-del" type="button" title="삭제">✕</button></div>'+
           '<input class="fm-name" value="'+esc(m.key)+'" maxlength="40" autocomplete="off">'+
           '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
@@ -701,6 +714,47 @@
     $('exPrevBody').innerHTML = html;
   }
 
+  /* ---- 바코드(UPC(O) 기준) → 실제 스캔 가능한 이미지 ---- */
+  function upcaCheckDigit(d11){ var s=0; for(var i=0;i<11;i++){ var n=+d11[i]; s += (i%2===0)? n*3 : n; } return (10-(s%10))%10; }
+  function pickBarcode(v){
+    var raw=String(v==null?'':v).trim(); var d=raw.replace(/\D/g,'');
+    if(/^\d{11}$/.test(d)) return { fmt:'UPC',   val:d+upcaCheckDigit(d) };  // 11자리: 체크디지트 자동 부가 → UPC-A
+    if(/^\d{12}$/.test(d)) return { fmt:'UPC',   val:d };                    // UPC-A
+    if(/^\d{13}$/.test(d)) return { fmt:'EAN13', val:d };
+    if(/^\d{8}$/.test(d))  return { fmt:'EAN8',  val:d };
+    return { fmt:'CODE128', val:raw };                                       // 그 외: CODE128(임의 문자열도 스캔 가능)
+  }
+  function barcodeBase64(value){
+    if(typeof JsBarcode==='undefined') return null;
+    var raw=String(value==null?'':value).trim(); if(!raw) return null;
+    var pb=pickBarcode(raw); var canvas=document.createElement('canvas');
+    try{ JsBarcode(canvas, pb.val, { format:pb.fmt, width:2, height:54, displayValue:true, fontSize:13, textMargin:2, margin:6 }); }
+    catch(e){ try{ JsBarcode(canvas, raw, { format:'CODE128', width:2, height:54, displayValue:true, fontSize:13, margin:6 }); }catch(e2){ return null; } }
+    try{ return canvas.toDataURL('image/png').split(',')[1]; }catch(e3){ return null; }
+  }
+  // BARCODE 컬럼(매핑된 관리필드 키가 'BARCODE')이 있으면 ExcelJS로 실제 바코드 이미지 임베드
+  async function exportExcelWithBarcodes(p, rows, headers, barcodeCols){
+    var wbk = new ExcelJS.Workbook();
+    var ws  = wbk.addWorksheet((p.name||'EXPORT').slice(0,31));
+    ws.addRow(headers);
+    var IMG_W=150, IMG_H=58;
+    for(var ri=0; ri<rows.length; ri++){
+      var r=rows[ri];
+      var vals=headers.map(function(h,ci){ if(barcodeCols.indexOf(ci)>=0) return ''; var src=p.mappings[h]; return src?(r[src]!=null?r[src]:''):''; });
+      var xlRow=ws.addRow(vals); var hasImg=false;
+      for(var bi=0; bi<barcodeCols.length; bi++){
+        var ci=barcodeCols[bi];
+        var b64=barcodeBase64(r['UPC(O)']);
+        if(b64){ var id=wbk.addImage({ base64:b64, extension:'png' }); ws.addImage(id, { tl:{ col:ci, row:ri+1 }, ext:{ width:IMG_W, height:IMG_H } }); hasImg=true; }
+      }
+      if(hasImg) xlRow.height = Math.round(IMG_H*0.78);
+    }
+    headers.forEach(function(h,ci){ var col=ws.getColumn(ci+1); col.width = (barcodeCols.indexOf(ci)>=0) ? 24 : Math.min(40, Math.max(10, String(h).length+4)); });
+    var buf = await wbk.xlsx.writeBuffer();
+    var blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=(p.name||'EXPORT')+'_EXPORT.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  }
+
   /* ---- EXPORT 생성 (소스 데이터 → 매핑된 EXPORT 필드) ---- */
   $('exExportBtn').onclick = async function(){
     var p = activeProfile();
@@ -711,14 +765,20 @@
       var res = await fetchSourceRows(curSrcFilter());
       var rows = res.rows;
       var headers = p.fields.slice();
-      var aoa = [headers];
-      rows.forEach(function(r){
-        aoa.push(headers.map(function(h){ var src = p.mappings[h]; return src ? (r[src]!=null?r[src]:'') : ''; }));
-      });
-      var ws = XLSX.utils.aoa_to_sheet(aoa);
-      var wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, (p.name||'EXPORT').slice(0,31));
-      XLSX.writeFile(wb, (p.name||'EXPORT')+'_EXPORT.xlsx');
+      // BARCODE 컬럼 = 매핑된 관리필드 키가 'BARCODE'
+      var barcodeCols = []; headers.forEach(function(h,idx){ if(String(p.mappings[h]||'').toUpperCase()==='BARCODE') barcodeCols.push(idx); });
+      if(barcodeCols.length && window.ExcelJS && typeof JsBarcode!=='undefined'){
+        await exportExcelWithBarcodes(p, rows, headers, barcodeCols);
+      } else {
+        if(!window.XLSX){ alert('엑셀 라이브러리를 불러오지 못했습니다.'); return; }
+        if(barcodeCols.length){ alert('바코드 라이브러리(JsBarcode/ExcelJS)를 불러오지 못해 바코드 없이 텍스트로 내보냅니다.'); }
+        var aoa = [headers];
+        rows.forEach(function(r){ aoa.push(headers.map(function(h){ var src = p.mappings[h]; return src ? (r[src]!=null?r[src]:'') : ''; })); });
+        var ws = XLSX.utils.aoa_to_sheet(aoa);
+        var wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, (p.name||'EXPORT').slice(0,31));
+        XLSX.writeFile(wb, (p.name||'EXPORT')+'_EXPORT.xlsx');
+      }
       if(!rows.length){ alert('소스(upc-list)에서 수집된 행이 없어 헤더(템플릿)만 생성했습니다. ‘🔍 소스 확인’으로 데이터를 점검하세요.'); }
     }catch(err){ console.error(err); alert('EXPORT 실패: '+err.message); }
     finally{ btn.textContent = old; btn.disabled = false; }
