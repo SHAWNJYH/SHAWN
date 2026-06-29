@@ -26,7 +26,8 @@
     getDocs,
     query,
     where,
-    deleteDoc
+    deleteDoc,
+    onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -58,7 +59,8 @@
     getDocs,
     query,
     where,
-    deleteDoc
+    deleteDoc,
+    onSnapshot
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -2417,6 +2419,29 @@
   </div>
 </div>
 
+<!-- EGMM PIN 변경 팝업 (MANAGER 로그인 후 상단 🔑 버튼으로 염) -->
+<div class="mgr-ov" id="egmmPinOv">
+  <div class="lock-card mgr-login-card mgr-pw-card">
+    <button class="mgr-x" id="egmmPinClose" type="button">✕</button>
+    <h1 class="lock-title">EGMM PIN 변경</h1>
+    <p class="mgr-pw-sub">EGMM 진입 PIN을 변경합니다</p>
+    <div class="field">
+      <label>현재 PIN</label>
+      <input type="text" id="egmmPinCur" inputmode="numeric" readonly autocomplete="off">
+    </div>
+    <div class="field">
+      <label>새 PIN (숫자 4~8자리)</label>
+      <input type="password" id="egmmPinNew" inputmode="numeric" placeholder="••••••" maxlength="8" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>새 PIN 확인</label>
+      <input type="password" id="egmmPinNew2" inputmode="numeric" placeholder="••••••" maxlength="8" autocomplete="off">
+    </div>
+    <div class="err" id="egmmPinMsg"></div>
+    <button class="btn" id="egmmPinSave">변경 저장</button>
+  </div>
+</div>
+
 <!-- H-MART 매장 로그인 팝업 (EGMM 형식 — 매장 선택 + PIN) -->
 <div class="mgr-ov" id="hmartPwOv">
   <div class="lock-card mgr-login-card mgr-pw-card">
@@ -2477,6 +2502,11 @@
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
           <polyline points="17 21 17 13 7 13 7 21"/>
           <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="egmmPinBtn" title="EGMM PIN 변경">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="8" cy="15" r="4"/><path d="M10.85 12.15 19 4"/><path d="m18 5 2 2"/><path d="m15 8 2 2"/>
         </svg>
       </button>
       <button class="icon-btn" id="menuLockBtn" title="로그아웃">
@@ -3259,7 +3289,26 @@
   $('toSignupBtn').onclick = setSignupMode;
   $('toLoginBtn').onclick = setLoginMode;
   // EGMM 박스 → 비밀번호 확인(팝업) 후 별도 페이지(egmm.html)로 이동
-  const EGMM_PASSWORD = '98001';
+  let egmmPin = '98001';                          // EGMM 진입 PIN (Firebase에서 동기화, 기본값 98001)
+  const EGMM_PIN_COL = 'app-config', EGMM_PIN_DOC = 'egmm';
+  function loadEgmmPin(){
+    if(!window.firebaseFns || !window.firebaseDb){ setTimeout(loadEgmmPin, 600); return; }
+    try{
+      if(window.firebaseFns.onSnapshot){
+        window.firebaseFns.onSnapshot(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), function(snap){
+          var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+          if(d && d.pin!=null && String(d.pin).trim()!=='') egmmPin=String(d.pin).trim();
+          var cur=$('egmmPinCur'); if(cur) cur.value=egmmPin;
+        }, function(){});
+      } else {
+        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC)).then(function(snap){
+          var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+          if(d && d.pin!=null && String(d.pin).trim()!=='') egmmPin=String(d.pin).trim();
+        }).catch(function(){});
+      }
+    }catch(e){}
+  }
+  loadEgmmPin();
   const EGMM_AUTO_KEY = 'egmmAutoLogin';
   const egmmPwOv = $('egmmPwOv'), egmmPwInput = $('egmmPwInput'), egmmPwErr = $('egmmPwErr'), egmmAutoChk = $('egmmAutoChk');
   const isEgmmAuto = () => { try{ return localStorage.getItem(EGMM_AUTO_KEY)==='1'; }catch(e){ return false; } };
@@ -3267,7 +3316,7 @@
   const closeEgmmPw = () => egmmPwOv.classList.remove('show');
   const submitEgmmPw = () => {
     const p = (egmmPwInput && egmmPwInput.value || '').trim();
-    if (p === EGMM_PASSWORD) {
+    if (p === egmmPin) {
       try{ localStorage.setItem(EGMM_AUTO_KEY, (egmmAutoChk && egmmAutoChk.checked) ? '1' : '0'); }catch(e){}
       window.location.href = 'egmm.html';
     } else { if(egmmPwErr) egmmPwErr.textContent = '비밀번호가 올바르지 않습니다'; }
@@ -3288,6 +3337,39 @@
   $('egmmPwClose').onclick = closeEgmmPw;
   egmmPwOv.addEventListener('click', e => { if (e.target === egmmPwOv) closeEgmmPw(); });
   if(egmmPwInput) egmmPwInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitEgmmPw(); });
+
+  // EGMM PIN 변경 (MANAGER 로그인 후 상단 🔑 버튼)
+  const egmmPinOv = $('egmmPinOv');
+  const openEgmmPin = () => {
+    var m=$('egmmPinMsg'); if(m){ m.textContent=''; m.style.color=''; }
+    var n1=$('egmmPinNew'), n2=$('egmmPinNew2'), cur=$('egmmPinCur');
+    if(n1) n1.value=''; if(n2) n2.value=''; if(cur) cur.value=egmmPin;
+    if(egmmPinOv) egmmPinOv.classList.add('show');
+    setTimeout(()=>{ if(n1) n1.focus(); }, 80);
+  };
+  const closeEgmmPin = () => { if(egmmPinOv) egmmPinOv.classList.remove('show'); };
+  const saveEgmmPin = async () => {
+    var msg=$('egmmPinMsg');
+    var a=($('egmmPinNew')&&$('egmmPinNew').value||'').trim();
+    var b=($('egmmPinNew2')&&$('egmmPinNew2').value||'').trim();
+    var fail=function(t){ if(msg){ msg.style.color='#b04141'; msg.textContent=t; } };
+    if(!/^[0-9]{4,8}$/.test(a)){ fail('숫자 4~8자리로 입력하세요'); return; }
+    if(a!==b){ fail('새 PIN이 일치하지 않습니다'); return; }
+    if(!window.firebaseFns || !window.firebaseDb){ fail('연결 준비 중 — 잠시 후 다시'); return; }
+    var btn=$('egmmPinSave'); var old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
+    try{
+      await window.firebaseFns.setDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), { pin:a, updatedAt:Date.now() }, { merge:true });
+      egmmPin=a; var cur=$('egmmPinCur'); if(cur) cur.value=a;
+      if(msg){ msg.style.color='#2f7d32'; msg.textContent='변경되었습니다 · 새 PIN '+a; }
+      setTimeout(closeEgmmPin, 1200);
+    }catch(e){ fail('저장 실패: '+((e&&e.message)||e)); }
+    finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
+  };
+  if($('egmmPinBtn')) $('egmmPinBtn').onclick = openEgmmPin;
+  if($('egmmPinClose')) $('egmmPinClose').onclick = closeEgmmPin;
+  if(egmmPinOv) egmmPinOv.addEventListener('click', e => { if (e.target === egmmPinOv) closeEgmmPin(); });
+  if($('egmmPinSave')) $('egmmPinSave').onclick = saveEgmmPin;
+  if($('egmmPinNew2')) $('egmmPinNew2').addEventListener('keydown', e => { if (e.key === 'Enter') saveEgmmPin(); });
 
   // 좌상단 MANAGER 아이콘 → THE SHAWN 로그인 팝업
   const mgrLoginOv = $('mgrLoginOv');
