@@ -2507,7 +2507,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(!uo){ showToast('UPC(O) 열을 찾을 수 없습니다','error'); return; }
     if(!uc){ showToast('UPC(C) 열을 찾을 수 없습니다','error'); return; }
     var n=0;
-    (work||[]).forEach(function(row){ var ov=getCellVal(row,uo); var cv=upcConvert(ov); if(cv!==''){ setCellVal(row,uc,cv); n++; } });
+    (work||[]).forEach(function(row){ var ov=getDisp(row,uo); var cv=upcConvert(ov); if(cv!==''){ setCellVal(row,uc,cv); n++; } });
     markDirty(); renderContent();
     showToast('UPC(C) '+n+'건 자동 변환 완료','success');
   }
