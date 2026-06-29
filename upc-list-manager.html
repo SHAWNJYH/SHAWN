@@ -557,9 +557,9 @@
   .upc-tipbox::after { content:''; position:absolute; left:50%; top:-6px; transform:translateX(-50%); border:6px solid transparent; border-bottom:6px solid #1a1a1d; border-top:0; }
   .plu-table thead th[data-tip] { cursor:help; }
   /* SRP / SRP(%) 열: 헤더+데이터 모두 노란 바탕 + 붉은 글씨 + 볼드 */
-  thead th.upc-c-srp, .plu-table th.upc-c-srp, .plu-table td.upc-c-srp, td.upc-c-srp { background:#fde047 !important; color:#dc2626 !important; font-weight:800 !important; }
-  .plu-table th.upc-c-srpp, thead th.upc-c-srpp, .plu-table td.upc-c-srpp, td.upc-c-srpp { background:#fde047 !important; color:#dc2626 !important; font-weight:800 !important; }
-  .plu-table td.upc-c-srp input.plu-edit-input, .plu-table td.upc-c-srpp input.plu-edit-input { color:#dc2626; font-weight:800; }
+  /* SRP 특수색 제거 — store-manager 색/기본 얼룩무늬 사용 */
+  /* SRP(%) 특수색 제거 */
+
   .plu-tools-stack .plu-tool-btn { min-width:104px; text-align:center; }
   .plu-tool-btn:hover { border-color:var(--accent-warm); color:var(--text); }
   .plu-tool-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -703,20 +703,20 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   .plu-table td.plu-c-rcheck .pluchk { color:#c0392b; }
   .plu-table td.plu-c-rcheck .pluchk.off { color:#c2c2c8; }
   /* UPC(C) 열: 전부 붉은색 (헤더·셀·편집칸) */
-  .plu-table td.upc-c-red { color:#c0392b; font-weight:700; }
-  .plu-table th.upc-c-red { color:#c0392b; }
-  .plu-table td.upc-c-red input.plu-edit-input { color:#c0392b; font-weight:700; }
+
+
+
   /* 가격 열: $ 표기 · 숫자 우측 정렬 */
   .plu-table td.upc-c-price { white-space:nowrap; font-variant-numeric:tabular-nums; text-align:right; }
   .plu-table th.upc-c-price { text-align:right; }
   .plu-table td.upc-c-price input.plu-edit-input { text-align:right; }
   /* MARGIN 열: 초록색 + 가운데 정렬 */
-  .plu-table td.upc-c-green, .plu-table th.upc-c-green { color:#15803d; text-align:center; }
+  .plu-table td.upc-c-green, .plu-table th.upc-c-green { text-align:center; }
   .plu-table td.upc-c-green { font-weight:700; }
-  .plu-table td.upc-c-green input.plu-edit-input { color:#15803d; font-weight:700; text-align:center; }
+  .plu-table td.upc-c-green input.plu-edit-input { text-align:center; }
   /* MSRP · MSRP(%)(구 MARGIN) 열: 옅은 파란 바탕 + 검정 글씨 (헤더~데이터 행) */
-  .plu-table td.upc-c-blue, .plu-table th.upc-c-blue { background:#dcfce7 !important; color:#1f2937 !important; }
-  .plu-table td.upc-c-blue input.plu-edit-input { color:#1f2937; }
+  /* MSRP 특수색 제거 */
+
   /* EA PRICE · SALES PRICE · MARGIN: 좁은 너비 + 8자까지만 표시 */
   .plu-table td.upc-c-narrow, .plu-table th.upc-c-narrow { max-width:9ch; width:9ch; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plu-table td.upc-c-narrow input.plu-edit-input { width:auto; min-width:0; max-width:100%; }
@@ -856,7 +856,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var __MFSTY = {};
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
   function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; }
-  function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt&&ms.fmt!=='text') __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; if(ms.fg) __c.fg=ms.fg; if(ms.bg) __c.bg=ms.bg; if(ms.bold) __c.bold=true; } } } return lay; }
+  function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt&&ms.fmt!=='text') __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; __c.fg=(ms.fg||''); __c.bg=(ms.bg||''); __c.bold=!!ms.bold; } } } return lay; }
   function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(!d) return; var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if(__ch && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(Array.isArray(d.masterFields)){ masterFields=normMaster(d.masterFields); if($('pluMasterModal') && $('pluMasterModal').classList.contains('show')) renderMasterList(); } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
@@ -2344,13 +2344,28 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); fillColImportList(); }
   var __cfdItems=[];
   // 가져오기 후보 = 필드 관리(마스터)에 등록된 필드 중, 현재 카테고리에 아직 없는 것
+  // 필드의 기능 역할 — 같은 역할이 이미 있으면 중복 추가 방지(예: UPC(O)가 있는데 UPC 또 추가)
+  function fieldRoleOf(c){
+    var __s=String((c&&(c.key||c.label))||'').trim().toUpperCase();
+    if(isUpcOCol(c) || /^UPC$|^UPCO$|^UPC-?O$|^UPC\(0\)$|^UPCA$/.test(__s)) return 'UPC(O)';
+    if(isUpcCCol(c) || /^UPCC$|^UPC-?C$/.test(__s)) return 'UPC(C)';
+    if(isSrpMarginCol(c)) return 'SRP(%)';
+    if(isSrpCol(c)) return 'SRP';
+    if(isMarginCol(c)) return 'MSRP(%)';
+    if(isSalesPriceCol(c)) return 'MSRP';
+    if(isEaPriceCol(c)) return 'COST';
+    return '';
+  }
   function otherCatFields(){
-    var curKeys={}; (workLayout||[]).forEach(function(c){ if(c&&c.key!=null) curKeys[String(c.key).toUpperCase()]=1; });
+    var curKeys={}, curRoles={};
+    (workLayout||[]).forEach(function(c){ if(c&&c.key!=null){ curKeys[String(c.key).toUpperCase()]=1; var rl=fieldRoleOf(c); if(rl) curRoles[rl]=1; } });
     var out=[];
     (masterFields||[]).forEach(function(m){
       var K=String(m.key).toUpperCase();
       if(isBase(K)) return;
       if(curKeys[K]) return;
+      var rl=fieldRoleOf({key:K,label:m.label||K});
+      if(rl && curRoles[rl]) return;   // 같은 기능 역할이 이미 카테고리에 있음 → 중복 제외
       var col=mfKindToCol(mfKind(m.type));
       out.push({ key:K, label:m.label||K, type:col.type, fmt:col.fmt, fg:'', bg:'', bold:false, cats:['마스터'] });
     });
