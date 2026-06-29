@@ -413,7 +413,7 @@
   /* 클릭 가능한 필드 이름(헤더) */
   .plu-col-name { cursor:pointer; text-decoration:underline dotted; text-underline-offset:2px; }
   .plu-col-name:hover { color:var(--accent-warm); }
-  .plu-col-ops { display:flex; flex-wrap:nowrap; gap:2px; margin-top:4px; }
+  .plu-col-delbtn { color:#c0392b; font-weight:900; }
   /* ===== 공통 팝업(관리자·필드설정) ===== */
   .pcm-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; }
   .pcm-modal { background:#fff; border-radius:14px; width:96%; max-width:680px; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,0.25); overflow:hidden; }
@@ -1039,7 +1039,7 @@
         var isChk=(c.type==='check'||c.type==='rcheck');
         // 현재 정렬 표시 문자: 미지정(≡)·왼쪽(L)·가운데(C)·오른쪽(R)
         var alC=(c.align==='left')?'L':((c.align==='center')?'C':((c.align==='right')?'R':'≡'));
-        var ops='<span class="plu-col-ops"><button class="plu-col-btn plu-col-hidebtn" data-act="hide" data-key="'+escapeHtml(c.key)+'" title="'+(c.hidden?'숨김 해제':'숨기기')+'">'+(c.hidden?'🙈':'👁')+'</button></span>';
+        var ops='<span class="plu-col-ops"><button class="plu-col-btn plu-col-hidebtn" data-act="hide" data-key="'+escapeHtml(c.key)+'" title="'+(c.hidden?'숨김 해제':'숨기기')+'">'+(c.hidden?'🙈':'👁')+'</button><button class="plu-col-btn plu-col-delbtn" data-act="delcol" data-key="'+escapeHtml(c.key)+'" title="이 카테고리에서 필드 제거 (데이터 보존·다시 추가 가능)">✕</button></span>';
         // 필드 이름 클릭 → 이름변경/표시/삭제 팝업(openColEditPopup)
         return '<th draggable="true" data-dragkey="'+escapeHtml(c.key)+'" class="plu-col-drag '+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'"><span class="plu-col-name" data-key="'+escapeHtml(c.key)+'" title="드래그: 위치 이동">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
       }).join('');
@@ -1325,16 +1325,6 @@
     }
     col.label=newLabel; return true;
   }
-  async function addColumnOfType(type){
-    var hint = type==='check' ? ' (매장추가 예: BD, BV, FW)' : (type==='rcheck' ? ' (상품정보추가 체크박스)' : ' (상품필드추가 예: 원산지, 비고)');
-    var name=((await uiPrompt('추가할 필드 이름을 입력하세요'+hint,''))||'').trim().toUpperCase();
-    if(!name) return;
-    if(colIndex(name)>=0 || isBase(name)){ showToast('이미 있는 필드입니다','error'); return; }
-    if(!workLayout) workLayout=[];
-    if(type==='check'){ workLayout.push({key:name,label:name,hidden:false,type:'check'}); }
-    else { workLayout.push({key:name,label:name,hidden:false,type:(type==='rcheck'?'rcheck':'text')}); }
-    markDirty(); renderContent(); showToast('필드 추가됨: '+name+' (오른쪽 끝) · 💾 저장 필요','success');
-  }
   function openColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.add('show'); }
   function closeColModal(){ var ov=$('pluColModal'); if(ov) ov.classList.remove('show'); }
   function openCfgModal(){ if(!editMode) return; var box=$('pluCfgCols'); var lay=workLayout||[]; if(box){ box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="plu-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join(''); } var allb=$('pluCfgAll'); if(allb) allb.onclick=function(){ var cs=$('pluCfgCols').querySelectorAll('.plu-cfg-col'); var allOn=Array.prototype.every.call(cs,function(ch){return ch.checked;}); Array.prototype.forEach.call(cs,function(ch){ ch.checked=!allOn; }); allb.textContent=allOn?'전체 선택':'전체 해제'; }; var ov=$('pluCfgModal'); if(ov) ov.classList.add('show'); }
@@ -1345,10 +1335,7 @@
   function closeIngModal(){ var ov=$('pluIngModal'); if(ov) ov.classList.remove('show'); __ingCat=null; __ingPlu=null; __ingKey=null; }
   function saveIngModal(){ if(!__ingCat||__ingPlu==null||!__ingKey){ closeIngModal(); return; } var ta=$('pluIngText'); var val=ta?String(ta.value).replace(/^\s+|\s+$/g,''):''; var cat=__ingCat, plu=__ingPlu, key=__ingKey; var rows=cloud[cat]; if(rows){ var row=null; for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } } if(row){ if(!row.extra) row.extra={}; row.extra[key]=val; __pendingText[__ckey(cat,plu,key)]=val; scheduleCheckSave(cat); } } closeIngModal(); renderContent(); }
   (function wireColModal(){
-    var c=$('pluColCheck'), rc=$('pluColRCheck'), t=$('pluColText'), x=$('pluColCancel'), ov=$('pluColModal');
-    if(c) c.onclick=function(){ closeColModal(); addColumnOfType('check'); };
-    if(rc) rc.onclick=function(){ closeColModal(); addColumnOfType('rcheck'); };
-    if(t) t.onclick=function(){ closeColModal(); addColumnOfType('text'); };
+    var x=$('pluColCancel'), ov=$('pluColModal');
     if(x) x.onclick=function(){ closeColModal(); };
     if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) closeColModal(); });
     var cfg=$('pluCfgSave'), cfgx=$('pluCfgCancel'), cfgov=$('pluCfgModal');
@@ -1492,6 +1479,7 @@
       var i=colIndex(key); if(i<0) return;
       if(act==='left'||act==='right'){ var j=act==='left'?i-1:i+1; if(j<0||j>=workLayout.length) return; var tmp=workLayout[i]; workLayout[i]=workLayout[j]; workLayout[j]=tmp; markDirty(); renderContent(); }
       else if(act==='hide'){ workLayout[i].hidden=!workLayout[i].hidden; markDirty(); renderContent(); }
+      else if(act==='delcol'){ if(await uiConfirm('["'+(workLayout[i].label||workLayout[i].key)+'"] 필드를 이 카테고리에서 제거할까요?\n\n· 행 데이터는 그대로 보존됩니다\n· 필드추가에서 다시 넣을 수 있습니다')){ workLayout.splice(i,1); markDirty(); renderContent(); } }
     }; }); }
     // 헤더 드래그앤드롭으로 열 위치 이동
     if(el && editMode){
