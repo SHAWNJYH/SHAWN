@@ -647,7 +647,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 <style>
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
-  .plu-col-ops { display:flex; flex-wrap:nowrap; gap:2px; margin-top:4px; }
+  .plu-col-ops { display:inline-flex; flex-wrap:nowrap; gap:2px; margin-top:0; margin-left:6px; vertical-align:middle; }
+  .plu-col-drag .plu-col-name { vertical-align:middle; }
+  th.plu-col-drag { white-space:nowrap; }
   th.plu-col-drag .plu-col-name { cursor:grab; }
   th.col-dragging { opacity:0.45; }
   th.col-drag-over { box-shadow: inset 3px 0 0 0 var(--accent-warm); background:rgba(217,119,6,0.08); }
@@ -1638,7 +1640,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var cols=curLayout();
     var cells=cols.map(function(c){
       var cls=(c.hidden?'plu-col-hidden':'')+((c.type==='check'||c.type==='rcheck')?' plu-c-check':'')+(c.type==='rcheck'?' plu-c-rcheck':'')+(isRedCol(c)?' upc-c-red':'')+(isPriceCol(c)?' upc-c-price':'')+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isMarginCol(c)?' upc-c-green':'')+((isPriceCol(c)||isMarginCol(c))?' upc-c-narrow':'')+(c.align?(' align-'+c.align):'');
-      var inner=(c.type==='check'||c.type==='rcheck') ? inpCheck(idx,c,getVal(r,c.key)) : inpCol(idx,c,getVal(r,c.key));
+      var inner=(c.type==='check'||c.type==='rcheck') ? inpCheck(idx,c,getVal(r,c.key)) : inpCol(idx,c,getDisp(r,c));
       return '<td class="'+cls.trim()+'">'+inner+'</td>';
     });
     cells.splice(noColPos(cols), 0, '<td class="upc-c-no-col">'+((idx==null?0:idx)+1)+'</td>');

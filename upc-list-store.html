@@ -770,6 +770,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   // 행에서 열 값 추출(base/extra 자동)
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
+  // UPC 행단위 폴백 (매니저와 동일): 행마다 UPC가 다른 키에 저장된 경우 자동 표시
+  function __findAltVal(r, aliases, excludeKey){ if(!r||!r.extra) return ''; var ex=String(excludeKey||'').trim().toUpperCase(); for(var ai=0; ai<aliases.length; ai++){ var A=aliases[ai].toUpperCase(); if(A===ex) continue; for(var k in r.extra){ if(String(k).trim().toUpperCase()===A){ var vv=r.extra[k]; if(vv!=null && String(vv).trim()!=='') return vv; } } } return ''; }
+  var __UPCO_ALIAS=['UPC(O)','UPC','UPCO','UPC-O','UPC O','UPC(0)','UPCA','UPC-A','UPC_O','UPC O)'];
+  var __UPCC_ALIAS=['UPC(C)','UPCC','UPC-C','UPC C','UPC_C','UPC(C'];
+  function getDisp(r,c){ var v=getVal(r,c.key); if(String(v).trim()!=='') return v; var sig=String(((c&&c.key)||'')+'|'+((c&&c.label)||'')).toUpperCase(); if(isUpcOCol(c) || /UPC\s*\(\s*O\s*\)/.test(sig)){ var a=__findAltVal(r,__UPCO_ALIAS,c.key); if(a!=='') return a; } else if(isUpcCCol(c) || /UPC\s*\(\s*C\s*\)/.test(sig)){ var b=__findAltVal(r,__UPCC_ALIAS,c.key); if(b!=='') return b; } return v; }
 
   let pluBig=0, pluSub=0, pluSearchTerm='', pluCatFilter='';
   let pluSortKey='', pluSortDir='asc';   // SORT: ''=기본(PLU), upco/eng/kor/sales
@@ -1327,7 +1332,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 보기 모드 행 HTML
   function viewRowHTML(r, rowIdx){
     var v=visibleCols();
-    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(isPriceCol(c)){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+colorStyle(c)+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getVal(r,c.key)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+colorStyle(c)+'>'+sv+'</td>'; });
+    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(isPriceCol(c)){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+colorStyle(c)+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+colorStyle(c)+'>'+sv+'</td>'; });
     var isNewRow=flagFresh(r,'__NEWFLAG');
     var isPriceUpd=flagFresh(r,'__PRICEUPD');
     var mark=(isNewRow?'N':'')+(isPriceUpd?'$':'');
@@ -1517,7 +1522,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function impRowsHTML(rows, lay){
     var v=impVisibleCols(lay); var TL=getTruncLen();
     var head='<thead><tr>'+v.map(function(c){ var a=c.align?(' class="align-'+c.align+'"'):''; return '<th'+a+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'</tr></thead>';
-    var body=rows.map(function(r){ return '<tr>'+v.map(function(c){ var limit=(c.trunc>0)?c.trunc:((isPriceCol(c)||isMarginCol(c))?8:TL); var raw=isPriceCol(c)?fmtPrice(getVal(r,c.key)):String(getVal(r,c.key)||''); var sv=raw.length>limit?(escapeHtml(raw.slice(0,limit))+'…'):escapeHtml(raw); var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var alignCls=c.align?(' align-'+c.align):''; return '<td class="'+clsFor(c.key)+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+alignCls+'">'+sv+'</td>'; }).join('')+'</tr>'; }).join('');
+    var body=rows.map(function(r){ return '<tr>'+v.map(function(c){ var limit=(c.trunc>0)?c.trunc:((isPriceCol(c)||isMarginCol(c))?8:TL); var raw=isPriceCol(c)?fmtPrice(getVal(r,c.key)):String(getDisp(r,c)||''); var sv=raw.length>limit?(escapeHtml(raw.slice(0,limit))+'…'):escapeHtml(raw); var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var alignCls=c.align?(' align-'+c.align):''; return '<td class="'+clsFor(c.key)+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+alignCls+'">'+sv+'</td>'; }).join('')+'</tr>'; }).join('');
     return '<table class="plu-table">'+head+'<tbody>'+body+'</tbody></table>';
   }
   // 신규 import 리스트 렌더
@@ -1976,7 +1981,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
     var v=impVisibleCols(lay);
     var aoa=[v.map(function(c){return c.label;})];
-    rows.forEach(function(r){ aoa.push(v.map(function(c){ return isPriceCol(c)?fmtPrice(getVal(r,c.key)):String(getVal(r,c.key)||''); })); });
+    rows.forEach(function(r){ aoa.push(v.map(function(c){ return isPriceCol(c)?fmtPrice(getVal(r,c.key)):String(getDisp(r,c)||''); })); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'LIST'); XLSX.writeFile(wb,fname+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
   }
 
