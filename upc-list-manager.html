@@ -510,6 +510,7 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.error { background: var(--danger); }
   .toast.success { background: var(--success); }
+  .plu-table thead th{text-align:center !important;color:#000 !important;font-weight:800 !important;}
 </style>
 <style>
   .plu-tools { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
@@ -958,6 +959,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
   // 표시 글자수(공통/편집) 반환
   function getTruncLen(){ if(editMode) return (workTrunc>0?workTrunc:(globalTrunc>0?globalTrunc:20)); return (globalTrunc>0?globalTrunc:20); }
+  function round2Disp(v){ var s=String(v==null?'':v).trim(); if(s===''||s.indexOf('.')<0) return v; if(!/^[+-]?[0-9]+\.[0-9]+$/.test(s)) return v; var n=parseFloat(s); if(isNaN(n)) return v; return n.toFixed(2); }
   // 현재 보기 기준 내보내기 열 목록
   function exportColsFor(){ var lay = editMode ? (workLayout||[]) : withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   // 특정 카테고리의 EXPORT 열 (이력 내보내기에서 사용 · 메인과 동일 규칙)
@@ -1634,7 +1636,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     work.splice(idx,1); markDirty(); if(pluRender) pluRender();
   });
   // 편집 입력 셀 HTML
-  function inpCol(idx,c,val){ var lim=(c.trunc>0)?c.trunc:((isPriceCol(c)||isMarginCol(c))?8:getTruncLen()); if(!(lim>0)) lim=20; return '<input class="plu-edit-input" size="'+Math.max(3,lim)+'" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'" data-base="'+(isBase(c.key)?'1':'0')+'"'+colorStyle(c)+' value="'+escapeHtml(val)+'">'; }
+  function inpCol(idx,c,val){ var lim=(c.trunc>0)?c.trunc:((isPriceCol(c)||isMarginCol(c))?8:getTruncLen()); if(!(lim>0)) lim=20; return '<input class="plu-edit-input" size="'+Math.max(3,lim)+'" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'" data-base="'+(isBase(c.key)?'1':'0')+'"'+colorStyle(c)+' value="'+escapeHtml(round2Disp(val))+'">'; }
   // 편집 체크 셀 HTML
   function inpCheck(idx,c,val){ return '<input type="checkbox" class="plu-edit-check" data-idx="'+idx+'" data-key="'+escapeHtml(c.key)+'"'+(val?' checked':'')+'>'; }
   // 편집 모드 행 HTML
