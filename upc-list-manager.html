@@ -851,9 +851,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 전역 설정(plu-config) 실시간 구독
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
+  var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
   function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt&&ms.fmt!=='text') __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; if(ms.fg) __c.fg=ms.fg; if(ms.bg) __c.bg=ms.bg; if(ms.bold) __c.bold=true; } } } return lay; }
-  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(d && Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF && typeof renderContent==='function') renderContent(); } }, function(){}); }catch(e){} }
+  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(!d) return; var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; if(__k!=null){ var __K=String(__k).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if(__ch && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(Array.isArray(d.masterFields)){ masterFields=normMaster(d.masterFields); if($('pluMasterModal') && $('pluMasterModal').classList.contains('show')) renderMasterList(); } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
@@ -950,7 +951,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 현재 적용 열 레이아웃(편집/보기)
   function curLayout(){ return applyMFSTY(editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), (layoutByCat[curCat()]&&layoutByCat[curCat()].length) ? layoutByCat[curCat()] : catDefaultLayout(curCat()))); }
   // 화면에 보이는 열 목록(캐시)
-  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); }
+  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && !__MFDEL[String(c.key||'').toUpperCase()] && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); }
   // 행 객체 깊은 복사
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
@@ -1040,6 +1041,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       truncLenByCat[lab]=(typeof d.truncLen==='number'&&d.truncLen>0)?d.truncLen:20;
       __catChunkIds[id]=chunkIdsBy[id]||[];
     }
+    // 메타 문서가 없고 청크(parent)만 있는 카테고리도 로드 (고아 데이터 표시)
+    for(var __par in chunkBy){ if(metas[__par]) continue; var __lab=labelOf(__par); if(cloud[__lab]!==undefined) continue; var __rows=[]; var __bs={}, __so=[]; chunkBy[__par].forEach(function(c){ if(!(c.sub in __bs)){ __bs[c.sub]=[]; __so.push(c.sub); } __bs[c.sub].push(c); }); __so.forEach(function(s){ __bs[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ __rows=__rows.concat(c.rows); }); }); cloud[__lab]=__rows; if(!layoutByCat[__lab]) layoutByCat[__lab]=catDefaultLayout(__lab); if(truncLenByCat[__lab]==null) truncLenByCat[__lab]=20; __catChunkIds[__par]=chunkIdsBy[__par]||[]; }
     for(var __pk in __pendingChecks){ var __pp=__pk.split('\u0001'); var __c=__pp[0],__pl=__pp[1],__ky=__pp[2],__v=__pendingChecks[__pk]; var __rs=cloud[__c]; if(!__rs){ continue; } var __ff=null; for(var __i=0;__i<__rs.length;__i++){ if(pluValOf(__rs[__i])===__pl){ __ff=__rs[__i]; break; } } if(!__ff){ continue; } if(!__ff.extra) __ff.extra={}; if((!!__ff.extra[__ky])===(!!__v)){ delete __pendingChecks[__pk]; } else { __ff.extra[__ky]=__v; } }
     for(var __tk in __pendingText){ var __tp=__tk.split('\u0001'); var __tc=__tp[0],__tpl=__tp[1],__tky=__tp[2],__tv=__pendingText[__tk]; var __trs=cloud[__tc]; if(!__trs){ continue; } var __tff=null; for(var __tj=0;__tj<__trs.length;__tj++){ if(pluValOf(__trs[__tj])===__tpl){ __tff=__trs[__tj]; break; } } if(!__tff){ continue; } if(!__tff.extra) __tff.extra={}; if(String(__tff.extra[__tky]==null?'':__tff.extra[__tky])===String(__tv)){ delete __pendingText[__tk]; } else { __tff.extra[__tky]=__tv; } }
     cloudLoaded=true;
@@ -1047,7 +1050,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 실시간 구독: 다른 화면(매니저/EGMM)에서 저장하면 즉시 반영. 단 편집 중(editMode)에는 화면 갱신 보류.
   var subscribed=false, unsub=null;
   // 편집중이 아니면 재렌더
-  function rerenderIfIdle(){ if(!editMode) renderContent(); }
+  // 데이터에 존재하지만 탭 설정에 없는 (상위·서브)를 자동으로 탭에 추가 → 숨은 데이터(예: ARTBOX) 표시
+  function ensureTabsFromData(){
+    var changed=false; var keys=Object.keys(cloud||{});
+    for(var ci=0; ci<keys.length; ci++){
+      var cat=keys[ci]; var rows=cloud[cat]||[];
+      var mt=mainTab(cat);
+      if(!mt){ PLU_TABS.push({label:cat, doc:cat, subs:[], subDb:{}}); rebuildDocId(); mt=mainTab(cat); changed=true; }
+      if(!mt) continue; if(!mt.subs) mt.subs=[];
+      var existLower={}; mt.subs.forEach(function(s){ existLower[String(s).trim().toLowerCase()]=1; });
+      var seen={};
+      for(var ri=0; ri<rows.length; ri++){ var r=rows[ri]; var s=(r&&r.sub!=null)?String(r.sub).trim():''; if(s==='') continue; var lc=s.toLowerCase(); if(seen[lc]) continue; seen[lc]=1; if(!existLower[lc]){ mt.subs.push(s); existLower[lc]=1; changed=true; } }
+    }
+    return changed;
+  }
+  var __tabScanSig='';
+  function rerenderIfIdle(){ if(editMode) return; var sig=Object.keys(cloud||{}).map(function(c){return c+':'+((cloud[c]||[]).length);}).join('|'); var ch=false; if(sig!==__tabScanSig){ __tabScanSig=sig; ch=ensureTabsFromData(); } if(ch){ renderTabs(); } else { renderContent(); } }
   // ===== 매장별 체크/데이터 오버라이드 (매니저: 전 매장 문서 읽기/쓰기) =====
   function subscribe(){
     if(subscribed) return;
