@@ -436,6 +436,11 @@
   .pc-new { color:#1f7a43; font-weight:700; }
   .hist-del { border:none; background:none; color:#b04141; cursor:pointer; font-size:14px; }
   .newlist-update { background:#2a6b3a !important; border-color:#2a6b3a !important; color:#fff !important; }
+  /* 편집 툴바(2줄) · 행 선택 · 위험 버튼 */
+  .plu-tools-stack { display:flex; flex-direction:column; gap:8px; }
+  .plu-tools-stack .plu-tools { margin-bottom:0; }
+  .plu-row-sel { width:16px; height:16px; cursor:pointer; vertical-align:middle; margin-right:5px; accent-color:#b04141; }
+  .plu-tool-danger { border-color:#e0c0c0 !important; color:#b04141 !important; }
   /* 관리자 모달 버튼 */
   .adm-body { display:flex; flex-direction:column; gap:10px; padding:16px 18px 18px; }
   .adm-btn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:10px; padding:13px 14px; font-family:var(--mono); font-size:14px; font-weight:700; cursor:pointer; text-align:left; }
@@ -1173,7 +1178,7 @@
       if(isItemCodeCol(c)){ var codesE=itemCodesOf(r); if(codesE.length>1){ inner+='<span class="plu-ic-cell plu-ic-cell-edit" data-codes="'+escapeHtml(codesE.join('\n'))+'"><span class="plu-ic-badge">+'+(codesE.length-1)+'</span></span>'; } }
       return '<td class="'+cls.trim()+'"'+colorStyle(c)+'>'+inner+'</td>';
     }).join('');
-    return '<tr data-plu="'+escapeHtml(pluValOf(r))+'">'+tds+refRowHTML(r)+'<td><button class="plu-row-del" data-del="'+idx+'" title="삭제">✕</button></td></tr>';
+    return '<tr data-plu="'+escapeHtml(pluValOf(r))+'">'+tds+refRowHTML(r)+'<td><input type="checkbox" class="plu-row-sel" data-selidx="'+idx+'" title="선택 삭제용 체크"> <button class="plu-row-del" data-del="'+idx+'" title="삭제">✕</button></td></tr>';
   }
   function korLabel(cate){ cate=String(cate||''); var i=cate.search(/\s*\(/); return i>0 ? cate.slice(0,i).trim() : cate.trim(); }
   function catValOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!==''){ return String(r.extra[k]); } } } return ''; }
@@ -1234,14 +1239,26 @@
   })();
 
   function toolbarHTML(){
+    if(editMode){
+      return '<div class="plu-tools-stack">'+
+        '<div class="plu-tools">'+
+          '<button class="plu-tool-btn on" id="pluEditBtn">✎ EDIT (ON)</button>'+
+          '<button class="plu-tool-btn" id="pluAddBtn">＋ 데이터추가</button>'+
+          '<button class="plu-tool-btn" id="pluAddColBtn">＋ 필드추가</button>'+
+          '<button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>'+
+        '</div>'+
+        '<div class="plu-tools plu-tools-row2">'+
+          '<button class="plu-tool-btn" id="pluApplyAllBtn" title="현재 열 구성을 모든 카테고리에 동일하게 적용 (각 카테고리 데이터는 유지)">📋 필드셋팅</button>'+
+          '<button class="plu-tool-btn plu-tool-danger" id="pluSelDelBtn" title="체크한 PLU들을 한 번에 삭제">🗑 선택삭제</button>'+
+          '<button class="plu-tool-btn plu-tool-danger" id="pluCatWipeBtn" title="이 중간 카테고리의 모든 데이터 삭제">🗑 전체삭제</button>'+
+          '<button class="plu-tool-btn" id="pluRestoreDelBtn" title="마지막 전체삭제/선택삭제를 되돌려 복원">↩ 데이터복원</button>'+
+        '</div>'+
+      '</div>';
+    }
     return '<div class="plu-tools">'+
-      (editMode
-        ? ('<button class="plu-tool-btn on" id="pluEditBtn">✎ EDIT (ON)</button>'+
-           '<button class="plu-tool-btn" id="pluAddBtn">＋ PLU 추가</button><button class="plu-tool-btn" id="pluAddColBtn">＋ 필드 추가</button><button class="plu-tool-btn" id="pluCfgBtn">⚙ EXPORT 설정</button><button class="plu-tool-btn'+(workDirty?' on':'')+'" id="pluSaveBtn">💾 저장'+(workDirty?' *':'')+'</button>')
-        : ('<button class="plu-tool-btn" id="pluPrintBtn">🖨 LIST PRINT</button>'+
-           '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>')
-      )+
-    '</div>';
+        '<button class="plu-tool-btn" id="pluPrintBtn">🖨 LIST PRINT</button>'+
+        '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
+      '</div>';
   }
   function subToolsHTML(){
     return '<div class="plu-tools">'+
@@ -1320,6 +1337,35 @@
   }
   function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
   function colIndex(key){ for(var i=0;i<workLayout.length;i++){ if(workLayout[i].key===key) return i; } return -1; }
+  // ===== 삭제 복원(undo) 버퍼 — 전체삭제/선택삭제 직전의 해당 중간 카테고리 저장본 1회 보관 =====
+  var __deleteUndo=null;
+  function saveDeleteUndo(cat, sub, lay, kind){
+    var rows=(rowsFor(cat)||[]).filter(function(r){ return rowSub(cat,r)===sub; }).map(copyRow);
+    __deleteUndo={ cat:cat, sub:sub, rows:rows, lay:(lay||layoutByCat[cat]||curLayout()), kind:kind };
+  }
+  // 상위/중간 카테고리를 지정값으로 전환 (인덱스만 설정)
+  function setCatSub(cat, sub){
+    for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===cat){ pluBig=i; var subs=PLU_TABS[i].subs||[]; var sj=subs.indexOf(sub); pluSub=(sj>=0?sj:0); pluCatFilter=''; return; } }
+  }
+  // 현재 열 구성을 모든 카테고리에 동일 적용 (데이터는 유지) — 필드셋팅
+  async function applyLayoutToAll(){
+    if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
+    if(!(await uiConfirm('현재 열 구성을 모든 카테고리에 동일하게 적용할까요?\n(각 카테고리의 데이터·행은 그대로 유지됩니다)'))) return;
+    var srcLayout=(workLayout && workLayout.length ? workLayout : curLayout()).map(function(c){ return {key:c.key,label:c.label,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold}; });
+    var cur=curCat(), applied=0, allOk=true;
+    for(var i=0;i<PLU_TABS.length;i++){
+      var cat=PLU_TABS[i].label;
+      if(cat===cur) continue;
+      var rows=(cloud[cat]||[]).map(copyRow);
+      var tl=(typeof truncLenByCat[cat]==='number'&&truncLenByCat[cat]>0)?truncLenByCat[cat]:(workTrunc>0?workTrunc:20);
+      var ok=await saveCat(cat, rows, srcLayout, tl);
+      if(ok){ applied++; } else { allOk=false; }
+    }
+    await saveSection(cur, curSub(), work||[], srcLayout, (workTrunc>0?workTrunc:20));
+    workDirty=false;
+    showToast(allOk ? ('열 구성을 다른 카테고리 '+applied+'곳에 적용했습니다') : '일부 적용 실패 — 확인하세요', allOk?'success':'error');
+    renderContent();
+  }
   var CORE_KEYS=['PLU','LOCAL','ORGANIC','KOR','ENG','CATE'];
   function isCore(k){ return CORE_KEYS.indexOf(k)>=0; }
   // 시스템 열(6개) 외에는 key를 label과 같게 유지(데이터 안전 이전). 충돌 시 거부.
@@ -1473,7 +1519,36 @@
     var ed=$('pluEditBtn'); if(ed) ed.onclick=async function(){ if(!editMode){ enterEdit(); } else { var __a=topVisiblePlu(); if(await leaveEditGuard()){ renderContent(); if(__a) scrollToPlu(__a); } } };
     var add=$('pluAddBtn'); if(add) add.onclick=function(){ if(!work) work=[]; work.push(copyRow({})); markDirty(); if(pluRender) pluRender(); };
     var addc=$('pluAddColBtn'); if(addc) addc.onclick=function(){ openColModal(); };
-    var cfgb=$('pluCfgBtn'); if(cfgb) cfgb.onclick=function(){ openCfgModal(); };
+    var apl=$('pluApplyAllBtn'); if(apl) apl.onclick=function(){ applyLayoutToAll(); };
+    var seldel=$('pluSelDelBtn'); if(seldel) seldel.onclick=async function(){
+      if(!editMode||!work){ return; }
+      var chks=document.querySelectorAll('#pluTbody .plu-row-sel'); var idxs=[];
+      for(var i=0;i<chks.length;i++){ if(chks[i].checked){ var ix=parseInt(chks[i].getAttribute('data-selidx'),10); if(!isNaN(ix)) idxs.push(ix); } }
+      if(!idxs.length){ showToast('선택된 PLU가 없습니다 (행의 체크박스를 선택하세요)','error'); return; }
+      if(!(await uiConfirm('선택한 '+idxs.length+'개 PLU를 삭제하시겠습니까?'))) return;
+      if(!(await uiConfirm('한 번 더 확인합니다.\n정말 선택한 '+idxs.length+'개 PLU를 삭제할까요?'))) return;
+      saveDeleteUndo(curCat(), curSub(), layoutByCat[curCat()]||workLayout||curLayout(), '선택삭제');
+      idxs.sort(function(a,b){ return b-a; });
+      idxs.forEach(function(ix){ if(ix>=0&&ix<work.length) work.splice(ix,1); });
+      markDirty(); if(pluRender) pluRender();
+      showToast(idxs.length+'개 삭제됨 · 💾 저장 후 ↩ 데이터복원으로 되돌릴 수 있습니다','success');
+    };
+    var catwipe=$('pluCatWipeBtn'); if(catwipe) catwipe.onclick=async function(){
+      var c=curCat(), sb=curSub(); var where='['+c+(sb?' › '+sb:'')+']';
+      if(!(await uiConfirm(where+' 중간 카테고리의 모든 PLU를 삭제하시겠습니까?'))) return;
+      if(!(await uiConfirm('한 번 더 확인합니다.\n'+where+'의 PLU 데이터가 삭제됩니다. 계속할까요? (열 구성은 유지)'))) return;
+      var lay=layoutByCat[c]||workLayout||curLayout();
+      saveDeleteUndo(c, sb, lay, '전체삭제');
+      var ok=await saveSection(c, sb, [], lay);
+      if(ok){ enterEdit(); showToast(where+' 전체삭제 완료 · ↩ 데이터복원으로 되돌릴 수 있습니다','success'); }
+    };
+    var rstd=$('pluRestoreDelBtn'); if(rstd) rstd.onclick=async function(){
+      if(!__deleteUndo || !__deleteUndo.rows){ showToast('복원할 삭제 내역이 없습니다','error'); return; }
+      var u=__deleteUndo; var where='['+u.cat+(u.sub?' › '+u.sub:'')+']';
+      if(!(await uiConfirm('마지막 '+u.kind+'을(를) 되돌려\n'+where+' '+u.rows.length+'건을 복원할까요?'))) return;
+      var ok=await saveSection(u.cat, u.sub, u.rows, u.lay);
+      if(ok){ __deleteUndo=null; editMode=false; work=null; workLayout=null; workDirty=false; setCatSub(u.cat, u.sub); renderTabs(); showToast(where+' '+u.rows.length+'건 복원 완료','success'); }
+    };
     var catb=$('pluCatBtn'); if(catb) catb.onclick=function(){ openCatEditor(); };
     var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var __a=topVisiblePlu(); var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); if(__a) scrollToPlu(__a); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
