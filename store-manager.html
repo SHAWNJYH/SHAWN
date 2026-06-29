@@ -212,6 +212,22 @@
   .ex-prev-key{ background:var(--accent-soft); border:1px solid var(--accent-warm); color:#8a6d2e; border-radius:6px; padding:3px 9px; font-size:11px; font-weight:700; }
   .ex-prev-empty{ color:var(--text-faint); font-weight:700; text-align:center; padding:20px; }
   .ex-prev-loading{ color:var(--text-dim); font-weight:700; text-align:center; padding:30px; }
+  /* 기능 필드 잠금 */
+  .fm-lock{ font-size:13px; margin-left:auto; opacity:.85; cursor:default; }
+  .fm-row .fm-key{ }
+  /* 삭제된 필드 모달 */
+  .sm-modal-ov{ position:fixed; inset:0; background:rgba(20,18,14,.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+  .sm-modal{ background:#fffdf7; border-radius:14px; width:min(560px,92vw); max-height:82vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 18px 50px rgba(0,0,0,.3); }
+  .sm-modal-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-weight:800; color:#3a2f1a; border-bottom:1px solid #ecdfc4; background:linear-gradient(180deg,#fbf4e4,#fffdf7); }
+  .sm-modal-x{ margin-left:auto; border:none; background:transparent; font-size:18px; cursor:pointer; color:#8a7a52; }
+  .sm-modal-body{ padding:14px 16px; overflow:auto; }
+  .fmt-hint{ font-size:12px; color:#7c6b46; margin-bottom:12px; line-height:1.5; }
+  .fmt-empty{ color:#9a8a66; text-align:center; padding:24px 0; }
+  .fmt-row{ display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid #ecdfc4; border-radius:10px; margin-bottom:8px; background:#fff; }
+  .fmt-key{ font-family:monospace; font-size:11px; background:#efe6d2; color:#6b5a36; padding:2px 7px; border-radius:6px; font-weight:700; }
+  .fmt-label{ flex:1 1 auto; font-weight:700; color:#3a2f1a; }
+  .fmt-flag{ font-size:12px; }
+  .fmt-restore{ flex:0 0 auto; }
 </style>
 </head>
 <body>
@@ -239,6 +255,7 @@
         <span class="ex-spacer"></span>
         <span class="fm-count" id="fmCount"></span>
         <span class="fm-saved" id="fmSaved"></span>
+        <button class="ex-btn" id="fmTrash" type="button" title="삭제된 필드 보기 · 되살리기">🗑 삭제된 필드</button>
         <button class="ex-btn primary" id="fmSave" type="button">💾 저장</button>
       </div>
       <div class="fm-wrap">
@@ -341,6 +358,7 @@
 
   /* ---- 마스터 필드 로드/실시간 구독 (upc-config/main.masterFields) ---- */
   var __smDeleted={};  // 삭제된 필드 키(숨김 전파용)
+  var FN_LOCK={'UPC(O)':1,'UPC(C)':1,'COST':1,'MSRP':1,'MSRP(%)':1,'SRP':1,'SRP(%)':1};  // 기능 필드 — 키 잠금(삭제/키변경 불가, 이름만 편집)
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
@@ -358,7 +376,7 @@
     var ref = fb.doc(fb.db, 'upc-config', 'main');
     function handle(snap){
       var d = (snap && snap.exists && snap.exists()) ? (snap.data()||{}) : null;
-      if(d && Array.isArray(d.deletedFields)){ __smDeleted={}; d.deletedFields.forEach(function(k){ if(k!=null){ var K=String(k).trim().toUpperCase(); if(K) __smDeleted[K]=1; } }); }
+      if(d && Array.isArray(d.deletedFields)){ __smDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __smDeleted[K]=(o&&typeof o==='object')?{key:K,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
       if(d && applyMaster(d.masterFields)){
         if($('smPanelExport').classList.contains('active')){ renderExport(); requestAnimationFrame(drawLines); }
       }
@@ -395,7 +413,7 @@
         var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
         var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
         return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
-          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+'<button class="fm-del" type="button" title="삭제">✕</button></div>'+
+          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+(FN_LOCK[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':'<button class="fm-del" type="button" title="삭제">✕</button>')+'</div>'+
           '<div class="fm-line">'+
             '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
             '<input class="fm-name" style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
@@ -419,7 +437,7 @@
         var i=parseInt(row.getAttribute('data-i'),10);
         row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].label=this.value; fmDirty=true; });
         row.querySelector('.fm-rtype').addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
-        row.querySelector('.fm-del').onclick=function(){ var __dk=String(fmWork[i].key||'').trim().toUpperCase(); if(__dk) __smDeleted[__dk]=1; fmWork.splice(i,1); fmDirty=true; fmRender(); };
+        var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(FN_LOCK[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(__dk) __smDeleted[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
         row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
         var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; fmRender(); };
         var rs=row.querySelector('.fm-reset'); if(rs) rs.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmWork[i].align=''; fmWork[i].trunc=0; fmDirty=true; fmRender(); };
@@ -448,8 +466,8 @@
     try{
       var data = fmNorm(fmWork);
       var __curK={}; data.forEach(function(m){ __curK[m.key]=1; });
-      var __delArr=Object.keys(__smDeleted).filter(function(k){ return !__curK[k]; });
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, deletedFields:__delArr, updatedAt:Date.now() }, { merge:true });
+      var __delDefs=Object.keys(__smDeleted).filter(function(k){ return !__curK[k]; }).map(function(k){ return __smDeleted[k]; });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
       fmDirty=false; applyMaster(data); fmRender(); fmSetSaved('저장됨 · '+data.length+'개');
       setTimeout(function(){ fmSetSaved(''); }, 2500);
     }catch(e){ console.error(e); alert('저장 실패: '+e.message); }
@@ -458,6 +476,24 @@
   $('fmAdd').onclick = fmAddNew;
   $('fmNewName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); fmAddNew(); } });
   $('fmSave').onclick = fmSave;
+  // ===== 삭제된 필드 보기 · 되살리기 =====
+  function openDeletedFieldsModal(){
+    var old=document.getElementById('fmTrashOv'); if(old) old.remove();
+    var defs=Object.keys(__smDeleted).map(function(k){ return __smDeleted[k]; });
+    var listHtml = defs.length ? defs.map(function(d){
+      var fl=mfFlag(d.type)||'';
+      return '<div class="fmt-row" data-key="'+esc(String(d.key).toUpperCase())+'"><span class="fmt-key">'+esc(d.key)+'</span><span class="fmt-label">'+esc(d.label!=null?d.label:d.key)+'</span>'+(fl?'<span class="fmt-flag">'+fl+'</span>':'')+'<button class="ex-btn warm fmt-restore" type="button">↩ 되살리기</button></div>';
+    }).join('') : '<div class="fmt-empty">삭제된 필드가 없습니다.</div>';
+    var ov=document.createElement('div');
+    ov.id='fmTrashOv'; ov.className='sm-modal-ov';
+    ov.innerHTML='<div class="sm-modal"><div class="sm-modal-head">🗑 삭제된 필드 <button class="sm-modal-x" id="fmTrashX" type="button">✕</button></div><div class="sm-modal-body"><div class="fmt-hint">삭제해도 원본 데이터는 보존됩니다. 되살리면 필드가 다시 나타납니다. (되살린 뒤 💾 저장하세요)</div>'+listHtml+'</div></div>';
+    document.body.appendChild(ov);
+    var close=function(){ var o=document.getElementById('fmTrashOv'); if(o) o.remove(); };
+    document.getElementById('fmTrashX').onclick=close;
+    ov.onclick=function(e){ if(e.target===ov) close(); };
+    ov.querySelectorAll('.fmt-restore').forEach(function(b){ b.onclick=function(){ var row=b.closest('.fmt-row'); var K=row?row.getAttribute('data-key'):''; if(!K) return; var d=__smDeleted[K]; if(d){ if(!fmWork) fmWork=[]; if(!fmWork.some(function(m){return String(m.key).toUpperCase()===K;})){ fmWork.push({key:d.key,label:(d.label!=null?d.label:d.key),type:d.type||'text',align:d.align||'',trunc:d.trunc||0,fg:d.fg||'',bg:d.bg||'',bold:!!d.bold}); } delete __smDeleted[K]; fmDirty=true; fmRender(); } row.remove(); if(!Object.keys(__smDeleted).length){ close(); } }; });
+  }
+  var __ft=$('fmTrash'); if(__ft) __ft.onclick=openDeletedFieldsModal;
 
   function loadConfig(){
     try{
