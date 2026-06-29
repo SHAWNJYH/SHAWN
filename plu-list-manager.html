@@ -626,8 +626,8 @@
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
   function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; }
-  function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; if(ms.fg) __c.fg=ms.fg; if(ms.bg) __c.bg=ms.bg; if(ms.bold) __c.bold=true; } } } return lay; }
-  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(d && Array.isArray(d.masterFields)){ buildMFSTY(d.masterFields); if(typeof renderContent==='function') renderContent(); } }, function(){}); }catch(e){} }
+  function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt&&ms.fmt!=='text') __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; if(ms.fg) __c.fg=ms.fg; if(ms.bg) __c.bg=ms.bg; if(ms.bold) __c.bold=true; } } } return lay; }
+  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(d && Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF && typeof renderContent==='function') renderContent(); } }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
@@ -1004,7 +1004,10 @@
     var mt=mainTab(main); return (mt && mt.subs && mt.subs[0]) || '';
   }
   var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집', 'SEATTLE FOOD':'행복떡집', 'HANAYANG(떡)':'한양떡집', 'HANAYANG':'한양떡집' };
-  function rowSub(main, r){ var s=(r && r.sub!=null && String(r.sub)!=='') ? r.sub : subOfRowInferred(main, r); if(s!=null && SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
+  function rowSub(main, r){ var s=(r && r.sub!=null && String(r.sub)!=='') ? r.sub : subOfRowInferred(main, r); if(s!=null && SUB_ALIAS[s]!=null) s=SUB_ALIAS[s];
+    // 데이터의 sub 표기가 설정의 서브명과 대소문자·앞뒤공백만 다른 경우 설정명으로 정규화(예: 'artbox'→'ARTBOX')
+    var __mt=mainTab(main); if(__mt && __mt.subs && s!=null){ var __sn=String(s).trim().toLowerCase(); for(var __i=0;__i<__mt.subs.length;__i++){ if(String(__mt.subs[__i]).trim().toLowerCase()===__sn) return __mt.subs[__i]; } }
+    return s; }
   // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
   function saveSection(main, sub, subRows, layout, truncLen){
     var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);
@@ -1035,14 +1038,9 @@
         var isChk=(c.type==='check'||c.type==='rcheck');
         // 현재 정렬 표시 문자: 미지정(≡)·왼쪽(L)·가운데(C)·오른쪽(R)
         var alC=(c.align==='left')?'L':((c.align==='center')?'C':((c.align==='right')?'R':'≡'));
-        var ops='<span class="plu-col-ops">'+
-          // 체크박스 필드에는 형식/정렬/글자수 버튼 미표시
-          (isChk?'':('<button class="plu-col-btn plu-col-fmt" data-act="fmt" data-key="'+escapeHtml(c.key)+'" title="형식 (TEXT ↔ PRICE)">'+(c.fmt==='price'?'$':'T')+'</button>'+
-                    '<button class="plu-col-btn" data-act="align" data-key="'+escapeHtml(c.key)+'" title="정렬 (왼쪽→가운데→오른쪽)">'+alC+'</button>'+
-                    '<button class="plu-col-btn" data-act="trunc" data-key="'+escapeHtml(c.key)+'" title="표시 글자수 ('+(c.trunc>0?c.trunc+'자':'기본')+')">'+(c.trunc>0?('✂'+c.trunc):'✂')+'</button>'))+
-        '</span>';
+        var ops='<span class="plu-col-ops"><button class="plu-col-btn plu-col-hidebtn" data-act="hide" data-key="'+escapeHtml(c.key)+'" title="'+(c.hidden?'숨김 해제':'숨기기')+'">'+(c.hidden?'🙈':'👁')+'</button></span>';
         // 필드 이름 클릭 → 이름변경/표시/삭제 팝업(openColEditPopup)
-        return '<th draggable="true" data-dragkey="'+escapeHtml(c.key)+'" class="plu-col-drag '+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'"><span class="plu-col-name" data-act="colname" data-key="'+escapeHtml(c.key)+'" title="클릭: 이름 변경 · 표시 · 삭제 · 드래그: 위치 이동">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
+        return '<th draggable="true" data-dragkey="'+escapeHtml(c.key)+'" class="plu-col-drag '+(c.hidden?'plu-col-hidden':'')+(c.type==='check'?' plu-col-check':'')+(c.type==='rcheck'?' plu-col-check plu-col-rcheck':'')+(String(c.key).toLowerCase()==='plu'?' plu-col-no':'')+'"><span class="plu-col-name" data-key="'+escapeHtml(c.key)+'" title="드래그: 위치 이동">'+escapeHtml(c.label)+'</span>'+ops+'</th>';
       }).join('');
       return '<thead><tr>'+ths+refHeadHTML()+'<th></th></tr></thead>';
     }
@@ -1487,20 +1485,12 @@
     var sv=$('pluSaveBtn'); if(sv) sv.onclick=async function(){ var __a=topVisiblePlu(); var ok=await saveSection(cat, curSub(), work||[], workLayout||[], workTrunc); if(ok){ workDirty=false; showToast(cat+' 저장 완료 (Firebase)','success'); renderContent(); if(__a) scrollToPlu(__a); } };
     var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; if(pluRender) pluRender(); };
     // 열 조작 버튼 (이동/이름변경/숨김/삭제)
-    if(el && editMode){ el.querySelectorAll('.plu-col-btn, .plu-col-name').forEach(function(b){ b.onclick=async function(){
+    if(el && editMode){ el.querySelectorAll('.plu-col-btn').forEach(function(b){ b.onclick=async function(){
       var act=b.getAttribute('data-act'), key=b.getAttribute('data-key');
-      // 필드 이름 클릭 → 이름변경/표시/삭제 팝업
-      if(act==='colname'){ openColEditPopup(key); return; }
       if(key && key.indexOf('__ref:')===0){ if(act==='left'||act==='right'){ var refs=mgrRefCols(curCat()).map(function(c){return c.key;}); if(mgrRefOrder.length!==refs.length) mgrRefOrder=refs.slice(); var ri=mgrRefOrder.indexOf(key); if(ri<0){ mgrRefOrder=refs.slice(); ri=mgrRefOrder.indexOf(key); } var rj=act==='left'?ri-1:ri+1; if(rj<0||rj>=mgrRefOrder.length) return; var rt=mgrRefOrder[ri]; mgrRefOrder[ri]=mgrRefOrder[rj]; mgrRefOrder[rj]=rt; renderContent(); } return; }
       var i=colIndex(key); if(i<0) return;
-      if(act==='fmt'){ workLayout[i].fmt=(workLayout[i].fmt==='price'?'text':'price'); markDirty(); renderContent(); }
-      // 정렬 순환: 미지정(≡) → 왼쪽 → 가운데 → 오른쪽 → 미지정
-      else if(act==='align'){ var order=['','left','center','right']; var ci2=order.indexOf(workLayout[i].align||''); var na=order[(ci2+1)%order.length]; workLayout[i].align=na; markDirty(); renderContent(); }
-      // 이 필드만의 표시 글자수(빈칸/0 = 전체 공통값 사용)
-      else if(act==='trunc'){ var cur=(workLayout[i].trunc>0?String(workLayout[i].trunc):''); var nvv=await uiPrompt('['+workLayout[i].label+'] 이 필드의 표시 글자수\n현재 설정: '+(cur?cur+'자':'기본값')+'\n(빈칸 또는 0 = 기본값)', cur); if(nvv===null) return; var nnn=parseInt(nvv,10); workLayout[i].trunc=(isNaN(nnn)||nnn<=0)?0:nnn; markDirty(); renderContent(); }
-      else if(act==='ren'){ var nw=((await uiPrompt('필드 이름 변경', workLayout[i].label))||'').trim(); if(!nw||nw===workLayout[i].label) return; if(applyColName(workLayout[i], nw)){ markDirty(); renderContent(); } }
+      if(act==='left'||act==='right'){ var j=act==='left'?i-1:i+1; if(j<0||j>=workLayout.length) return; var tmp=workLayout[i]; workLayout[i]=workLayout[j]; workLayout[j]=tmp; markDirty(); renderContent(); }
       else if(act==='hide'){ workLayout[i].hidden=!workLayout[i].hidden; markDirty(); renderContent(); }
-      else if(act==='del'){ var __lbl=workLayout[i].label; if(!(await uiConfirm('["'+__lbl+'"] 필드를 삭제하시겠습니까?\n목록에서 이 필드가 사라집니다.'))) return; if(!(await uiConfirm('한 번 더 확인합니다.\n정말 ["'+__lbl+'"] 필드를 삭제할까요?'))) return; workLayout.splice(i,1); if(!isBase(key)){ (work||[]).forEach(function(r){ if(r&&r.extra) delete r.extra[key]; }); } markDirty(); renderContent(); }
     }; }); }
     // 헤더 드래그앤드롭으로 열 위치 이동
     if(el && editMode){
