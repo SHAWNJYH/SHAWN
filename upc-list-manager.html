@@ -1236,6 +1236,34 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     // 데이터의 sub 표기가 설정의 서브명과 대소문자·앞뒤공백만 다른 경우 설정명으로 정규화(예: 'artbox'→'ARTBOX')
     var __mt=mainTab(main); if(__mt && __mt.subs && s!=null){ var __sn=String(s).trim().toLowerCase(); for(var __i=0;__i<__mt.subs.length;__i++){ if(String(__mt.subs[__i]).trim().toLowerCase()===__sn) return __mt.subs[__i]; } }
     return s; }
+  // ===== 카테고리 진단 (ARTBOX 등 어디에 어떤 sub로 들어갔는지) =====
+  function upcDiag(){
+    var L=[];
+    L.push('【 탭(카테고리 설정) 】');
+    (PLU_TABS||[]).forEach(function(t){ L.push('• '+t.label+'  (DB:'+(t.doc||t.label)+')  서브: '+(((t.subs||[]).join(' / '))||'(없음)')); });
+    L.push('');
+    L.push('【 로드된 데이터: 상위별 sub 분포 】  (cloud 키 = '+Object.keys(cloud||{}).join(', ')+')');
+    Object.keys(cloud||{}).forEach(function(cat){ var rows=cloud[cat]||[]; var by={}; rows.forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(s==='') s='(빈 sub)'; by[s]=(by[s]||0)+1; }); var parts=Object.keys(by).map(function(s){ return '"'+s+"\"="+by[s]; }); L.push('• ['+cat+']  '+rows.length+'행  →  '+(parts.join(',  ')||'(행 없음)')); });
+    L.push('');
+    L.push('【 ARTBOX 흔적 】');
+    var hit=0, where=[];
+    Object.keys(cloud||{}).forEach(function(cat){ (cloud[cat]||[]).forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(/artbox/i.test(s)){ hit++; if(where.indexOf(cat+' / "'+s+'"')<0) where.push(cat+' / "'+s+'"'); } }); });
+    L.push('sub에 artbox 포함 행: '+hit+(where.length?('   위치: '+where.join(',  ')):''));
+    L.push('');
+    L.push('【 현재 화면 】 상위="'+curCat()+'"  서브="'+curSub()+'"');
+    var txt=L.join('\n'); try{ console.log(txt); }catch(e){} return txt;
+  }
+  window.upcDiag=upcDiag;
+  function showDiagModal(){
+    var old=$('diagOverlay'); if(old) old.remove();
+    var txt=''; try{ txt=upcDiag(); }catch(e){ txt='진단 오류: '+(e&&e.message); }
+    var w=document.createElement('div');
+    w.innerHTML='<div class="pcm-overlay" id="diagOverlay"><div class="pcm-modal" style="max-width:680px;"><div class="pcm-head">🔍 카테고리 진단<button class="pcm-x" id="diagClose" type="button">✕</button></div><div class="pcm-body" style="padding:12px;"><textarea readonly style="width:100%;height:50vh;font-family:monospace;font-size:12px;white-space:pre;overflow:auto;border:1px solid #ddd;border-radius:8px;padding:10px;box-sizing:border-box;"></textarea><div style="margin-top:8px;font-size:12px;color:#666;">이 내용을 복사하거나 캡처해서 알려주세요.</div></div></div></div>';
+    document.body.appendChild(w.firstChild);
+    var ta=$('diagOverlay').querySelector('textarea'); if(ta){ ta.value=txt; }
+    var close=function(){ var o=$('diagOverlay'); if(o) o.remove(); };
+    $('diagClose').onclick=close; $('diagOverlay').onclick=function(e){ if(e.target&&e.target.id==='diagOverlay') close(); };
+  }
   // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
   function saveSection(main, sub, subRows, layout, truncLen){
     var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);
@@ -2739,6 +2767,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       '<div class="pcm-body adm-body">'+
         '<button class="adm-btn" id="admEdit" type="button">✎ 편집모드</button>'+
         '<button class="adm-btn" id="admCat" type="button">🗂 카테고리설정</button>'+
+        '<button class="adm-btn" id="admDiag" type="button">🔍 카테고리 진단</button>'+
         '<button class="adm-btn" id="admHist" type="button">📦 신제품 및 변경상품 보기</button>'+
         '<button class="adm-btn" id="admImport" type="button">⬇︎ 데이터 불러오기</button>'+
         '<button class="adm-btn" id="admExport" type="button">⬆︎ 데이터 내보내기</button>'+
@@ -2752,6 +2781,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('admClose').onclick=close; $('admOverlay').onclick=function(e){ if(e.target&&e.target.id==='admOverlay') close(); };
     $('admEdit').onclick=function(){ close(); if(!editMode) enterEdit(); };
     $('admCat').onclick=function(){ close(); openCatEditor(); };
+    var __ad=$('admDiag'); if(__ad) __ad.onclick=function(){ close(); showDiagModal(); };
     var amf=$('admMaster'); if(amf) amf.onclick=function(){ close(); openMasterModal(); };
     $('admHist').onclick=function(){ close(); showHistModal('all'); };
     $('admImport').onclick=function(){ close(); importXlsx(); };
