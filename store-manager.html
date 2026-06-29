@@ -57,6 +57,9 @@
   .ex-btn.warm:hover{ filter:brightness(1.05); color:#fff; }
   .ex-btn.ex-warn{ background:#fdecec; color:#b3322e; border-color:#d9534f; }
   .ex-btn.ex-warn:hover{ background:#fbdada; color:#b3322e; }
+  .fm-tg{ min-width:64px; }
+  .fm-tg.on{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .fm-tg.on:hover{ filter:brightness(1.05); color:#fff; }
 
   /* 필드 관리 패널 */
   .fm-newname{ border:1.5px solid var(--border); border-radius:9px; padding:8px 11px; font-family:var(--mono); font-size:13px; min-width:240px; }
@@ -247,6 +250,10 @@
     <!-- 필드 관리 (마스터) : upc-config/main.masterFields 공통 편집 -->
     <div class="sm-panel" id="smPanelFields">
       <div class="ex-toolbar">
+        <div class="ex-tb-group fm-target">
+          <button class="ex-btn fm-tg on" id="fmTgUpc" type="button">UPC 매니저</button>
+          <button class="ex-btn fm-tg" id="fmTgPlu" type="button">PLU 매니저</button>
+        </div>
         <div class="ex-tb-group">
           <input class="fm-newname" id="fmNewName" placeholder="새 필드 이름 (예: UPC(C))" maxlength="40" autocomplete="off">
           <select class="ex-sel" id="fmNewType"><option value="text">텍스트</option><option value="price">가격 ($)</option><option value="margin">마진 (%)</option><option value="checkbox">체크박스</option><option value="image">이미지</option></select>
@@ -358,7 +365,15 @@
 
   /* ---- 마스터 필드 로드/실시간 구독 (upc-config/main.masterFields) ---- */
   var __smDeleted={};  // 삭제된 필드 키(숨김 전파용)
-  var FN_LOCK={'UPC(O)':1,'UPC(C)':1,'COST':1,'MSRP':1,'MSRP(%)':1,'SRP':1,'SRP(%)':1};  // 기능 필드 — 키 잠금(삭제/키변경 불가, 이름만 편집)
+  var FN_LOCK_UPC={'UPC(O)':1,'UPC(C)':1,'COST':1,'MSRP':1,'MSRP(%)':1,'SRP':1,'SRP(%)':1};  // UPC 기능 필드 — 키 잠금
+  var FN_LOCK_PLU={'PLU':1,'KOR':1,'ENG':1,'CATE':1};  // PLU 기능 필드 — 키 잠금
+  // ===== 필드관리 대상(UPC/PLU) 전환 =====
+  var FM_TARGET='upc';
+  var __pluMasterRaw=[], __pluDeleted={};
+  function fmCfgCol(){ return FM_TARGET==='plu'?'plu-config':'upc-config'; }
+  function fmCurRaw(){ return FM_TARGET==='plu'?__pluMasterRaw:state.masterRaw; }
+  function fmCurDeleted(){ return FM_TARGET==='plu'?__pluDeleted:__smDeleted; }
+  function fmLock(){ return FM_TARGET==='plu'?FN_LOCK_PLU:FN_LOCK_UPC; }
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
@@ -385,11 +400,35 @@
     // onSnapshot 불가 시 1회 로드
     fb.getDoc(ref).then(handle).catch(function(){});
   }
+  /* ---- PLU 마스터(plu-config/main) 실시간 구독 — 필드관리 PLU 모드용 ---- */
+  function subscribePluMaster(){
+    var fb=window.smFb; if(!fb) return;
+    var ref=fb.doc(fb.db,'plu-config','main');
+    function handle(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+      if(d && Array.isArray(d.deletedFields)){ __pluDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __pluDeleted[K]=(o&&typeof o==='object')?{key:o.key,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
+      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold}); }); }
+      __pluMasterRaw=raw;
+      if(FM_TARGET==='plu' && $('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}); fmRender(); }
+    }
+    if(fb.onSnapshot){ try{ fb.onSnapshot(ref, handle, function(){}); return; }catch(e){} }
+    fb.getDoc(ref).then(handle).catch(function(){});
+  }
+  // 필드관리 대상(UPC/PLU) 전환
+  function fmSetTarget(t){
+    if(t!=='plu') t='upc';
+    if(FM_TARGET===t) return;
+    if(fmDirty && !confirm('저장하지 않은 변경이 있습니다. 전환하면 사라집니다. 계속할까요?')) return;
+    FM_TARGET=t; fmDirty=false;
+    var u=$('fmTgUpc'), p=$('fmTgPlu'); if(u) u.classList.toggle('on', t==='upc'); if(p) p.classList.toggle('on', t==='plu');
+    fmOpen();
+  }
 
   /* ===== 필드 관리 (마스터) 편집기 ===== */
   var fmWork = null, fmDirty = false, __fmDrag = -1;
   function fmOpen(){
-    fmWork = (state.masterRaw && state.masterRaw.length) ? state.masterRaw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false};});
+    var __raw=fmCurRaw();
+    fmWork = (__raw && __raw.length) ? __raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false};});
     fmDirty = false; fmSetSaved(''); fmRender();
     var nn=$('fmNewName'); if(nn){ nn.value=''; setTimeout(function(){ try{nn.focus();}catch(e){} },30); }
   }
@@ -413,7 +452,7 @@
         var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
         var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
         return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
-          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+(FN_LOCK[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':'<button class="fm-del" type="button" title="삭제">✕</button>')+'</div>'+
+          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+(fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':'<button class="fm-del" type="button" title="삭제">✕</button>')+'</div>'+
           '<div class="fm-line">'+
             '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
             '<input class="fm-name" style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
@@ -437,7 +476,7 @@
         var i=parseInt(row.getAttribute('data-i'),10);
         row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].label=this.value; fmDirty=true; });
         row.querySelector('.fm-rtype').addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
-        var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(FN_LOCK[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(__dk) __smDeleted[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
+        var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(fmLock()[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(__dk) fmCurDeleted()[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
         row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
         var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; fmRender(); };
         var rs=row.querySelector('.fm-reset'); if(rs) rs.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmWork[i].align=''; fmWork[i].trunc=0; fmDirty=true; fmRender(); };
@@ -457,7 +496,7 @@
     var nn=$('fmNewName'), tt=$('fmNewType'); if(!nn||!fmWork) return;
     var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
     if(fmWork.some(function(m){return m.key===name;})){ alert('이미 있는 필드입니다'); nn.select(); return; }
-    delete __smDeleted[name]; fmWork.push({key:name, label:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
+    delete fmCurDeleted()[name]; fmWork.push({key:name, label:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
   }
   function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold}); }); return out; }
   async function fmSave(){
@@ -466,9 +505,13 @@
     try{
       var data = fmNorm(fmWork);
       var __curK={}; data.forEach(function(m){ __curK[m.key]=1; });
-      var __delDefs=Object.keys(__smDeleted).filter(function(k){ return !__curK[k]; }).map(function(k){ return __smDeleted[k]; });
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
-      fmDirty=false; applyMaster(data); fmRender(); fmSetSaved('저장됨 · '+data.length+'개');
+      var __delMap=fmCurDeleted();
+      var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,fmCfgCol(),'main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
+      fmDirty=false;
+      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold};}); }
+      else { applyMaster(data); }
+      fmRender(); fmSetSaved('저장됨 · '+data.length+'개 ('+(FM_TARGET==='plu'?'PLU':'UPC')+')');
       setTimeout(function(){ fmSetSaved(''); }, 2500);
     }catch(e){ console.error(e); alert('저장 실패: '+e.message); }
     finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
@@ -476,10 +519,13 @@
   $('fmAdd').onclick = fmAddNew;
   $('fmNewName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); fmAddNew(); } });
   $('fmSave').onclick = fmSave;
+  var __tu=$('fmTgUpc'); if(__tu) __tu.onclick=function(){ fmSetTarget('upc'); };
+  var __tp=$('fmTgPlu'); if(__tp) __tp.onclick=function(){ fmSetTarget('plu'); };
   // ===== 삭제된 필드 보기 · 되살리기 =====
   function openDeletedFieldsModal(){
     var old=document.getElementById('fmTrashOv'); if(old) old.remove();
-    var defs=Object.keys(__smDeleted).map(function(k){ return __smDeleted[k]; });
+    var __dm=fmCurDeleted();
+    var defs=Object.keys(__dm).map(function(k){ return __dm[k]; });
     var listHtml = defs.length ? defs.map(function(d){
       var fl=mfFlag(d.type)||'';
       return '<div class="fmt-row" data-key="'+esc(String(d.key).toUpperCase())+'"><span class="fmt-key">'+esc(d.key)+'</span><span class="fmt-label">'+esc(d.label!=null?d.label:d.key)+'</span>'+(fl?'<span class="fmt-flag">'+fl+'</span>':'')+'<button class="ex-btn warm fmt-restore" type="button">↩ 되살리기</button></div>';
@@ -491,7 +537,7 @@
     var close=function(){ var o=document.getElementById('fmTrashOv'); if(o) o.remove(); };
     document.getElementById('fmTrashX').onclick=close;
     ov.onclick=function(e){ if(e.target===ov) close(); };
-    ov.querySelectorAll('.fmt-restore').forEach(function(b){ b.onclick=function(){ var row=b.closest('.fmt-row'); var K=row?row.getAttribute('data-key'):''; if(!K) return; var d=__smDeleted[K]; if(d){ if(!fmWork) fmWork=[]; if(!fmWork.some(function(m){return String(m.key).toUpperCase()===K;})){ fmWork.push({key:d.key,label:(d.label!=null?d.label:d.key),type:d.type||'text',align:d.align||'',trunc:d.trunc||0,fg:d.fg||'',bg:d.bg||'',bold:!!d.bold}); } delete __smDeleted[K]; fmDirty=true; fmRender(); } row.remove(); if(!Object.keys(__smDeleted).length){ close(); } }; });
+    ov.querySelectorAll('.fmt-restore').forEach(function(b){ b.onclick=function(){ var row=b.closest('.fmt-row'); var K=row?row.getAttribute('data-key'):''; if(!K) return; var __dm=fmCurDeleted(); var d=__dm[K]; if(d){ if(!fmWork) fmWork=[]; if(!fmWork.some(function(m){return String(m.key).toUpperCase()===K;})){ fmWork.push({key:d.key,label:(d.label!=null?d.label:d.key),type:d.type||'text',align:d.align||'',trunc:d.trunc||0,fg:d.fg||'',bg:d.bg||'',bold:!!d.bold}); } delete __dm[K]; fmDirty=true; fmRender(); } row.remove(); if(!Object.keys(__dm).length){ close(); } }; });
   }
   var __ft=$('fmTrash'); if(__ft) __ft.onclick=openDeletedFieldsModal;
 
@@ -894,7 +940,7 @@
   // 초기화
   loadConfig();
   renderExport();
-  waitForFb().then(subscribeMaster).catch(function(){});
+  waitForFb().then(function(){ subscribeMaster(); subscribePluMaster(); }).catch(function(){});
 })();
 </script>
 <div class="fm-pal-ov" id="fmPalOv">
