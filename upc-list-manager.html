@@ -893,6 +893,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function extraKeysOf(layout){ return (layout||[]).filter(function(c){return !isBase(c.key);}).map(function(c){return c.key;}); }
   // 행에서 열 값 추출(base/extra 자동)
   function getVal(r,key){ if(!r) return ''; if(isBase(key)){ return r[fieldOf(key)]||''; } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
+  // UPC 행단위 폴백: 같은 카테고리라도 행마다 UPC가 다른 키에 저장된 경우(예: ARTBOX는 'UPC', K-BEAUTY는 'UPC(O)') 자동으로 찾아 표시
+  function __findAltVal(r, aliases, excludeKey){
+    if(!r||!r.extra) return '';
+    var ex=String(excludeKey||'').trim().toUpperCase();
+    for(var ai=0; ai<aliases.length; ai++){ var A=aliases[ai].toUpperCase(); if(A===ex) continue; for(var k in r.extra){ if(String(k).trim().toUpperCase()===A){ var vv=r.extra[k]; if(vv!=null && String(vv).trim()!=='') return vv; } } }
+    return '';
+  }
+  var __UPCO_ALIAS=['UPC(O)','UPC','UPCO','UPC-O','UPC O','UPC(0)','UPCA','UPC-A','UPC_O','UPC O)'];
+  var __UPCC_ALIAS=['UPC(C)','UPCC','UPC-C','UPC C','UPC_C','UPC(C']; 
+  function getDisp(r,c){
+    var v=getVal(r,c.key); if(String(v).trim()!=='') return v;
+    var sig=String(((c&&c.key)||'')+'|'+((c&&c.label)||'')).toUpperCase();
+    if(isUpcOCol(c) || /UPC\s*\(\s*O\s*\)/.test(sig)){ var a=__findAltVal(r,__UPCO_ALIAS,c.key); if(a!=='') return a; }
+    else if(isUpcCCol(c) || /UPC\s*\(\s*C\s*\)/.test(sig)){ var b=__findAltVal(r,__UPCC_ALIAS,c.key); if(b!=='') return b; }
+    return v;
+  }
 
   let pluBig=0, pluSub=0, pluSearchTerm='', pluCatFilter='';
   let pluSortKey='', pluSortDir='asc';   // SORT: ''=기본(PLU), upco/eng/kor/sales
@@ -1255,33 +1271,71 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var __mt=mainTab(main); if(__mt && __mt.subs && s!=null){ var __sn=String(s).trim().toLowerCase(); for(var __i=0;__i<__mt.subs.length;__i++){ if(String(__mt.subs[__i]).trim().toLowerCase()===__sn) return __mt.subs[__i]; } }
     return s; }
   // ===== 카테고리 진단 (ARTBOX 등 어디에 어떤 sub로 들어갔는지) =====
+  function __upcish(c){ return /UPC/.test(String((c&&(c.key||c.label))||'').toUpperCase()); }
+  function __upcDataKeys(rows){ var hh={}; (rows||[]).forEach(function(r){ if(!r||!r.extra) return; for(var k in r.extra){ var v=String(r.extra[k]||'').replace(/\s/g,''); if(/^\d{8,14}$/.test(v)) hh[k]=(hh[k]||0)+1; } }); return hh; }
   function upcDiag(){
     var L=[];
-    L.push('【 탭(카테고리 설정) 】');
-    (PLU_TABS||[]).forEach(function(t){ L.push('• '+t.label+'  (DB:'+(t.doc||t.label)+')  서브: '+(((t.subs||[]).join(' / '))||'(없음)')); });
+    L.push('【 탭 설정 】');
+    (PLU_TABS||[]).forEach(function(t){ L.push('• '+t.label+'  서브: '+(((t.subs||[]).join(' / '))||'(없음)')); });
     L.push('');
-    L.push('【 로드된 데이터: 상위별 sub 분포 】  (cloud 키 = '+Object.keys(cloud||{}).join(', ')+')');
-    Object.keys(cloud||{}).forEach(function(cat){ var rows=cloud[cat]||[]; var by={}; rows.forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(s==='') s='(빈 sub)'; by[s]=(by[s]||0)+1; }); var parts=Object.keys(by).map(function(s){ return '"'+s+"\"="+by[s]; }); L.push('• ['+cat+']  '+rows.length+'행  →  '+(parts.join(',  ')||'(행 없음)')); });
+    L.push('【 카테고리별 UPC 진단 (레이아웃 열 키 ↔ 실제 데이터 키) 】');
+    Object.keys(cloud||{}).forEach(function(cat){
+      var rows=cloud[cat]||[]; var lay=layoutByCat[cat]||[];
+      var upcCols=lay.filter(__upcish);
+      L.push('━━ ['+cat+']  '+rows.length+'행');
+      L.push('   레이아웃 UPC 열: '+(upcCols.map(function(c){return '"'+c.key+'"(라벨:'+c.label+')';}).join(' , ')||'(없음)'));
+      upcCols.forEach(function(c){ var have=0; rows.forEach(function(r){ if(String(getVal(r,c.key)||'').trim()!=='') have++; }); L.push('      └ "'+c.key+'" 값 있는 행: '+have+'/'+rows.length); });
+      var hits=__upcDataKeys(rows); var dk=Object.keys(hits);
+      L.push('   실제 UPC형 숫자가 든 키: '+(dk.map(function(k){return '"'+k+'"='+hits[k];}).join(', ')||'(없음)'));
+      var layU=upcCols.map(function(c){return String(c.key).toUpperCase();});
+      var orphan=dk.filter(function(k){return layU.indexOf(String(k).toUpperCase())<0;});
+      if(!upcCols.length && dk.length) L.push('   ⚠️ 레이아웃에 UPC 열 없음 → 데이터가 "'+dk.join('","')+'"에 있는데 표시 안 됨');
+      else if(orphan.length) L.push('   ⚠️ 불일치! 데이터는 "'+orphan.join('","')+'" 키, 레이아웃 열은 "'+upcCols.map(function(c){return c.key;}).join('","')+'" → 화면 빈칸');
+      else L.push('   ✅ 일치');
+    });
     L.push('');
-    L.push('【 ARTBOX 흔적 】');
-    var hit=0, where=[];
-    Object.keys(cloud||{}).forEach(function(cat){ (cloud[cat]||[]).forEach(function(r){ var s=(r&&r.sub!=null)?String(r.sub):''; if(/artbox/i.test(s)){ hit++; if(where.indexOf(cat+' / "'+s+'"')<0) where.push(cat+' / "'+s+'"'); } }); });
-    L.push('sub에 artbox 포함 행: '+hit+(where.length?('   위치: '+where.join(',  ')):''));
-    L.push('');
-    L.push('【 현재 화면 】 상위="'+curCat()+'"  서브="'+curSub()+'"');
-    var txt=L.join('\n'); try{ console.log(txt); }catch(e){} return txt;
+    L.push('【 현재 카테고리["'+curCat()+'" / "'+curSub()+'"] 샘플 행의 실제 키 】');
+    var __crows=(cloud[curCat()]||[]).filter(function(r){return rowSub(curCat(),r)===curSub();});
+    L.push('현재 서브 행 수: '+__crows.length);
+    var __sp=__crows[0];
+    if(__sp){
+      var __pp=[];
+      try{ (BASE||[]).forEach(function(b){ var v=__sp[b.field]; if(v!=null && String(v)!=='') __pp.push(b.key+'="'+String(v).slice(0,18)+'"'); }); }catch(e){}
+      if(__sp.extra){ for(var __k in __sp.extra){ var __v=__sp.extra[__k]; if(__v!=null && String(__v)!=='') __pp.push('extra['+__k+']="'+String(__v).slice(0,18)+'"'); } }
+      L.push('샘플행 키=값: '+(__pp.join('  |  ')||'(빈 행)'));
+    } else { L.push('샘플 행 없음'); }
+    var txt=L.join('\n'); try{console.log(txt);}catch(e){} return txt;
   }
   window.upcDiag=upcDiag;
+  async function fixUpcKeysCat(){
+    var cat=curCat(); var rows=cloud[cat]||[]; var lay=layoutByCat[cat]||[];
+    var upcCols=lay.filter(__upcish);
+    if(!upcCols.length){ showToast('이 카테고리에 UPC 열이 없습니다','error'); return; }
+    var hits=__upcDataKeys(rows); var dk=Object.keys(hits);
+    var layU=upcCols.map(function(c){return String(c.key).toUpperCase();});
+    var orphan=dk.filter(function(k){return layU.indexOf(String(k).toUpperCase())<0;});
+    if(!orphan.length){ showToast('이미 일치합니다','success'); return; }
+    orphan.sort(function(a,b){return hits[b]-hits[a];});
+    var src=orphan[0];
+    var tcol=upcCols.filter(function(c){return isUpcOCol(c);})[0]||upcCols[0]; var target=tcol.key;
+    if(String(src).toUpperCase()===String(target).toUpperCase()){ showToast('이미 일치','success'); return; }
+    if(!(await uiConfirm('['+cat+'] UPC 데이터 키 맞추기\n\n데이터: "'+src+'" 키 ('+hits[src]+'행)\n화면 열: "'+target+'" 키\n\n"'+src+'" → "'+target+'" 로 복사할까요?\n(기존값 보존, 빈 칸만 채움)'))) return;
+    var n=0; rows.forEach(function(r){ if(!r) return; if(!r.extra) r.extra={}; var sv=r.extra[src]; if(sv!=null && String(sv).trim()!=='' && (r.extra[target]==null||String(r.extra[target]).trim()==='')){ r.extra[target]=sv; n++; } });
+    try{ await saveCat(cat, rows.map(copyRow), layoutByCat[cat], truncLenByCat[cat]); showToast(cat+' UPC '+n+'건 맞춤·저장 완료','success'); if(!editMode) renderContent(); }catch(e){ showToast('저장 실패: '+(e&&e.message||''),'error'); }
+  }
+  window.fixUpcKeysCat=fixUpcKeysCat;
   function showDiagModal(){
     var old=$('diagOverlay'); if(old) old.remove();
     var txt=''; try{ txt=upcDiag(); }catch(e){ txt='진단 오류: '+(e&&e.message); }
     var w=document.createElement('div');
-    w.innerHTML='<div class="pcm-overlay" id="diagOverlay"><div class="pcm-modal" style="max-width:680px;"><div class="pcm-head">🔍 카테고리 진단<button class="pcm-x" id="diagClose" type="button">✕</button></div><div class="pcm-body" style="padding:12px;"><textarea readonly style="width:100%;height:50vh;font-family:monospace;font-size:12px;white-space:pre;overflow:auto;border:1px solid #ddd;border-radius:8px;padding:10px;box-sizing:border-box;"></textarea><div style="margin-top:8px;font-size:12px;color:#666;">이 내용을 복사하거나 캡처해서 알려주세요.</div></div></div></div>';
+    w.innerHTML='<div class="pcm-overlay" id="diagOverlay"><div class="pcm-modal" style="max-width:720px;"><div class="pcm-head">🔍 UPC/카테고리 진단<button class="pcm-x" id="diagClose" type="button">✕</button></div><div class="pcm-body" style="padding:12px;"><textarea readonly style="width:100%;height:46vh;font-family:monospace;font-size:12px;white-space:pre;overflow:auto;border:1px solid #ddd;border-radius:8px;padding:10px;box-sizing:border-box;"></textarea><div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><button id="diagFix" class="plu-tool-btn" type="button" style="background:#1e3a8a;color:#fff;padding:8px 14px;border:none;border-radius:8px;font-weight:800;cursor:pointer;">🔧 현재 카테고리 UPC 키 맞추기</button><span style="font-size:12px;color:#666;">⚠️ 불일치 카테고리를 화면에 띄운 상태에서 눌러주세요</span></div></div></div></div>';
     document.body.appendChild(w.firstChild);
     var ta=$('diagOverlay').querySelector('textarea'); if(ta){ ta.value=txt; }
     var close=function(){ var o=$('diagOverlay'); if(o) o.remove(); };
     $('diagClose').onclick=close; $('diagOverlay').onclick=function(e){ if(e.target&&e.target.id==='diagOverlay') close(); };
+    var fx=$('diagFix'); if(fx) fx.onclick=function(){ close(); fixUpcKeysCat(); };
   }
+
   // 현재 서브카테고리만 교체 저장(다른 서브 데이터 보존)
   function saveSection(main, sub, subRows, layout, truncLen){
     var others=rowsFor(main).filter(function(r){ return rowSub(main,r)!==sub; }).map(copyRow);
@@ -1541,7 +1595,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 보기 모드 행 HTML
   function viewRowHTML(r, rowIdx){
     var v=visibleCols();
-    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'){ var __mr=String(getVal(r,c.key)||'').trim(); var __mv=(__mr===''?'':(__mr.replace(/%+$/,'')+'%')); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+'"'+colorStyle(c)+(__mv.length>limit?(' title="'+escapeHtml(__mv)+'"'):'')+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getVal(r,c.key)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
+    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'){ var __mr=String(getVal(r,c.key)||'').trim(); var __mv=(__mr===''?'':(__mr.replace(/%+$/,'')+'%')); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+'"'+colorStyle(c)+(__mv.length>limit?(' title="'+escapeHtml(__mv)+'"'):'')+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
     var isNewRow=flagFresh(r,'__NEWFLAG');
     var isPriceUpd=flagFresh(r,'__PRICEUPD');
     var mark=(isNewRow?'N':'')+(isPriceUpd?'$':'');
