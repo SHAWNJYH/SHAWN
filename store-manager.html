@@ -270,13 +270,19 @@
   .fm-l1,.fm-l2,.fm-l3{ display:flex; align-items:center; gap:4px; margin-top:3px; }
   .fm-l1{ flex-wrap:wrap; margin-top:0; }
   .fm-typebtns{ display:inline-flex; gap:2px; margin-left:auto; }
-  .fm-ty{ border:1px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:5px; padding:2px 6px; font-size:11px; font-weight:700; cursor:pointer; line-height:1.4; }
-  .fm-ty.on{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .fm-ty{ height:22px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:5px; padding:0 7px; font-size:11px; font-weight:800; cursor:pointer; line-height:1; box-sizing:border-box; }
+  .fm-ty:hover{ border-color:var(--accent-warm); }
+  .fm-ty.on{ background:var(--accent-warm); color:#3a2e12; border-color:var(--accent-warm); }
+  .fm-row.grp-msrp .fm-ty,.fm-row.grp-srp .fm-ty{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
+  .fm-row.grp-msrp .fm-ty.on,.fm-row.grp-srp .fm-ty.on{ background:var(--accent-warm); color:#3a2e12; }
   .fm-l1 .fm-storelink{ width:auto; flex:0 0 auto; padding:3px 8px; }
   .fm-l2 .fm-name{ flex:1 1 auto; min-width:80px; }
   .fm-l2 .fm-trunc-in{ width:56px; flex:0 0 auto; }
   .fm-l2 .fm-key{ flex:0 0 auto; }
   .fm-ord{ min-width:18px; text-align:center; }
+  .sl-catrow{ display:flex; align-items:center; gap:8px; margin:8px 0; }
+  .sl-catlbl{ font-size:12px; font-weight:800; color:var(--text-dim); flex:0 0 auto; }
+  .sl-cat{ flex:1 1 auto; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-size:13px; }
 </style>
 </head>
 <body>
@@ -386,6 +392,7 @@
       <button class="sl-x" id="slX" type="button">✕</button>
       <h3 class="sl-title" id="slTitle">매장 연결</h3>
       <p class="sl-sub">이 필드를 어느 매장에 보여줄지 설정합니다. ‘전체’=모든 매장, ‘숨김’=모든 매장에서 숨김, ‘선택 매장만’=고른 매장에만 표시.</p>
+      <div class="sl-catrow"><label class="sl-catlbl">카테고리</label><select id="slCat" class="sl-cat"></select></div>
       <div class="sl-modes">
         <label class="sl-mode"><input type="radio" name="slMode" value="all"> 전체 매장 (연결 · 기본)</label>
         <label class="sl-mode"><input type="radio" name="slMode" value="none"> 모두 숨김 (해제)</label>
@@ -472,9 +479,14 @@
   }
 
   /* ===== 필드 매장연결 (#8·#9) — masterFields[i].stores = 'all'|'none'|[매장명] ===== */
+  // ===== 매장연결 카테고리(탭) 로드 =====
+  var __slCatsUPC=[], __slCatsPLU=[];
+  function __flatCats(tabs){ var out=[]; (tabs||[]).forEach(function(t){ var main=String((t&&(t.label||t.doc))||'').trim(); if(main) out.push({label:main, val:main.toUpperCase(), main:true}); ((t&&t.subs)||[]).forEach(function(s){ var sv=String(s).trim(); if(sv) out.push({label:'   └ '+sv, val:sv.toUpperCase(), parent:main.toUpperCase()}); }); }); return out; }
+  function fmCurCats(){ return FM_TARGET==='plu'?__slCatsPLU:__slCatsUPC; }
+  function normSBC(v){ if(!v||typeof v!=='object'||Array.isArray(v)) return null; var o={}, has=false; for(var k in v){ var K=String(k).trim().toUpperCase(); if(!K) continue; o[K]=normSL(v[k]); has=true; } return has?o:null; }
   function normSL(v){ if(v==='none') return 'none'; if(Array.isArray(v)){ var a=v.map(function(x){return String(x).trim();}).filter(Boolean); return a.length?a:'none'; } return 'all'; }
   function slMode(m){ var v=normSL(m&&m.stores); return (v==='all')?'all':(v==='none'?'none':'some'); }
-  function slText(m){ var v=normSL(m&&m.stores); if(v==='all') return '전체'; if(v==='none') return '숨김'; return v.length+'개 매장'; }
+  function slText(m){ var v=normSL(m&&m.stores); var bt=(v==='all')?'전체':(v==='none'?'숨김':v.length+'개'); var sbc=normSBC(m&&m.storesByCat); if(sbc){ var n=Object.keys(sbc).filter(function(k){return k!=='_ALL_';}).length; if(n>0) return bt+' · 카테고리'+n; } return bt; }
   var __storeReg=null;
   async function ensureStoreReg(){
     // 매장 관리 탭의 현재 메모리 값(stWork)이 가장 최신 — SHORTNAME 즉시 반영
@@ -485,31 +497,43 @@
     __storeReg=list; return list;
   }
   var __slI=-1;
+  var __slReg=null, __slWork=null, __slCatSel='_ALL_';
   async function openStoreLink(i){
     if(!fmWork[i]) return; __slI=i; var m=fmWork[i];
-    var reg=await ensureStoreReg();
-    var cur=normSL(m.stores), mode=slMode(m), sel={};
-    if(Array.isArray(cur)) cur.forEach(function(n){ sel[String(n).toUpperCase()]=1; });
-    var t=$('slTitle'); if(t) t.textContent='매장 연결 — '+esc(m.label!=null?m.label:m.key);
-    document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.checked=(r.value===mode); });
-    var lb=$('slList'); if(lb){ lb.innerHTML=reg.map(function(st){ var on=sel[String(st.name).toUpperCase()]?' checked':''; return '<label class="sl-item"><input type="checkbox" class="sl-chk" value="'+esc(st.name)+'"'+on+'><span>'+esc(st.name)+'</span>'+(st.short?'<span class="sl-short">'+esc(st.short)+'</span>':'')+'</label>'; }).join(''); }
-    slSyncDim();
+    __slReg=await ensureStoreReg();
+    __slWork={}; var sbc=normSBC(m.storesByCat); if(sbc){ for(var k in sbc) __slWork[k]=sbc[k]; }
+    if(!('_ALL_' in __slWork)) __slWork['_ALL_']=normSL(m.stores);
+    __slCatSel='_ALL_';
+    var t=$('slTitle'); if(t) t.textContent='매장·카테고리 연결 — '+esc(m.label!=null?m.label:m.key);
+    var cs=$('slCat'); if(cs){ var cats=fmCurCats(); cs.innerHTML='<option value="_ALL_">기본 (모든 카테고리)</option>'+cats.map(function(c){ var ov=(__slWork[c.val]!==undefined)?' ●':''; return '<option value="'+esc(c.val)+'">'+esc(c.label)+ov+'</option>'; }).join(''); cs.value='_ALL_'; }
+    slRenderStores(); slLoadCat();
     var ov=$('slOv'); if(ov) ov.classList.add('show');
   }
+  function slRenderStores(){ var lb=$('slList'); if(!lb||!__slReg) return; lb.innerHTML=__slReg.map(function(st){ return '<label class="sl-item"><input type="checkbox" class="sl-chk" value="'+esc(st.name)+'"><span>'+esc(st.name)+'</span>'+(st.short?'<span class="sl-short">'+esc(st.short)+'</span>':'')+'</label>'; }).join(''); }
+  function slCurVal(){ var v=__slWork[__slCatSel]; if(v===undefined){ v=(__slCatSel==='_ALL_')?'all':__slWork['_ALL_']; } return v; }
+  function slLoadCat(){ slWriteUI(slCurVal()); }
+  function slWriteUI(v){ var mode=(v==='all')?'all':(v==='none'?'none':'some'); document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.checked=(r.value===mode); }); var sel={}; if(Array.isArray(v)) v.forEach(function(n){ sel[String(n).toUpperCase()]=1; }); document.querySelectorAll('#slList .sl-chk').forEach(function(c){ c.checked=!!sel[String(c.value).toUpperCase()]; }); slSyncDim(); }
+  function slReadUI(){ var r=document.querySelector('input[name="slMode"]:checked'); var mode=r?r.value:'all'; if(mode==='all') return 'all'; if(mode==='none') return 'none'; var arr=[]; document.querySelectorAll('#slList .sl-chk:checked').forEach(function(c){ arr.push(c.value); }); return arr.length?arr:'none'; }
+  function slStashCur(){ if(__slCatSel) __slWork[__slCatSel]=slReadUI(); }
   function slSyncDim(){ var r=document.querySelector('input[name="slMode"]:checked'); var mode=r?r.value:'all'; var lb=$('slList'); if(lb) lb.classList.toggle('dim', mode!=='some'); }
   function slApply(){
     if(__slI<0||!fmWork[__slI]){ slClose(); return; }
-    var r=document.querySelector('input[name="slMode"]:checked'); var mode=r?r.value:'all'; var v='all';
-    if(mode==='none') v='none';
-    else if(mode==='some'){ var arr=[]; document.querySelectorAll('#slList .sl-chk:checked').forEach(function(c){ arr.push(c.value); }); v=arr.length?arr:'none'; }
-    fmWork[__slI].stores=v; fmDirty=true; slClose(); fmRender();
+    slStashCur();
+    if(__slWork['_ALL_']===undefined) __slWork['_ALL_']='all';
+    var allv=JSON.stringify(__slWork['_ALL_']);
+    Object.keys(__slWork).forEach(function(k){ if(k!=='_ALL_' && JSON.stringify(__slWork[k])===allv) delete __slWork[k]; });
+    var hasOverride=Object.keys(__slWork).some(function(k){return k!=='_ALL_';});
+    fmWork[__slI].stores=__slWork['_ALL_'];
+    fmWork[__slI].storesByCat = hasOverride ? __slWork : null;
+    fmDirty=true; slClose(); fmRender();
   }
-  function slClose(){ var ov=$('slOv'); if(ov) ov.classList.remove('show'); }
+    function slClose(){ var ov=$('slOv'); if(ov) ov.classList.remove('show'); }
   if($('slOk')) $('slOk').onclick=slApply;
   if($('slCancel')) $('slCancel').onclick=slClose;
   if($('slX')) $('slX').onclick=slClose;
   if($('slOv')) $('slOv').addEventListener('click', function(e){ if(e.target===$('slOv')) slClose(); });
   document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.addEventListener('change', slSyncDim); });
+  var __slCatEl=$('slCat'); if(__slCatEl) __slCatEl.addEventListener('change', function(){ slStashCur(); __slCatSel=this.value; slLoadCat(); });
 
   function activate(which){
     var isPin=(which==='pin'), isFields=(which==='fields'), isExport=(which==='export'), isStores=(which==='stores');
@@ -571,13 +595,13 @@
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
-    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)}); });
+    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}); });
     if(!names.length) return false;
     state.managerFields = names;
     state.masterRaw = raw;
     state.masterFromCloud = true;
     // 필드 관리 탭이 열려 있고 편집 중이 아니면 갱신
-    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)};}); fmRender(); }
+    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); fmRender(); }
     return true;
   }
   function subscribeMaster(){
@@ -586,6 +610,7 @@
     function handle(snap){
       var d = (snap && snap.exists && snap.exists()) ? (snap.data()||{}) : null;
       if(d && Array.isArray(d.deletedFields)){ __smDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __smDeleted[K]=(o&&typeof o==='object')?{key:K,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
+      if(d && Array.isArray(d.tabs)){ __slCatsUPC=__flatCats(d.tabs); }
       if(d && applyMaster(d.masterFields)){
         if($('smPanelExport').classList.contains('active')){ renderExport(); requestAnimationFrame(drawLines); }
       }
@@ -601,9 +626,10 @@
     function handle(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
       if(d && Array.isArray(d.deletedFields)){ __pluDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __pluDeleted[K]=(o&&typeof o==='object')?{key:o.key,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
-      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)}); }); }
+      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}); }); }
+      if(d && Array.isArray(d.tabs)){ __slCatsPLU=__flatCats(d.tabs); }
       __pluMasterRaw=raw;
-      if(FM_TARGET==='plu' && $('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)};}); fmRender(); }
+      if(FM_TARGET==='plu' && $('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); fmRender(); }
     }
     if(fb.onSnapshot){ try{ fb.onSnapshot(ref, handle, function(){}); return; }catch(e){} }
     fb.getDoc(ref).then(handle).catch(function(){});
@@ -622,7 +648,7 @@
   var fmWork = null, fmDirty = false, __fmDrag = -1;
   function fmOpen(){
     var __raw=fmCurRaw();
-    fmWork = (__raw && __raw.length) ? __raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,stores:normSL(m.stores)};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false,stores:'all'};});
+    fmWork = (__raw && __raw.length) ? __raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false,stores:'all'};});
     fmDirty = false; fmSetSaved(''); fmRender();
     var nn=$('fmNewName'); if(nn){ nn.value=''; setTimeout(function(){ try{nn.focus();}catch(e){} },30); }
   }
@@ -650,7 +676,7 @@
             '<span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+
             (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제(수정·삭제 가능)':'고정하기 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
             '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결">🏬 '+slText(m)+'</button>'+
-            '<span class="fm-typebtns">'+['text','price','margin','checkbox','image'].map(function(tk){ var L={text:'텍스트',price:'$',margin:'%',checkbox:'☑',image:'🖼'}; return '<button class="fm-ty'+(mfKind(m.type)===tk?' on':'')+'" data-ty="'+tk+'" type="button">'+L[tk]+'</button>'; }).join('')+'</span>'+
+            '<span class="fm-typebtns">'+['text','price','margin','checkbox','image'].map(function(tk){ var L={text:'텍스트',price:'$',margin:'%',checkbox:'체크',image:'이미지'}; return '<button class="fm-ty'+(mfKind(m.type)===tk?' on':'')+'" data-ty="'+tk+'" type="button">'+L[tk]+'</button>'; }).join('')+'</span>'+
           '</div>'+
           '<div class="fm-l2">'+
             '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
@@ -698,7 +724,7 @@
     if(fmWork.some(function(m){return m.key===name;})){ alert('이미 있는 필드입니다'); nn.select(); return; }
     delete fmCurDeleted()[name]; fmWork.push({key:name, label:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false, stores:'all'}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
   }
-  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold, locked:!!m.locked, stores:normSL(m.stores)}); }); return out; }
+  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold, locked:!!m.locked, stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}); }); return out; }
   async function fmSave(){
     if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
     var btn=$('fmSave'), old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
@@ -709,7 +735,7 @@
       var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
       await window.smFb.setDoc(window.smFb.doc(window.smFb.db,fmCfgCol(),'main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
       fmDirty=false;
-      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)};}); }
+      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); }
       else { applyMaster(data); }
       fmRender(); fmSetSaved('저장됨 · '+data.length+'개 ('+(FM_TARGET==='plu'?'PLU':'UPC')+')');
       setTimeout(function(){ fmSetSaved(''); }, 2500);
