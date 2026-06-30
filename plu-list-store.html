@@ -585,8 +585,29 @@
       if(c.hiddenStore) return;   // 스토어 전용 숨김 (매니저 숨김 c.hidden과 독립)
       out.push(c);
     });
+    // 매장별 컬럼 순서 적용 (매니저 레이아웃과 별개)
+    var __ord=(typeof window.__storeColOrder==='function')?window.__storeColOrder(curCat()):null;
+    if(__ord && __ord.length){
+      var __pos={}; __ord.forEach(function(k,idx){ __pos[String(k).toUpperCase()]=idx; });
+      out.sort(function(a,b){ var pa=__pos[String(a.key).toUpperCase()], pb=__pos[String(b.key).toUpperCase()]; if(pa==null&&pb==null) return 0; if(pa==null) return 1; if(pb==null) return -1; return pa-pb; });
+    }
     return out;
   }
+  // ===== 매장별 컬럼 드래그 재정렬 (수정모드 🔓) =====
+  function moveStoreCol(fromKey, toKey){
+    var keys=visibleCols().map(function(c){ return c.key; });
+    var fi=-1, ti=-1;
+    for(var i=0;i<keys.length;i++){ var KK=String(keys[i]).toUpperCase(); if(KK===String(fromKey).toUpperCase()) fi=i; if(KK===String(toKey).toUpperCase()) ti=i; }
+    if(fi<0||ti<0||fi===ti) return;
+    var k=keys.splice(fi,1)[0]; keys.splice(ti,0,k);
+    if(typeof window.__saveStoreColOrder==='function') window.__saveStoreColOrder(curCat(), keys);
+  }
+  var __colDragKey=null;
+  document.addEventListener('dragstart', function(e){ var th=e.target&&e.target.closest?e.target.closest('.plu-table thead th[data-colkey]'):null; if(!th) return; if(!(typeof window.__storeUnlocked==='function'&&window.__storeUnlocked())){ e.preventDefault(); return; } __colDragKey=th.getAttribute('data-colkey'); th.classList.add('stl-coldragging'); try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', __colDragKey); }catch(_){} });
+  document.addEventListener('dragend', function(){ __colDragKey=null; var ths=document.querySelectorAll('.plu-table thead th'); for(var i=0;i<ths.length;i++){ ths[i].classList.remove('stl-coldragging'); ths[i].classList.remove('stl-col-dragover'); } });
+  document.addEventListener('dragover', function(e){ if(!__colDragKey) return; var th=e.target&&e.target.closest?e.target.closest('.plu-table thead th[data-colkey]'):null; if(!th) return; e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(_){} th.classList.add('stl-col-dragover'); });
+  document.addEventListener('dragleave', function(e){ var th=e.target&&e.target.closest?e.target.closest('.plu-table thead th[data-colkey]'):null; if(th) th.classList.remove('stl-col-dragover'); });
+  document.addEventListener('drop', function(e){ if(!__colDragKey) return; var th=e.target&&e.target.closest?e.target.closest('.plu-table thead th[data-colkey]'):null; if(!th) return; e.preventDefault(); th.classList.remove('stl-col-dragover'); var to=th.getAttribute('data-colkey'); var from=__colDragKey; __colDragKey=null; if(from&&to&&from!==to) moveStoreCol(from,to); });
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; if(r&&Array.isArray(r.itemCodes)) o.itemCodes=r.itemCodes.slice(); return o; }
   function isItemCodeCol(c){ return String((c&&c.key)||'').toUpperCase()==='ITEMCODE1'; }
   function itemCodesOf(r){
@@ -749,10 +770,12 @@
     var v=visibleCols();
     var unlocked=(typeof window.__storeUnlocked==='function')&&window.__storeUnlocked();
     return '<thead><tr>'+v.map(function(c){
+      var dattr = unlocked ? (' draggable="true" data-colkey="'+escapeHtml(c.key)+'"') : '';
+      var dcls = unlocked ? ' stl-coldrag' : '';
       if(c.__store){
-        return '<th class="stl-col'+alignCls(c)+'">'+escapeHtml(c.label)+'</th>';
+        return '<th class="stl-col'+alignCls(c)+dcls+'"'+dattr+'>'+escapeHtml(c.label)+'</th>';
       }
-      var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); var cls=(hc+alignCls(c)).trim(); return '<th'+(cls?(' class="'+cls+'"'):'')+colorStyle(c)+'>'+escapeHtml(c.label)+'</th>';
+      var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); var cls=(hc+alignCls(c)+dcls).trim(); return '<th'+(cls?(' class="'+cls+'"'):'')+colorStyle(c)+dattr+'>'+escapeHtml(c.label)+'</th>';
     }).join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
   }
   // 이름·PLU 검색: PLU, KOR DESC(한글명), ENG DESC(영문명)만 기준으로 검색.
@@ -1379,6 +1402,10 @@
   th.stl-col { color:#1f7a43; }
   .stl-echk, .stl-etext { cursor:pointer; }
   .stl-etext:hover { outline:2px solid #9bd6ad; outline-offset:-2px; }
+  .plu-table thead th.stl-coldrag { cursor:grab; }
+  .plu-table thead th.stl-coldrag:active { cursor:grabbing; }
+  .plu-table thead th.stl-coldragging { opacity:.45; }
+  .plu-table thead th.stl-col-dragover { box-shadow: inset 3px 0 0 0 #c9a961; }
   .stl-ph { color:#5bbd79; font-weight:700; }
 </style>
 
@@ -1408,6 +1435,7 @@
   var storeOv={};     // { CATDOC: { PLU: { COLKEY: val } } }
   var storeCols={};   // { CATDOC: [ {key,label,type,hidden} ] }
   var storeShowCols={};   // { CATDOC: [표시할 열 key 목록] } — 매니저가 매장관리에서 지정
+  var storeColOrder={};   // { CATDOC: [열 key 순서] } — 매장 전용(매니저와 별개)
   function fns(){return window.firebaseFns;} function db(){return window.firebaseDb;}
   function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -1428,6 +1456,8 @@
   window.__storeUnlocked=function(){ return !!(currentStore && unlocked); };
   window.__ovGet=function(catLabel,plu,key){ if(!currentStore) return undefined; var c=storeOv[cid(catLabel)]; if(!c) return undefined; var rec=c[String(plu)]; if(!rec) return undefined; var v=rec[String(key)]; return (v==null||v==='')?undefined:v; };
   window.__storeCols=function(catLabel, subLabel){ if(!currentStore) return []; var c=storeCols[cid(catLabel)]; if(!c||Array.isArray(c)) return []; var arr=c[subLabel]||[]; return arr.map(function(co){ return {key:co.key,label:co.label,type:(co.type==='check'?'check':'text'),__store:true}; }); };
+  window.__storeColOrder=function(catLabel){ if(!currentStore) return null; var v=storeColOrder[cid(catLabel)]; return (Array.isArray(v)&&v.length)?v:null; };
+  window.__saveStoreColOrder=function(catLabel, keys){ if(!currentStore||!fns()||!fns().setDoc||!Array.isArray(keys)) return; var id=cid(catLabel); storeColOrder[id]=keys.slice(); try{ fns().setDoc(fns().doc(db(),OV_COL,currentStore), { colOrder: storeColOrder }, { merge:true }); }catch(e){} rerender(); };
   window.__showColsFor=function(catLabel){ if(!currentStore) return null; var v=storeShowCols[cid(catLabel)]; return (Array.isArray(v))?v:null; };
 
   // ===== 로그인 =====
@@ -1445,8 +1475,8 @@
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='index.html'; }
-  function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeShowCols=d.showCols||{}; rerender(); }, function(){}); }catch(e){} }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; storeColOrder={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='index.html'; }
+  function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeShowCols=d.showCols||{}; storeColOrder=d.colOrder||{}; rerender(); }, function(){}); }catch(e){} }
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
   // ===== 셀 값 저장 =====
