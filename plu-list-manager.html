@@ -1960,7 +1960,7 @@
     var cat=curCat(), sub=curSub();
     var title=(pluSearchTerm&&pluSearchTerm.trim())?('PLU 검색: '+pluSearchTerm.trim()):(cat+(sub?(' › '+sub):''));
     var dt=new Date(); var ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
-    var cols=exportColsFor().filter(function(c){ return !colHidden(c.key); });
+    var cols=visibleCols();   // 현재 화면에 보이는 필드만 인쇄
     var head=''; cols.forEach(function(c){ head+='<th class="pp-'+escapeHtml(String(c.key).toLowerCase())+'">'+escapeHtml(c.label)+'</th>'; });
     var body=''; rows.forEach(function(r){ var res=isReserveRow(r); body+='<tr'+(res?' class="res"':'')+'>'; cols.forEach(function(c){ body+='<td class="pp-'+escapeHtml(String(c.key).toLowerCase())+'">'+escapeHtml(String(printCell(r,c)))+'</td>'; }); body+='</tr>'; });
     var css='body{margin:0;padding:16px;font-family:Calibri,Arial,sans-serif;color:#1a1a1d}.t{font-size:16px;font-weight:700;margin:0 0 10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:3px 6px;text-align:center;vertical-align:middle}thead th{background:#D9E1F2;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact}.pp-plu{color:#C00000;font-weight:700}td.pp-kor,td.pp-eng{text-align:left}tr.res td{color:#999}@page{margin:12mm}';
