@@ -155,7 +155,7 @@
           <div class="status" id="stAd"></div>
         </div>
         <div class="mstate">
-          <span class="big">광고데이터 <b id="adCount">0</b> 개 저장</span>
+          <span class="big">광고데이터 총 <b id="adTotal">0</b>개 중 <b id="adSaved" style="color:var(--success)">0</b>개 저장 / <b id="adNone" style="color:var(--danger)">0</b>개 데이터없음</span>
           <span class="sp"></span>
           <button class="btn warm sm" id="adNewBtn">＋ 새로등록</button>
         </div>
@@ -300,7 +300,7 @@
 
   /* ===== 아이템 마스터 (STI LIST 누적) ===== */
   function masterCount(){ return Object.keys(masterIndex).length; }
-  function updateMasterUI(){ $('masterCount').textContent=masterCount(); if(adAoa) rematch(); }
+  function updateMasterUI(){ $('masterCount').textContent=masterCount(); }
   function masterLoad(){
     if(!fbReady()) return;
     window.fbFns.getDoc(window.fbFns.doc(window.fbDb, AD_COL, MASTER_ID)).then(function(s){
@@ -331,7 +331,8 @@
     if(res.error){ toast(res.error); return; }
     var added=E.mergeIndex(masterIndex, res.index);   // 중복 제외, 신규만
     var st=$('stMaster'); st.className='status'; st.innerHTML='<span class="spin"></span> 저장중…';
-    masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ 신규 '+added+'쌍 추가 · 총 '+masterCount()+'개'; toast('누적 저장 완료'); updateMasterUI(); $('masterSaveBtn').disabled=true; })
+    masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ 신규 '+added+'쌍 추가 · 총 '+masterCount()+'개'; updateMasterUI(); $('masterSaveBtn').disabled=true;
+        var ch=refreshAd(); toast('누적 저장 완료'+((ch&&ch>0)?(' · 광고데이터 '+ch+'개 갱신'):'')); })
       .catch(function(err){ st.className='status err'; st.textContent='저장 실패: '+(err&&err.message||err); });
   }
   function masterPersist(){
@@ -342,7 +343,7 @@
     if(!fbReady()) return;
     if(!confirm('임시저장된 아이템마스터('+masterCount()+'개)를 전체 삭제할까요?')) return;
     masterIndex={};
-    masterPersist().then(function(){ toast('전체 삭제됨'); updateMasterUI(); $('stMaster').textContent=''; }).catch(function(err){ toast('삭제 실패: '+(err&&err.message||err)); });
+    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('stMaster').textContent=''; toast('전체 삭제됨'); }).catch(function(err){ toast('삭제 실패: '+(err&&err.message||err)); });
   }
 
   /* ===== 광고상품 매칭 ===== */
@@ -365,7 +366,26 @@
     renderPreview(curList, curMaxEtc, curTitle||'미리보기');
     updateAdCount(); saveDraft();
   }
-  function updateAdCount(){ var el=$('adCount'); if(el) el.textContent=curList.length; }
+  function updateAdCount(){
+    var total=curList.length, none=0;
+    curList.forEach(function(it){ if(String(it.upc||'').toUpperCase()==='X'||!it.upc) none++; });
+    var t=$('adTotal'),sv=$('adSaved'),nn=$('adNone');
+    if(t) t.textContent=total; if(sv) sv.textContent=(total-none); if(nn) nn.textContent=none;
+  }
+  /* 아이템마스터가 갱신되면 광고데이터 REFRESH (새 UPC 반영) */
+  function refreshAdFromMaster(){
+    if(!curList.length) return 0;
+    var maxEtc=0, changed=0;
+    curList.forEach(function(it){
+      var upcs=masterIndex[E.normKey(it.itemcode)]||[]; var before=it.upc;
+      if(upcs.length){ it.upc=upcs[0]; it.etc=upcs.slice(1); if(it.etc.length>maxEtc) maxEtc=it.etc.length; }
+      else { it.upc='X'; it.etc=[]; }
+      if(it.upc!==before) changed++;
+    });
+    curMaxEtc=maxEtc; updateAdCount(); renderPreview(curList, curMaxEtc, curTitle||'미리보기'); saveDraft();
+    return changed;
+  }
+  function refreshAd(){ if(adAoa) rematch(); else return refreshAdFromMaster(); }
   /* 광고상품 작업데이터 유지(드래프트) */
   function saveDraft(){
     if(!fbReady()) return;
