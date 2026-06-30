@@ -566,13 +566,15 @@
       var K=String(c.key).toUpperCase();
       if(__MFDEL[K]) return;
       if(isStorePriceKey(K) && K!==myField) return;   // 다른 매장 가격(S) 숨김 — 로그인 매장 가격만 표시
-      // #7 숏네임: 라벨에 매장 숏네임 포함 시 그 매장 전용
-      var __so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):'';
-      if(__so && myStore && nrmStore(__so)!==nrmStore(myStore)) return;
-      // #9 매장연결: all(전체)·none(숨김)·[매장목록]
+      // #9 매장연결(명시) 우선 → #7 숏네임은 기본(전체)일 때만 적용
       var __slv=(__MFSTY[K] && __MFSTY[K].stores) || 'all';
-      if(__slv==='none') return;
-      if(Array.isArray(__slv) && myStore){ var __ok=false; for(var __zz=0;__zz<__slv.length;__zz++){ if(nrmStore(__slv[__zz])===nrmStore(myStore)){ __ok=true; break; } } if(!__ok) return; }
+      if(__slv==='none') return;                                    // 해제: 모든 매장 숨김
+      if(Array.isArray(__slv)){                                     // 선택 매장만: 그 매장에서만 (숏네임 무시)
+        if(myStore){ var __ok=false; for(var __zz=0;__zz<__slv.length;__zz++){ if(nrmStore(__slv[__zz])===nrmStore(myStore)){ __ok=true; break; } } if(!__ok) return; }
+      } else {                                                      // 전체(기본): 숏네임 규칙 적용
+        var __so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):'';
+        if(__so && myStore && nrmStore(__so)!==nrmStore(myStore)) return;
+      }
       if(Array.isArray(show)){
         if(show.indexOf(c.key)<0) return;
       } else {

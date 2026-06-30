@@ -463,7 +463,8 @@
   function slText(m){ var v=normSL(m&&m.stores); if(v==='all') return '전체'; if(v==='none') return '숨김'; return v.length+'개 매장'; }
   var __storeReg=null;
   async function ensureStoreReg(){
-    if(__storeReg && __storeReg.length) return __storeReg;
+    // 매장 관리 탭의 현재 메모리 값(stWork)이 가장 최신 — SHORTNAME 즉시 반영
+    if(stWork && stWork.length){ __storeReg=stWork.map(function(s){return {name:s.name, short:(s.short||'').toUpperCase()};}); return __storeReg; }
     var fb=window.smFb, list=[];
     if(fb&&fb.getDoc){ try{ var snap=await fb.getDoc(fb.doc(fb.db,STORES_COL,STORES_DOC)); if(snap&&snap.exists&&snap.exists()){ var d=snap.data()||{}; if(Array.isArray(d.list)) list=d.list.map(function(x){return {name:String(x.name||'').trim(),short:String(x.short||'').trim().toUpperCase()};}).filter(function(x){return x.name;}); } }catch(e){} }
     if(!list.length) list=DEFAULT_STORES.map(function(x){return {name:x.name,short:x.short};});

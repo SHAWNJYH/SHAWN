@@ -845,8 +845,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var spCodes=Object.keys(CMP_OWNER);
     function isStorePriceKey(K){ for(var i=0;i<spCodes.length;i++){ if(K===spCodes[i]+'(S)') return true; } return false; }
     return curLayout().filter(function(c){ var K=String(c.key).toUpperCase(); if(c.hidden) return false; if(__MFDEL[K]) return false; if(STD_CHECK_COLS.indexOf(K)>=0) return false; if(isStorePriceKey(K) && K!==myField) return false;
-      var __so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):''; if(__so && myStore && nrmStore(__so)!==nrmStore(myStore)) return false;   // #7 숏네임 전용
-      var __slv=(__MFSTY[K] && __MFSTY[K].stores) || 'all'; if(__slv==='none') return false; if(Array.isArray(__slv) && myStore){ var __ok=false; for(var __zz=0;__zz<__slv.length;__zz++){ if(nrmStore(__slv[__zz])===nrmStore(myStore)){ __ok=true; break; } } if(!__ok) return false; }   // #9 매장연결
+      var __slv=(__MFSTY[K] && __MFSTY[K].stores) || 'all';   // #9 매장연결(명시) 우선
+      if(__slv==='none') return false;                       // 해제
+      if(Array.isArray(__slv)){ if(myStore){ var __ok=false; for(var __zz=0;__zz<__slv.length;__zz++){ if(nrmStore(__slv[__zz])===nrmStore(myStore)){ __ok=true; break; } } if(!__ok) return false; } }   // 선택 매장만 (숏네임 무시)
+      else { var __so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):''; if(__so && myStore && nrmStore(__so)!==nrmStore(myStore)) return false; }   // 전체(기본)=숏네임 규칙
       return true; });
   }
   // 행 객체 깊은 복사
