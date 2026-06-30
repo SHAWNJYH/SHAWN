@@ -65,7 +65,7 @@
   .st-addrow{ display:grid; grid-template-columns:1fr 130px 130px auto; gap:10px; align-items:center; margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
   /* 필드 매장연결 */
   .fm-line-sl{ margin-top:2px; }
-  .fm-storelink{ width:100%; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:6px; padding:5px 8px; font-family:var(--mono); font-size:11px; font-weight:800; cursor:pointer; text-align:left; }
+  .fm-storelink{ flex:0 0 auto; width:22px; height:20px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:6px; padding:0; font-size:11px; font-weight:800; cursor:pointer; text-align:center; line-height:1; }
   .fm-storelink.on{ border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
   .fm-storelink:hover{ border-color:var(--accent-warm); }
   .sl-ov{ position:fixed; inset:0; background:rgba(20,18,15,.5); display:none; align-items:center; justify-content:center; z-index:3000; }
@@ -100,8 +100,8 @@
   .fm-saved{ font-size:12px; font-weight:800; color:#2a8a4a; }
   .fm-wrap{ flex:1 1 auto; min-height:0; overflow:auto; padding:14px 22px 22px; }
   .fm-hint{ font-size:12px; color:var(--text-faint); font-weight:600; margin-bottom:12px; }
-  .fm-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(248px, 1fr)); gap:7px; align-content:start; }
-  .fm-row{ display:flex; flex-direction:column; gap:4px; background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:6px 7px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
+  .fm-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:6px; align-content:start; }
+  .fm-row{ display:flex; flex-direction:column; gap:3px; background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:5px 6px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
   .fm-row:active{ cursor:grabbing; }
   .fm-row.dragging{ opacity:.45; }
   .fm-row.drag-over{ border-color:var(--accent-warm); box-shadow:0 0 0 3px rgba(201,169,97,.25); }
@@ -119,15 +119,15 @@
   .fm-key{ flex:0 0 auto; max-width:78px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:var(--mono); font-size:10px; font-weight:800; color:var(--text-faint); background:var(--bg-elev-2); border:1px solid var(--border); border-radius:5px; padding:3px 5px; }
   .fm-name{ flex:1 1 auto; min-width:50px; }
   .fm-rtype{ flex:1 1 auto; min-width:60px; }
-  .fm-sw{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border:1px solid var(--border); border-radius:5px; font-weight:900; font-size:12px; background:#fff; color:#1f2937; cursor:pointer; flex:0 0 auto; padding:0; }
+  .fm-sw{ display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border:1px solid var(--border); border-radius:5px; font-weight:900; font-size:11px; background:#fff; color:#1f2937; cursor:pointer; flex:0 0 auto; padding:0; }
   .fm-sw:hover{ border-color:var(--accent-warm); }
   .fm-b{ width:22px; height:22px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:5px; font-weight:900; font-size:12px; cursor:pointer; flex:0 0 auto; padding:0; }
   .fm-b.on{ background:#1f2937; color:#fff; border-color:#1f2937; }
   .fm-align{ display:inline-flex; border:1px solid var(--border); border-radius:5px; overflow:hidden; flex:0 0 auto; }
-  .fm-al{ width:22px; height:22px; border:none; border-right:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); font-size:11px; font-weight:900; cursor:pointer; padding:0; }
+  .fm-al{ width:16px; height:20px; border:none; border-right:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); font-size:10px; font-weight:900; cursor:pointer; padding:0; flex:0 0 auto; }
   .fm-al:last-child{ border-right:none; }
   .fm-al.on{ background:var(--accent-warm); color:#3a2e12; }
-  .fm-trunc-in{ width:46px; height:22px; border:1px solid var(--border); border-radius:5px; padding:0 5px; font-family:var(--mono); font-size:12px; box-sizing:border-box; flex:0 0 auto; }
+  .fm-trunc-in{ width:34px; height:20px; border:1px solid var(--border); border-radius:5px; padding:0 3px; font-family:var(--mono); font-size:11px; box-sizing:border-box; flex:0 0 auto; }
   .fm-reset{ width:24px; height:22px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-faint); border-radius:5px; font-size:13px; cursor:pointer; padding:0; flex:0 0 auto; margin-left:auto; }
   .fm-reset:hover{ color:#c0392b; border-color:#e0c0c0; }
   .fm-row.grp-msrp .fm-key,.fm-row.grp-srp .fm-key,.fm-row.grp-msrp .fm-b,.fm-row.grp-srp .fm-b,.fm-row.grp-msrp .fm-al,.fm-row.grp-srp .fm-al,.fm-row.grp-msrp .fm-reset,.fm-row.grp-srp .fm-reset{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
@@ -151,12 +151,20 @@
   .fm-pal-ok{ background:var(--accent-warm); color:#3a2e12; border-color:var(--accent-warm); }
   .fm-rtop{ display:flex; align-items:center; gap:4px; }
   .fm-grip{ font-size:11px; color:var(--border-bright); line-height:1; user-select:none; }
-  .fm-ord{ font-size:11px; font-weight:900; color:#d63a3a; flex:1 1 auto; }
+  .fm-ord{ font-size:11px; font-weight:900; color:#d63a3a; flex:0 0 auto; min-width:13px; }
   .fm-flag{ font-size:10px; font-weight:800; color:#8a6d2b; }
-  .fm-row .fm-name{ width:100%; min-width:0; border:1px solid #ececec; background:#fff; font-family:var(--mono); font-size:11.5px; font-weight:700; color:var(--text); padding:4px 5px; border-radius:6px; box-sizing:border-box; }
+  .fm-row .fm-name{ flex:1 1 28px; width:auto; min-width:0; border:1px solid #ececec; background:#fff; font-family:var(--mono); font-size:11px; font-weight:700; color:var(--text); padding:3px 4px; border-radius:6px; box-sizing:border-box; }
   .fm-row .fm-name:focus{ outline:none; border-color:var(--accent-warm); background:#fffdf6; }
-  .fm-row .fm-rtype{ width:100%; border:1px solid var(--border); border-radius:6px; font-family:var(--mono); font-size:10px; font-weight:700; color:var(--text-dim); padding:3px 2px; background:var(--bg-elev-2); cursor:pointer; box-sizing:border-box; }
-  .fm-row .fm-del{ border:none; background:transparent; color:var(--text-faint); font-size:13px; font-weight:800; cursor:pointer; padding:0 2px; line-height:1; }
+  .fm-row .fm-rtype{ flex:1 1 auto; width:auto; min-width:46px; height:20px; border:1px solid var(--border); border-radius:6px; font-family:var(--mono); font-size:10px; font-weight:700; color:var(--text-dim); padding:0 2px; background:var(--bg-elev-2); cursor:pointer; box-sizing:border-box; }
+  .fm-row .fm-del{ border:none; background:transparent; color:var(--text-faint); font-size:12px; font-weight:800; cursor:pointer; padding:0 1px; line-height:1; flex:0 0 auto; }
+  .fm-userlock{ border:none; background:transparent; font-size:12px; cursor:pointer; padding:0 1px; line-height:1; flex:0 0 auto; }
+  .fm-lock{ font-size:11px; flex:0 0 auto; }
+  .fm-apply{ flex:1 1 auto; min-width:34px; height:20px; border:1px solid var(--accent-warm); background:var(--accent-warm); color:#fff; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; padding:0 6px; }
+  .fm-apply:hover{ filter:brightness(1.06); }
+  .fm-apply:active{ transform:scale(.96); }
+  .fm-uni-label{ font-size:12px; font-weight:800; color:var(--accent-warm); padding:4px 2px; }
+  .fm-b.fm-bold{ width:20px; height:20px; font-size:11px; }
+  .fm-reset{ width:20px; height:20px; font-size:11px; }
   .fm-row .fm-del:hover{ color:#c0392b; }
   .fm-empty{ grid-column:1 / -1; text-align:center; color:var(--text-faint); font-size:12px; padding:24px 0; font-weight:700; }
   @media (max-width:560px){ .fm-list{ grid-template-columns:1fr; } }
@@ -267,8 +275,12 @@
   .fm-name[readonly]{ background:#f3eedd; color:#6b5a36; cursor:not-allowed; }
   /* 컴팩트 필드카드 (3줄) */
   .fm-row{ padding:6px 8px !important; }
-  .fm-l1,.fm-l2,.fm-l3{ display:flex; align-items:center; gap:4px; margin-top:3px; }
-  .fm-l1{ flex-wrap:wrap; margin-top:0; }
+  .fm-l1,.fm-l2,.fm-l3{ display:flex; align-items:center; gap:2px; margin-top:2px; }
+  .fm-l1{ overflow:hidden; }
+  .fm-align{ flex:0 0 auto; display:inline-flex; border:1px solid var(--border); border-radius:5px; }
+  .fm-l1{ flex-wrap:nowrap; margin-top:0; }
+  .fm-l2{ display:grid; grid-template-columns:minmax(0,1fr) 34px auto; gap:3px; }
+  .fm-l3{ flex-wrap:nowrap; }
   .fm-typebtns{ display:inline-flex; gap:2px; margin-left:auto; }
   .fm-ty{ height:22px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-dim); border-radius:5px; padding:0 7px; font-size:11px; font-weight:800; cursor:pointer; line-height:1; box-sizing:border-box; }
   .fm-ty:hover{ border-color:var(--accent-warm); }
@@ -304,10 +316,7 @@
     <!-- 필드 관리 (마스터) : upc-config/main.masterFields 공통 편집 -->
     <div class="sm-panel" id="smPanelFields">
       <div class="ex-toolbar">
-        <div class="ex-tb-group fm-target">
-          <button class="ex-btn fm-tg on" id="fmTgUpc" type="button">UPC 매니저</button>
-          <button class="ex-btn fm-tg" id="fmTgPlu" type="button">PLU 매니저</button>
-        </div>
+        <div class="ex-tb-group"><span class="fm-uni-label">필드 관리 · UPC+PLU 통합</span></div>
         <div class="ex-tb-group">
           <input class="fm-newname" id="fmNewName" placeholder="새 필드 이름 (예: UPC(C))" maxlength="40" autocomplete="off">
           <select class="ex-sel" id="fmNewType"><option value="text">텍스트</option><option value="price">가격 ($)</option><option value="margin">마진 (%)</option><option value="checkbox">체크박스</option><option value="image">이미지</option></select>
@@ -317,7 +326,6 @@
         <span class="fm-count" id="fmCount"></span>
         <span class="fm-saved" id="fmSaved"></span>
         <button class="ex-btn" id="fmTrash" type="button" title="삭제된 필드 보기 · 되살리기">🗑 삭제된 필드</button>
-        <button class="ex-btn" id="fmSaveBoth" type="button" title="현재 필드의 글씨·색·정렬을 UPC와 PLU 양쪽 리스트에 동시 적용 (상대쪽 고유 필드·매장연결은 보존)">🔁 UPC+PLU 동시적용</button>
         <button class="ex-btn primary" id="fmSave" type="button">💾 저장</button>
       </div>
       <div class="fm-wrap">
@@ -569,6 +577,7 @@
   function mfKind(t){ t=String(t||''); return (t==='price'||t==='margin'||t==='checkbox'||t==='image')?t:'text'; }
   function mfTypeOptionsHTML(sel){ var o=[['text','텍스트'],['price','가격 ($)'],['margin','마진 (%)'],['checkbox','체크박스'],['image','이미지']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
   function mfFlag(t){ return t==='price'?'$':(t==='margin'?'%':(t==='checkbox'?'☑':(t==='image'?'🖼':''))); }
+  function mfTypeOptionsShort(sel){ var o=[['text','텍스트'],['price','$'],['margin','%'],['checkbox','☑'],['image','🖼']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
 
   /* ---- 마스터 필드 로드/실시간 구독 (upc-config/main.masterFields) ---- */
   var __smDeleted={};  // 삭제된 필드 키(숨김 전파용)
@@ -589,10 +598,13 @@
     state.managerFields = names;
     state.masterRaw = raw;
     state.masterFromCloud = true;
-    // 필드 관리 탭이 열려 있고 편집 중이 아니면 갱신
-    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); fmRender(); }
+    // 필드 관리 탭이 열려 있고 편집 중이 아니면 통합 갱신
+    fmRebuild();
     return true;
   }
+  function fmNormRow(m){ return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}; }
+  function fmMergedRaw(){ var out=[],seen={}; function add(arr){ (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push(m); }); } add(state.masterRaw); add(__pluMasterRaw); return out; }
+  function fmRebuild(){ if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=fmMergedRaw().map(fmNormRow); fmRender(); } }
   function subscribeMaster(){
     var fb = window.smFb; if(!fb) return;
     var ref = fb.doc(fb.db, 'upc-config', 'main');
@@ -618,7 +630,7 @@
       var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}); }); }
       if(d && Array.isArray(d.tabs)){ __slCatsPLU=__flatCats(d.tabs); }
       __pluMasterRaw=raw;
-      if(FM_TARGET==='plu' && $('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); fmRender(); }
+      fmRebuild();
     }
     if(fb.onSnapshot){ try{ fb.onSnapshot(ref, handle, function(){}); return; }catch(e){} }
     fb.getDoc(ref).then(handle).catch(function(){});
@@ -636,8 +648,8 @@
   /* ===== 필드 관리 (마스터) 편집기 ===== */
   var fmWork = null, fmDirty = false, __fmDrag = -1;
   function fmOpen(){
-    var __raw=fmCurRaw();
-    fmWork = (__raw && __raw.length) ? __raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false,stores:'all'};});
+    var __raw=fmMergedRaw();
+    fmWork = (__raw && __raw.length) ? __raw.map(fmNormRow) : DEFAULT_MANAGER_FIELDS.map(function(k){return {key:k,label:k,type:'text',align:'',trunc:0,bg:'',fg:'',bold:false,stores:'all'};});
     fmDirty = false; fmSetSaved(''); fmRender();
     var nn=$('fmNewName'); if(nn){ nn.value=''; setTimeout(function(){ try{nn.focus();}catch(e){} },30); }
   }
@@ -662,26 +674,26 @@
         var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
         return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
           '<div class="fm-l1">'+
-            '<span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+
-            (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제(수정·삭제 가능)':'고정하기 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
-            '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결">🏬 '+slText(m)+'</button>'+
-            '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
+            '<span class="fm-ord">'+(i+1)+'</span>'+
+            (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
+            '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결 (숨김/표시): '+slText(m)+'">🏬</button>'+
+            '<select class="fm-rtype" title="필드 종류">'+mfTypeOptionsShort(m.type)+'</select>'+
           '</div>'+
           '<div class="fm-l2">'+
-            '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
-            '<input class="fm-name"'+((m.locked||fmLock()[k])?' readonly':'')+' style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
-            '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="LEN" title="표시 글자수 (비우면 전체)">'+
+            '<input class="fm-name"'+((m.locked||fmLock()[k])?' readonly':'')+' style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="이름" title="'+esc(m.key)+'" autocomplete="off">'+
+            '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="자수" title="표시 글자수 (비우면 전체)">'+
+            '<span class="fm-align" title="정렬">'+
+              '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button">L</button>'+
+              '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button">C</button>'+
+              '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button">R</button>'+
+            '</span>'+
           '</div>'+
           '<div class="fm-l3">'+
             '<button class="fm-sw fm-sw-fg" data-pick="fg" type="button" title="글씨색"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</button>'+
             '<button class="fm-sw fm-sw-bg" data-pick="bg" type="button" title="바탕색"'+(m.bg?(' style="background:'+m.bg+';color:#fff"'):'')+'>▦</button>'+
             '<button class="fm-b fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
-            '<span class="fm-align" title="정렬 (L 왼쪽 / C 가운데 / R 오른쪽)">'+
-              '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button" title="왼쪽">L</button>'+
-              '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button" title="가운데">C</button>'+
-              '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button" title="오른쪽">R</button>'+
-            '</span>'+
             '<button class="fm-reset" type="button" title="초기화">⟲</button>'+
+            '<button class="fm-apply" type="button" title="이 설정을 UPC·PLU 양쪽에 즉시 적용">적용</button>'+
           '</div>'+
         '</div>';
       }).join('');
@@ -694,6 +706,7 @@
         row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
         var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; fmRender(); };
         var rs=row.querySelector('.fm-reset'); if(rs) rs.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmWork[i].align=''; fmWork[i].trunc=0; fmDirty=true; fmRender(); };
+        var ap=row.querySelector('.fm-apply'); if(ap) ap.onclick=function(){ fmSave(); };
         var slB=row.querySelector('.fm-storelink'); if(slB) slB.onclick=function(){ openStoreLink(i); };
         row.querySelectorAll('.fm-al').forEach(function(btn){ btn.onclick=function(){ var a=btn.getAttribute('data-al'); fmWork[i].align=(fmWork[i].align===a?'':a); fmDirty=true; fmRender(); }; });
         var trIn=row.querySelector('.fm-trunc-in'); if(trIn) trIn.addEventListener('change', function(){ var n=parseInt(this.value,10); fmWork[i].trunc=(n>0?n:0); fmDirty=true; markCnt(); });
@@ -722,59 +735,19 @@
       var __curK={}; data.forEach(function(m){ __curK[m.key]=1; });
       var __delMap=fmCurDeleted();
       var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,fmCfgCol(),'main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'plu-config','main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
       fmDirty=false;
-      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); }
-      else { applyMaster(data); }
-      fmRender(); fmSetSaved('저장됨 · '+data.length+'개 ('+(FM_TARGET==='plu'?'PLU':'UPC')+')');
+      __pluMasterRaw=data.map(fmNormRow); applyMaster(data);
+      fmRender(); fmSetSaved('저장됨 · '+data.length+'개 (UPC+PLU)');
       setTimeout(function(){ fmSetSaved(''); }, 2500);
     }catch(e){ console.error(e); alert('저장 실패: '+e.message); }
     finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
   }
 
-  // 현재 필드의 글씨/스타일을 UPC·PLU 양쪽 config에 적용 (병합 — 상대 고유필드/매장연결 보존)
-  async function fmSaveBoth(){
-    if(!window.smFb || !window.smFb.setDoc || !window.smFb.getDoc){ alert('Firebase 연결을 확인하세요'); return; }
-    var btn=$('fmSaveBoth'), old=btn?btn.textContent:''; if(btn){ btn.textContent='적용 중…'; btn.disabled=true; }
-    try{
-      var data = fmNorm(fmWork);
-      var __curK={}; data.forEach(function(m){ __curK[m.key]=1; });
-      var __delMap=fmCurDeleted();
-      var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
-      var curCol=fmCfgCol();
-      // 1) 현재 config 저장
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,curCol,'main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
-      // 2) 다른 config에 병합
-      var otherCol = (FM_TARGET==='plu') ? 'upc-config' : 'plu-config';
-      var snap = await window.smFb.getDoc(window.smFb.doc(window.smFb.db,otherCol,'main'));
-      var od = (snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      var oFields = Array.isArray(od.masterFields)?od.masterFields.map(function(x){return x;}):[];
-      var oMap={}; oFields.forEach(function(m,idx){ if(m&&m.key!=null) oMap[String(m.key).trim().toUpperCase()]=idx; });
-      data.forEach(function(m){
-        var K=String(m.key).trim().toUpperCase();
-        if(oMap[K]!=null){
-          var t=oFields[oMap[K]]||{};   // 기존: 글씨/스타일만 갱신 (매장연결 등 보존)
-          t.label=m.label; t.type=m.type; t.align=m.align||''; t.trunc=m.trunc||0; t.fg=m.fg||''; t.bg=m.bg||''; t.bold=!!m.bold; t.locked=!!m.locked;
-          oFields[oMap[K]]=t;
-        } else {
-          oFields.push({key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:m.stores,storesByCat:m.storesByCat});
-        }
-      });
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,otherCol,'main'), { masterFields:oFields, updatedAt:Date.now() }, { merge:true });
-      fmDirty=false;
-      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); }
-      else { applyMaster(data); }
-      fmRender(); fmSetSaved('UPC+PLU 양쪽 적용됨 · '+data.length+'개');
-      setTimeout(function(){ fmSetSaved(''); }, 2800);
-    }catch(e){ console.error(e); alert('동시 적용 실패: '+e.message); }
-    finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
-  }
   $('fmAdd').onclick = fmAddNew;
   $('fmNewName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); fmAddNew(); } });
   $('fmSave').onclick = fmSave;
-  if($('fmSaveBoth')) $('fmSaveBoth').onclick = fmSaveBoth;
-  var __tu=$('fmTgUpc'); if(__tu) __tu.onclick=function(){ fmSetTarget('upc'); };
-  var __tp=$('fmTgPlu'); if(__tp) __tp.onclick=function(){ fmSetTarget('plu'); };
   // ===== 삭제된 필드 보기 · 되살리기 =====
   function openDeletedFieldsModal(){
     var old=document.getElementById('fmTrashOv'); if(old) old.remove();
