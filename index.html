@@ -2426,8 +2426,8 @@
     <h1 class="lock-title">EGMM PIN 변경</h1>
     <p class="mgr-pw-sub">EGMM 진입 PIN을 변경합니다</p>
     <div class="field">
-      <label>현재 PIN</label>
-      <input type="text" id="egmmPinCur" inputmode="numeric" readonly autocomplete="off">
+      <label>현재 PIN (확인용)</label>
+      <input type="password" id="egmmPinOld" inputmode="numeric" placeholder="••••••" maxlength="8" autocomplete="off">
     </div>
     <div class="field">
       <label>새 PIN (숫자 4~8자리)</label>
@@ -3289,7 +3289,21 @@
   $('toSignupBtn').onclick = setSignupMode;
   $('toLoginBtn').onclick = setLoginMode;
   // EGMM 박스 → 비밀번호 확인(팝업) 후 별도 페이지(egmm.html)로 이동
-  let egmmPin = '98001';                          // EGMM 진입 PIN (Firebase에서 동기화, 기본값 98001)
+  let egmmPin = '98001';                          // EGMM 진입 PIN의 "저장값"(해시 또는 레거시 평문). 절대 DOM/화면에 넣지 않음
+  // PIN 해시 (안전컨텍스트=HTTPS면 SHA-256, 아니면 평문 폴백). 저장값은 'h:'/'p:'/레거시평문 중 하나.
+  async function hashPin(v){
+    v=String(v);
+    if(window.crypto && window.crypto.subtle){
+      try{ var buf=await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v));
+        return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }catch(e){}
+    }
+    return 'p:'+v;
+  }
+  async function verifyPin(entered){
+    entered=String(entered||'').trim(); var stored=String(egmmPin||'').trim();
+    if(stored.slice(0,2)==='h:' || stored.slice(0,2)==='p:') return (await hashPin(entered))===stored;
+    return entered===stored;   // 레거시 평문/기본값(첫 변경 시 해시로 전환됨)
+  }
   const EGMM_PIN_COL = 'app-config', EGMM_PIN_DOC = 'egmm';
   function loadEgmmPin(){
     if(!window.firebaseFns || !window.firebaseDb){ setTimeout(loadEgmmPin, 600); return; }
@@ -3298,7 +3312,6 @@
         window.firebaseFns.onSnapshot(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), function(snap){
           var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
           if(d && d.pin!=null && String(d.pin).trim()!=='') egmmPin=String(d.pin).trim();
-          var cur=$('egmmPinCur'); if(cur) cur.value=egmmPin;
         }, function(){});
       } else {
         window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC)).then(function(snap){
@@ -3314,16 +3327,18 @@
   const isEgmmAuto = () => { try{ return localStorage.getItem(EGMM_AUTO_KEY)==='1'; }catch(e){ return false; } };
   const openEgmmPw = () => { if(egmmPwErr) egmmPwErr.textContent=''; if(egmmPwInput) egmmPwInput.value=''; if(egmmAutoChk) egmmAutoChk.checked=isEgmmAuto(); egmmPwOv.classList.add('show'); setTimeout(()=>{ if(egmmPwInput) egmmPwInput.focus(); }, 80); };
   const closeEgmmPw = () => egmmPwOv.classList.remove('show');
-  const submitEgmmPw = () => {
+  const submitEgmmPw = async () => {
     const p = (egmmPwInput && egmmPwInput.value || '').trim();
-    if (p === egmmPin) {
+    if (await verifyPin(p)) {
       try{ localStorage.setItem(EGMM_AUTO_KEY, (egmmAutoChk && egmmAutoChk.checked) ? '1' : '0'); }catch(e){}
+      try{ sessionStorage.setItem('egmmGate','1'); }catch(e){}
       window.location.href = 'egmm.html';
     } else { if(egmmPwErr) egmmPwErr.textContent = '비밀번호가 올바르지 않습니다'; }
   };
   const enterEgmm = () => {
     if (isEgmmAuto()) {   // 자동 로그인 ON → 안 묻고 안내 후 진입
       try { showToast('자동 로그인 합니다', 'success'); } catch(e) {}
+      try{ sessionStorage.setItem('egmmGate','1'); }catch(e){}
       setTimeout(()=>{ window.location.href = 'egmm.html'; }, 600);
       return;
     }
@@ -3342,25 +3357,28 @@
   const egmmPinOv = $('egmmPinOv');
   const openEgmmPin = () => {
     var m=$('egmmPinMsg'); if(m){ m.textContent=''; m.style.color=''; }
-    var n1=$('egmmPinNew'), n2=$('egmmPinNew2'), cur=$('egmmPinCur');
-    if(n1) n1.value=''; if(n2) n2.value=''; if(cur) cur.value=egmmPin;
+    var o=$('egmmPinOld'), n1=$('egmmPinNew'), n2=$('egmmPinNew2');
+    if(o) o.value=''; if(n1) n1.value=''; if(n2) n2.value='';
     if(egmmPinOv) egmmPinOv.classList.add('show');
-    setTimeout(()=>{ if(n1) n1.focus(); }, 80);
+    setTimeout(()=>{ if(o) o.focus(); }, 80);
   };
   const closeEgmmPin = () => { if(egmmPinOv) egmmPinOv.classList.remove('show'); };
   const saveEgmmPin = async () => {
     var msg=$('egmmPinMsg');
+    var oldv=($('egmmPinOld')&&$('egmmPinOld').value||'').trim();
     var a=($('egmmPinNew')&&$('egmmPinNew').value||'').trim();
     var b=($('egmmPinNew2')&&$('egmmPinNew2').value||'').trim();
     var fail=function(t){ if(msg){ msg.style.color='#b04141'; msg.textContent=t; } };
-    if(!/^[0-9]{4,8}$/.test(a)){ fail('숫자 4~8자리로 입력하세요'); return; }
+    if(!(await verifyPin(oldv))){ fail('현재 PIN이 올바르지 않습니다'); return; }
+    if(!/^[0-9]{4,8}$/.test(a)){ fail('새 PIN은 숫자 4~8자리'); return; }
     if(a!==b){ fail('새 PIN이 일치하지 않습니다'); return; }
     if(!window.firebaseFns || !window.firebaseDb){ fail('연결 준비 중 — 잠시 후 다시'); return; }
     var btn=$('egmmPinSave'); var old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
     try{
-      await window.firebaseFns.setDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), { pin:a, updatedAt:Date.now() }, { merge:true });
-      egmmPin=a; var cur=$('egmmPinCur'); if(cur) cur.value=a;
-      if(msg){ msg.style.color='#2f7d32'; msg.textContent='변경되었습니다 · 새 PIN '+a; }
+      var hashed=await hashPin(a);
+      await window.firebaseFns.setDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), { pin:hashed, updatedAt:Date.now() }, { merge:true });
+      egmmPin=hashed;
+      if(msg){ msg.style.color='#2f7d32'; msg.textContent='변경되었습니다 (안전하게 해시로 저장됨)'; }
       setTimeout(closeEgmmPin, 1200);
     }catch(e){ fail('저장 실패: '+((e&&e.message)||e)); }
     finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
