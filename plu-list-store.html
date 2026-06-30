@@ -544,7 +544,7 @@
   var STD_CHECK_COLS=['HTM','HFW','HBV','HLW','HRM','HBD','GLW','MW','DH','M2M','HUW'];
   var STD_CHECK_CATS=['청과','델리','수산','정육','하우스웨어'];
   function withStdChecks(cat, layout){ var L=(layout||[]).slice(); if(STD_CHECK_CATS.indexOf(cat)<0) return L; var has={}; L.forEach(function(c){ has[String(c.key).toUpperCase()]=1; }); STD_CHECK_COLS.forEach(function(k){ if(!has[k]) L.push({key:k,label:k,hidden:false,type:'check'}); }); return L; }
-  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,hiddenStore:!!c.hiddenStore,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold}); }); return L; }
+  function normLayout(arr){ var seen={}, L=[]; (arr||[]).forEach(function(c){ if(!c||c.key==null)return; var K=String(c.key).toUpperCase(); if(seen[K])return; seen[K]=1; L.push({key:K,label:K,hidden:!!c.hidden,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold}); }); return L; }
   function fmtPrice(v){ var s=String(v==null?'':v).trim(); if(s==='') return '-'; var n=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(n)) return s; if(n===0) return '-'; return '$'+n.toFixed(2); }
   function round2Disp(v){ var s=String(v==null?'':v).trim(); if(s===''||s.indexOf('.')<0) return v; if(!/^[+-]?[0-9]+\.[0-9]+$/.test(s)) return v; var n=parseFloat(s); if(isNaN(n)) return v; return n.toFixed(2); }
   function colorStyle(c){ if(!c) return ''; var s=''; if(c.fg) s+='color:'+c.fg+';'; if(c.bg) s+='background-color:'+c.bg+';'; if(c.bold) s+='font-weight:700;'; return s?(' style="'+s+'"'):''; }
@@ -582,7 +582,6 @@
         var __so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):'';
         if(__so && myStore && nrmStore(__so)!==nrmStore(myStore)) return;
       }
-      if(c.hiddenStore) return;   // 스토어 전용 숨김 (매니저 숨김 c.hidden과 독립)
       out.push(c);
     });
     // 매장별 컬럼 순서 적용 (매니저 레이아웃과 별개)
@@ -1434,7 +1433,6 @@
   var currentStore=null, unlocked=false, ovUnsub=null;
   var storeOv={};     // { CATDOC: { PLU: { COLKEY: val } } }
   var storeCols={};   // { CATDOC: [ {key,label,type,hidden} ] }
-  var storeShowCols={};   // { CATDOC: [표시할 열 key 목록] } — 매니저가 매장관리에서 지정
   var storeColOrder={};   // { CATDOC: [열 key 순서] } — 매장 전용(매니저와 별개)
   function fns(){return window.firebaseFns;} function db(){return window.firebaseDb;}
   function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
@@ -1458,7 +1456,6 @@
   window.__storeCols=function(catLabel, subLabel){ if(!currentStore) return []; var c=storeCols[cid(catLabel)]; if(!c||Array.isArray(c)) return []; var arr=c[subLabel]||[]; return arr.map(function(co){ return {key:co.key,label:co.label,type:(co.type==='check'?'check':'text'),__store:true}; }); };
   window.__storeColOrder=function(catLabel){ if(!currentStore) return null; var v=storeColOrder[cid(catLabel)]; return (Array.isArray(v)&&v.length)?v:null; };
   window.__saveStoreColOrder=function(catLabel, keys){ if(!currentStore||!fns()||!fns().setDoc||!Array.isArray(keys)) return; var id=cid(catLabel); storeColOrder[id]=keys.slice(); try{ fns().setDoc(fns().doc(db(),OV_COL,currentStore), { colOrder: storeColOrder }, { merge:true }); }catch(e){} rerender(); };
-  window.__showColsFor=function(catLabel){ if(!currentStore) return null; var v=storeShowCols[cid(catLabel)]; return (Array.isArray(v))?v:null; };
 
   // ===== 로그인 =====
   function fillStores(){ var sel=$('stlStore'); if(!sel) return; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join(''); }
@@ -1475,8 +1472,8 @@
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeShowCols={}; storeColOrder={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='index.html'; }
-  function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeShowCols=d.showCols||{}; storeColOrder=d.colOrder||{}; rerender(); }, function(){}); }catch(e){} }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeColOrder={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='index.html'; }
+  function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeColOrder=d.colOrder||{}; rerender(); }, function(){}); }catch(e){} }
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
   // ===== 셀 값 저장 =====
