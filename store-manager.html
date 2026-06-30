@@ -317,6 +317,7 @@
         <span class="fm-count" id="fmCount"></span>
         <span class="fm-saved" id="fmSaved"></span>
         <button class="ex-btn" id="fmTrash" type="button" title="삭제된 필드 보기 · 되살리기">🗑 삭제된 필드</button>
+        <button class="ex-btn" id="fmSaveBoth" type="button" title="현재 필드의 글씨·색·정렬을 UPC와 PLU 양쪽 리스트에 동시 적용 (상대쪽 고유 필드·매장연결은 보존)">🔁 UPC+PLU 동시적용</button>
         <button class="ex-btn primary" id="fmSave" type="button">💾 저장</button>
       </div>
       <div class="fm-wrap">
@@ -730,9 +731,48 @@
     }catch(e){ console.error(e); alert('저장 실패: '+e.message); }
     finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
   }
+
+  // 현재 필드의 글씨/스타일을 UPC·PLU 양쪽 config에 적용 (병합 — 상대 고유필드/매장연결 보존)
+  async function fmSaveBoth(){
+    if(!window.smFb || !window.smFb.setDoc || !window.smFb.getDoc){ alert('Firebase 연결을 확인하세요'); return; }
+    var btn=$('fmSaveBoth'), old=btn?btn.textContent:''; if(btn){ btn.textContent='적용 중…'; btn.disabled=true; }
+    try{
+      var data = fmNorm(fmWork);
+      var __curK={}; data.forEach(function(m){ __curK[m.key]=1; });
+      var __delMap=fmCurDeleted();
+      var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
+      var curCol=fmCfgCol();
+      // 1) 현재 config 저장
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,curCol,'main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
+      // 2) 다른 config에 병합
+      var otherCol = (FM_TARGET==='plu') ? 'upc-config' : 'plu-config';
+      var snap = await window.smFb.getDoc(window.smFb.doc(window.smFb.db,otherCol,'main'));
+      var od = (snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      var oFields = Array.isArray(od.masterFields)?od.masterFields.map(function(x){return x;}):[];
+      var oMap={}; oFields.forEach(function(m,idx){ if(m&&m.key!=null) oMap[String(m.key).trim().toUpperCase()]=idx; });
+      data.forEach(function(m){
+        var K=String(m.key).trim().toUpperCase();
+        if(oMap[K]!=null){
+          var t=oFields[oMap[K]]||{};   // 기존: 글씨/스타일만 갱신 (매장연결 등 보존)
+          t.label=m.label; t.type=m.type; t.align=m.align||''; t.trunc=m.trunc||0; t.fg=m.fg||''; t.bg=m.bg||''; t.bold=!!m.bold; t.locked=!!m.locked;
+          oFields[oMap[K]]=t;
+        } else {
+          oFields.push({key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:m.stores,storesByCat:m.storesByCat});
+        }
+      });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,otherCol,'main'), { masterFields:oFields, updatedAt:Date.now() }, { merge:true });
+      fmDirty=false;
+      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)};}); }
+      else { applyMaster(data); }
+      fmRender(); fmSetSaved('UPC+PLU 양쪽 적용됨 · '+data.length+'개');
+      setTimeout(function(){ fmSetSaved(''); }, 2800);
+    }catch(e){ console.error(e); alert('동시 적용 실패: '+e.message); }
+    finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
+  }
   $('fmAdd').onclick = fmAddNew;
   $('fmNewName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); fmAddNew(); } });
   $('fmSave').onclick = fmSave;
+  if($('fmSaveBoth')) $('fmSaveBoth').onclick = fmSaveBoth;
   var __tu=$('fmTgUpc'); if(__tu) __tu.onclick=function(){ fmSetTarget('upc'); };
   var __tp=$('fmTgPlu'); if(__tp) __tp.onclick=function(){ fmSetTarget('plu'); };
   // ===== 삭제된 필드 보기 · 되살리기 =====
