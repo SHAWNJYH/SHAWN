@@ -728,7 +728,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
-  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; }
+  function normSL(v){ if(v==='none') return 'none'; if(Array.isArray(v)){ var a=v.map(function(x){return String(x).trim();}).filter(Boolean); return a.length?a:'none'; } return 'all'; }
+  function nrmStore(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold, stores:normSL(f.stores) }; }); __MFSTY=m; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue; var ms=__MFSTY[String(__c.key||'').toUpperCase()]; if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt&&ms.fmt!=='text') __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; __c.fg=(ms.fg||''); __c.bg=(ms.bg||''); __c.bold=!!ms.bold; } } } return lay; }
   function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(!d) return; var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if(__ch && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
@@ -842,7 +844,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var myField=(myStore?priceFieldOf(myStore):'').toUpperCase();
     var spCodes=Object.keys(CMP_OWNER);
     function isStorePriceKey(K){ for(var i=0;i<spCodes.length;i++){ if(K===spCodes[i]+'(S)') return true; } return false; }
-    return curLayout().filter(function(c){ var K=String(c.key).toUpperCase(); if(c.hidden) return false; if(__MFDEL[K]) return false; if(STD_CHECK_COLS.indexOf(K)>=0) return false; if(isStorePriceKey(K) && K!==myField) return false; return true; });
+    return curLayout().filter(function(c){ var K=String(c.key).toUpperCase(); if(c.hidden) return false; if(__MFDEL[K]) return false; if(STD_CHECK_COLS.indexOf(K)>=0) return false; if(isStorePriceKey(K) && K!==myField) return false;
+      var __so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):''; if(__so && myStore && nrmStore(__so)!==nrmStore(myStore)) return false;   // #7 숏네임 전용
+      var __slv=(__MFSTY[K] && __MFSTY[K].stores) || 'all'; if(__slv==='none') return false; if(Array.isArray(__slv) && myStore){ var __ok=false; for(var __zz=0;__zz<__slv.length;__zz++){ if(nrmStore(__slv[__zz])===nrmStore(myStore)){ __ok=true; break; } } if(!__ok) return false; }   // #9 매장연결
+      return true; });
   }
   // 행 객체 깊은 복사
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
@@ -3350,10 +3355,23 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function loginAs(store){ currentStore=store; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; applyStore(); }
   function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} try{localStorage.removeItem('theShawnStore');}catch(e){} currentStore=null; window.location.href='index.html'; }
   document.addEventListener('click', function(e){ var t=e.target; if(t&&t.closest&&t.closest('#stlFab')){ if(window.confirm('로그아웃할까요?')) logout(); } });
+  /* ===== 매장 레지스트리 (app-config/stores) — 로그인 목록 + 숏네임 (#5·#7) ===== */
+  var __STORE_REG=[];
+  function refillStoreSelects(){ ['stlStore','rqStore'].forEach(function(id){ var sel=$(id); if(!sel) return; var cur=sel.value; sel.innerHTML='<option value="">SELECT STORE</option>'+STORES.map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join(''); if(cur) sel.value=cur; }); }
+  window.__storeShortOwner=function(label){ var L=String(label||'').toUpperCase(); for(var i=0;i<__STORE_REG.length;i++){ var sh=String(__STORE_REG[i].short||'').toUpperCase().replace(/[^A-Z0-9]/g,''); if(sh){ try{ if(new RegExp('(^|[^A-Z0-9])'+sh+'([^A-Z0-9]|$)').test(L)) return __STORE_REG[i].name; }catch(e){} } } return ''; };
+  function loadStoreReg(){
+    if(!fns()||!fns().getDoc){ setTimeout(loadStoreReg,500); return; }
+    var apply=function(d){ var list=[]; if(d&&Array.isArray(d.list)) list=d.list.map(function(x){return {name:String(x.name||'').trim(), short:String(x.short||'').trim().toUpperCase()};}).filter(function(x){return x.name;}); if(list.length){ __STORE_REG=list; STORES=list.map(function(x){return x.name;}); refillStoreSelects(); if(typeof rerender==='function') rerender(); } };
+    try{
+      if(fns().onSnapshot){ fns().onSnapshot(fns().doc(db(),'app-config','stores'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; apply(d); }, function(){}); }
+      else { fns().getDoc(fns().doc(db(),'app-config','stores')).then(function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; apply(d); }).catch(function(){}); }
+    }catch(e){}
+  }
   function initLogin(){
     fillStores();
     var saved=null; try{ saved=localStorage.getItem(LS_KEY); }catch(e){}
-    if(saved && STORES.indexOf(saved)>=0){ loginAs(saved); } else { showLogin(); }
+    loadStoreReg();
+    if(saved){ loginAs(saved); } else { showLogin(); }
     var lb=$('stlLoginBtn'); if(lb) lb.onclick=function(){ doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); };
     var pin=$('stlPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(($('stlStore').value||'').trim(), ($('stlPin').value||'').trim()); });
   }
