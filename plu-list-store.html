@@ -518,6 +518,8 @@
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
   function normSL(v){ if(v==='none') return 'none'; if(Array.isArray(v)){ var a=v.map(function(x){return String(x).trim();}).filter(Boolean); return a.length?a:'none'; } return 'all'; }
   function nrmStore(s){ return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+  // 로그인 매장의 '내 숏네임 필드' 여부 (Bellevue→HBV, Lynnwood→HLW). 잠금 해제 시 이 컬럼만 편집 가능.
+  function isMyShortField(c){ if(!c||c.__store) return false; var so=(typeof window.__storeShortOwner==='function')?window.__storeShortOwner(c.label!=null?c.label:c.key):''; if(!so) return false; var ms=(typeof window.__storeActive==='function')?(window.__storeActive()||''):''; return !!(ms && nrmStore(so)===nrmStore(ms)); }
   function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold, stores:normSL(f.stores) }; }); __MFSTY=m; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue;
         var __k=String(__c.key||'').trim().toUpperCase();
@@ -789,6 +791,13 @@
         var sv0=String(ovg(c)||''); var sh=sv0.length>limit?(escapeHtml(sv0.slice(0,limit))+'…'):escapeHtml(sv0);
         if(unlocked){ return '<td class="stl-cell stl-etext'+acl+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(sv0.length>limit?(' title="'+escapeHtml(sv0)+'"'):'')+'>'+(sh||'<span class="stl-ph">＋</span>')+'</td>'; }
         return '<td class="stl-cell'+acl+'"'+(sv0.length>limit?(' title="'+escapeHtml(sv0)+'"'):'')+'>'+sh+'</td>';
+      }
+      if(isMyShortField(c) && c.type!=='check' && c.type!=='rcheck'){
+        var __ov=ovg(c); var __base=String(getVal(r,c.key)||''); var __raw=(__ov!=null&&__ov!=='')?String(__ov):__base;
+        var __disp0=(c.fmt==='price'&&!unlocked)?fmtPrice(__raw):__raw;
+        var __sh=__disp0.length>limit?(escapeHtml(__disp0.slice(0,limit))+'…'):escapeHtml(__disp0);
+        if(unlocked){ return '<td class="stl-cell stl-etext'+acl+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(__disp0.length>limit?(' title="'+escapeHtml(__disp0)+'"'):'')+'>'+(__sh||'<span class="stl-ph">＋</span>')+'</td>'; }
+        return '<td class="stl-cell'+acl+'"'+colorStyle(c)+(__disp0.length>limit?(' title="'+escapeHtml(__disp0)+'"'):'')+'>'+__sh+'</td>';
       }
       if(c.type==='check'||c.type==='rcheck'){ var onc=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"'+colorStyle(c)+'><span class="pluchk'+(onc?'':' off')+'">'+(onc?'☑':'☐')+'</span></td>'; }
       if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); }
