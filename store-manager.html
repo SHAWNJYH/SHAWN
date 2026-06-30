@@ -393,7 +393,6 @@
       <button class="sl-x" id="slX" type="button">✕</button>
       <h3 class="sl-title" id="slTitle">매장 연결</h3>
       <p class="sl-sub">이 필드를 어느 매장에 보여줄지 설정합니다. ‘전체’=모든 매장, ‘숨김’=모든 매장에서 숨김, ‘선택 매장만’=고른 매장에만 표시.</p>
-      <div class="sl-catrow"><label class="sl-catlbl">카테고리</label><select id="slCat" class="sl-cat"></select></div>
       <div class="sl-modes">
         <label class="sl-mode"><input type="radio" name="slMode" value="all"> 전체 매장 (연결 · 기본)</label>
         <label class="sl-mode"><input type="radio" name="slMode" value="none"> 모두 숨김 (해제)</label>
@@ -498,43 +497,31 @@
     __storeReg=list; return list;
   }
   var __slI=-1;
-  var __slReg=null, __slWork=null, __slCatSel='_ALL_';
   async function openStoreLink(i){
     if(!fmWork[i]) return; __slI=i; var m=fmWork[i];
-    __slReg=await ensureStoreReg();
-    __slWork={}; var sbc=normSBC(m.storesByCat); if(sbc){ for(var k in sbc) __slWork[k]=sbc[k]; }
-    if(!('_ALL_' in __slWork)) __slWork['_ALL_']=normSL(m.stores);
-    __slCatSel='_ALL_';
-    var t=$('slTitle'); if(t) t.textContent='매장·카테고리 연결 — '+esc(m.label!=null?m.label:m.key);
-    var cs=$('slCat'); if(cs){ var cats=fmCurCats(); cs.innerHTML='<option value="_ALL_">기본 (모든 카테고리)</option>'+cats.map(function(c){ var ov=(__slWork[c.val]!==undefined)?' ●':''; return '<option value="'+esc(c.val)+'">'+esc(c.label)+ov+'</option>'; }).join(''); cs.value='_ALL_'; }
-    slRenderStores(); slLoadCat();
+    var reg=await ensureStoreReg();
+    var cur=normSL(m.stores), mode=slMode(m), sel={};
+    if(Array.isArray(cur)) cur.forEach(function(n){ sel[String(n).toUpperCase()]=1; });
+    var t=$('slTitle'); if(t) t.textContent='매장 연결 — '+esc(m.label!=null?m.label:m.key);
+    document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.checked=(r.value===mode); });
+    var lb=$('slList'); if(lb){ lb.innerHTML=reg.map(function(st){ var on=sel[String(st.name).toUpperCase()]?' checked':''; return '<label class="sl-item"><input type="checkbox" class="sl-chk" value="'+esc(st.name)+'"'+on+'><span>'+esc(st.name)+'</span>'+(st.short?'<span class="sl-short">'+esc(st.short)+'</span>':'')+'</label>'; }).join(''); }
+    slSyncDim();
     var ov=$('slOv'); if(ov) ov.classList.add('show');
   }
-  function slRenderStores(){ var lb=$('slList'); if(!lb||!__slReg) return; lb.innerHTML=__slReg.map(function(st){ return '<label class="sl-item"><input type="checkbox" class="sl-chk" value="'+esc(st.name)+'"><span>'+esc(st.name)+'</span>'+(st.short?'<span class="sl-short">'+esc(st.short)+'</span>':'')+'</label>'; }).join(''); }
-  function slCurVal(){ var v=__slWork[__slCatSel]; if(v===undefined){ v=(__slCatSel==='_ALL_')?'all':__slWork['_ALL_']; } return v; }
-  function slLoadCat(){ slWriteUI(slCurVal()); }
-  function slWriteUI(v){ var mode=(v==='all')?'all':(v==='none'?'none':'some'); document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.checked=(r.value===mode); }); var sel={}; if(Array.isArray(v)) v.forEach(function(n){ sel[String(n).toUpperCase()]=1; }); document.querySelectorAll('#slList .sl-chk').forEach(function(c){ c.checked=!!sel[String(c.value).toUpperCase()]; }); slSyncDim(); }
-  function slReadUI(){ var r=document.querySelector('input[name="slMode"]:checked'); var mode=r?r.value:'all'; if(mode==='all') return 'all'; if(mode==='none') return 'none'; var arr=[]; document.querySelectorAll('#slList .sl-chk:checked').forEach(function(c){ arr.push(c.value); }); return arr.length?arr:'none'; }
-  function slStashCur(){ if(__slCatSel) __slWork[__slCatSel]=slReadUI(); }
   function slSyncDim(){ var r=document.querySelector('input[name="slMode"]:checked'); var mode=r?r.value:'all'; var lb=$('slList'); if(lb) lb.classList.toggle('dim', mode!=='some'); }
   function slApply(){
     if(__slI<0||!fmWork[__slI]){ slClose(); return; }
-    slStashCur();
-    if(__slWork['_ALL_']===undefined) __slWork['_ALL_']='all';
-    var allv=JSON.stringify(__slWork['_ALL_']);
-    Object.keys(__slWork).forEach(function(k){ if(k!=='_ALL_' && JSON.stringify(__slWork[k])===allv) delete __slWork[k]; });
-    var hasOverride=Object.keys(__slWork).some(function(k){return k!=='_ALL_';});
-    fmWork[__slI].stores=__slWork['_ALL_'];
-    fmWork[__slI].storesByCat = hasOverride ? __slWork : null;
-    fmDirty=true; slClose(); fmRender();
+    var r=document.querySelector('input[name="slMode"]:checked'); var mode=r?r.value:'all'; var v='all';
+    if(mode==='none') v='none';
+    else if(mode==='some'){ var arr=[]; document.querySelectorAll('#slList .sl-chk:checked').forEach(function(c){ arr.push(c.value); }); v=arr.length?arr:'none'; }
+    fmWork[__slI].stores=v; fmWork[__slI].storesByCat=null; fmDirty=true; slClose(); fmRender();
   }
-    function slClose(){ var ov=$('slOv'); if(ov) ov.classList.remove('show'); }
+      function slClose(){ var ov=$('slOv'); if(ov) ov.classList.remove('show'); }
   if($('slOk')) $('slOk').onclick=slApply;
   if($('slCancel')) $('slCancel').onclick=slClose;
   if($('slX')) $('slX').onclick=slClose;
   if($('slOv')) $('slOv').addEventListener('click', function(e){ if(e.target===$('slOv')) slClose(); });
   document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.addEventListener('change', slSyncDim); });
-  var __slCatEl=$('slCat'); if(__slCatEl) __slCatEl.addEventListener('change', function(){ slStashCur(); __slCatSel=this.value; slLoadCat(); });
 
   function activate(which){
     var isPin=(which==='pin'), isFields=(which==='fields'), isExport=(which==='export'), isStores=(which==='stores');
