@@ -283,6 +283,7 @@
   .sl-catrow{ display:flex; align-items:center; gap:8px; margin:8px 0; }
   .sl-catlbl{ font-size:12px; font-weight:800; color:var(--text-dim); flex:0 0 auto; }
   .sl-cat{ flex:1 1 auto; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-size:13px; }
+  .fm-l1 .fm-rtype{ margin-left:auto; width:auto; flex:0 0 auto; min-width:0; height:24px; border:1px solid var(--border); border-radius:5px; font-family:var(--mono); font-size:11px; font-weight:700; color:var(--text-dim); padding:0 4px; background:var(--bg-elev-2); cursor:pointer; box-sizing:border-box; }
 </style>
 </head>
 <body>
@@ -676,7 +677,7 @@
             '<span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+
             (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제(수정·삭제 가능)':'고정하기 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
             '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결">🏬 '+slText(m)+'</button>'+
-            '<span class="fm-typebtns">'+['text','price','margin','checkbox','image'].map(function(tk){ var L={text:'텍스트',price:'$',margin:'%',checkbox:'체크',image:'이미지'}; return '<button class="fm-ty'+(mfKind(m.type)===tk?' on':'')+'" data-ty="'+tk+'" type="button">'+L[tk]+'</button>'; }).join('')+'</span>'+
+            '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
           '</div>'+
           '<div class="fm-l2">'+
             '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
@@ -699,7 +700,7 @@
       box.querySelectorAll('.fm-row').forEach(function(row){
         var i=parseInt(row.getAttribute('data-i'),10);
         row.querySelector('.fm-name').addEventListener('input', function(){ var __s=this.selectionStart,__e=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(__s,__e);}catch(_){} fmWork[i].label=this.value; fmDirty=true; });
-        row.querySelectorAll('.fm-ty').forEach(function(tb){ tb.onclick=function(){ fmWork[i].type=tb.getAttribute('data-ty'); fmDirty=true; fmRender(); }; });
+        var __rt=row.querySelector('.fm-rtype'); if(__rt) __rt.addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
         var __ul=row.querySelector('.fm-userlock'); if(__ul){ __ul.onclick=function(){ fmWork[i].locked=!fmWork[i].locked; fmDirty=true; fmRender(); }; }
         var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(fmLock()[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(fld.locked){ alert('고정된 필드입니다. 🔓로 해제 후 삭제하세요.'); return; } if(__dk) fmCurDeleted()[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
         row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
