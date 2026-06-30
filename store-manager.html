@@ -265,6 +265,18 @@
   .fmt-restore{ flex:0 0 auto; }
   .fm-userlock{ border:none; background:transparent; cursor:pointer; font-size:13px; padding:0 2px; }
   .fm-name[readonly]{ background:#f3eedd; color:#6b5a36; cursor:not-allowed; }
+  /* 컴팩트 필드카드 (3줄) */
+  .fm-row{ padding:6px 8px !important; }
+  .fm-l1,.fm-l2,.fm-l3{ display:flex; align-items:center; gap:4px; margin-top:3px; }
+  .fm-l1{ flex-wrap:wrap; margin-top:0; }
+  .fm-typebtns{ display:inline-flex; gap:2px; margin-left:auto; }
+  .fm-ty{ border:1px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:5px; padding:2px 6px; font-size:11px; font-weight:700; cursor:pointer; line-height:1.4; }
+  .fm-ty.on{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .fm-l1 .fm-storelink{ width:auto; flex:0 0 auto; padding:3px 8px; }
+  .fm-l2 .fm-name{ flex:1 1 auto; min-width:80px; }
+  .fm-l2 .fm-trunc-in{ width:56px; flex:0 0 auto; }
+  .fm-l2 .fm-key{ flex:0 0 auto; }
+  .fm-ord{ min-width:18px; text-align:center; }
 </style>
 </head>
 <body>
@@ -634,33 +646,34 @@
         var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
         var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
         return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
-          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+(fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제(수정·삭제 가능)':'고정하기 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+'</div>'+
-          '<div class="fm-line">'+
+          '<div class="fm-l1">'+
+            '<span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+
+            (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제(수정·삭제 가능)':'고정하기 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
+            '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결">🏬 '+slText(m)+'</button>'+
+            '<span class="fm-typebtns">'+['text','price','margin','checkbox','image'].map(function(tk){ var L={text:'텍스트',price:'$',margin:'%',checkbox:'☑',image:'🖼'}; return '<button class="fm-ty'+(mfKind(m.type)===tk?' on':'')+'" data-ty="'+tk+'" type="button">'+L[tk]+'</button>'; }).join('')+'</span>'+
+          '</div>'+
+          '<div class="fm-l2">'+
             '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
             '<input class="fm-name"'+((m.locked||fmLock()[k])?' readonly':'')+' style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
+            '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="LEN" title="표시 글자수 (비우면 전체)">'+
+          '</div>'+
+          '<div class="fm-l3">'+
             '<button class="fm-sw fm-sw-fg" data-pick="fg" type="button" title="글씨색"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</button>'+
             '<button class="fm-sw fm-sw-bg" data-pick="bg" type="button" title="바탕색"'+(m.bg?(' style="background:'+m.bg+';color:#fff"'):'')+'>▦</button>'+
             '<button class="fm-b fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
-          '</div>'+
-          '<div class="fm-line">'+
-            '<select class="fm-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
-            '<div class="fm-align" title="정렬 (L 왼쪽 / C 가운데 / R 오른쪽)">'+
+            '<span class="fm-align" title="정렬 (L 왼쪽 / C 가운데 / R 오른쪽)">'+
               '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button" title="왼쪽">L</button>'+
               '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button" title="가운데">C</button>'+
               '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button" title="오른쪽">R</button>'+
-            '</div>'+
-            '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="LEN" title="표시 글자수 (비우면 전체)">'+
+            '</span>'+
             '<button class="fm-reset" type="button" title="초기화">⟲</button>'+
-          '</div>'+
-          '<div class="fm-line fm-line-sl">'+
-            '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장 연결 — 이 필드를 보여줄 매장 선택">🏬 매장연결: '+slText(m)+'</button>'+
           '</div>'+
         '</div>';
       }).join('');
       box.querySelectorAll('.fm-row').forEach(function(row){
         var i=parseInt(row.getAttribute('data-i'),10);
-        row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].label=this.value; fmDirty=true; });
-        row.querySelector('.fm-rtype').addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
+        row.querySelector('.fm-name').addEventListener('input', function(){ var __s=this.selectionStart,__e=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(__s,__e);}catch(_){} fmWork[i].label=this.value; fmDirty=true; });
+        row.querySelectorAll('.fm-ty').forEach(function(tb){ tb.onclick=function(){ fmWork[i].type=tb.getAttribute('data-ty'); fmDirty=true; fmRender(); }; });
         var __ul=row.querySelector('.fm-userlock'); if(__ul){ __ul.onclick=function(){ fmWork[i].locked=!fmWork[i].locked; fmDirty=true; fmRender(); }; }
         var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(fmLock()[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(fld.locked){ alert('고정된 필드입니다. 🔓로 해제 후 삭제하세요.'); return; } if(__dk) fmCurDeleted()[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
         row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
