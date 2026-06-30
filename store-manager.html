@@ -263,6 +263,8 @@
   .fmt-label{ flex:1 1 auto; font-weight:700; color:#3a2f1a; }
   .fmt-flag{ font-size:12px; }
   .fmt-restore{ flex:0 0 auto; }
+  .fm-userlock{ border:none; background:transparent; cursor:pointer; font-size:13px; padding:0 2px; }
+  .fm-name[readonly]{ background:#f3eedd; color:#6b5a36; cursor:not-allowed; }
 </style>
 </head>
 <body>
@@ -557,13 +559,13 @@
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
-    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,stores:normSL(m.stores)}); });
+    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)}); });
     if(!names.length) return false;
     state.managerFields = names;
     state.masterRaw = raw;
     state.masterFromCloud = true;
     // 필드 관리 탭이 열려 있고 편집 중이 아니면 갱신
-    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,stores:normSL(m.stores)};}); fmRender(); }
+    if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork = raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)};}); fmRender(); }
     return true;
   }
   function subscribeMaster(){
@@ -587,9 +589,9 @@
     function handle(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
       if(d && Array.isArray(d.deletedFields)){ __pluDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __pluDeleted[K]=(o&&typeof o==='object')?{key:o.key,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
-      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,stores:normSL(m.stores)}); }); }
+      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; raw.push({key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)}); }); }
       __pluMasterRaw=raw;
-      if(FM_TARGET==='plu' && $('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,stores:normSL(m.stores)};}); fmRender(); }
+      if(FM_TARGET==='plu' && $('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=raw.map(function(m){return {key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)};}); fmRender(); }
     }
     if(fb.onSnapshot){ try{ fb.onSnapshot(ref, handle, function(){}); return; }catch(e){} }
     fb.getDoc(ref).then(handle).catch(function(){});
@@ -632,10 +634,10 @@
         var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
         var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
         return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'">'+
-          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+(fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':'<button class="fm-del" type="button" title="삭제">✕</button>')+'</div>'+
+          '<div class="fm-rtop"><span class="fm-grip">⠿</span><span class="fm-ord">'+(i+1)+'</span>'+(fl?'<span class="fm-flag">'+fl+'</span>':'')+(fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제(수정·삭제 가능)':'고정하기 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+'</div>'+
           '<div class="fm-line">'+
             '<span class="fm-key" title="기능 코드 (고정 — 이름을 바꿔도 기능 유지)">'+esc(m.key)+'</span>'+
-            '<input class="fm-name" style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
+            '<input class="fm-name"'+((m.locked||fmLock()[k])?' readonly':'')+' style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="표시 이름" autocomplete="off">'+
             '<button class="fm-sw fm-sw-fg" data-pick="fg" type="button" title="글씨색"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</button>'+
             '<button class="fm-sw fm-sw-bg" data-pick="bg" type="button" title="바탕색"'+(m.bg?(' style="background:'+m.bg+';color:#fff"'):'')+'>▦</button>'+
             '<button class="fm-b fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
@@ -659,7 +661,8 @@
         var i=parseInt(row.getAttribute('data-i'),10);
         row.querySelector('.fm-name').addEventListener('input', function(){ fmWork[i].label=this.value; fmDirty=true; });
         row.querySelector('.fm-rtype').addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
-        var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(fmLock()[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(__dk) fmCurDeleted()[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
+        var __ul=row.querySelector('.fm-userlock'); if(__ul){ __ul.onclick=function(){ fmWork[i].locked=!fmWork[i].locked; fmDirty=true; fmRender(); }; }
+        var __delBtn=row.querySelector('.fm-del'); if(__delBtn){ __delBtn.onclick=function(){ var fld=fmWork[i]; var __dk=String(fld.key||'').trim().toUpperCase(); if(fmLock()[__dk]){ alert('기능 필드는 삭제할 수 없습니다. 이름(라벨)만 변경하세요.'); return; } if(fld.locked){ alert('고정된 필드입니다. 🔓로 해제 후 삭제하세요.'); return; } if(__dk) fmCurDeleted()[__dk]={key:fld.key,label:(fld.label!=null?fld.label:fld.key),type:fld.type||'text',align:fld.align||'',trunc:fld.trunc||0,fg:fld.fg||'',bg:fld.bg||'',bold:!!fld.bold}; fmWork.splice(i,1); fmDirty=true; fmRender(); }; }
         row.querySelectorAll('.fm-sw').forEach(function(btn){ btn.onclick=function(){ openPalette(i, btn.getAttribute('data-pick')); }; });
         var bdBtn=row.querySelector('.fm-bold'); if(bdBtn) bdBtn.onclick=function(){ fmWork[i].bold=!fmWork[i].bold; fmDirty=true; fmRender(); };
         var rs=row.querySelector('.fm-reset'); if(rs) rs.onclick=function(){ fmWork[i].fg=''; fmWork[i].bg=''; fmWork[i].bold=false; fmWork[i].align=''; fmWork[i].trunc=0; fmDirty=true; fmRender(); };
@@ -682,7 +685,7 @@
     if(fmWork.some(function(m){return m.key===name;})){ alert('이미 있는 필드입니다'); nn.select(); return; }
     delete fmCurDeleted()[name]; fmWork.push({key:name, label:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', bold:false, stores:'all'}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
   }
-  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold, stores:normSL(m.stores)}); }); return out; }
+  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), bold:!!m.bold, locked:!!m.locked, stores:normSL(m.stores)}); }); return out; }
   async function fmSave(){
     if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
     var btn=$('fmSave'), old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
@@ -693,7 +696,7 @@
       var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
       await window.smFb.setDoc(window.smFb.doc(window.smFb.db,fmCfgCol(),'main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
       fmDirty=false;
-      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,stores:normSL(m.stores)};}); }
+      if(FM_TARGET==='plu'){ __pluMasterRaw=data.map(function(m){return {key:m.key,label:m.label,type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores)};}); }
       else { applyMaster(data); }
       fmRender(); fmSetSaved('저장됨 · '+data.length+'개 ('+(FM_TARGET==='plu'?'PLU':'UPC')+')');
       setTimeout(function(){ fmSetSaved(''); }, 2500);
