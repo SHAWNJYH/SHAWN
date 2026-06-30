@@ -310,6 +310,9 @@
 
         <div class="egmm-section-title gap">MEMORIZE</div>
         <button class="egmm-menu-btn" id="hmartToQuizBtn"><span>PLU MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
+
+        <div class="egmm-section-title gap">ADVERTISING</div>
+        <button class="egmm-menu-btn" id="hmartAdViewBtn"><span>광고상품 보기</span><span class="egmm-menu-arrow">→</span></button>
       </div>
 
       <!-- 카드: REQUEST -->
@@ -436,6 +439,7 @@
   $('hmartToListBtn').onclick = function(){ window.location.href = 'plu-list-store.html'; };
   $('hmartToUpcBtn').onclick = function(){ window.location.href = 'upc-list-store.html'; };
   $('hmartToQuizBtn').onclick = function(){ window.location.href = 'plu-quiz.html'; };
+  $('hmartAdViewBtn').onclick = function(){ var w=window.open('advertising.html?mode=view','adview','width=1120,height=860'); if(!w) window.location.href='advertising.html?mode=view'; };
   Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){ b.onclick = function(){}; });
 
   // 로그아웃 → 세션 정리 후 INDEX

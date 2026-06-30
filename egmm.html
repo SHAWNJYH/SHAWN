@@ -2546,6 +2546,14 @@
     <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label">HANA</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
+  <!-- 박스: ADVERTISING -->
+  <div class="egmm-card">
+    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ADVERTISING</span></div>
+
+    <div class="egmm-section-title">광고</div>
+    <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label">광고상품 관리</span><span class="egmm-menu-arrow">→</span></button>
+  </div>
+
   <!-- 박스: REQUEST -->
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
@@ -3043,6 +3051,7 @@
   $('egmmPluListBtn').onclick = function(){ window.location.href = 'plu-list-manager.html'; };
   var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ window.location.href = 'egmm-calendar.html'; };
   var __smBtn=$('egmmStoreManagerBtn'); if(__smBtn) __smBtn.onclick = function(){ window.location.href = 'store-manager.html'; };
+  var __adBtn=$('egmmAdManageBtn'); if(__adBtn) __adBtn.onclick = function(){ window.location.href = 'advertising.html'; };
   $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
