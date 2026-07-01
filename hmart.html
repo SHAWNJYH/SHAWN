@@ -313,6 +313,9 @@
 
         <div class="egmm-section-title gap">ADVERTISING</div>
         <button class="egmm-menu-btn" id="hmartAdViewBtn"><span>광고상품 보기</span><span class="egmm-menu-arrow">→</span></button>
+
+        <div class="egmm-section-title gap">ITEM</div>
+        <button class="egmm-menu-btn" id="hmartNewItemBtn"><span>신상품 보기</span><span class="hm-req-dot" id="hmNewDot"></span><span class="egmm-menu-arrow">→</span></button>
       </div>
 
       <!-- 카드: REQUEST -->
@@ -433,6 +436,18 @@
   document.addEventListener('click', function(){ ensureAudio(); });   // 자동재생 정책: 첫 클릭에서 오디오 활성화
   function playBeep(){ var ctx=ensureAudio(); if(!ctx) return; try{ var now=ctx.currentTime; function tone(freq,start,dur){ var o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(freq, now+start); g.gain.setValueAtTime(0.0001, now+start); g.gain.exponentialRampToValueAtTime(0.32, now+start+0.02); g.gain.exponentialRampToValueAtTime(0.0001, now+start+dur); o.connect(g); g.connect(ctx.destination); o.start(now+start); o.stop(now+start+dur+0.05); } tone(1318.5, 0, 0.55);   /* 딩 (E6) */ tone(1046.5, 0.5, 0.9);  /* 동 (C6) */ }catch(e){} }
   var newApprovals=0;
+  // ===== 신상품(upc-ocr-list) 알람 =====
+  var OCR_COL='upc-ocr-list', niNew=0, niMaxTs=0;
+  function niSeen(){ try{ return parseInt(localStorage.getItem('hmNewItemSeen')||'0',10)||0; }catch(e){ return 0; } }
+  function refreshNewDot(){ var d=$('hmNewDot'), b=$('hmartNewItemBtn'); if(!d||!b) return; if(niNew>0){ d.textContent=niNew; d.style.display='inline-flex'; b.classList.add('hm-alarm'); } else { d.textContent=''; d.style.display='none'; b.classList.remove('hm-alarm'); } }
+  var niFirst=true;
+  function watchNewItems(){ try{ fns().onSnapshot(fns().collection(db(), OCR_COL), function(snap){
+    var mx=0, list=[]; snap.forEach(function(ds){ var v=ds.data()||{}; var rows=Array.isArray(v.rows)?v.rows:[]; rows.forEach(function(r){ var ts=+r.updatedAt||0; if(ts>mx) mx=ts; list.push(ts); }); });
+    niMaxTs=mx;
+    var stored=null; try{ stored=localStorage.getItem('hmNewItemSeen'); }catch(e){}
+    if(niFirst && stored==null){ niFirst=false; try{ localStorage.setItem('hmNewItemSeen', String(mx)); }catch(e){} niNew=0; refreshNewDot(); return; }
+    niFirst=false; var seen=niSeen(), cnt=0; list.forEach(function(ts){ if(ts>seen) cnt++; }); niNew=cnt; refreshNewDot();
+  }, function(){}); }catch(e){} }
   function refreshDot(){ var d=$('hmReqDot'), b=$('hmReqViewBtn'); if(!d||!b) return; if(newApprovals>0){ d.textContent=newApprovals; d.style.display='inline-flex'; b.classList.add('hm-alarm'); } else { d.textContent=''; d.style.display='none'; b.classList.remove('hm-alarm'); } }
 
   // 네비게이션
@@ -440,6 +455,8 @@
   $('hmartToUpcBtn').onclick = function(){ window.location.href = 'upc-list-store.html'; };
   $('hmartToQuizBtn').onclick = function(){ window.location.href = 'plu-quiz.html'; };
   $('hmartAdViewBtn').onclick = function(){ var w=window.open('advertising.html?mode=view','adview','width=1120,height=860'); if(!w) window.location.href='advertising.html?mode=view'; };
+  $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); var w=window.open('advertising.html?mode=newitem','newitemview','width=1180,height=860'); if(!w) window.location.href='advertising.html?mode=newitem'; };
+  ready(watchNewItems);
   Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){ b.onclick = function(){}; });
 
   // 로그아웃 → 세션 정리 후 INDEX
