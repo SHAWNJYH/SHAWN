@@ -52,7 +52,7 @@
   .plu-tool-btn.warm{ background:var(--accent-warm); border-color:var(--accent-warm); color:#fff; }
   .plu-tool-btn.warm:hover{ filter:brightness(1.06); color:#fff; }
   /* 상호이동/돌아가기 버튼 — 매니저의 돌아가기와 동일 규격(160px) */
-  #ocrNav .nav-btn{ display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:160px; box-sizing:border-box; padding:8px 12px; font-family:var(--mono); font-size:13px; font-weight:700; border-radius:8px; border:1px solid; cursor:pointer; transition:background .12s,border-color .12s,color .12s,transform .12s; }
+  #ocrNav .nav-btn{ display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:60px; box-sizing:border-box; padding:6px 12px; font-family:var(--mono); font-size:12px; font-weight:700; border-radius:8px; border:1px solid; cursor:pointer; transition:background .12s,border-color .12s,color .12s,transform .12s; }
   #ocrNav .nav-btn:active{ transform:scale(0.98); }
   #ocrNav .nav-btn.blue{ background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
   #ocrNav .nav-btn.blue:hover{ background:#1e40af; border-color:#1e40af; }
@@ -83,6 +83,9 @@
   .plu-table thead th.ctr{ text-align:center; }
   .plu-table thead th.col-no{ width:40px; min-width:34px; text-align:center; color:#3b5b8c; }
   .plu-table thead th.col-del{ width:30px; }
+  .plu-table thead th, .plu-table tbody td{ border-right:1px solid var(--border); }
+  .plu-table thead th:last-child, .plu-table tbody td:last-child{ border-right:none; }
+  .plu-table th.col-upd, .plu-table td.col-upd{ width:104px; min-width:96px; text-align:center; font-family:var(--mono); font-size:11px; color:#7a7a80; white-space:nowrap; padding:0 8px; }
   .plu-table tbody td{ padding:0; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
   .plu-table tbody tr:nth-child(even){ background:rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover td{ background:var(--accent-soft); }
@@ -130,20 +133,16 @@
     <div class="crumb" id="vendorSel"></div>
     <div class="plu-topright">
       <div class="plu-tools">
-        <button class="plu-tool-btn" id="addRowBtn">＋ 행 추가</button>
-        <button class="plu-tool-btn" id="wordBtn">🧹 특정단어 제거</button>
+        <button class="plu-tool-btn" id="wordBtn">단어제거</button>
         <button class="plu-tool-btn" id="word2Btn">✦ 후처리</button>
-        <button class="plu-tool-btn" id="uploadBtn">📥 엑셀 업로드</button>
-        <button class="plu-tool-btn" id="pdfBtn">📄 PDF 불러오기</button>
-        <button class="plu-tool-btn" id="imgBtn">📷 이미지 인식(AI)</button>
         <button class="plu-tool-btn icon" id="keyBtn" title="Anthropic API 키 설정">🔑</button>
-        <button class="plu-tool-btn primary" id="exportBtn">⬆ 엑셀 내보내기</button>
+        <button class="plu-tool-btn primary" id="exportBtn">EXCEL DOWN</button>
       </div>
     </div>
     <div class="plu-tools" id="ocrNav">
-      <button class="nav-btn blue" id="ocrGoPlu">🗂️ PLU 매니저</button>
-      <button class="nav-btn blue" id="ocrGoUpc">🏷️ UPC 매니저</button>
-      <button class="nav-btn red" id="ocrBackBtn">← 돌아가기</button>
+      <button class="nav-btn blue" id="ocrGoPlu">PLU</button>
+      <button class="nav-btn blue" id="ocrGoUpc">UPC</button>
+      <button class="nav-btn red" id="ocrBackBtn">돌아가기</button>
     </div>
     <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
     <input type="file" id="imgInput" accept="image/*" multiple style="display:none">
@@ -156,7 +155,7 @@
         <div class="plu-count" id="stat"></div>
       </div>
       <div class="drop" id="drop">
-        <b>여기로 엑셀 파일을 끌어다 놓거나 “엑셀 업로드”를 누르세요</b>
+        <b>여기로 엑셀 · PDF · 이미지 파일을 끌어다 놓으면 자동으로 불러옵니다</b>
         <small>New Item Introduction 양식을 자동 인식 · 브랜드/규격/UPC 변환 자동 처리 · 여러 파일 동시 업로드</small>
       </div>
       <div id="tableHost"></div>
@@ -164,7 +163,7 @@
   </div>
 
   <div class="pcm-overlay" id="wordOv"><div class="pcm-modal">
-    <div class="pcm-head">🧹 특정단어 제거<button class="pcm-x" id="wordCancel" type="button">✕</button></div>
+    <div class="pcm-head">단어제거<button class="pcm-x" id="wordCancel" type="button">✕</button></div>
     <div class="pcm-body">
       <p>여기 적은 단어들은 KOR DESC · ENG DESC에서 자동으로 제거됩니다(쉼표 또는 줄바꿈으로 구분). 저장하면 기존 데이터에도 즉시 적용됩니다.</p>
       <textarea id="wordTa" placeholder="예: (식), 번들, (번들), PET"></textarea>
@@ -392,14 +391,16 @@ function recToRow(x){
     code: String(x.code||'').trim(),
     cost: String(x.cost==null?'':x.cost).replace(/[^0-9.]/g,''),
     u1: ks.u1, u2: ks.u2, size: ks.size, sizecode: ks.code,
-    category: subOf((x.temp||'')+' '+(ks.tail||''), x.kor)
+    category: subOf((x.temp||'')+' '+(ks.tail||''), x.kor),
+    updatedAt: Date.now()
   };
 }
+function fmtUpd(ts){ if(!ts) return ''; var d=new Date(ts); var p=function(n){return ('0'+n).slice(-2);}; return (''+d.getFullYear()).slice(2)+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes()); }
 function ingestWorkbook(wb){
   var n=0;
   wb.SheetNames.forEach(function(sn){
     var aoa=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:''});
-    parseSheet(aoa).forEach(function(x){ ROWS.push(recToRow(x)); n++; });
+    var _nw=[]; parseSheet(aoa).forEach(function(x){ _nw.push(recToRow(x)); n++; }); ROWS=_nw.concat(ROWS);
   });
   return n;
 }
@@ -434,7 +435,7 @@ function renderTable(){
   $('stat').textContent=ROWS.length?('전체 '+ROWS.length+'건 · 현재 ['+cur+'] '+rows.length+'건'):'';
   if(!ROWS.length){ $('tableHost').innerHTML=''; return; }
   if(!rows.length){ $('tableHost').innerHTML='<div class="empty">['+cur+'] 항목이 없습니다</div>'; return; }
-  var ths='<th class="col-no">#</th>'+FIELDS.map(function(f){ return '<th class="'+(f.ctr?'ctr':'')+'">'+esc(fieldLabel(f))+'</th>'; }).join('')+'<th class="col-del"></th>';
+  var ths='<th class="col-no">#</th>'+FIELDS.map(function(f){ return '<th class="'+(f.ctr?'ctr':'')+'">'+esc(fieldLabel(f))+'</th>'; }).join('')+'<th class="ctr col-upd">업데이트</th><th class="col-del"></th>';
   var body=rows.map(function(row){
     var gi=ROWS.indexOf(row);
     var tds=FIELDS.map(function(f){
@@ -444,7 +445,7 @@ function renderTable(){
       var cellcls='cell'+(f.red?' upcc-cell':'');
       return '<td class="'+cls.trim()+'"><div class="'+cellcls+'" contenteditable="true" data-g="'+gi+'" data-k="'+f.key+'" data-money="'+(f.money?1:0)+'">'+esc(disp)+'</div></td>';
     }).join('');
-    return '<tr><td class="col-no">'+(rows.indexOf(row)+1)+'</td>'+tds+'<td class="col-del"><button class="rowdel" data-g="'+gi+'" title="삭제">✕</button></td></tr>';
+    return '<tr><td class="col-no">'+(rows.indexOf(row)+1)+'</td>'+tds+'<td class="ctr col-upd">'+esc(fmtUpd(row.updatedAt))+'</td><td class="col-del"><button class="rowdel" data-g="'+gi+'" title="삭제">✕</button></td></tr>';
   }).join('');
   $('tableHost').innerHTML='<div class="plu-table-wrap"><table class="plu-table"><thead><tr>'+ths+'</tr></thead><tbody>'+body+'</tbody></table></div>';
   Array.prototype.forEach.call($('tableHost').querySelectorAll('.cell'), function(c){
@@ -452,7 +453,7 @@ function renderTable(){
     c.addEventListener('blur', function(){
       var gi=+c.getAttribute('data-g'), k=c.getAttribute('data-k'); var val=c.textContent.trim();
       if(c.getAttribute('data-money')==='1') val=val.replace(/[^0-9.]/g,'');
-      ROWS[gi][k]=val;
+      ROWS[gi][k]=val; ROWS[gi].updatedAt=Date.now();
       if(k==='upco') ROWS[gi].upcc=upcConvert(val);
       if(k==='category'){ renderTabs(); renderTable(); scheduleSave(); return; }
       if(k==='upco' || c.getAttribute('data-money')==='1') renderTable();
@@ -531,7 +532,7 @@ async function recognizeImages(files){
       var txt=(data.content||[]).map(function(it){ return it.type==='text'?it.text:''; }).join('').trim();
       txt=txt.replace(/^```(json)?/i,'').replace(/```$/,'').trim();
       var recs=JSON.parse(txt);
-      if(Array.isArray(recs)){ recs.forEach(function(x){ if(x && (x.code||x.kor||x.eng||x.upc)) { ROWS.push(recToRow(x)); grand++; } }); }
+      if(Array.isArray(recs)){ var _nw=[]; recs.forEach(function(x){ if(x && (x.code||x.kor||x.eng||x.upc)) { _nw.push(recToRow(x)); grand++; } }); ROWS=_nw.concat(ROWS); }
     }catch(e){ errs++; }
   }
   renderTabs(); renderTable();
@@ -588,7 +589,7 @@ async function handlePdf(files){
       var out=await __pdfToData(buf);
       if(out.textCount===0){ noText++; continue; }       // 스캔본(텍스트 없음)
       if(!out.recs.length){ noTable++; continue; }         // 표 헤더 못 찾음
-      out.recs.forEach(function(x){ ROWS.push(recToRow(x)); grand++; });
+      var _nw=[]; out.recs.forEach(function(x){ _nw.push(recToRow(x)); grand++; }); ROWS=_nw.concat(ROWS);
     }catch(e){ fail++; }
   }
   renderTabs(); renderTable();
@@ -631,15 +632,14 @@ function exportXlsx(){
 function applyWordsToAll(){ ROWS.forEach(function(r){ r.kor=stripWords(r.kor); r.eng=stripWords(r.eng); }); }
 
 /* ===== 이벤트 ===== */
-$('uploadBtn').onclick=function(){ $('fileInput').click(); };
+var _ub=$('uploadBtn'); if(_ub) _ub.onclick=function(){ $('fileInput').click(); };
 $('fileInput').onchange=function(e){ handleFiles(e.target.files); e.target.value=''; };
 $('pdfBtn')&&($('pdfBtn').onclick=function(){ $('pdfInput').click(); });
 $('pdfInput')&&($('pdfInput').onchange=function(e){ handlePdf(e.target.files); e.target.value=''; });
-$('imgBtn').onclick=function(){ $('imgInput').click(); };
+var _ib=$('imgBtn'); if(_ib) _ib.onclick=function(){ $('imgInput').click(); };
 $('keyBtn').onclick=function(){ var cur=getApiKey(); var k=window.prompt('Anthropic API 키 (sk-ant-...).\n비우고 확인하면 저장된 키가 삭제됩니다.', cur); if(k!==null){ setApiKey(k.trim()); toast(k.trim()?'API 키 저장됨':'API 키 삭제됨','success'); } };
 $('imgInput').onchange=function(e){ recognizeImages(e.target.files); e.target.value=''; };
 $('exportBtn').onclick=exportXlsx;
-$('addRowBtn').onclick=function(){ var row={}; FIELDS.forEach(function(f){ row[f.key]=''; }); row.category=(cur==='전체'?'DRY':cur); ROWS.push(row); renderTabs(); renderTable(); scheduleSave(); };
 $('wordBtn').onclick=function(){ $('wordTa').value=removeWords.join(', '); $('wordOv').classList.add('show'); };
 $('wordCancel').onclick=function(){ $('wordOv').classList.remove('show'); };
 $('wordCancel2').onclick=function(){ $('wordOv').classList.remove('show'); };
@@ -655,7 +655,7 @@ $('ocrBackBtn')&&($('ocrBackBtn').onclick=async function(){ await ocrFlush(); if
 var drop=$('drop');
 ['dragenter','dragover'].forEach(function(ev){ document.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('over'); }); });
 document.addEventListener('dragleave',function(e){ if(e.target===drop) drop.classList.remove('over'); });
-document.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); var fs=(e.dataTransfer&&e.dataTransfer.files)?Array.prototype.slice.call(e.dataTransfer.files):[]; if(!fs.length) return; var imgs=fs.filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); }); var xls=fs.filter(function(f){ return /\.xlsx?$/i.test(f.name); }); var pdfs=fs.filter(function(f){ return /\.pdf$/i.test(f.name)||f.type==='application/pdf'; }); if(imgs.length) recognizeImages(imgs); if(xls.length) handleFiles(xls); if(pdfs.length) handlePdf(pdfs); });
+document.addEventListener('drop', function(e){ e.preventDefault(); drop.classList.remove('over'); var fs=(e.dataTransfer&&e.dataTransfer.files)?Array.prototype.slice.call(e.dataTransfer.files):[]; if(!fs.length) return; var imgs=fs.filter(function(f){ return /^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name); }); var xls=fs.filter(function(f){ return /\.xlsx?$/i.test(f.name); }); var pdfs=fs.filter(function(f){ return /\.pdf$/i.test(f.name)||f.type==='application/pdf'; }); if(xls.length){ toast('EXCEL 불러오기중…'); handleFiles(xls); } if(pdfs.length){ toast('PDF 불러오기중…'); handlePdf(pdfs); } if(imgs.length){ toast('이미지 불러오기중…'); recognizeImages(imgs); } });
 
 renderTabs(); renderTable();
 whenFb(function(){ loadVendor(VENDOR); subscribeOcrMaster(); });   // Firebase 준비되면 현재 벤더(STI) 데이터 불러오기 + 마스터 표시명 구독
