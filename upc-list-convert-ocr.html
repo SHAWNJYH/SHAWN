@@ -489,7 +489,7 @@ function renderTable(){
     c.addEventListener('blur', function(){
       var gi=+c.getAttribute('data-g'), k=c.getAttribute('data-k'); var val=c.textContent.trim();
       if(c.getAttribute('data-money')==='1') val=val.replace(/[^0-9.]/g,'');
-      ROWS[gi][k]=val; ROWS[gi].updatedAt=Date.now();
+      ROWS[gi][k]=val;   // 편집해도 업데이트(업로드) 시각은 유지
       if(k==='upco') ROWS[gi].upcc=upcConvert(val);
       if(k==='category'){ renderTabs(); renderTable(); scheduleSave(); return; }
       if(k==='upco' || c.getAttribute('data-money')==='1') renderTable();
