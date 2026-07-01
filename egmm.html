@@ -2276,6 +2276,8 @@
   /* 도메인 패널 */
   .egmm-cards { display: flex; gap: 16px; align-items: flex-start; justify-content: center;
     width: 100%; max-width: 1300px; flex-wrap: wrap; }
+  .egmm-col { flex: 1 1 258px; min-width: 250px; max-width: 340px; display: flex; flex-direction: column; gap: 16px; align-self: flex-start; }
+  .egmm-col .egmm-card { max-width: none; min-width: 0; width: 100%; flex: 0 0 auto; }
   .egmm-card { flex: 1 1 258px; min-width: 250px; max-width: 340px; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
@@ -2315,10 +2317,35 @@
     font-family: var(--mono); font-size: 12.5px; font-weight: 700; letter-spacing: .06em; cursor: pointer;
     padding: 10px 16px; border-radius: 8px; transition: color .15s, background .15s; }
   .egmm-back-link:hover { color: var(--text); background: rgba(0,0,0,.035); }
+  .egmm-userbadge { margin-top: 22px; display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono);
+    font-size: 13px; font-weight: 700; color: var(--text-dim); background: var(--bg-elev); border: 1px solid var(--border);
+    padding: 7px 15px; border-radius: 999px; cursor: pointer; box-shadow: 0 6px 20px rgba(26,26,29,.06); transition: border-color .15s, color .15s; }
+  .egmm-userbadge:hover { border-color: var(--accent-warm); color: var(--text); }
+  .egmm-userbadge b { color: var(--text); letter-spacing: .04em; }
+  .egmm-user-ov { position: fixed; inset: 0; background: rgba(26,26,29,.55); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center; z-index: 6000; padding: 20px; }
+  .egmm-user-ov.show { display: flex; }
+  .egmm-user-card { background: var(--bg-elev); border: 1px solid var(--border-bright); border-radius: 20px;
+    width: 94%; max-width: 360px; padding: 30px 28px 24px; box-shadow: 0 30px 80px rgba(26,26,29,.32); text-align: center; }
+  .euc-title { font-family: var(--serif); font-size: 22px; font-weight: 800; color: var(--text); }
+  .euc-sub { font-size: 12.5px; color: var(--text-dim); margin: 6px 0 20px; }
+  .euc-sel, .euc-pin { width: 100%; border: 1.5px solid var(--border); border-radius: 11px; padding: 12px 14px;
+    font-family: var(--mono); font-size: 16px; font-weight: 700; background: var(--bg); color: var(--text); margin-bottom: 12px; }
+  .euc-sel:focus, .euc-pin:focus { outline: none; border-color: var(--accent-warm); background: #fffdf6; }
+  .euc-pin { text-align: center; letter-spacing: .3em; }
+  .euc-err { color: var(--danger, #c83a3a); font-size: 12.5px; font-weight: 700; min-height: 18px; margin-bottom: 6px; }
+  .euc-btn { width: 100%; border: none; background: var(--accent-warm); color: #fff; border-radius: 11px; padding: 13px;
+    font-family: var(--mono); font-size: 15px; font-weight: 800; cursor: pointer; transition: filter .12s, transform .12s; }
+  .euc-btn:hover { filter: brightness(1.05); }
+  .euc-btn:active { transform: scale(.98); }
+  .euc-back { margin-top: 14px; background: transparent; border: none; color: var(--text-faint); font-family: var(--mono);
+    font-size: 12.5px; font-weight: 700; cursor: pointer; }
+  .euc-back:hover { color: var(--text-dim); }
 
   @media (max-width: 760px) {
     .egmm-cards { gap: 14px; }
     .egmm-card { max-width: 520px; flex-basis: 100%; }
+    .egmm-col { max-width: 520px; flex-basis: 100%; }
   }
   @media (prefers-reduced-motion: reduce) {
     .egmm-card { animation: none; opacity: 1; transform: none; }
@@ -2511,7 +2538,7 @@
      (자동로그인 ON인 본인 기기는 통과 / 다른 컴퓨터·미인증은 차단) */
   (function(){
     try{
-      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1';
+      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1' || !!sessionStorage.getItem('egmmUser');
       if(!ok){ location.replace('index.html'); }
     }catch(e){ try{ location.replace('index.html'); }catch(_){} }
   })();
@@ -2556,6 +2583,8 @@
     <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label">HANA</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
+  <!-- 열: ADVERTISING(위) + REQUEST(아래) 세로 스택 -->
+  <div class="egmm-col">
   <!-- 박스: ADVERTISING -->
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ADVERTISING</span></div>
@@ -2571,8 +2600,9 @@
     <div class="egmm-section-title">DELI</div>
     <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label">REQUEST CONFIRMATION</span><span class="egmm-req-count" id="deliReqCount"></span><span class="egmm-menu-arrow">→</span></button>
   </div>
+  </div>
 
-  <!-- 박스 3: GUIDE -->
+  <!-- 박스: GUIDE (REQUEST 자리로 이동) -->
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">GUIDE</span></div>
 
@@ -2586,6 +2616,7 @@
     <button class="egmm-menu-btn" id="egmmDeliMgmtBtn"><span class="egmm-menu-label">DELI MANAGEMENT</span><span class="egmm-menu-arrow">→</span></button>
   </div>
  </div>
+ <div class="egmm-userbadge" id="egmmUserBadge" style="display:none" title="클릭하면 로그아웃">👤 <b id="egmmUserName"></b></div>
  <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
 </div>
 
@@ -3150,6 +3181,62 @@
   function fns(){ return window.firebaseFns; }
   function db(){ return window.firebaseDb; }
   function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+
+  /* ===== EGMM 사용자 로그인 + 메뉴 권한 (app-config/egmm-users) ===== */
+  (function(){
+    var UCOL='app-config', UDOC='egmm-users';
+    var USERS=[];
+    async function euHash(v){ v=String(v); if(window.crypto&&window.crypto.subtle){ try{ var b=await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v)); return 'h:'+Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0');}).join(''); }catch(e){} } return 'p:'+v; }
+    function euGetSession(){ try{ var s=sessionStorage.getItem('egmmUser'); return s?JSON.parse(s):null; }catch(e){ return null; } }
+    function euSetSession(u){ try{ sessionStorage.setItem('egmmUser', JSON.stringify({name:u.name, menus:u.menus||{}})); }catch(e){} }
+    function euApplyMenus(menus){
+      document.querySelectorAll('.egmm-card').forEach(function(card){
+        var kids=card.children, anyVis=false, curTitle=null, titleVis=false;
+        function close(){ if(curTitle) curTitle.style.display=titleVis?'':'none'; }
+        for(var i=0;i<kids.length;i++){ var el=kids[i];
+          if(el.classList&&el.classList.contains('egmm-section-title')){ close(); curTitle=el; titleVis=false; }
+          else if(el.classList&&el.classList.contains('egmm-menu-btn')){ var hid=(menus&&menus[el.id]===false); el.style.display=hid?'none':''; if(!hid){ anyVis=true; titleVis=true; } }
+        }
+        close(); card.style.display=anyVis?'':'none';
+      });
+      document.querySelectorAll('.egmm-col').forEach(function(col){ var vis=Array.prototype.some.call(col.querySelectorAll('.egmm-card'), function(c){ return c.style.display!=='none'; }); col.style.display=vis?'':'none'; });
+    }
+    function euBadge(name){ var b=$('egmmUserBadge'), n=$('egmmUserName'); if(n) n.textContent=name||''; if(b) b.style.display=name?'':'none'; }
+    function euApply(u){ euBadge(u&&u.name); euApplyMenus((u&&u.menus)||{}); }
+    function euOpen(){
+      var sel=$('egmmUserSel'); if(sel) sel.innerHTML=USERS.map(function(u){ return '<option value="'+u.id+'">'+String(u.name||'').replace(/</g,'&lt;')+'</option>'; }).join('');
+      var err=$('egmmUserErr'); if(err) err.textContent=''; var pin=$('egmmUserPin'); if(pin) pin.value='';
+      var ov=$('egmmUserOv'); if(ov) ov.classList.add('show'); setTimeout(function(){ if(pin) pin.focus(); }, 100);
+    }
+    async function euSubmit(){
+      var sel=$('egmmUserSel'), pin=$('egmmUserPin'), err=$('egmmUserErr');
+      var uid=sel?sel.value:''; var u=USERS.filter(function(x){return String(x.id)===uid;})[0];
+      if(!u){ if(err) err.textContent='사용자를 선택하세요'; return; }
+      var entered=(pin&&pin.value||'').trim(); var stored=String(u.pin||''); var ok;
+      if(stored.slice(0,2)==='h:'||stored.slice(0,2)==='p:') ok=((await euHash(entered))===stored); else ok=(entered===stored);
+      if(!ok){ if(err) err.textContent='PIN이 올바르지 않습니다'; if(pin){ pin.value=''; pin.focus(); } return; }
+      euSetSession(u); var ov=$('egmmUserOv'); if(ov) ov.classList.remove('show'); euApply(u);
+    }
+    function euInit(){
+      var go=$('egmmUserGo'); if(go) go.onclick=euSubmit;
+      var pin=$('egmmUserPin'); if(pin) pin.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); euSubmit(); } });
+      var back=$('egmmUserBack'); if(back) back.onclick=function(){ location.href='index.html'; };
+      var badge=$('egmmUserBadge'); if(badge) badge.onclick=function(){ if(confirm('로그아웃할까요?')){ try{ sessionStorage.removeItem('egmmUser'); }catch(e){} location.reload(); } };
+      var su=euGetSession();
+      if(su){ euApply(su); return; }
+      ready(function(){
+        try{
+          fns().getDoc(fns().doc(db(), UCOL, UDOC)).then(function(snap){
+            var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+            USERS=Array.isArray(d.users)?d.users:[];
+            if(USERS.length){ euOpen(); } else { euApplyMenus({}); euBadge(''); }
+          }).catch(function(){ euApplyMenus({}); euBadge(''); });
+        }catch(e){ euApplyMenus({}); euBadge(''); }
+      });
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', euInit); else euInit();
+  })();
+
   function toast(m,t){ if(window.showToast) window.showToast(m,t); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
   var REQ_COL='plu-requests', reqs=[];
@@ -3238,5 +3325,17 @@
 })();
 </script>
 
+  <!-- EGMM 사용자 로그인 -->
+  <div class="egmm-user-ov" id="egmmUserOv">
+    <div class="egmm-user-card">
+      <div class="euc-title">EGMM 사용자 로그인</div>
+      <div class="euc-sub">사용자를 선택하고 PIN을 입력하세요</div>
+      <select class="euc-sel" id="egmmUserSel"></select>
+      <input class="euc-pin" id="egmmUserPin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" autocomplete="off">
+      <div class="euc-err" id="egmmUserErr"></div>
+      <button class="euc-btn" id="egmmUserGo">입장</button>
+      <button class="euc-back" id="egmmUserBack" type="button">← 처음으로</button>
+    </div>
+  </div>
 </body>
 </html>
