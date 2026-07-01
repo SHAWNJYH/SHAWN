@@ -466,7 +466,7 @@ function renderTabs(){
   });
 }
 function renderTable(){
-  var rows=rowsForTab(cur);
+  var rows=rowsForTab(cur).slice().sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });   // 최근 업로드가 맨 위(내림차순)
   $('drop').style.display=ROWS.length?'none':'';
   $('stat').textContent=ROWS.length?('전체 '+ROWS.length+'건 · 현재 ['+cur+'] '+rows.length+'건'):'';
   if(!ROWS.length){ $('tableHost').innerHTML=''; return; }
