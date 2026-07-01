@@ -451,6 +451,7 @@
 
   /* ===== 신상품(NEW ITEM) 모드 — upc-ocr-list에서 로드 ===== */
   function niFmt(ts){ if(!ts) return ''; var d=new Date(ts); var p=function(n){return ('0'+n).slice(-2);}; return (''+d.getFullYear()).slice(2)+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes()); }
+  function niCost(v){ v=norm(v); if(!v) return ''; var n=parseFloat(v.replace(/[^0-9.]/g,'')); return isNaN(n)? v : ('$'+n.toFixed(2)); }
   function niCombine(brand, desc){ brand=norm(brand); desc=norm(desc); if(brand&&desc) return brand+') '+desc; return brand||desc; }
   function niUnit(r){ return [r.u1,r.u2,r.size,r.sizecode].map(function(x){return norm(x);}).filter(function(x){return x!=='';}).join('/'); }
   function niRow(r){ return { upc: norm(r.upcc)||norm(r.upco), itemcode: norm(r.code), korDesc: niCombine(r.brandK, r.kor), engDesc: niCombine(r.brandE, r.eng), cost: norm(r.cost), unit: niUnit(r) }; }
@@ -478,7 +479,7 @@
         '<td class="code">'+esc(it.itemcode||'')+'</td>'+
         '<td class="desc" title="'+esc(it.korDesc||'')+'">'+esc(it.korDesc||'')+'</td>'+
         '<td class="desc" title="'+esc(it.engDesc||'')+'">'+esc(it.engDesc||'')+'</td>'+
-        '<td>'+esc(it.cost||'')+'</td>'+
+        '<td>'+esc(niCost(it.cost))+'</td>'+
         '<td>'+esc(it.unit||'')+'</td>'+
         '<td>'+(isX?'<span style="color:#c83a3a;font-weight:800">—</span>':barcodeSVG(it.upc))+'</td></tr>';
     }).join('');
@@ -552,7 +553,7 @@
     if(isNew){
       head='<th>UPC</th><th>ITEMCODE</th><th>KOR DESC</th><th>ENG DESC</th><th>COST</th><th>UNIT SIZE</th><th>BARCODE</th>';
       body=curList.map(function(it){ var isX=(!it.upc);
-        return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.korDesc||'')+'</td><td class="l">'+esc(it.engDesc||'')+'</td><td>'+esc(it.cost||'')+'</td><td>'+esc(it.unit||'')+'</td><td>'+(isX?'—':barcodeSVG(it.upc))+'</td></tr>'; }).join('');
+        return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.korDesc||'')+'</td><td class="l">'+esc(it.engDesc||'')+'</td><td>'+esc(niCost(it.cost))+'</td><td>'+esc(it.unit||'')+'</td><td>'+(isX?'—':barcodeSVG(it.upc))+'</td></tr>'; }).join('');
     } else {
       var maxEtc=0; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });
       var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
