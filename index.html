@@ -2409,10 +2409,9 @@
   <div class="lock-card mgr-login-card mgr-pw-card">
     <button class="mgr-x" id="egmmPwClose" type="button">✕</button>
     <h1 class="lock-title">EGMM</h1>
-    <p class="mgr-pw-sub">이름을 선택하고 PIN을 입력하세요 (관리자는 이름 없이 마스터 PIN)</p>
     <div class="field">
       <label>사용자</label>
-      <select id="egmmUserPick"><option value="">— 이름 선택 안 함 (관리자) —</option></select>
+      <select id="egmmUserPick"><option value="">MANAGER</option></select>
     </div>
     <div class="field">
       <label>PIN</label>
@@ -3311,7 +3310,7 @@
   }
   // ===== EGMM 사용자 (app-config/egmm-users) =====
   var egmmUsers=[];
-  function fillEgmmUserPick(){ var sel=$('egmmUserPick'); if(!sel) return; var opts='<option value="">— 이름 선택 안 함 (관리자) —</option>'; egmmUsers.forEach(function(u){ opts+='<option value="'+u.id+'">'+String(u.name||'').replace(/</g,'&lt;')+'</option>'; }); var keep=sel.value; sel.innerHTML=opts; sel.value=keep||''; }
+  function fillEgmmUserPick(){ var sel=$('egmmUserPick'); if(!sel) return; var opts='<option value="">MANAGER</option>'; egmmUsers.forEach(function(u){ opts+='<option value="'+u.id+'">'+String(u.name||'').replace(/</g,'&lt;')+'</option>'; }); var keep=sel.value; sel.innerHTML=opts; sel.value=keep||''; }
   function loadEgmmUsers(){ fillEgmmUserPick(); if(!window.firebaseFns || !window.firebaseDb) return; try{ window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'app-config','egmm-users')).then(function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{}; egmmUsers=Array.isArray(d.users)?d.users:[]; fillEgmmUserPick(); }).catch(function(){}); }catch(e){} }
   async function matchUserPin(entered, stored){ entered=String(entered||'').trim(); stored=String(stored||''); if(stored.slice(0,2)==='h:'||stored.slice(0,2)==='p:') return (await hashPin(entered))===stored; return entered===stored; }
   const EGMM_PIN_COL = 'app-config', EGMM_PIN_DOC = 'egmm';
