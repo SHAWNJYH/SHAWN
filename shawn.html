@@ -3680,9 +3680,10 @@
         enterApp();
         showToast('환영합니다!', 'success');
       } else {
-        // 로그아웃 상태
+        // 로그아웃 상태 — THE SHAWN 전용 페이지이므로 로그인 화면을 바로 연다
         currentUser = null;
         isAdmin = false;
+        try { openMgrLogin(); } catch (e) {}
       }
     });
   }
