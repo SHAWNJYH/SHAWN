@@ -168,7 +168,6 @@
 
     <div class="card">
       <h2>🗂 저장된 광고 데이터 <span class="tag">H-MART 광고상품 보기에 노출</span></h2>
-      <div class="weekly-bar"><span class="weekly-badge" id="weeklyBadge"></span></div>
       <div class="saved-list" id="savedList"><div class="empty">불러오는 중…</div></div>
     </div>
   </div>
@@ -180,6 +179,7 @@
         <span id="viewLabel" style="font-size:13px;font-weight:800;color:var(--text-dim)">AD LIST</span>
         <select class="msel" id="viewPick" style="width:auto;min-width:220px"></select>
         <span class="status" id="stView"></span>
+        <span class="weekly-badge" id="weeklyBadge" style="margin-left:auto"></span>
       </div>
     </div>
   </div>
@@ -540,7 +540,6 @@
       box.innerHTML=arr.map(function(x){ return '<div class="saved-item" data-id="'+esc(x.id)+'">'+
         '<span class="sd">AD LIST · '+esc(x.title)+'</span><span class="sc">'+x.count+'개</span><span class="sp"></span>'+
         '<button class="btn sm" data-act="view">보기</button><button class="btn sm danger" data-act="del">삭제</button></div>'; }).join('');
-      updateWeeklyBadge(arr);
     }).catch(function(err){ box.innerHTML='<div class="empty">목록 오류: '+esc(err&&err.message||String(err))+'</div>'; });
   }
   function viewSaved(id){ window.fbFns.getDoc(window.fbFns.doc(window.fbDb, AD_COL, id)).then(function(s){ if(!s.exists()){toast('없음');return;} var v=s.data()||{}; curList=v.items||[]; curMaxEtc=v.maxEtc||0; curTitle=v.title||id; renderPreview(curList,curMaxEtc,curTitle); window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}); }); }
@@ -554,6 +553,7 @@
       arr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
       if(!arr.length){ sel.innerHTML='<option value="">데이터 없음</option>'; $('stView').textContent='저장된 광고리스트가 없습니다.'; renderPreview([],0,'AD LIST'); return; }
       sel.innerHTML=arr.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+x.count+'개</option>'; }).join('');
+      updateWeeklyBadge(arr);
       sel.onchange=function(){ viewLoad(sel.value); }; viewLoad(arr[0].id);
     }).catch(function(err){ $('stView').textContent='오류: '+(err&&err.message||err); });
   }
