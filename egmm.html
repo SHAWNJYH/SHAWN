@@ -3321,7 +3321,16 @@
   function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
 
   var sel=$('egmmMsgStore');
-  if(sel){ sel.innerHTML=STORES.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join(''); sel.onchange=render; }
+  function fillStores(){
+    if(!sel) return;
+    var prev=sel.value;
+    // 매장별 받은 메시지(toEgmm) 개수 표시
+    var cnt={};
+    allMsgs.forEach(function(m){ if(m.dir==='toEgmm'){ cnt[m.store]=(cnt[m.store]||0)+1; } });
+    sel.innerHTML=STORES.map(function(s){ var c=cnt[s]?(' ●'+cnt[s]):''; return '<option value="'+esc(s)+'">'+esc(s)+c+'</option>'; }).join('');
+    if(prev) sel.value=prev;
+  }
+  if(sel){ fillStores(); sel.onchange=render; }
 
   // 선택 매장의 대화(내가 보낸 toStore + 매장이 보낸 toEgmm) 시간순
   function render(){
@@ -3356,16 +3365,16 @@
   }
   var sendBtn=$('egmmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
   var ta=$('egmmMsgText');
-  if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); } });
+  if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey && !e.isComposing && e.keyCode!==229){ e.preventDefault(); sendMsg(); } });
 
   ready(function(){
     try{
       fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
         allMsgs=[];
         snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') allMsgs.push(d); });
-        render();
-      }, function(){});
-    }catch(e){}
+        fillStores(); render();
+      }, function(err){ console.error('[EGMM 메시지 실시간 오류]', err && err.message ? err.message : err); });
+    }catch(e){ console.error('[EGMM 메시지 구독 실패]', e); }
   });
 })();
 </script>

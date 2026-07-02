@@ -624,7 +624,7 @@
   }
   var sendBtn=$('hmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
   var ta=$('hmMsgText');
-  if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); } });
+  if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey && !e.isComposing && e.keyCode!==229){ e.preventDefault(); sendMsg(); } });
 
   // 내 매장의 대화(EGMM이 보낸 toStore + 내가 보낸 toEgmm) 시간순
   function render(){
@@ -648,8 +648,8 @@
         allMsgs=[];
         snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') allMsgs.push(d); });
         render();
-      }, function(){});
-    }catch(e){}
+      }, function(err){ console.error('[HMART 메시지 실시간 오류]', err && err.message ? err.message : err); });
+    }catch(e){ console.error('[HMART 메시지 구독 실패]', e); }
   });
 })();
 </script>
