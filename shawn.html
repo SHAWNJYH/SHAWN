@@ -2348,13 +2348,13 @@
 <!-- LOGIN SCREEN -->
 <div class="lock-screen" id="lockScreen">
   <div class="lock-stage">
-    <!-- EGMM 박스 — 박스 전체 클릭 -->
+    <!-- THE SHAWN 로그인 진입 (EGMM/H-MART 제거된 전용 페이지) -->
     <div class="lock-card lock-card-egmm" id="toOdpBtn" role="button" tabindex="0">
-      <h1 class="lock-title">EGMM</h1>
+      <h1 class="lock-title">THE SHAWN</h1>
     </div>
 
-    <!-- H-MART 박스 — 박스 전체 클릭 -->
-    <div class="lock-card lock-card-egmm" id="toHmartBtn" role="button" tabindex="0">
+    <!-- H-MART 박스 (이 페이지에서는 사용 안 함) -->
+    <div class="lock-card lock-card-egmm" id="toHmartBtn" role="button" tabindex="0" style="display:none;">
       <h1 class="lock-title">H-MART</h1>
     </div>
   </div>
@@ -3364,9 +3364,9 @@
     }
     openEgmmPw();
   };
-  $('toOdpBtn').onclick = () => enterEgmm();
+  $('toOdpBtn').onclick = () => { var __f=$('mgrFab'); if(__f) __f.click(); };
   $('toOdpBtn').addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); var __f=$('mgrFab'); if(__f) __f.click(); }
   });
   $('egmmPwBtn').onclick = submitEgmmPw;
   $('egmmPwClose').onclick = closeEgmmPw;
@@ -3413,7 +3413,7 @@
   const mgrLoginOv = $('mgrLoginOv');
   const openMgrLogin = () => { mgrLoginOv.classList.add('show'); setTimeout(()=>{ var el=$('loginEmail'); if(el) el.focus(); }, 80); };
   const closeMgrLogin = () => mgrLoginOv.classList.remove('show');
-  $('mgrFab').onclick = () => { window.location.href = 'shawn.html'; };
+  $('mgrFab').onclick = openMgrLogin;
   $('mgrLoginClose').onclick = closeMgrLogin;
   mgrLoginOv.addEventListener('click', e => { if (e.target === mgrLoginOv) closeMgrLogin(); });
 
@@ -3673,10 +3673,12 @@
             : '승인되지 않은 계정입니다. 관리자에게 문의하세요.';
           return;
         }
-        // 이 페이지는 EGMM/H-MART 전용입니다. THE SHAWN 로그인 세션이 있으면 THE SHAWN 페이지로 이동합니다.
         currentUser = user;
         isAdmin = res.admin;
-        window.location.href = 'shawn.html';
+        state.mode = 'cloud';
+        await loadFromCloud();
+        enterApp();
+        showToast('환영합니다!', 'success');
       } else {
         // 로그아웃 상태
         currentUser = null;
