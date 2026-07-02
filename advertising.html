@@ -79,6 +79,8 @@
   .saved-item .sd{ font-family:var(--serif); font-weight:900; font-size:14px; }
   .saved-item .sc{ font-size:12px; color:var(--text-dim); }
   .saved-item .sp{ flex:1; }
+  @keyframes adUpdatedBlink { 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
+  .ad-updated{ font-size:12px; font-weight:900; color:#c0392b; letter-spacing:.02em; white-space:nowrap; animation: adUpdatedBlink 1s ease-in-out infinite; }
 
   .tbl-wrap{ overflow:auto; border:1.5px solid var(--border); border-radius:12px; }
   table.adt{ width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -502,15 +504,39 @@
   }
 
   /* ===== 저장된 광고 데이터 목록 ===== */
+  // 올린 시점부터 '다가오는 다음 주 월요일 0시'까지 UPDATED 표시
+  function nextMondayEnd(ts){
+    var d=new Date(ts);
+    d.setHours(0,0,0,0);
+    var day=d.getDay();                 // 0=일 … 1=월
+    // 이번 주 월요일로 이동
+    var diffToMon=(day===0? -6 : 1-day);
+    var mon=new Date(d); mon.setDate(d.getDate()+diffToMon);
+    // 그 다음 주 월요일
+    var nextMon=new Date(mon); nextMon.setDate(mon.getDate()+7);
+    return nextMon.getTime();
+  }
+  function isFresh(ts){ if(!ts) return false; return Date.now() < nextMondayEnd(ts); }
+  // 제목에서 날짜 추출: 괄호 안 우선, 없으면 끝의 날짜(06/30, 6-30, 06.30 등)
+  function titleDate(title){
+    var t=String(title||'');
+    var m=t.match(/\(([^)]*\d[^)]*)\)\s*$/);          // 끝의 (…날짜…)
+    if(m) return m[1].trim();
+    m=t.match(/(\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?)\s*$/); // 끝의 날짜
+    if(m) return m[1].trim();
+    return '';
+  }
+
   function loadSavedList(){
     var box=$('savedList'); if(!fbReady()){ setTimeout(loadSavedList,500); return; }
     box.innerHTML='<div class="empty"><span class="spin"></span> 불러오는 중…</div>';
     window.fbFns.getDocs(window.fbFns.collection(window.fbDb, AD_COL)).then(function(snap){
-      var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({ id:d.id, title:(v.title||d.id), count:(v.count!=null?v.count:(v.items?v.items.length:0)) }); });
-      arr.sort(function(a,b){ return a.title<b.title?-1:1; });
+      var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({ id:d.id, title:(v.title||d.id), count:(v.count!=null?v.count:(v.items?v.items.length:0)), updatedAt:(v.updatedAt||0) }); });
+      arr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
       if(!arr.length){ box.innerHTML='<div class="empty">저장된 광고리스트가 없습니다.</div>'; return; }
-      box.innerHTML=arr.map(function(x){ return '<div class="saved-item" data-id="'+esc(x.id)+'">'+
+      box.innerHTML=arr.map(function(x){ var fresh=isFresh(x.updatedAt); var dt=titleDate(x.title); return '<div class="saved-item" data-id="'+esc(x.id)+'">'+
         '<span class="sd">AD LIST · '+esc(x.title)+'</span><span class="sc">'+x.count+'개</span><span class="sp"></span>'+
+        (fresh?'<span class="ad-updated">UPDATED (NEXT WEEKLY SALE ITEMS)'+(dt?' ('+esc(dt)+')':'')+'</span>':'')+
         '<button class="btn sm" data-act="view">보기</button><button class="btn sm danger" data-act="del">삭제</button></div>'; }).join('');
     }).catch(function(err){ box.innerHTML='<div class="empty">목록 오류: '+esc(err&&err.message||String(err))+'</div>'; });
   }
@@ -521,10 +547,10 @@
   function initView(){
     var sel=$('viewPick');
     window.fbFns.getDocs(window.fbFns.collection(window.fbDb, AD_COL)).then(function(snap){
-      var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({id:d.id,title:(v.title||d.id),count:(v.count!=null?v.count:(v.items?v.items.length:0))}); });
-      arr.sort(function(a,b){ return a.title<b.title?-1:1; });
+      var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({id:d.id,title:(v.title||d.id),count:(v.count!=null?v.count:(v.items?v.items.length:0)),updatedAt:(v.updatedAt||0)}); });
+      arr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
       if(!arr.length){ sel.innerHTML='<option value="">데이터 없음</option>'; $('stView').textContent='저장된 광고리스트가 없습니다.'; renderPreview([],0,'AD LIST'); return; }
-      sel.innerHTML=arr.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+x.count+'개</option>'; }).join('');
+      sel.innerHTML=arr.map(function(x){ var fresh=isFresh(x.updatedAt); var dt=titleDate(x.title); return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+x.count+'개'+(fresh?('  ⚡UPDATED'+(dt?' ('+dt+')':'')):'')+'</option>'; }).join('');
       sel.onchange=function(){ viewLoad(sel.value); }; viewLoad(arr[0].id);
     }).catch(function(err){ $('stView').textContent='오류: '+(err&&err.message||err); });
   }
