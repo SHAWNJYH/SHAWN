@@ -2304,6 +2304,12 @@
   .egmm-chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--text); }
   .egmm-chat-store { margin-left: 4px; border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--bg); }
   .egmm-chat-head .egmm-msg-live { margin-left: auto; }
+  @keyframes egmmChatAlarm { 0%,100%{ background:var(--bg-elev); } 50%{ background:#fdecec; } }
+  .egmm-chat-head.alarm { animation: egmmChatAlarm 1s ease-in-out infinite; }
+  .egmm-chat-head.alarm > span:first-child { color:#c0392b; }
+  .egmm-chat-alarm-dot { display:none; width:9px; height:9px; border-radius:50%; background:#c0392b; box-shadow:0 0 0 0 rgba(192,57,43,.5); animation: egmmDotPulse 1s infinite; }
+  .egmm-chat-head.alarm .egmm-chat-alarm-dot { display:inline-block; }
+  @keyframes egmmDotPulse { 0%{ box-shadow:0 0 0 0 rgba(192,57,43,.5);} 70%{ box-shadow:0 0 0 7px rgba(192,57,43,0);} 100%{ box-shadow:0 0 0 0 rgba(192,57,43,0);} }
   .egmm-chat-body { height: 340px; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
   .chat-row { display: flex; max-width: 78%; }
   .chat-row.me { align-self: flex-end; justify-content: flex-end; }
@@ -2640,14 +2646,15 @@
  <!-- 매장 메시지 (하단) -->
  <div class="egmm-msg-wrap" id="egmmMsgWrap">
    <div class="egmm-chat-card">
-     <div class="egmm-chat-head">
+     <div class="egmm-chat-head" id="egmmChatHead">
        <span>💬 매장 메시지</span>
+       <span class="egmm-chat-alarm-dot"></span>
        <select id="egmmMsgStore" class="egmm-chat-store"></select>
        <span class="egmm-msg-live">● LIVE</span>
      </div>
-     <div class="egmm-chat-body" id="egmmChatBody"><div class="egmm-msg-empty">매장을 선택하면 대화가 표시됩니다</div></div>
+     <div class="egmm-chat-body" id="egmmChatBody"></div>
      <div class="egmm-chat-input">
-       <textarea id="egmmMsgText" class="egmm-chat-text" placeholder="메시지 입력 (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+       <textarea id="egmmMsgText" class="egmm-chat-text" placeholder=""></textarea>
        <button class="egmm-chat-send" id="egmmMsgSendBtn">전송</button>
      </div>
    </div>
@@ -3320,6 +3327,31 @@
   function fmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2), hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2); return mm+'/'+dd+' '+hh+':'+mi; }
   function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
 
+  // 띵동 알림음 (Web Audio, 파일 불필요)
+  var actx=null;
+  function ding(){
+    try{
+      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      if(actx.state==='suspended') actx.resume();
+      var now=actx.currentTime;
+      [[988,0],[1319,0.14]].forEach(function(p){
+        var o=actx.createOscillator(), g=actx.createGain();
+        o.type='sine'; o.frequency.value=p[0];
+        o.connect(g); g.connect(actx.destination);
+        var t=now+p[1];
+        g.gain.setValueAtTime(0.0001,t);
+        g.gain.exponentialRampToValueAtTime(0.35,t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+        o.start(t); o.stop(t+0.4);
+      });
+    }catch(e){}
+  }
+  // 알림 표시(깜빡임) — 대화창 클릭/입력 시 해제
+  var head=$('egmmChatHead');
+  function alarmOn(){ if(head) head.classList.add('alarm'); }
+  function alarmOff(){ if(head) head.classList.remove('alarm'); }
+  ['click','focusin'].forEach(function(ev){ var w=document.querySelector('.egmm-msg-wrap'); if(w) w.addEventListener(ev, alarmOff); });
+
   var sel=$('egmmMsgStore');
   function fillStores(){
     if(!sel) return;
@@ -3337,7 +3369,7 @@
     var box=$('egmmChatBody'); if(!box) return;
     var store=sel ? sel.value : '';
     var thread=allMsgs.filter(function(m){ return m.store===store; }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
-    if(!thread.length){ box.innerHTML='<div class="egmm-msg-empty">아직 대화가 없습니다</div>'; return; }
+    if(!thread.length){ box.innerHTML=''; return; }
     box.innerHTML=thread.map(function(m){
       var mine=(m.dir==='toStore'); // EGMM이 보낸 것 = 내 메시지(오른쪽)
       var side=mine?'me':'them';
@@ -3367,11 +3399,18 @@
   var ta=$('egmmMsgText');
   if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey && !e.isComposing && e.keyCode!==229){ e.preventDefault(); sendMsg(); } });
 
+  var msgInit=false, seenIds={};
   ready(function(){
     try{
       fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
         allMsgs=[];
-        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') allMsgs.push(d); });
+        var incoming=[];
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg'){ allMsgs.push(d); if(d.dir==='toEgmm') incoming.push(d); } });
+        // 최초 로드 이후 새로 들어온 수신 메시지(매장→EGMM)만 알림
+        var fresh=0;
+        incoming.forEach(function(m){ if(!seenIds[m.__id]){ seenIds[m.__id]=1; if(msgInit) fresh++; } });
+        if(fresh>0){ ding(); alarmOn(); }
+        msgInit=true;
         fillStores(); render();
       }, function(err){ console.error('[EGMM 메시지 실시간 오류]', err && err.message ? err.message : err); });
     }catch(e){ console.error('[EGMM 메시지 구독 실패]', e); }

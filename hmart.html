@@ -345,10 +345,10 @@
     <!-- EGMM 메시지 (하단) -->
     <div class="hm-msg-wrap">
       <div class="hm-chat-card">
-        <div class="hm-chat-head"><span>💬 EGMM 메시지</span><span class="hm-msg-live">● LIVE</span></div>
-        <div class="hm-chat-body" id="hmChatBody"><div class="hm-msg-empty">아직 대화가 없습니다</div></div>
+        <div class="hm-chat-head" id="hmChatHead"><span>💬 EGMM 메시지</span><span class="hm-chat-alarm-dot"></span><span class="hm-msg-live">● LIVE</span></div>
+        <div class="hm-chat-body" id="hmChatBody"></div>
         <div class="hm-chat-input">
-          <textarea id="hmMsgText" class="hm-chat-text" placeholder="메시지 입력 (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+          <textarea id="hmMsgText" class="hm-chat-text" placeholder=""></textarea>
           <button class="hm-chat-send" id="hmMsgSendBtn">전송</button>
         </div>
       </div>
@@ -378,6 +378,12 @@
   .hm-chat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
   .hm-chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 800; font-size: 15px; color: var(--text); }
   .hm-chat-head .hm-msg-live { margin-left: auto; }
+  @keyframes hmChatAlarm { 0%,100%{ background:var(--bg-elev); } 50%{ background:#fdecec; } }
+  .hm-chat-head.alarm { animation: hmChatAlarm 1s ease-in-out infinite; }
+  .hm-chat-head.alarm > span:first-child { color:#c0392b; }
+  .hm-chat-alarm-dot { display:none; width:9px; height:9px; border-radius:50%; background:#c0392b; animation: hmDotPulse 1s infinite; }
+  .hm-chat-head.alarm .hm-chat-alarm-dot { display:inline-block; }
+  @keyframes hmDotPulse { 0%{ box-shadow:0 0 0 0 rgba(192,57,43,.5);} 70%{ box-shadow:0 0 0 7px rgba(192,57,43,0);} 100%{ box-shadow:0 0 0 0 rgba(192,57,43,0);} }
   .hm-chat-body { height: 340px; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
   .hm-chat-body .chat-wrap-line { display: flex; flex-direction: column; max-width: 78%; }
   .hm-chat-body .chat-wrap-line.me { align-self: flex-end; align-items: flex-end; }
@@ -611,6 +617,30 @@
   function fmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2), hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2); return mm+'/'+dd+' '+hh+':'+mi; }
   function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
 
+  // 띵동 알림음
+  var actx=null;
+  function ding(){
+    try{
+      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      if(actx.state==='suspended') actx.resume();
+      var now=actx.currentTime;
+      [[988,0],[1319,0.14]].forEach(function(p){
+        var o=actx.createOscillator(), g=actx.createGain();
+        o.type='sine'; o.frequency.value=p[0];
+        o.connect(g); g.connect(actx.destination);
+        var t=now+p[1];
+        g.gain.setValueAtTime(0.0001,t);
+        g.gain.exponentialRampToValueAtTime(0.35,t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+        o.start(t); o.stop(t+0.4);
+      });
+    }catch(e){}
+  }
+  var head=$('hmChatHead');
+  function alarmOn(){ if(head) head.classList.add('alarm'); }
+  function alarmOff(){ if(head) head.classList.remove('alarm'); }
+  ['click','focusin'].forEach(function(ev){ var w=document.querySelector('.hm-msg-wrap'); if(w) w.addEventListener(ev, alarmOff); });
+
   function sendMsg(){
     var store=activeStore();
     var ta=$('hmMsgText'); var text=(ta.value||'').trim();
@@ -631,7 +661,7 @@
     var box=$('hmChatBody'); if(!box) return;
     var my=activeStore();
     var thread=allMsgs.filter(function(m){ return m.store===my; }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
-    if(!thread.length){ box.innerHTML='<div class="hm-msg-empty">아직 대화가 없습니다</div>'; return; }
+    if(!thread.length){ box.innerHTML=''; return; }
     box.innerHTML=thread.map(function(m){
       var mine=(m.dir==='toEgmm'); // 내가 보낸 것(오른쪽)
       var side=mine?'me':'them';
@@ -642,11 +672,17 @@
     }).join('');
     box.scrollTop=box.scrollHeight;
   }
+  var msgInit=false, seenIds={};
   ready(function(){
     try{
       fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
         allMsgs=[];
-        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') allMsgs.push(d); });
+        var my=activeStore(); var incoming=[];
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg'){ allMsgs.push(d); if(d.dir==='toStore' && d.store===my) incoming.push(d); } });
+        var fresh=0;
+        incoming.forEach(function(m){ if(!seenIds[m.__id]){ seenIds[m.__id]=1; if(msgInit) fresh++; } });
+        if(fresh>0){ ding(); alarmOn(); }
+        msgInit=true;
         render();
       }, function(err){ console.error('[HMART 메시지 실시간 오류]', err && err.message ? err.message : err); });
     }catch(e){ console.error('[HMART 메시지 구독 실패]', e); }
