@@ -300,6 +300,40 @@
   .bible-topbar .brand-meta{font-size:11px;color:var(--text-dim);margin-top:2px;}
   .tools-cell .upc-grid{grid-template-columns:1fr;}
 
+  /* === 4분할 컴팩트 오버라이드 (창 안에 맞게 축소) === */
+  .tools-cell{ padding:12px; font-size:12px; }
+  .tools-cell .bible-topbar{ margin-bottom:8px; }
+  .tools-cell .bible-topbar .brand{ font-size:15px; }
+  .tools-cell .bible-topbar .brand-meta{ font-size:10px; }
+  .tools-cell .upc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
+  .tools-cell .upc-box{ min-height:0 !important; padding:10px; }
+  .tools-cell .upc-textarea{ min-height:60px !important; height:60px; font-size:12px; line-height:1.4; padding:8px; }
+  .tools-cell .upc-box-title{ font-size:12px; }
+  .tools-cell .upc-mini-btn{ font-size:10px; padding:4px 7px; }
+  .tools-cell .upc-arrow-section{ margin:6px 0; }
+  .tools-cell .upc-convert-btn{ padding:8px 14px; font-size:13px; }
+  .tools-cell .upc-status{ font-size:10px; }
+  .tools-cell .upc-info-list{ display:none; }        /* 하단 안내 숨김(공간 절약) */
+
+  /* 대소문자: 입력/출력 작게 + 버튼 축소 */
+  #caseScreen .upc-grid{ grid-template-columns:1fr 1fr; }
+  #caseScreen .upc-textarea{ min-height:60px !important; height:60px; }
+  .tools-cell .case-btn-section{ gap:6px; }
+  .tools-cell .case-convert-btn{ padding:7px 10px; }
+  .tools-cell .case-btn-label{ font-size:12px; }
+  .tools-cell .case-btn-example{ font-size:10px; }
+
+  /* 용량: 입력 필드 축소, 2열 그리드 */
+  .tools-cell .weight-input{ font-size:14px; padding:7px 9px; }
+  .tools-cell .weight-name{ font-size:13px; }
+  .tools-cell .weight-sym{ font-size:11px; }
+
+  /* 계산기: 디스플레이/키 축소 */
+  .tools-cell .calc-expr{ font-size:13px; }
+  .tools-cell .calc-result{ font-size:22px; }
+  .tools-cell .calc-key{ padding:9px 0; font-size:15px; }
+  .tools-cell .calc-grid{ gap:5px; }
+
 </style>
 </head>
 <body>
