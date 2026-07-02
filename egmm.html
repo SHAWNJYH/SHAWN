@@ -2298,6 +2298,28 @@
   .egmm-msg-empty { font-size: 13px; color: var(--text-dim); padding: 14px 4px; text-align: center; }
   .egmm-msg-del { border: none; background: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
   .egmm-msg-del:hover { color: #b3261e; }
+  /* 대화형 채팅 */
+  .egmm-msg-wrap { width: 100%; max-width: 720px; margin: 26px auto 0; }
+  .egmm-chat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .egmm-chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--text); }
+  .egmm-chat-store { margin-left: 4px; border: 1.5px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--bg); }
+  .egmm-chat-head .egmm-msg-live { margin-left: auto; }
+  .egmm-chat-body { height: 340px; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+  .chat-row { display: flex; max-width: 78%; }
+  .chat-row.me { align-self: flex-end; justify-content: flex-end; }
+  .chat-row.them { align-self: flex-start; }
+  .chat-bubble { padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; position: relative; }
+  .chat-row.me .chat-bubble { background: var(--accent-warm); color: #fff; border-bottom-right-radius: 4px; }
+  .chat-row.them .chat-bubble { background: var(--bg-elev); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+  .chat-meta { font-size: 10px; color: var(--text-dim); margin: 3px 4px 0; align-self: flex-end; }
+  .chat-row.them .chat-meta { align-self: flex-start; }
+  .chat-wrap-line { display: flex; flex-direction: column; max-width: 78%; }
+  .chat-wrap-line.me { align-self: flex-end; align-items: flex-end; }
+  .chat-wrap-line.them { align-self: flex-start; align-items: flex-start; }
+  .egmm-chat-input { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .egmm-chat-text { flex: 1; min-height: 42px; max-height: 120px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: none; }
+  .egmm-chat-send { flex: 0 0 auto; border: none; background: var(--accent-warm); color: #fff; border-radius: 10px; padding: 0 20px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .egmm-chat-send:active { transform: scale(.98); }
   .egmm-card { flex: 1 1 258px; min-width: 250px; max-width: 340px; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
@@ -2617,18 +2639,16 @@
 
  <!-- 매장 메시지 (하단) -->
  <div class="egmm-msg-wrap" id="egmmMsgWrap">
-   <div class="egmm-msg-grid">
-     <!-- 보내기: 매장 선택 + 메시지 -->
-     <div class="egmm-msg-card">
-       <div class="egmm-msg-head">📤 매장으로 메시지 보내기</div>
-       <select id="egmmMsgStore" class="egmm-msg-select"></select>
-       <textarea id="egmmMsgText" class="egmm-msg-text" placeholder="선택한 매장으로 보낼 메시지를 입력하세요"></textarea>
-       <button class="egmm-msg-send" id="egmmMsgSendBtn">보내기</button>
+   <div class="egmm-chat-card">
+     <div class="egmm-chat-head">
+       <span>💬 매장 메시지</span>
+       <select id="egmmMsgStore" class="egmm-chat-store"></select>
+       <span class="egmm-msg-live">● LIVE</span>
      </div>
-     <!-- 받기: 매장이 EGMM으로 보낸 메시지 -->
-     <div class="egmm-msg-card">
-       <div class="egmm-msg-head">📥 매장에서 받은 메시지 <span class="egmm-msg-live" id="egmmMsgLive">● LIVE</span></div>
-       <div class="egmm-msg-list" id="egmmMsgInbox"><div class="egmm-msg-empty">받은 메시지가 없습니다</div></div>
+     <div class="egmm-chat-body" id="egmmChatBody"><div class="egmm-msg-empty">매장을 선택하면 대화가 표시됩니다</div></div>
+     <div class="egmm-chat-input">
+       <textarea id="egmmMsgText" class="egmm-chat-text" placeholder="메시지 입력 (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+       <button class="egmm-chat-send" id="egmmMsgSendBtn">전송</button>
      </div>
    </div>
  </div>
@@ -3287,58 +3307,63 @@
 </script>
 
 <script>
-/* ===== 매장 메시지 (EGMM ↔ H-MART) ===== */
+/* ===== 매장 메시지 (EGMM ↔ H-MART) — 대화형 ===== */
 (function(){
   'use strict';
   var $=function(id){ return document.getElementById(id); };
   var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
   var MSG_COL='plu-requests';
+  var allMsgs=[];
   function db(){ return window.firebaseDb; }
   function fns(){ return window.firebaseFns; }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
   function fmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2), hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2); return mm+'/'+dd+' '+hh+':'+mi; }
   function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
 
-  // 매장 셀렉트 채우기
   var sel=$('egmmMsgStore');
-  if(sel){ sel.innerHTML=STORES.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join(''); }
+  if(sel){ sel.innerHTML=STORES.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join(''); sel.onchange=render; }
 
-  // 보내기: EGMM → 매장 (dir:'toStore')
-  function sendMsg(){
+  // 선택 매장의 대화(내가 보낸 toStore + 매장이 보낸 toEgmm) 시간순
+  function render(){
+    var box=$('egmmChatBody'); if(!box) return;
     var store=sel ? sel.value : '';
-    var text=($('egmmMsgText').value||'').trim();
-    if(!store){ alert('매장을 선택하세요'); return; }
-    if(!text){ alert('메시지를 입력하세요'); return; }
-    var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-    try{
-      fns().setDoc(fns().doc(db(), MSG_COL, id), { kind:'chatmsg', store:store, dir:'toStore', text:text, createdAt:Date.now() });
-      $('egmmMsgText').value='';
-    }catch(e){ alert('전송 실패: '+e.message); }
-  }
-  var sendBtn=$('egmmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
-
-  // 받기: 매장 → EGMM (dir:'toEgmm') 실시간
-  function renderInbox(list){
-    var box=$('egmmMsgInbox'); if(!box) return;
-    if(!list.length){ box.innerHTML='<div class="egmm-msg-empty">받은 메시지가 없습니다</div>'; return; }
-    list.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
-    box.innerHTML=list.map(function(m){
-      return '<div class="egmm-msg-item">'
-        +'<div class="egmm-msg-item-top"><span class="egmm-msg-store">'+esc(m.store||'-')+'</span>'
-        +'<span><span class="egmm-msg-time">'+fmtTime(m.createdAt)+'</span> '
-        +'<button class="egmm-msg-del" data-id="'+esc(m.__id)+'">삭제</button></span></div>'
-        +'<div class="egmm-msg-body">'+esc(m.text||'')+'</div></div>';
+    var thread=allMsgs.filter(function(m){ return m.store===store; }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    if(!thread.length){ box.innerHTML='<div class="egmm-msg-empty">아직 대화가 없습니다</div>'; return; }
+    box.innerHTML=thread.map(function(m){
+      var mine=(m.dir==='toStore'); // EGMM이 보낸 것 = 내 메시지(오른쪽)
+      var side=mine?'me':'them';
+      return '<div class="chat-wrap-line '+side+'">'
+        +'<div class="chat-row '+side+'"><div class="chat-bubble" data-id="'+esc(m.__id)+'">'+esc(m.text||'')+'</div></div>'
+        +'<div class="chat-meta">'+(mine?'':(esc(m.store)+' · '))+fmtTime(m.createdAt)+(mine?' <span class="egmm-msg-del" data-id="'+esc(m.__id)+'" style="cursor:pointer">· 삭제</span>':'')+'</div>'
+        +'</div>';
     }).join('');
+    box.scrollTop=box.scrollHeight;
     Array.prototype.forEach.call(box.querySelectorAll('.egmm-msg-del'), function(b){
       b.onclick=function(){ try{ fns().deleteDoc(fns().doc(db(), MSG_COL, b.getAttribute('data-id'))); }catch(e){} };
     });
   }
+
+  function sendMsg(){
+    var store=sel ? sel.value : '';
+    var ta=$('egmmMsgText'); var text=(ta.value||'').trim();
+    if(!store){ alert('매장을 선택하세요'); return; }
+    if(!text) return;
+    var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    try{
+      fns().setDoc(fns().doc(db(), MSG_COL, id), { kind:'chatmsg', store:store, dir:'toStore', text:text, createdAt:Date.now() });
+      ta.value='';
+    }catch(e){ alert('전송 실패: '+e.message); }
+  }
+  var sendBtn=$('egmmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
+  var ta=$('egmmMsgText');
+  if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMsg(); } });
+
   ready(function(){
     try{
       fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
-        var inbox=[];
-        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg' && d.dir==='toEgmm') inbox.push(d); });
-        renderInbox(inbox);
+        allMsgs=[];
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') allMsgs.push(d); });
+        render();
       }, function(){});
     }catch(e){}
   });
