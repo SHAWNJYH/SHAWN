@@ -75,12 +75,13 @@
   .pill.warn{ background:#fdf6e8; border-color:#ecd9a8; color:#b4791f; }
 
   .saved-list{ display:flex; flex-direction:column; gap:8px; }
+  .weekly-bar{ display:flex; justify-content:flex-end; min-height:20px; margin:2px 0 8px; }
   .saved-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--border); border-radius:11px; background:var(--bg-elev-2); }
   .saved-item .sd{ font-family:var(--serif); font-weight:900; font-size:14px; }
   .saved-item .sc{ font-size:12px; color:var(--text-dim); }
   .saved-item .sp{ flex:1; }
   @keyframes adUpdatedBlink { 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
-  .weekly-badge{ display:none; margin-left:auto; font-size:12px; font-weight:900; color:#c0392b; letter-spacing:.02em; white-space:nowrap; animation: adUpdatedBlink 1s ease-in-out infinite; }
+  .weekly-badge{ display:none; font-size:12.5px; font-weight:900; color:#c0392b; letter-spacing:.02em; white-space:nowrap; animation: adUpdatedBlink 1s ease-in-out infinite; }
   .weekly-badge.show{ display:inline-block; }
 
   .tbl-wrap{ overflow:auto; border:1.5px solid var(--border); border-radius:12px; }
@@ -166,7 +167,8 @@
     </div>
 
     <div class="card">
-      <h2>🗂 저장된 광고 데이터 <span class="tag">H-MART 광고상품 보기에 노출</span><span class="weekly-badge" id="weeklyBadge"></span></h2>
+      <h2>🗂 저장된 광고 데이터 <span class="tag">H-MART 광고상품 보기에 노출</span></h2>
+      <div class="weekly-bar"><span class="weekly-badge" id="weeklyBadge"></span></div>
       <div class="saved-list" id="savedList"><div class="empty">불러오는 중…</div></div>
     </div>
   </div>
@@ -520,6 +522,7 @@
     var el=$('weeklyBadge'); if(!el) return;
     var latest=0;
     (arr||[]).forEach(function(x){ if((x.updatedAt||0)>latest) latest=x.updatedAt; });
+    if(!latest && arr && arr.length) latest=Date.now();   // 저장 시각 정보가 없는 기존 데이터 대비
     if(!latest || Date.now()>=nextMondayEnd(latest)){ el.textContent=''; el.classList.remove('show'); return; }
     var monStart=new Date(nextMondayEnd(latest));     // 다음주 월요일
     var sunEnd=new Date(monStart); sunEnd.setDate(monStart.getDate()+6); // 그 주 일요일
