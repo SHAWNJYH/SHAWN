@@ -2276,6 +2276,28 @@
   /* 도메인 패널 */
   .egmm-cards { display: flex; gap: 16px; align-items: flex-start; justify-content: center;
     width: 100%; max-width: 1300px; flex-wrap: wrap; }
+  .egmm-card-col { flex: 1 1 258px; min-width: 250px; max-width: 340px; display: flex; flex-direction: column; gap: 16px; }
+  .egmm-card-col .egmm-card { flex: 1 1 auto; max-width: none; min-width: 0; width: 100%; }
+  /* 매장 메시지 */
+  .egmm-msg-wrap { width: 100%; max-width: 1300px; margin: 26px auto 0; }
+  .egmm-msg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px){ .egmm-msg-grid { grid-template-columns: 1fr; } }
+  .egmm-msg-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; }
+  .egmm-msg-head { font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .egmm-msg-live { font-size: 10px; font-weight: 800; color: #2f7d32; letter-spacing: .1em; }
+  .egmm-msg-select { width: 100%; box-sizing: border-box; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; color: var(--text); background: var(--bg-elev); margin-bottom: 10px; }
+  .egmm-msg-text { width: 100%; box-sizing: border-box; min-height: 70px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: vertical; margin-bottom: 10px; }
+  .egmm-msg-send { width: 100%; border: none; background: var(--accent-warm); color: #fff; border-radius: 10px; padding: 11px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .egmm-msg-send:active { transform: scale(.99); }
+  .egmm-msg-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .egmm-msg-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .egmm-msg-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .egmm-msg-store { font-size: 12px; font-weight: 800; color: var(--accent-warm); letter-spacing: .05em; }
+  .egmm-msg-time { font-size: 10px; color: var(--text-dim); }
+  .egmm-msg-body { font-size: 14px; color: var(--text); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+  .egmm-msg-empty { font-size: 13px; color: var(--text-dim); padding: 14px 4px; text-align: center; }
+  .egmm-msg-del { border: none; background: none; color: var(--text-faint); cursor: pointer; font-size: 12px; }
+  .egmm-msg-del:hover { color: #b3261e; }
   .egmm-card { flex: 1 1 258px; min-width: 250px; max-width: 340px; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
@@ -2560,19 +2582,22 @@
   </div>
 
   <!-- 박스: ADVERTISING -->
-  <div class="egmm-card">
-    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ADVERTISING</span></div>
+  <!-- 박스: ADVERTISING + REQUEST (한 세로 열) -->
+  <div class="egmm-card-col">
+    <div class="egmm-card">
+      <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ADVERTISING</span></div>
 
-    <div class="egmm-section-title">광고</div>
-    <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label">광고상품 관리</span><span class="egmm-menu-arrow">→</span></button>
-  </div>
+      <div class="egmm-section-title">광고</div>
+      <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label">광고상품 관리</span><span class="egmm-menu-arrow">→</span></button>
+    </div>
 
-  <!-- 박스: REQUEST -->
-  <div class="egmm-card">
-    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
+    <!-- 박스: REQUEST -->
+    <div class="egmm-card">
+      <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
 
-    <div class="egmm-section-title">DELI</div>
-    <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label">REQUEST CONFIRMATION</span><span class="egmm-req-count" id="deliReqCount"></span><span class="egmm-menu-arrow">→</span></button>
+      <div class="egmm-section-title">DELI</div>
+      <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label">REQUEST CONFIRMATION</span><span class="egmm-req-count" id="deliReqCount"></span><span class="egmm-menu-arrow">→</span></button>
+    </div>
   </div>
 
   <!-- 박스 3: GUIDE -->
@@ -2589,6 +2614,25 @@
     <button class="egmm-menu-btn" id="egmmDeliMgmtBtn"><span class="egmm-menu-label">DELI MANAGEMENT</span><span class="egmm-menu-arrow">→</span></button>
   </div>
  </div>
+
+ <!-- 매장 메시지 (하단) -->
+ <div class="egmm-msg-wrap" id="egmmMsgWrap">
+   <div class="egmm-msg-grid">
+     <!-- 보내기: 매장 선택 + 메시지 -->
+     <div class="egmm-msg-card">
+       <div class="egmm-msg-head">📤 매장으로 메시지 보내기</div>
+       <select id="egmmMsgStore" class="egmm-msg-select"></select>
+       <textarea id="egmmMsgText" class="egmm-msg-text" placeholder="선택한 매장으로 보낼 메시지를 입력하세요"></textarea>
+       <button class="egmm-msg-send" id="egmmMsgSendBtn">보내기</button>
+     </div>
+     <!-- 받기: 매장이 EGMM으로 보낸 메시지 -->
+     <div class="egmm-msg-card">
+       <div class="egmm-msg-head">📥 매장에서 받은 메시지 <span class="egmm-msg-live" id="egmmMsgLive">● LIVE</span></div>
+       <div class="egmm-msg-list" id="egmmMsgInbox"><div class="egmm-msg-empty">받은 메시지가 없습니다</div></div>
+     </div>
+   </div>
+ </div>
+
  <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
 </div>
 
@@ -3238,6 +3282,65 @@
   document.addEventListener('click', function(e){ var t=e.target; var del=t.getAttribute&&t.getAttribute('data-del'); if(del){ delReq(del); return; } var ap=t.getAttribute&&t.getAttribute('data-approve'); if(ap){ approve(ap); } });
   ready(function(){
     try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); refreshCount(); var ov=$('deliReqOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
+  });
+})();
+</script>
+
+<script>
+/* ===== 매장 메시지 (EGMM ↔ H-MART) ===== */
+(function(){
+  'use strict';
+  var $=function(id){ return document.getElementById(id); };
+  var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var MSG_COL='store-messages';
+  function db(){ return window.firebaseDb; }
+  function fns(){ return window.firebaseFns; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function fmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2), hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2); return mm+'/'+dd+' '+hh+':'+mi; }
+  function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
+
+  // 매장 셀렉트 채우기
+  var sel=$('egmmMsgStore');
+  if(sel){ sel.innerHTML=STORES.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join(''); }
+
+  // 보내기: EGMM → 매장 (dir:'toStore')
+  function sendMsg(){
+    var store=sel ? sel.value : '';
+    var text=($('egmmMsgText').value||'').trim();
+    if(!store){ alert('매장을 선택하세요'); return; }
+    if(!text){ alert('메시지를 입력하세요'); return; }
+    var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    try{
+      fns().setDoc(fns().doc(db(), MSG_COL, id), { store:store, dir:'toStore', text:text, createdAt:Date.now() });
+      $('egmmMsgText').value='';
+    }catch(e){ alert('전송 실패: '+e.message); }
+  }
+  var sendBtn=$('egmmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
+
+  // 받기: 매장 → EGMM (dir:'toEgmm') 실시간
+  function renderInbox(list){
+    var box=$('egmmMsgInbox'); if(!box) return;
+    if(!list.length){ box.innerHTML='<div class="egmm-msg-empty">받은 메시지가 없습니다</div>'; return; }
+    list.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    box.innerHTML=list.map(function(m){
+      return '<div class="egmm-msg-item">'
+        +'<div class="egmm-msg-item-top"><span class="egmm-msg-store">'+esc(m.store||'-')+'</span>'
+        +'<span><span class="egmm-msg-time">'+fmtTime(m.createdAt)+'</span> '
+        +'<button class="egmm-msg-del" data-id="'+esc(m.__id)+'">삭제</button></span></div>'
+        +'<div class="egmm-msg-body">'+esc(m.text||'')+'</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.egmm-msg-del'), function(b){
+      b.onclick=function(){ try{ fns().deleteDoc(fns().doc(db(), MSG_COL, b.getAttribute('data-id'))); }catch(e){} };
+    });
+  }
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
+        var inbox=[];
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.dir==='toEgmm') inbox.push(d); });
+        renderInbox(inbox);
+      }, function(){});
+    }catch(e){}
   });
 })();
 </script>

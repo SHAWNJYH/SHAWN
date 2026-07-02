@@ -341,9 +341,44 @@
         <button class="egmm-menu-btn soon" data-soon="1"><span>HARD LIQUOR</span><span class="egmm-soon">SOON</span></button>
       </div>
     </div>
+
+    <!-- EGMM 메시지 (하단) -->
+    <div class="hm-msg-wrap">
+      <div class="hm-msg-grid">
+        <!-- 받기: EGMM → 매장 -->
+        <div class="hm-msg-card">
+          <div class="hm-msg-head">📥 EGMM 메시지 보기 <span class="hm-msg-live">● LIVE</span></div>
+          <div class="hm-msg-list" id="hmMsgInbox"><div class="hm-msg-empty">받은 메시지가 없습니다</div></div>
+        </div>
+        <!-- 보내기: 매장 → EGMM -->
+        <div class="hm-msg-card">
+          <div class="hm-msg-head">📤 EGMM으로 메시지 보내기</div>
+          <textarea id="hmMsgText" class="hm-msg-text" placeholder="EGMM으로 보낼 메시지를 입력하세요"></textarea>
+          <button class="hm-msg-send" id="hmMsgSendBtn">보내기</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <style>
+  /* EGMM 메시지 */
+  .hm-msg-wrap { width: 100%; max-width: 1080px; margin: 26px auto 0; }
+  .hm-msg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px){ .hm-msg-grid { grid-template-columns: 1fr; } }
+  .hm-msg-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; }
+  .hm-msg-head { font-weight: 800; font-size: 15px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .hm-msg-live { font-size: 10px; font-weight: 800; color: #2f7d32; letter-spacing: .1em; }
+  .hm-msg-text { width: 100%; box-sizing: border-box; min-height: 90px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: vertical; margin-bottom: 10px; }
+  .hm-msg-send { width: 100%; border: none; background: var(--accent-warm, #c9a961); color: #fff; border-radius: 10px; padding: 11px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .hm-msg-send:active { transform: scale(.99); }
+  .hm-msg-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .hm-msg-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .hm-msg-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .hm-msg-from { font-size: 12px; font-weight: 800; color: var(--accent-warm, #c9a961); letter-spacing: .05em; }
+  .hm-msg-time { font-size: 10px; color: var(--text-dim); }
+  .hm-msg-body { font-size: 14px; color: var(--text); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+  .hm-msg-empty { font-size: 13px; color: var(--text-dim); padding: 14px 4px; text-align: center; }
+
   /* 승인 알림: VIEW REQUEST 빨강 점멸 + 도트 */
   @keyframes hmAlarmBlink { 0%,100%{ background:var(--bg); border-color:var(--border); } 50%{ background:#fdecec; border-color:#c0392b; box-shadow:0 0 0 2px rgba(192,57,43,.22); } }
   .egmm-menu-btn.hm-alarm{ animation:hmAlarmBlink 1s ease-in-out infinite; }
@@ -544,6 +579,57 @@
         else { var myStore=activeStore(); var fresh=0; reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]){ seenDone[r.__id]=1; if(!myStore || r.store===myStore) fresh++; } }); if(fresh>0){ newApprovals+=fresh; playBeep(); } }
         refreshDot();
         var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+    }catch(e){}
+  });
+})();
+</script>
+
+<script>
+/* ===== EGMM 메시지 (H-MART 매장 ↔ EGMM) ===== */
+(function(){
+  'use strict';
+  var $=function(id){ return document.getElementById(id); };
+  var MSG_COL='store-messages';
+  function db(){ return window.firebaseDb; }
+  function fns(){ return window.firebaseFns; }
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function fmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2), hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2); return mm+'/'+dd+' '+hh+':'+mi; }
+  function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
+
+  // 보내기: 매장 → EGMM (dir:'toEgmm')
+  function sendMsg(){
+    var store=activeStore();
+    var text=($('hmMsgText').value||'').trim();
+    if(!store){ alert('매장 로그인이 필요합니다'); return; }
+    if(!text){ alert('메시지를 입력하세요'); return; }
+    var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    try{
+      fns().setDoc(fns().doc(db(), MSG_COL, id), { store:store, dir:'toEgmm', text:text, createdAt:Date.now() });
+      $('hmMsgText').value='';
+    }catch(e){ alert('전송 실패: '+e.message); }
+  }
+  var sendBtn=$('hmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
+
+  // 받기: EGMM → 매장 (dir:'toStore'), 내 매장 것만 실시간
+  function renderInbox(list){
+    var box=$('hmMsgInbox'); if(!box) return;
+    if(!list.length){ box.innerHTML='<div class="hm-msg-empty">받은 메시지가 없습니다</div>'; return; }
+    list.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    box.innerHTML=list.map(function(m){
+      return '<div class="hm-msg-item">'
+        +'<div class="hm-msg-item-top"><span class="hm-msg-from">EGMM</span>'
+        +'<span class="hm-msg-time">'+fmtTime(m.createdAt)+'</span></div>'
+        +'<div class="hm-msg-body">'+esc(m.text||'')+'</div></div>';
+    }).join('');
+  }
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
+        var my=activeStore(); var inbox=[];
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.dir==='toStore' && d.store===my) inbox.push(d); });
+        renderInbox(inbox);
+      }, function(){});
     }catch(e){}
   });
 })();
