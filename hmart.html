@@ -574,7 +574,7 @@
 
   ready(function(){
     try{
-      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); });
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') return; reqs.push(d); });
         if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
         else { var myStore=activeStore(); var fresh=0; reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]){ seenDone[r.__id]=1; if(!myStore || r.store===myStore) fresh++; } }); if(fresh>0){ newApprovals+=fresh; playBeep(); } }
         refreshDot();
@@ -589,7 +589,7 @@
 (function(){
   'use strict';
   var $=function(id){ return document.getElementById(id); };
-  var MSG_COL='store-messages';
+  var MSG_COL='plu-requests';
   function db(){ return window.firebaseDb; }
   function fns(){ return window.firebaseFns; }
   function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
@@ -605,7 +605,7 @@
     if(!text){ alert('메시지를 입력하세요'); return; }
     var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
     try{
-      fns().setDoc(fns().doc(db(), MSG_COL, id), { store:store, dir:'toEgmm', text:text, createdAt:Date.now() });
+      fns().setDoc(fns().doc(db(), MSG_COL, id), { kind:'chatmsg', store:store, dir:'toEgmm', text:text, createdAt:Date.now() });
       $('hmMsgText').value='';
     }catch(e){ alert('전송 실패: '+e.message); }
   }
@@ -627,7 +627,7 @@
     try{
       fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
         var my=activeStore(); var inbox=[];
-        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.dir==='toStore' && d.store===my) inbox.push(d); });
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg' && d.dir==='toStore' && d.store===my) inbox.push(d); });
         renderInbox(inbox);
       }, function(){});
     }catch(e){}

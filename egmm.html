@@ -3281,7 +3281,7 @@
   $('deliReqOv').addEventListener('click', function(e){ if(e.target===$('deliReqOv')) closeMgr(); });
   document.addEventListener('click', function(e){ var t=e.target; var del=t.getAttribute&&t.getAttribute('data-del'); if(del){ delReq(del); return; } var ap=t.getAttribute&&t.getAttribute('data-approve'); if(ap){ approve(ap); } });
   ready(function(){
-    try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; reqs.push(d); }); refreshCount(); var ov=$('deliReqOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
+    try{ fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') return; reqs.push(d); }); refreshCount(); var ov=$('deliReqOv'); if(ov && ov.classList.contains('show')) renderList(); }, function(){}); }catch(e){}
   });
 })();
 </script>
@@ -3292,7 +3292,7 @@
   'use strict';
   var $=function(id){ return document.getElementById(id); };
   var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  var MSG_COL='store-messages';
+  var MSG_COL='plu-requests';
   function db(){ return window.firebaseDb; }
   function fns(){ return window.firebaseFns; }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
@@ -3311,7 +3311,7 @@
     if(!text){ alert('메시지를 입력하세요'); return; }
     var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
     try{
-      fns().setDoc(fns().doc(db(), MSG_COL, id), { store:store, dir:'toStore', text:text, createdAt:Date.now() });
+      fns().setDoc(fns().doc(db(), MSG_COL, id), { kind:'chatmsg', store:store, dir:'toStore', text:text, createdAt:Date.now() });
       $('egmmMsgText').value='';
     }catch(e){ alert('전송 실패: '+e.message); }
   }
@@ -3337,7 +3337,7 @@
     try{
       fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
         var inbox=[];
-        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.dir==='toEgmm') inbox.push(d); });
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg' && d.dir==='toEgmm') inbox.push(d); });
         renderInbox(inbox);
       }, function(){});
     }catch(e){}
