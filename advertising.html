@@ -80,7 +80,8 @@
   .saved-item .sc{ font-size:12px; color:var(--text-dim); }
   .saved-item .sp{ flex:1; }
   @keyframes adUpdatedBlink { 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
-  .ad-updated{ font-size:12px; font-weight:900; color:#c0392b; letter-spacing:.02em; white-space:nowrap; animation: adUpdatedBlink 1s ease-in-out infinite; }
+  .weekly-badge{ display:none; margin-left:auto; font-size:12px; font-weight:900; color:#c0392b; letter-spacing:.02em; white-space:nowrap; animation: adUpdatedBlink 1s ease-in-out infinite; }
+  .weekly-badge.show{ display:inline-block; }
 
   .tbl-wrap{ overflow:auto; border:1.5px solid var(--border); border-radius:12px; }
   table.adt{ width:100%; border-collapse:collapse; font-size:12.5px; }
@@ -165,7 +166,7 @@
     </div>
 
     <div class="card">
-      <h2>🗂 저장된 광고 데이터 <span class="tag">H-MART 광고상품 보기에 노출</span></h2>
+      <h2>🗂 저장된 광고 데이터 <span class="tag">H-MART 광고상품 보기에 노출</span><span class="weekly-badge" id="weeklyBadge"></span></h2>
       <div class="saved-list" id="savedList"><div class="empty">불러오는 중…</div></div>
     </div>
   </div>
@@ -504,27 +505,26 @@
   }
 
   /* ===== 저장된 광고 데이터 목록 ===== */
-  // 올린 시점부터 '다가오는 다음 주 월요일 0시'까지 UPDATED 표시
+  // 특정 시각(ts) 기준, 다가오는 다음 주 월요일 0시
   function nextMondayEnd(ts){
-    var d=new Date(ts);
-    d.setHours(0,0,0,0);
-    var day=d.getDay();                 // 0=일 … 1=월
-    // 이번 주 월요일로 이동
+    var d=new Date(ts); d.setHours(0,0,0,0);
+    var day=d.getDay();
     var diffToMon=(day===0? -6 : 1-day);
     var mon=new Date(d); mon.setDate(d.getDate()+diffToMon);
-    // 그 다음 주 월요일
     var nextMon=new Date(mon); nextMon.setDate(mon.getDate()+7);
     return nextMon.getTime();
   }
-  function isFresh(ts){ if(!ts) return false; return Date.now() < nextMondayEnd(ts); }
-  // 제목에서 날짜 추출: 괄호 안 우선, 없으면 끝의 날짜(06/30, 6-30, 06.30 등)
-  function titleDate(title){
-    var t=String(title||'');
-    var m=t.match(/\(([^)]*\d[^)]*)\)\s*$/);          // 끝의 (…날짜…)
-    if(m) return m[1].trim();
-    m=t.match(/(\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?)\s*$/); // 끝의 날짜
-    if(m) return m[1].trim();
-    return '';
+  function mmdd(d){ return ('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2); }
+  // 배지: 가장 최근 리스트의 올린 시점 기준, 다음주 월요일 전까지만 표시. 기간은 그 다음주(월~일).
+  function updateWeeklyBadge(arr){
+    var el=$('weeklyBadge'); if(!el) return;
+    var latest=0;
+    (arr||[]).forEach(function(x){ if((x.updatedAt||0)>latest) latest=x.updatedAt; });
+    if(!latest || Date.now()>=nextMondayEnd(latest)){ el.textContent=''; el.classList.remove('show'); return; }
+    var monStart=new Date(nextMondayEnd(latest));     // 다음주 월요일
+    var sunEnd=new Date(monStart); sunEnd.setDate(monStart.getDate()+6); // 그 주 일요일
+    el.textContent='UPDATED - NEXT WEEKLY SALE ITEMS ('+mmdd(monStart)+' ~ '+mmdd(sunEnd)+')';
+    el.classList.add('show');
   }
 
   function loadSavedList(){
@@ -534,10 +534,10 @@
       var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({ id:d.id, title:(v.title||d.id), count:(v.count!=null?v.count:(v.items?v.items.length:0)), updatedAt:(v.updatedAt||0) }); });
       arr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
       if(!arr.length){ box.innerHTML='<div class="empty">저장된 광고리스트가 없습니다.</div>'; return; }
-      box.innerHTML=arr.map(function(x){ var fresh=isFresh(x.updatedAt); var dt=titleDate(x.title); return '<div class="saved-item" data-id="'+esc(x.id)+'">'+
+      box.innerHTML=arr.map(function(x){ return '<div class="saved-item" data-id="'+esc(x.id)+'">'+
         '<span class="sd">AD LIST · '+esc(x.title)+'</span><span class="sc">'+x.count+'개</span><span class="sp"></span>'+
-        (fresh?'<span class="ad-updated">UPDATED (NEXT WEEKLY SALE ITEMS)'+(dt?' ('+esc(dt)+')':'')+'</span>':'')+
         '<button class="btn sm" data-act="view">보기</button><button class="btn sm danger" data-act="del">삭제</button></div>'; }).join('');
+      updateWeeklyBadge(arr);
     }).catch(function(err){ box.innerHTML='<div class="empty">목록 오류: '+esc(err&&err.message||String(err))+'</div>'; });
   }
   function viewSaved(id){ window.fbFns.getDoc(window.fbFns.doc(window.fbDb, AD_COL, id)).then(function(s){ if(!s.exists()){toast('없음');return;} var v=s.data()||{}; curList=v.items||[]; curMaxEtc=v.maxEtc||0; curTitle=v.title||id; renderPreview(curList,curMaxEtc,curTitle); window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}); }); }
@@ -550,7 +550,7 @@
       var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({id:d.id,title:(v.title||d.id),count:(v.count!=null?v.count:(v.items?v.items.length:0)),updatedAt:(v.updatedAt||0)}); });
       arr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
       if(!arr.length){ sel.innerHTML='<option value="">데이터 없음</option>'; $('stView').textContent='저장된 광고리스트가 없습니다.'; renderPreview([],0,'AD LIST'); return; }
-      sel.innerHTML=arr.map(function(x){ var fresh=isFresh(x.updatedAt); var dt=titleDate(x.title); return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+x.count+'개'+(fresh?('  ⚡UPDATED'+(dt?' ('+dt+')':'')):'')+'</option>'; }).join('');
+      sel.innerHTML=arr.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+x.count+'개</option>'; }).join('');
       sel.onchange=function(){ viewLoad(sel.value); }; viewLoad(arr[0].id);
     }).catch(function(err){ $('stView').textContent='오류: '+(err&&err.message||err); });
   }
