@@ -225,7 +225,7 @@
     <div class="ov-note" id="ovDupNote">새 엑셀에서 기존 ITEM MASTER와 겹치는 ITEMCODE 또는 UPC 목록입니다. 값을 수정·삭제·추가한 뒤 “업데이트”를 누르면 ITEM MASTER에 바로 누적됩니다.</div>
     <div style="overflow:auto; max-height:52vh; border:1px solid var(--border); border-radius:10px;">
       <table class="ov-tbl" id="ovDupTbl">
-        <thead><tr><th style="width:42px">#</th><th>ITEMCODE</th><th>UPC</th><th style="width:90px">출처</th><th style="width:60px">삭제</th></tr></thead>
+        <thead><tr><th style="width:42px">#</th><th>ITEMCODE</th><th>UPC</th><th style="width:150px">사유</th><th style="width:60px">삭제</th></tr></thead>
         <tbody id="ovDupBody"></tbody>
       </table>
     </div>
@@ -409,56 +409,80 @@
     st.className='status ok'; st.textContent='이번 업로드: '+Object.keys(res.index).length+'개 코드 · 신규 '+newCnt+'쌍 예상';
     $('masterSaveBtn').disabled=(newCnt===0);
   }
+  // 새 업로드 원본 행 파싱 (UPC 원본 보존 — 유효성 검사용)
+  function parseNewRows(){
+    var res=E.buildItemIndex(lastMasterUpload,{itemcode:$('mMasterCode').value, upc:$('mMasterUpc').value});
+    if(res.error) return { error:res.error };
+    var aoa=lastMasterUpload, ci=res.itemcodeCol, ui=res.upcCol;
+    var rows=[];
+    for(var r=1;r<aoa.length;r++){ var row=aoa[r]||[];
+      var rawCode=String(row[ci]==null?'':row[ci]).trim();
+      var rawUpc=String(row[ui]==null?'':row[ui]).trim();
+      if(!rawCode && !rawUpc) continue;
+      rows.push({ code:E.normKey(rawCode), rawCode:rawCode, rawUpc:rawUpc });
+    }
+    return { rows:rows };
+  }
+  // UPC 유효성: 숫자 이외 문자(영문/한글/특수문자) 포함 or 자릿수 이상 → 오류 사유 반환
+  function upcIssue(rawUpc){
+    var u=String(rawUpc||'').trim();
+    if(!u) return 'UPC 비어있음';
+    if(/[^0-9]/.test(u)){
+      if(/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(u)) return '한글 포함';
+      if(/[A-Za-z]/.test(u)) return '영문 포함';
+      return '숫자 외 문자 포함';
+    }
+    if(u.length<8 || u.length>14) return '자릿수 이상('+u.length+'자리)';
+    return '';   // 정상
+  }
   function masterSave(){
     if(!lastMasterUpload || !fbReady()) return;
-    var res=E.buildItemIndex(lastMasterUpload,{itemcode:$('mMasterCode').value, upc:$('mMasterUpc').value});
-    if(res.error){ toast(res.error); return; }
-    // 새 업로드를 중복/비중복으로 분리
-    var split=splitNewByDup(res.index);
-    // 중복 없는 신규는 즉시 누적
+    var p=parseNewRows();
+    if(p.error){ toast(p.error); return; }
+    var split=splitNewByDup(p.rows);
+    // 정상 + 충돌·오류 없음 → 즉시 누적
     var added=0;
-    for(var code in split.clean){ if(!masterIndex[code]) masterIndex[code]=[]; split.clean[code].forEach(function(u){ if(masterIndex[code].indexOf(u)<0){ masterIndex[code].push(u); added++; } }); }
-    // 중복이 있으면: 관련 코드의 (기존+새) 전체를 팝업으로
-    if(split.dupCodes.length){
-      var st=$('stMaster'); st.className='status';
-      persistThen(function(){
-        updateMasterUI();
-        openDupResolve(split.dupCodes, res.index, added);
-      });
+    split.clean.forEach(function(it){ var c=it.code, u=it.rawUpc; if(!masterIndex[c]) masterIndex[c]=[]; if(masterIndex[c].indexOf(u)<0){ masterIndex[c].push(u); added++; } });
+    // 충돌 or 형식오류가 있으면 팝업
+    if(split.problemRows.length){
+      $('stMaster').className='status';
+      persistThen(function(){ updateMasterUI(); openDupResolve(split.problemRows, added); });
       return;
     }
-    // 중복 없음 → 바로 저장 완료
     var st=$('stMaster'); st.className='status'; st.innerHTML='<span class="spin"></span> 저장중…';
     masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ 신규 '+added+'쌍 추가 · 총 '+masterCount()+'개'; updateMasterUI(); $('masterSaveBtn').disabled=true;
         var ch=refreshAd(); toast('누적 저장 완료'+((ch&&ch>0)?(' · 광고데이터 '+ch+'개 갱신'):'')); })
       .catch(function(err){ st.className='status err'; st.textContent='저장 실패: '+(err&&err.message||err); });
   }
   function persistThen(cb){ masterPersist().then(function(){ cb&&cb(); }).catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); }); }
-  // 새 업로드를 (충돌 관련 코드) vs (완전 신규/동일) 로 분리
-  // 충돌 = 같은 ITEMCODE인데 UPC가 다름 / 같은 UPC인데 ITEMCODE가 다름
-  function splitNewByDup(newIndex){
+  // 새 행들을 분류: clean(정상·비충돌) / problemRows(충돌 or 형식오류)
+  function splitNewByDup(rows){
     var upcOwner={}; for(var k in masterIndex){ (masterIndex[k]||[]).forEach(function(u){ upcOwner[u]=k; }); }
-    var dupCodes={}, clean={};
-    for(var code in newIndex){
+    var clean=[], problems=[], relatedCodes={};
+    rows.forEach(function(it){
+      var code=it.code, u=it.rawUpc, reasons=[];
+      // 1) UPC 형식 오류
+      var issue=upcIssue(u); if(issue) reasons.push(issue);
+      // 2) 같은 ITEMCODE인데 이 UPC가 기존에 없음 → UPC 어긋남
       var existUpcs=masterIndex[code]||null;
-      (newIndex[code]||[]).forEach(function(u){
-        var conflict=false;
-        // (1) 같은 ITEMCODE인데 이 UPC가 기존 코드에 없음 → UPC 어긋남
-        if(existUpcs && existUpcs.indexOf(u)<0) conflict=true;
-        // (2) 같은 UPC가 다른 ITEMCODE로 이미 존재 → 코드 어긋남
-        if(upcOwner[u]!==undefined && upcOwner[u]!==code) conflict=true;
-        if(conflict){
-          dupCodes[code]=1;
-          if(upcOwner[u]!==undefined) dupCodes[upcOwner[u]]=1;   // 충돌 상대 코드도 대상
-        } else {
-          if(!clean[code]) clean[code]=[];
-          if(clean[code].indexOf(u)<0) clean[code].push(u);
-        }
-      });
-    }
-    // clean 중 이미 완전히 동일한 쌍은 제거(신규만 남김)
-    for(var c in clean){ clean[c]=clean[c].filter(function(u){ return !(masterIndex[c] && masterIndex[c].indexOf(u)>=0); }); if(!clean[c].length) delete clean[c]; }
-    return { clean:clean, dupCodes:Object.keys(dupCodes) };
+      if(existUpcs && existUpcs.indexOf(u)<0) reasons.push('ITEMCODE 중복·UPC 다름');
+      // 3) 같은 UPC가 다른 ITEMCODE로 존재 → 코드 어긋남
+      if(upcOwner[u]!==undefined && upcOwner[u]!==code) reasons.push('UPC 중복·ITEMCODE 다름');
+      if(reasons.length){
+        problems.push({ code:code, rawCode:it.rawCode, rawUpc:u, reason:reasons.join(' / ') });
+        relatedCodes[code]=1;
+        if(upcOwner[u]!==undefined) relatedCodes[upcOwner[u]]=1;
+      } else {
+        // 완전 동일한 쌍이면 누적 대상 아님
+        if(!(existUpcs && existUpcs.indexOf(u)>=0)) clean.push(it);
+      }
+    });
+    // 충돌 상대(기존 마스터) 값도 팝업에 함께 보여주기 위해 관련 코드의 기존 값 추가
+    var seen={}; problems.forEach(function(p){ seen[p.code+'|'+p.rawUpc]=1; });
+    Object.keys(relatedCodes).forEach(function(code){
+      (masterIndex[code]||[]).forEach(function(u){ var key=code+'|'+u; if(!seen[key]){ seen[key]=1; problems.push({ code:code, rawCode:code, rawUpc:u, reason:'기존 값' }); } });
+    });
+    return { clean:clean, problemRows:problems };
   }
   function masterPersist(){
     var map={}; for(var k in masterIndex){ map[k]=masterIndex[k].join(','); }
@@ -470,51 +494,31 @@
     masterIndex={};
     masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('stMaster').textContent=''; toast('전체 삭제됨'); }).catch(function(err){ toast('삭제 실패: '+(err&&err.message||err)); });
   }
-  /* ===== 중복코드리스트 (새 업로드 ↔ 기존 마스터 중복) ===== */
-  var __dupResolveCodes=null;   // 저장 흐름에서 넘어온 대상 코드들
-  // 저장 시 자동 호출: 중복 관련 코드의 (기존 + 새) 모든 (code,upc)을 팝업에
-  function openDupResolve(dupCodes, newIndex, autoAdded){
-    __dupResolveCodes=dupCodes.slice();
-    var rows=[];
-    dupCodes.forEach(function(code){
-      var seen={};
-      (masterIndex[code]||[]).forEach(function(u){ if(!seen[u]){ seen[u]=1; rows.push({code:code,upc:u,src:'기존'}); } });
-      (newIndex[code]||[]).forEach(function(u){ if(!seen[u]){ seen[u]=1; rows.push({code:code,upc:u,src:'신규'}); } });
-    });
-    renderDupList(rows);
-    $('ovDupNote').textContent='중복된 ITEMCODE 관련 값(기존 + 신규)을 모두 표시했습니다. 지울 것은 지우고 고칠 것은 고친 뒤 “업데이트”를 누르면 이 목록이 해당 코드의 최종 값으로 저장됩니다.'+(autoAdded?(' (중복 없는 신규 '+autoAdded+'쌍은 이미 누적됨)'):'');
+  /* ===== 중복코드리스트 (충돌 + UPC 형식오류) ===== */
+  var __dupResolveCodes=null;
+  function openDupResolve(problemRows, autoAdded){
+    // 팝업에 올라온 코드들 = 이후 업데이트 시 교체 대상
+    var codes={}; problemRows.forEach(function(p){ codes[p.code]=1; });
+    __dupResolveCodes=Object.keys(codes);
+    renderDupList(problemRows);
+    $('ovDupNote').textContent='확인이 필요한 항목입니다 (ITEMCODE·UPC 충돌 또는 UPC 형식오류). 지울 것은 지우고 고칠 것은 고친 뒤 “업데이트”를 누르면 해당 ITEMCODE의 최종 값으로 저장됩니다.'+(autoAdded?(' (정상 신규 '+autoAdded+'쌍은 이미 누적됨)'):'');
     $('ovDup').classList.add('show');
   }
-  // 수동 버튼: 현재 업로드와 기존의 중복만 표시(대상 코드 기준 전체값)
   function openDupList(){
     if(!lastMasterUpload){ toast('먼저 아이템마스터 엑셀을 업로드하세요'); return; }
-    var res=E.buildItemIndex(lastMasterUpload,{itemcode:$('mMasterCode').value, upc:$('mMasterUpc').value});
-    if(res.error){ toast('⚠ '+res.error); return; }
-    var split=splitNewByDup(res.index);
-    if(!split.dupCodes.length){
+    var p=parseNewRows();
+    if(p.error){ toast('⚠ '+p.error); return; }
+    var split=splitNewByDup(p.rows);
+    if(!split.problemRows.length){
       __dupResolveCodes=[]; renderDupList([]);
-      $('ovDupNote').textContent='겹치는 ITEMCODE·UPC가 없습니다. 필요하면 아래에서 직접 행을 추가할 수 있습니다.';
+      $('ovDupNote').textContent='충돌이나 UPC 형식오류가 없습니다. 필요하면 아래에서 직접 행을 추가할 수 있습니다.';
       $('ovDup').classList.add('show'); return;
     }
-    openDupResolve(split.dupCodes, res.index, 0);
+    openDupResolve(split.problemRows, 0);
   }
-  function findDuplicates(newIndex){
-    var upcOwner={};
-    for(var k in masterIndex){ (masterIndex[k]||[]).forEach(function(u){ upcOwner[u]=k; }); }
-    var out=[];
-    for(var code in newIndex){
-      var codeDup=(masterIndex[code]!==undefined);
-      (newIndex[code]||[]).forEach(function(u){
-        var upcDup=(upcOwner[u]!==undefined);
-        if(codeDup || upcDup){
-          out.push({ code:code, upc:u, type:(codeDup&&upcDup)?'CODE+UPC':(codeDup?'ITEMCODE':'UPC') });
-        }
-      });
-    }
-    return out;
-  }
-  function dupRowHTML(i, code, upc, src){
-    var badge=src?('<span style="font-size:10px;font-weight:800;color:'+(src==='신규'?'#2f7d32':'#6b6b72')+';">'+esc(src)+'</span>'):'';
+  function dupRowHTML(i, code, upc, reason){
+    var col = /형식|한글|영문|문자|자릿수|비어/.test(reason||'') ? '#c0392b' : (reason==='기존 값' ? '#6b6b72' : '#b8860b');
+    var badge=reason?('<span style="font-size:10px;font-weight:800;color:'+col+';white-space:nowrap;">'+esc(reason)+'</span>'):'';
     return '<tr>'
       +'<td>'+(i+1)+'</td>'
       +'<td><input class="dup-code" value="'+esc(code||'')+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;"></td>'
@@ -525,7 +529,7 @@
   }
   function renderDupList(rows){
     var body=$('ovDupBody'); if(!body) return;
-    body.innerHTML=rows.map(function(d,i){ return dupRowHTML(i,d.code,d.upc,d.src); }).join('');
+    body.innerHTML=rows.map(function(d,i){ return dupRowHTML(i,d.code,d.rawUpc,d.reason); }).join('');
     bindDupRows();
   }
   function bindDupRows(){
