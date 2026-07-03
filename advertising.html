@@ -103,6 +103,27 @@
   .hidden{ display:none !important; }
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1f1d1a; color:#fff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:800; box-shadow:0 12px 30px rgba(0,0,0,.25); opacity:0; transition:.25s; z-index:9999; }
   .toast.show{ opacity:1; bottom:34px; }
+  /* 아이템 편집 팝업 */
+  .ov{ position:fixed; inset:0; background:rgba(20,18,16,.55); display:none; align-items:center; justify-content:center; z-index:9000; padding:20px; }
+  .ov.show{ display:flex; }
+  .ov-card{ background:var(--bg-elev); border:1px solid var(--border); border-radius:16px; width:100%; max-width:720px; max-height:86vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .ov-head{ display:flex; align-items:center; gap:10px; padding:16px 20px; border-bottom:1px solid var(--border); }
+  .ov-head h3{ font-family:var(--serif); font-size:16px; font-weight:900; margin:0; }
+  .ov-head .sp{ flex:1; }
+  .ov-x{ border:none; background:none; font-size:20px; cursor:pointer; color:var(--text-dim); }
+  .ov-body{ padding:16px 20px; overflow:auto; }
+  .ov-foot{ display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border); }
+  .ov-note{ font-size:12px; color:var(--text-dim); margin-bottom:10px; }
+  .ov-tbl{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .ov-tbl th{ background:var(--bg-elev-2); border-bottom:1.5px solid var(--border); padding:7px 8px; text-align:left; font-size:11px; color:var(--text-dim); white-space:nowrap; }
+  .ov-tbl td{ border-bottom:1px solid var(--border); padding:6px 8px; }
+  .ov-del-row{ display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; }
+  .ov-del-row .txt{ flex:1; min-width:0; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ov-del-row .code{ font-size:11px; color:var(--text-dim); }
+  .mform{ display:grid; grid-template-columns:90px 1fr; gap:8px 12px; align-items:center; }
+  .mform label{ font-size:12px; font-weight:800; color:var(--text-dim); }
+  .mform input{ border:1.5px solid var(--border); border-radius:9px; padding:9px 11px; font-family:var(--mono); font-size:14px; }
+  .etc-inputs{ display:flex; flex-direction:column; gap:6px; }
   .ptitle{ font-family:var(--serif); }
 </style>
 </head>
@@ -161,8 +182,12 @@
         <div class="mstate">
           <span class="big">광고데이터 총 <b id="adTotal">0</b>개 중 <b id="adSaved" style="color:var(--success)">0</b>개 저장 / <b id="adNone" style="color:var(--danger)">0</b>개 데이터없음</span>
           <span class="sp"></span>
+          <button class="btn sm" id="adAddUpBtn">⬆ 추가 업로드</button>
+          <button class="btn sm" id="adManualBtn">✎ 수동 입력</button>
+          <button class="btn sm danger" id="adDelBtn">🗑 아이템 삭제</button>
           <button class="btn warm sm" id="adNewBtn">＋ 새로등록</button>
         </div>
+        <input type="file" id="fileAddAd" accept=".xlsx,.xls,.csv" class="hidden">
       </div>
     </div>
 
@@ -190,6 +215,40 @@
   </div>
 </div>
 <div class="toast" id="toast"></div>
+
+<!-- 추가 업로드 확인 팝업 -->
+<div class="ov" id="ovAdd"><div class="ov-card">
+  <div class="ov-head"><h3>추가 업로드 미리보기</h3><span class="sp"></span><button class="ov-x" id="ovAddX">✕</button></div>
+  <div class="ov-body">
+    <div class="ov-note" id="ovAddNote"></div>
+    <div id="ovAddPreview"></div>
+  </div>
+  <div class="ov-foot"><button class="btn sm" id="ovAddCancel">취소</button><button class="btn warm sm" id="ovAddConfirm">＋ 기존 리스트에 추가</button></div>
+</div></div>
+
+<!-- 아이템 삭제 팝업 -->
+<div class="ov" id="ovDel"><div class="ov-card">
+  <div class="ov-head"><h3>아이템 삭제</h3><span class="sp"></span><button class="ov-x" id="ovDelX">✕</button></div>
+  <div class="ov-body"><div class="ov-note">삭제할 아이템의 🗑 버튼을 누르면 즉시 목록에서 제거됩니다.</div><div id="ovDelList"></div></div>
+  <div class="ov-foot"><button class="btn sm" id="ovDelClose">닫기</button></div>
+</div></div>
+
+<!-- 수동 입력 팝업 -->
+<div class="ov" id="ovManual"><div class="ov-card">
+  <div class="ov-head"><h3>수동 입력 · 아이템 추가</h3><span class="sp"></span><button class="ov-x" id="ovManualX">✕</button></div>
+  <div class="ov-body">
+    <div class="ov-note">광고리스트 필드에 맞춰 입력하고 “추가”를 누르면 목록 마지막에 추가됩니다. (UPC 비우면 X로 처리)</div>
+    <div class="mform">
+      <label>UPC</label><input id="mfUpc" placeholder="UPC (없으면 비움 → X)">
+      <label>ITEMCODE</label><input id="mfCode" placeholder="ITEMCODE">
+      <label>DESC</label><input id="mfDesc" placeholder="상품 설명">
+      <label>COST</label><input id="mfCost" placeholder="COST">
+      <label>SRP</label><input id="mfSrp" placeholder="SRP">
+      <label>ETC</label><div class="etc-inputs" id="mfEtc"></div>
+    </div>
+  </div>
+  <div class="ov-foot"><button class="btn sm" id="ovManualCancel">취소</button><button class="btn warm sm" id="ovManualAdd">＋ 추가</button></div>
+</div></div>
 
 <!-- 매칭 엔진 -->
 <script>
@@ -393,6 +452,95 @@
     return changed;
   }
   function refreshAd(){ if(adAoa) rematch(); else return refreshAdFromMaster(); }
+
+  /* ===== 아이템 편집 도구 (추가 업로드 / 삭제 / 수동 입력) ===== */
+  function hasBaseList(){ return curList && curList.length>0; }
+  function needUploadWarn(){ toast('이전 광고파일이 없습니다. 광고파일을 업로드 해주세요'); }
+  function afterListChange(){ curMaxEtc=Math.max(curMaxEtc||0, maxEtcOf(curList)); renderPreview(curList, curMaxEtc, curTitle||'미리보기'); updateAdCount(); saveDraft(); }
+  function maxEtcOf(list){ var m=0; (list||[]).forEach(function(it){ if(it.etc && it.etc.length>m) m=it.etc.length; }); return m; }
+
+  // 1) 추가 업로드: 파일 → 파싱 → 팝업 미리보기 → 기존 리스트에 append
+  var pendingAdd=null;
+  function openAddUpload(){
+    var inp=$('fileAddAd'); if(!inp) return;
+    inp.value='';
+    inp.onchange=function(){ if(inp.files&&inp.files[0]) readExcel(inp.files[0], function(err,aoa){ if(err){ toast('읽기 실패'); return; } buildAddPreview(aoa); }); };
+    inp.click();
+  }
+  function buildAddPreview(aoa){
+    var res=E.buildAdList(aoa, masterIndex, {itemcode:$('mAdCode').value, desc:$('mAdDesc').value, cost:$('mAdCost').value, srp:$('mAdSrp').value});
+    if(res.error){ toast('⚠ '+res.error); return; }
+    if(!res.items || !res.items.length){ toast('추가할 데이터가 없습니다'); return; }
+    pendingAdd={ items:res.items, maxEtc:res.maxEtc||0 };
+    $('ovAddNote').textContent='새로 올린 '+res.items.length+'개를 지정된 필드 형태로 표시했습니다. 빠진 값은 빈칸으로 표시됩니다. 기존 리스트에 추가할까요?';
+    $('ovAddPreview').innerHTML=previewTableHTML(res.items, res.maxEtc||0);
+    $('ovAdd').classList.add('show');
+  }
+  function previewTableHTML(list, maxEtc){
+    var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
+    var head='<thead><tr><th>#</th><th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th>'+etcH+'</tr></thead>';
+    var rows=list.map(function(it,i){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc); var etcT=''; for(var e=0;e<maxEtc;e++){ etcT+='<td>'+esc((it.etc&&it.etc[e])||'')+'</td>'; }
+      return '<tr><td>'+(i+1)+'</td><td>'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td>'+esc(it.desc||'')+'</td><td>'+esc(it.cost||'')+'</td><td>'+esc(it.srp||'')+'</td>'+etcT+'</tr>'; }).join('');
+    return '<table class="ov-tbl">'+head+'<tbody>'+rows+'</tbody></table>';
+  }
+  function confirmAdd(){
+    if(!pendingAdd) return;
+    curList=curList.concat(pendingAdd.items);
+    pendingAdd=null; $('ovAdd').classList.remove('show');
+    afterListChange(); toast('추가되었습니다 · 총 '+curList.length+'개');
+  }
+
+  // 2) 아이템 삭제: 팝업 리스트, 개별 삭제
+  function openDelete(){
+    if(!hasBaseList()){ needUploadWarn(); return; }
+    renderDelList(); $('ovDel').classList.add('show');
+  }
+  function renderDelList(){
+    var box=$('ovDelList');
+    if(!curList.length){ box.innerHTML='<div class="ov-note">남은 아이템이 없습니다.</div>'; return; }
+    box.innerHTML=curList.map(function(it,i){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc);
+      return '<div class="ov-del-row"><span class="txt">'+(i+1)+'. '+esc(it.desc||'(설명없음)')+' <span class="code">['+esc(it.itemcode||'')+' · '+(isX?'X':esc(it.upc))+']</span></span><button class="btn sm danger" data-i="'+i+'">🗑 삭제</button></div>'; }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('button[data-i]'), function(b){
+      b.onclick=function(){ var i=+b.getAttribute('data-i'); curList.splice(i,1); afterListChange(); renderDelList(); toast('삭제됨 · 남은 '+curList.length+'개'); };
+    });
+  }
+
+  // 3) 수동 입력: 팝업 폼 → 마지막에 추가
+  function openManual(){
+    if(!hasBaseList()){ needUploadWarn(); return; }
+    ['mfUpc','mfCode','mfDesc','mfCost','mfSrp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
+    var n=Math.max(1, curMaxEtc||0), h='';
+    for(var e=0;e<n;e++) h+='<input class="mf-etc" placeholder="ETC #'+(e+1)+'">';
+    $('mfEtc').innerHTML=h;
+    $('ovManual').classList.add('show');
+    setTimeout(function(){ var f=$('mfUpc'); if(f) f.focus(); }, 60);
+  }
+  function manualAdd(){
+    var etc=[]; Array.prototype.forEach.call($('mfEtc').querySelectorAll('.mf-etc'), function(inp){ etc.push(norm(inp.value)); });
+    while(etc.length && etc[etc.length-1]==='') etc.pop();
+    var upc=norm($('mfUpc').value);
+    var item={ upc: upc||'X', itemcode:norm($('mfCode').value), desc:norm($('mfDesc').value), cost:norm($('mfCost').value), srp:norm($('mfSrp').value), etc:etc };
+    if(!item.itemcode && !item.desc){ toast('ITEMCODE 또는 DESC 중 하나는 입력하세요'); return; }
+    curList.push(item);
+    $('ovManual').classList.remove('show');
+    afterListChange(); toast('추가되었습니다 · 총 '+curList.length+'개');
+  }
+
+  function bindAdEditTools(){
+    var b;
+    if(b=$('adAddUpBtn')) b.onclick=openAddUpload;
+    if(b=$('adDelBtn')) b.onclick=openDelete;
+    if(b=$('adManualBtn')) b.onclick=openManual;
+    if(b=$('ovAddConfirm')) b.onclick=confirmAdd;
+    if(b=$('ovAddCancel')) b.onclick=function(){ pendingAdd=null; $('ovAdd').classList.remove('show'); };
+    if(b=$('ovAddX')) b.onclick=function(){ pendingAdd=null; $('ovAdd').classList.remove('show'); };
+    if(b=$('ovDelClose')) b.onclick=function(){ $('ovDel').classList.remove('show'); };
+    if(b=$('ovDelX')) b.onclick=function(){ $('ovDel').classList.remove('show'); };
+    if(b=$('ovManualAdd')) b.onclick=manualAdd;
+    if(b=$('ovManualCancel')) b.onclick=function(){ $('ovManual').classList.remove('show'); };
+    if(b=$('ovManualX')) b.onclick=function(){ $('ovManual').classList.remove('show'); };
+    ['ovAdd','ovDel','ovManual'].forEach(function(id){ var ov=$(id); if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); }); });
+  }
   /* 광고상품 작업데이터 유지(드래프트) */
   function saveDraft(){
     if(!fbReady()) return;
@@ -621,6 +769,7 @@
       $('adTitle').addEventListener('input', function(){ curTitle=norm(this.value); if(curList.length){ $('previewTitle').textContent=curTitle||'미리보기'; clearTimeout(window.__dft); window.__dft=setTimeout(saveDraft,600); } });
       $('masterSaveBtn').onclick=masterSave; $('masterClearBtn').onclick=masterClear;
       var nb=$('adNewBtn'); if(nb) nb.onclick=newAd;
+      bindAdEditTools();
       $('savedList').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; var it=e.target.closest('.saved-item'); var id=it&&it.getAttribute('data-id'); if(!id) return; if(b.getAttribute('data-act')==='view') viewSaved(id); else delSaved(id); });
       whenFb(function(){ masterLoad(); loadDraft(); loadSavedList(); });
     }
