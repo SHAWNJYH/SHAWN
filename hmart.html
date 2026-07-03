@@ -528,6 +528,7 @@
   // 로그아웃 → 세션 정리 후 INDEX
   $('hmLogoutFab').onclick = function(){
     if(!confirm('로그아웃할까요?')) return;
+    try{ if(window.__endAccessLog) window.__endAccessLog(); }catch(e){}
     try{ localStorage.removeItem('theShawnStore'); }catch(e){}
     try{ localStorage.removeItem('theShawnUpcStore'); }catch(e){}
     try{ localStorage.removeItem('hmartAutoLogin'); }catch(e){}
@@ -750,6 +751,54 @@
       }, function(err){ console.error('[HMART 메시지 실시간 오류]', err && err.message ? err.message : err); });
     }catch(e){ console.error('[HMART 메시지 구독 실패]', e); }
   });
+})();
+</script>
+</body>
+
+<script>
+/* ===== 접속 로그 (매장 세션: 날짜·시간·매장·사용시간) ===== */
+(function(){
+  'use strict';
+  var LOG_COL='access-logs';
+  function db(){ return window.firebaseDb; }
+  function fns(){ return window.firebaseFns; }
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
+
+  var store=activeStore();
+  if(!store) return;
+
+  var sid, loginAt;
+  try{ sid=localStorage.getItem('hmSessionId'); loginAt=parseInt(localStorage.getItem('hmLoginAt'),10); }catch(e){}
+  if(!sid || !loginAt){ sid='sess_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); loginAt=Date.now(); try{ localStorage.setItem('hmSessionId',sid); localStorage.setItem('hmLoginAt',String(loginAt)); }catch(e){} }
+
+  function ymd(ts){ var d=new Date(ts); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function writeLog(ended){
+    try{
+      var now=Date.now();
+      var data={ store:store, loginAt:loginAt, lastSeen:now, date:ymd(loginAt), updatedAt:now };
+      if(ended){ data.logoutAt=now; }
+      data.durationMs=(data.logoutAt||now)-loginAt;
+      fns().setDoc(fns().doc(db(), LOG_COL, sid), data, { merge:true });
+    }catch(e){}
+  }
+
+  var started=false;
+  ready(function(){
+    started=true;
+    writeLog(false);
+    // 주기적으로 마지막 활동 시각 갱신(사용시간 근사)
+    setInterval(function(){ if(activeStore()) writeLog(false); }, 30000);
+  });
+
+  // 세션 종료(로그아웃 버튼에서 호출)
+  window.__endAccessLog=function(){
+    if(started){ writeLog(true); }
+    try{ localStorage.removeItem('hmSessionId'); localStorage.removeItem('hmLoginAt'); }catch(e){}
+  };
+  // 탭 닫힘/이동 시 마지막 활동 기록(best effort)
+  window.addEventListener('pagehide', function(){ if(started && activeStore()) writeLog(false); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden' && started && activeStore()) writeLog(false); });
 })();
 </script>
 </body>
