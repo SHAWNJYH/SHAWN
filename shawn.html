@@ -2624,6 +2624,13 @@
       </div>
       <div class="menu-card-arrow">→</div>
     </div>
+    <div class="menu-card" data-target="accesslog">
+      <div>
+        <div class="menu-icon">📊</div>
+        <div class="menu-card-title">접속 로그</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
   </div>
 </div>
 
@@ -2942,6 +2949,40 @@
   </header>
 
   <div class="claude-notes-grid" id="claudeNotesGrid"></div>
+</div>
+
+<!-- ACCESS LOG SCREEN -->
+<div class="bible-screen" id="accesslogScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="accesslogBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">📊 매장 접속 로그</h1>
+      <div class="brand-meta">매장별 접속·사용시간 · 실시간</div>
+    </div>
+  </header>
+  <div style="max-width:960px; margin:0 auto; padding:0 4px;">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+      <select id="alStoreFilter" style="border:1.5px solid var(--border,#e5e5e0); border-radius:9px; padding:8px 10px; font-size:13px;"><option value="">전체 매장</option></select>
+      <input type="date" id="alDateFilter" style="border:1.5px solid var(--border,#e5e5e0); border-radius:9px; padding:8px 10px; font-size:13px;">
+      <button class="back-btn" id="alClearFilter">필터 해제</button>
+      <span style="font-size:10px; font-weight:800; color:#2f7d32; letter-spacing:.1em;">● LIVE</span>
+      <span style="flex:1;"></span>
+      <button class="back-btn" id="alExport">⬇ CSV</button>
+    </div>
+    <div id="alStat" style="font-size:12px; color:#6b6b72; margin-bottom:8px;"></div>
+    <div style="overflow:auto; border:1px solid var(--border,#e5e5e0); border-radius:12px;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead><tr>
+          <th style="position:sticky; top:0; background:#faf8f2; border-bottom:1.5px solid #e5e5e0; padding:9px 12px; text-align:left; font-size:11px; color:#6b6b72;">날짜</th>
+          <th style="position:sticky; top:0; background:#faf8f2; border-bottom:1.5px solid #e5e5e0; padding:9px 12px; text-align:left; font-size:11px; color:#6b6b72;">로그인 시간</th>
+          <th style="position:sticky; top:0; background:#faf8f2; border-bottom:1.5px solid #e5e5e0; padding:9px 12px; text-align:left; font-size:11px; color:#6b6b72;">매장</th>
+          <th style="position:sticky; top:0; background:#faf8f2; border-bottom:1.5px solid #e5e5e0; padding:9px 12px; text-align:left; font-size:11px; color:#6b6b72;">사용시간</th>
+          <th style="position:sticky; top:0; background:#faf8f2; border-bottom:1.5px solid #e5e5e0; padding:9px 12px; text-align:left; font-size:11px; color:#6b6b72;">상태</th>
+        </tr></thead>
+        <tbody id="alBody"><tr><td colspan="5" style="text-align:center; color:#9a9aa0; padding:24px;">불러오는 중…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- APP -->
@@ -3835,6 +3876,69 @@
     }
   }
 
+  /* ===== 접속 로그 조회 ===== */
+  var __alData=[], __alBound=false, __alSub=false;
+  var AL_STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  function alEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function alTime(ts){ if(!ts) return ''; var d=new Date(ts); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
+  function alDur(ms){ if(!ms||ms<0) return '-'; var s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60); if(h>0) return h+'시간 '+m+'분'; if(m>0) return m+'분'; return (s%60)+'초'; }
+  function alRecent(ts){ return ts && (Date.now()-ts < 90000); }
+  function showAccessLog() {
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('accesslogScreen').classList.add('active');
+    window.scrollTo(0, 0);
+    if(!__alBound){ bindAccessLog(); __alBound=true; }
+    subAccessLog();
+  }
+  function bindAccessLog(){
+    var sel=$('alStoreFilter'); if(sel){ sel.innerHTML='<option value="">전체 매장</option>'+AL_STORES.map(function(s){ return '<option value="'+alEsc(s)+'">'+alEsc(s)+'</option>'; }).join(''); sel.onchange=renderAccessLog; }
+    var df=$('alDateFilter'); if(df) df.onchange=renderAccessLog;
+    var cf=$('alClearFilter'); if(cf) cf.onclick=function(){ if(sel) sel.value=''; if(df) df.value=''; renderAccessLog(); };
+    var ex=$('alExport'); if(ex) ex.onclick=exportAccessLog;
+    var bk=$('accesslogBackBtn'); if(bk) bk.onclick=function(){ $('accesslogScreen').classList.remove('active'); menuScreen.classList.add('active'); window.scrollTo(0,0); };
+  }
+  function subAccessLog(){
+    if(__alSub){ renderAccessLog(); return; }
+    if(!window.firebaseFns || !window.firebaseDb || !window.firebaseFns.onSnapshot){ setTimeout(subAccessLog, 500); return; }
+    try{
+      window.firebaseFns.onSnapshot(window.firebaseFns.collection(window.firebaseDb, 'access-logs'), function(snap){
+        __alData=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; __alData.push(d); });
+        renderAccessLog();
+      }, function(err){ var b=$('alBody'); if(b) b.innerHTML='<tr><td colspan="5" style="text-align:center;color:#c0392b;padding:24px;">로그 조회 오류: '+alEsc(err&&err.message||String(err))+'</td></tr>'; });
+      __alSub=true;
+    }catch(e){}
+  }
+  function renderAccessLog(){
+    var body=$('alBody'); if(!body) return;
+    var sf=$('alStoreFilter')?$('alStoreFilter').value:''; var df=$('alDateFilter')?$('alDateFilter').value:'';
+    var rows=__alData.filter(function(r){ if(sf && r.store!==sf) return false; if(df && r.date!==df) return false; return true; });
+    rows.sort(function(a,b){ return (b.loginAt||0)-(a.loginAt||0); });
+    var stat=$('alStat'); if(stat) stat.textContent='총 '+rows.length+'건'+(sf?(' · '+sf):'')+(df?(' · '+df):'');
+    if(!rows.length){ body.innerHTML='<tr><td colspan="5" style="text-align:center;color:#9a9aa0;padding:24px;">기록이 없습니다.</td></tr>'; return; }
+    body.innerHTML=rows.map(function(r){
+      var live=!r.logoutAt && alRecent(r.lastSeen);
+      var dur=alDur((r.logoutAt||r.lastSeen||0)-(r.loginAt||0));
+      var status=live?'<span style="font-size:10px;font-weight:800;color:#2f7d32;">● 접속중</span>':(r.logoutAt?'<span style="font-size:10px;color:#9a9aa0;">로그아웃</span>':'<span style="font-size:10px;color:#9a9aa0;">종료(추정)</span>');
+      return '<tr><td style="border-bottom:1px solid #f0efe9;padding:8px 12px;">'+alEsc(r.date||'')+'</td><td style="border-bottom:1px solid #f0efe9;padding:8px 12px;">'+alTime(r.loginAt)+'</td><td style="border-bottom:1px solid #f0efe9;padding:8px 12px;font-weight:800;color:#c9a961;">'+alEsc(r.store||'')+'</td><td style="border-bottom:1px solid #f0efe9;padding:8px 12px;">'+dur+'</td><td style="border-bottom:1px solid #f0efe9;padding:8px 12px;">'+status+'</td></tr>';
+    }).join('');
+  }
+  function exportAccessLog(){
+    var sf=$('alStoreFilter')?$('alStoreFilter').value:''; var df=$('alDateFilter')?$('alDateFilter').value:'';
+    var rows=__alData.filter(function(r){ if(sf && r.store!==sf) return false; if(df && r.date!==df) return false; return true; });
+    rows.sort(function(a,b){ return (b.loginAt||0)-(a.loginAt||0); });
+    var lines=['날짜,로그인시간,매장,사용시간,상태'];
+    rows.forEach(function(r){ var live=!r.logoutAt && alRecent(r.lastSeen); var dur=alDur((r.logoutAt||r.lastSeen||0)-(r.loginAt||0)); var status=live?'접속중':(r.logoutAt?'로그아웃':'종료(추정)'); lines.push([r.date||'',alTime(r.loginAt),r.store||'',dur,status].join(',')); });
+    var blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='access-logs.csv'; a.click();
+  }
+
   function showClaude() {
     menuScreen.classList.remove('active');
     app.classList.remove('active');
@@ -3867,6 +3971,7 @@
       else if (target === 'calc') showCalc();
       else if (target === 'claude') showClaude();
       else if (target === 'plushawn') { window.location.href = 'plu-list-manager.html'; return; }
+      else if (target === 'accesslog') showAccessLog();
       else return;
       pushScreen(target); // 브라우저 뒤로가기로 메뉴에 돌아올 수 있도록 기록
     });
@@ -4910,6 +5015,7 @@
       case 'weight': showWeight(); break;
       case 'calc':   showCalc();   break;
       case 'claude': showClaude(); break;
+      case 'accesslog': showAccessLog(); break;
       case 'menu':
       default:       showMenu();   break;
     }
