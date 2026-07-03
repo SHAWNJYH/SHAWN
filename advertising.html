@@ -148,7 +148,7 @@
     <div class="grid2">
       <!-- 좌: 아이템 마스터 (누적 임시저장) -->
       <div class="card">
-        <h2>📦 ITEM MASTER <span class="tag">ITEMCODE → UPC · 누적저장</span></h2>
+        <h2>📦 ITEM MASTER <span class="tag">ITEMCODE → UPC · 누적저장</span><button class="btn ghost sm" id="masterDownloadBtn" style="margin-left:auto">⬇ 다운로드</button></h2>
         <div class="hint">엑셀을 올리고 <b>저장(누적)</b>을 누르면 STI LIST에 쌓입니다. 같은 위치에 또 올려 누르면 <b>중복 제외, 신규만</b> 추가됩니다.</div>
         <div class="drop" id="dropMaster"><div class="di">📦</div><div class="dt">아이템마스터 엑셀 선택</div><div class="ds">.xlsx / .xls / .csv</div></div>
         <input type="file" id="fileMaster" accept=".xlsx,.xls,.csv" class="hidden">
@@ -161,7 +161,6 @@
           <span class="big">임시저장 <b id="masterCount">0</b> 개</span>
           <span class="sp"></span>
           <button class="btn warm sm" id="masterSaveBtn" disabled>저장(누적)</button>
-          <button class="btn ghost sm" id="masterDownloadBtn">⬇ 다운로드</button>
           <button class="btn danger sm" id="masterClearBtn">전체삭제</button>
         </div>
         <div class="status" id="stMaster"></div>
