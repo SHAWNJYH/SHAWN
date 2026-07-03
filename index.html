@@ -3412,7 +3412,15 @@
   // 좌상단 MANAGER 아이콘 → THE SHAWN 로그인 팝업
   const mgrLoginOv = $('mgrLoginOv');
   const openMgrLogin = () => { mgrLoginOv.classList.add('show'); setTimeout(()=>{ var el=$('loginEmail'); if(el) el.focus(); }, 80); };
-  const closeMgrLogin = () => mgrLoginOv.classList.remove('show');
+  const closeMgrLogin = () => {
+    mgrLoginOv.classList.remove('show');
+    // 취소 시 THE SHAWN 앱 화면 잔재 숨기고 초기화면(EGMM/H-MART)으로
+    try{ if(menuScreen) menuScreen.classList.remove('active'); }catch(e){}
+    try{ if(app && app.classList) app.classList.remove('active'); }catch(e){}
+    try{ if(lockScreen) lockScreen.style.display='flex'; }catch(e){}
+    try{ if(lockErr) lockErr.textContent=''; }catch(e){}
+    try{ var f=$('mgrFab'); if(f) f.style.display=''; }catch(e){}
+  };
   $('mgrFab').onclick = () => { openMgrLogin(); };
   $('mgrLoginClose').onclick = closeMgrLogin;
   mgrLoginOv.addEventListener('click', e => { if (e.target === mgrLoginOv) closeMgrLogin(); });
