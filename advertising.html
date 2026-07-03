@@ -434,22 +434,30 @@
       .catch(function(err){ st.className='status err'; st.textContent='저장 실패: '+(err&&err.message||err); });
   }
   function persistThen(cb){ masterPersist().then(function(){ cb&&cb(); }).catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); }); }
-  // 새 업로드를 (중복 관련 코드) vs (완전 신규)로 분리
+  // 새 업로드를 (충돌 관련 코드) vs (완전 신규/동일) 로 분리
+  // 충돌 = 같은 ITEMCODE인데 UPC가 다름 / 같은 UPC인데 ITEMCODE가 다름
   function splitNewByDup(newIndex){
     var upcOwner={}; for(var k in masterIndex){ (masterIndex[k]||[]).forEach(function(u){ upcOwner[u]=k; }); }
     var dupCodes={}, clean={};
     for(var code in newIndex){
-      var codeDup=(masterIndex[code]!==undefined);
-      var upcDupHere=false;
-      (newIndex[code]||[]).forEach(function(u){ if(upcOwner[u]!==undefined) upcDupHere=true; });
-      if(codeDup || upcDupHere){
-        dupCodes[code]=1;
-        // upc 중복이 다른 코드(기존)에 걸리면 그 코드도 대상
-        (newIndex[code]||[]).forEach(function(u){ if(upcOwner[u]!==undefined) dupCodes[upcOwner[u]]=1; });
-      } else {
-        clean[code]=newIndex[code].slice();
-      }
+      var existUpcs=masterIndex[code]||null;
+      (newIndex[code]||[]).forEach(function(u){
+        var conflict=false;
+        // (1) 같은 ITEMCODE인데 이 UPC가 기존 코드에 없음 → UPC 어긋남
+        if(existUpcs && existUpcs.indexOf(u)<0) conflict=true;
+        // (2) 같은 UPC가 다른 ITEMCODE로 이미 존재 → 코드 어긋남
+        if(upcOwner[u]!==undefined && upcOwner[u]!==code) conflict=true;
+        if(conflict){
+          dupCodes[code]=1;
+          if(upcOwner[u]!==undefined) dupCodes[upcOwner[u]]=1;   // 충돌 상대 코드도 대상
+        } else {
+          if(!clean[code]) clean[code]=[];
+          if(clean[code].indexOf(u)<0) clean[code].push(u);
+        }
+      });
     }
+    // clean 중 이미 완전히 동일한 쌍은 제거(신규만 남김)
+    for(var c in clean){ clean[c]=clean[c].filter(function(u){ return !(masterIndex[c] && masterIndex[c].indexOf(u)>=0); }); if(!clean[c].length) delete clean[c]; }
     return { clean:clean, dupCodes:Object.keys(dupCodes) };
   }
   function masterPersist(){
