@@ -103,6 +103,8 @@
   .hidden{ display:none !important; }
   .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1f1d1a; color:#fff; padding:12px 20px; border-radius:12px; font-size:13px; font-weight:800; box-shadow:0 12px 30px rgba(0,0,0,.25); opacity:0; transition:.25s; z-index:9999; }
   .toast.show{ opacity:1; bottom:34px; }
+  @keyframes adSavePulse { 0%,100%{ box-shadow:0 0 0 0 rgba(201,169,97,0); } 50%{ box-shadow:0 0 0 6px rgba(201,169,97,.45); } }
+  #adSaveInlineBtn.dirty{ animation: adSavePulse 1.6s ease-in-out infinite; }
   /* 아이템 편집 팝업 */
   .ov{ position:fixed; inset:0; background:rgba(20,18,16,.55); display:none; align-items:center; justify-content:center; z-index:9000; padding:20px; }
   .ov.show{ display:flex; }
@@ -181,7 +183,7 @@
         <div class="mstate">
           <span class="big">광고데이터 총 <b id="adTotal">0</b>개 중 <b id="adSaved" style="color:var(--success)">0</b>개 저장 / <b id="adNone" style="color:var(--danger)">0</b>개 데이터없음</span>
           <span class="sp"></span>
-          <button class="btn warm sm" id="adSaveInlineBtn">⭐ 광고등록</button>
+          <button class="btn warm sm" id="adSaveInlineBtn">⭐ 광고리스트등록 / 업데이트</button>
           <button class="btn sm" id="adManualBtn">✎ 수동 입력</button>
           <button class="btn sm danger" id="adDelBtn">🗑 아이템 삭제</button>
           <button class="btn sm" id="adNewBtn">＋ NEW 광고등록</button>
@@ -430,7 +432,7 @@
     $('adPills').innerHTML='<span class="pill ok">UPC 매칭 '+matched+'개</span>'+(res.noUpc?('<span class="pill warn">UPC 없음(X) '+res.noUpc+'개</span>'):'')+(res.maxEtc?('<span class="pill">ETC 최대 '+res.maxEtc+'</span>'):'');
     st.className='status ok'; st.textContent='✓ 매칭 완료 · 총 '+res.items.length+'개';
     renderPreview(curList, curMaxEtc, curTitle||'미리보기');
-    updateAdCount(); saveDraft();
+    updateAdCount(); saveDraft(); markDirty();
   }
   function updateAdCount(){
     var total=curList.length, none=0;
@@ -456,7 +458,9 @@
   /* ===== 아이템 편집 도구 (추가 업로드 / 삭제 / 수동 입력) ===== */
   function hasBaseList(){ return curList && curList.length>0; }
   function needUploadWarn(){ toast('이전 광고파일이 없습니다. 광고파일을 업로드 해주세요'); }
-  function afterListChange(){ curMaxEtc=Math.max(curMaxEtc||0, maxEtcOf(curList)); renderPreview(curList, curMaxEtc, curTitle||'미리보기'); updateAdCount(); saveDraft(); }
+  function markDirty(){ var b=$('adSaveInlineBtn'); if(b) b.classList.add('dirty'); }
+  function clearDirty(){ var b=$('adSaveInlineBtn'); if(b) b.classList.remove('dirty'); }
+  function afterListChange(){ curMaxEtc=Math.max(curMaxEtc||0, maxEtcOf(curList)); renderPreview(curList, curMaxEtc, curTitle||'미리보기'); updateAdCount(); saveDraft(); markDirty(); }
   function maxEtcOf(list){ var m=0; (list||[]).forEach(function(it){ if(it.etc && it.etc.length>m) m=it.etc.length; }); return m; }
 
   // 1) 추가 업로드: 파일 → 파싱 → 팝업 미리보기 → 기존 리스트에 append
@@ -673,7 +677,7 @@
                   maxEtc:curMaxEtc||0, count:curList.length, updatedAt:Date.now() };
     toast('저장중…');
     window.fbFns.setDoc(window.fbFns.doc(window.fbDb, AD_COL, id), payload, {merge:false})
-      .then(function(){ toast('광고리스트 저장 완료 · H-MART에서 보기 가능'); loadSavedList(); })
+      .then(function(){ toast('광고리스트 저장 완료 · H-MART에서 보기 가능'); clearDirty(); loadSavedList(); })
       .catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); });
   }
 
