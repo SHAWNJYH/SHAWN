@@ -2346,10 +2346,10 @@
 <button class="mgr-fab" id="mgrFab" type="button" title="MANAGER 로그인">👤 <span>MANAGER</span></button>
 
 <!-- LOGIN SCREEN -->
-<div class="lock-screen" id="lockScreen">
+<div class="lock-screen" id="lockScreen" style="display:none;">
   <div class="lock-stage">
-    <!-- THE SHAWN 로그인 진입 (EGMM/H-MART 제거된 전용 페이지) -->
-    <div class="lock-card lock-card-egmm" id="toOdpBtn" role="button" tabindex="0">
+    <!-- THE SHAWN 로그인 진입 (사용 안 함 — 로그인은 INDEX에서 처리) -->
+    <div class="lock-card lock-card-egmm" id="toOdpBtn" role="button" tabindex="0" style="display:none;">
       <h1 class="lock-title">THE SHAWN</h1>
     </div>
 
@@ -2364,7 +2364,7 @@
 <div class="mgr-ov" id="mgrLoginOv">
   <div class="lock-card mgr-login-card">
     <button class="mgr-x" id="mgrLoginClose" type="button">✕</button>
-    <h1 class="lock-title" id="lockTitle">THE SHAWN</h1>
+    <h1 class="lock-title" id="lockTitle">MANAGER</h1>
 
     <!-- LOGIN MODE -->
     <div id="loginMode">
@@ -3318,14 +3318,14 @@
   function setLoginMode() {
     $('loginMode').style.display = 'block';
     $('signupMode').style.display = 'none';
-    lockTitle.textContent = 'THE SHAWN';
+    lockTitle.textContent = 'MANAGER';
     lockErr.textContent = '';
     setTimeout(() => $('loginEmail').focus(), 100);
   }
   function setSignupMode() {
     $('loginMode').style.display = 'none';
     $('signupMode').style.display = 'block';
-    lockTitle.textContent = 'THE SHAWN';
+    lockTitle.textContent = 'MANAGER';
     lockErr.textContent = '';
     setTimeout(() => $('signupEmail').focus(), 100);
   }
@@ -3453,7 +3453,7 @@
   // 좌상단 MANAGER 아이콘 → THE SHAWN 로그인 팝업
   const mgrLoginOv = $('mgrLoginOv');
   const openMgrLogin = () => { mgrLoginOv.classList.add('show'); setTimeout(()=>{ var el=$('loginEmail'); if(el) el.focus(); }, 80); };
-  const closeMgrLogin = () => mgrLoginOv.classList.remove('show');
+  const closeMgrLogin = () => { window.location.href = 'index.html'; };
   $('mgrFab').onclick = openMgrLogin;
   $('mgrLoginClose').onclick = closeMgrLogin;
   mgrLoginOv.addEventListener('click', e => { if (e.target === mgrLoginOv) closeMgrLogin(); });
@@ -3721,10 +3721,10 @@
         enterApp();
         showToast('환영합니다!', 'success');
       } else {
-        // 로그아웃 상태 — THE SHAWN 전용 페이지이므로 로그인 화면을 바로 연다
+        // 로그아웃 상태 — 로그인은 INDEX에서. THE SHAWN 로그인 화면을 띄우지 않고 INDEX로 보냄
         currentUser = null;
         isAdmin = false;
-        try { openMgrLogin(); } catch (e) {}
+        window.location.href = 'index.html';
       }
     });
   }
