@@ -136,7 +136,6 @@
     </div>
     <div class="right">
       <button class="btn ghost sm" id="exportBtn">⬇ 내보내기</button>
-      <button class="btn ghost warm sm" id="saveAdBtn">⭐ 광고리스트 저장하기</button>
       <button class="btn ghost sm" id="printBtn">🖨 인쇄</button>
       <button class="btn ghost sm" id="backBtn">← 돌아가기</button>
     </div>
@@ -182,10 +181,10 @@
         <div class="mstate">
           <span class="big">광고데이터 총 <b id="adTotal">0</b>개 중 <b id="adSaved" style="color:var(--success)">0</b>개 저장 / <b id="adNone" style="color:var(--danger)">0</b>개 데이터없음</span>
           <span class="sp"></span>
-          <button class="btn sm" id="adAddUpBtn">⬆ 추가 업로드</button>
+          <button class="btn warm sm" id="adSaveInlineBtn">⭐ 광고등록</button>
           <button class="btn sm" id="adManualBtn">✎ 수동 입력</button>
           <button class="btn sm danger" id="adDelBtn">🗑 아이템 삭제</button>
-          <button class="btn warm sm" id="adNewBtn">＋ 새로등록</button>
+          <button class="btn sm" id="adNewBtn">＋ NEW 광고등록</button>
         </div>
         <input type="file" id="fileAddAd" accept=".xlsx,.xls,.csv" class="hidden">
       </div>
@@ -237,17 +236,18 @@
 <div class="ov" id="ovManual"><div class="ov-card">
   <div class="ov-head"><h3>수동 입력 · 아이템 추가</h3><span class="sp"></span><button class="ov-x" id="ovManualX">✕</button></div>
   <div class="ov-body">
-    <div class="ov-note">광고리스트 필드에 맞춰 입력하고 “추가”를 누르면 목록 마지막에 추가됩니다. (UPC 비우면 X로 처리)</div>
+    <div class="ov-note">UPC를 입력하면 ITEMCODE를, ITEMCODE를 입력하면 UPC를 아이템마스터에서 자동으로 찾아 채웁니다. COST·SRP는 자동으로 $·소수점 2자리로 정리됩니다. “추가”하면 목록과 미리보기에 바로 반영되고 이어서 계속 입력할 수 있습니다.</div>
     <div class="mform">
       <label>UPC</label><input id="mfUpc" placeholder="UPC (없으면 비움 → X)">
-      <label>ITEMCODE</label><input id="mfCode" placeholder="ITEMCODE">
+      <label>ITEMCODE</label><input id="mfCode" placeholder="ITEMCODE (UPC로 자동검색)">
       <label>DESC</label><input id="mfDesc" placeholder="상품 설명">
-      <label>COST</label><input id="mfCost" placeholder="COST">
-      <label>SRP</label><input id="mfSrp" placeholder="SRP">
+      <label>COST</label><input id="mfCost" placeholder="예: 3.5 → $3.50">
+      <label>SRP</label><input id="mfSrp" placeholder="예: 4.99 → $4.99">
       <label>ETC</label><div class="etc-inputs" id="mfEtc"></div>
     </div>
+    <div class="ov-note" id="mfStatus" style="margin-top:10px;color:var(--success);"></div>
   </div>
-  <div class="ov-foot"><button class="btn sm" id="ovManualCancel">취소</button><button class="btn warm sm" id="ovManualAdd">＋ 추가</button></div>
+  <div class="ov-foot"><button class="btn sm" id="ovManualCancel">나가기</button><button class="btn warm sm" id="ovManualAdd">＋ 추가</button></div>
 </div></div>
 
 <!-- 매칭 엔진 -->
@@ -506,29 +506,52 @@
   }
 
   // 3) 수동 입력: 팝업 폼 → 마지막에 추가
+  // 아이템마스터 매칭 + 금액 포맷 헬퍼
+  function codeToUpc(code){ var a=masterIndex[E.normKey(code)]; return (a&&a.length)?a[0]:''; }
+  function upcToCode(upc){ upc=norm(upc); for(var k in masterIndex){ if((masterIndex[k]||[]).indexOf(upc)>=0) return k; } return ''; }
+  function money2(v){ v=String(v==null?'':v).replace(/[^0-9.]/g,''); if(v==='') return ''; var n=parseFloat(v); return isNaN(n)?'':('$'+n.toFixed(2)); }
+
   function openManual(){
     if(!hasBaseList()){ needUploadWarn(); return; }
     ['mfUpc','mfCode','mfDesc','mfCost','mfSrp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
+    var st=$('mfStatus'); if(st) st.textContent='';
     var n=Math.max(1, curMaxEtc||0), h='';
     for(var e=0;e<n;e++) h+='<input class="mf-etc" placeholder="ETC #'+(e+1)+'">';
     $('mfEtc').innerHTML=h;
+    // 자동 매칭 · 금액 포맷 이벤트(한 번만)
+    var up=$('mfUpc'), cd=$('mfCode'), co=$('mfCost'), sr=$('mfSrp');
+    if(up && !up.__wired){ up.__wired=1; up.addEventListener('blur', function(){ var u=norm(up.value); if(!u){ return; } var c=upcToCode(u); if(c){ cd.value=c; } }); }
+    if(cd && !cd.__wired){ cd.__wired=1; cd.addEventListener('blur', function(){ var c=norm(cd.value); if(!c){ return; } var u=codeToUpc(c); if(u){ up.value=u; } }); }
+    if(co && !co.__wired){ co.__wired=1; co.addEventListener('blur', function(){ co.value=money2(co.value); }); }
+    if(sr && !sr.__wired){ sr.__wired=1; sr.addEventListener('blur', function(){ sr.value=money2(sr.value); }); }
     $('ovManual').classList.add('show');
-    setTimeout(function(){ var f=$('mfUpc'); if(f) f.focus(); }, 60);
+    setTimeout(function(){ if(up) up.focus(); }, 60);
   }
   function manualAdd(){
     var etc=[]; Array.prototype.forEach.call($('mfEtc').querySelectorAll('.mf-etc'), function(inp){ etc.push(norm(inp.value)); });
     while(etc.length && etc[etc.length-1]==='') etc.pop();
     var upc=norm($('mfUpc').value);
-    var item={ upc: upc||'X', itemcode:norm($('mfCode').value), desc:norm($('mfDesc').value), cost:norm($('mfCost').value), srp:norm($('mfSrp').value), etc:etc };
+    var code=norm($('mfCode').value);
+    // 추가 직전 상호 보완
+    if(upc && !code){ var c=upcToCode(upc); if(c) code=c; }
+    if(code && !upc){ var u=codeToUpc(code); if(u) upc=u; }
+    var item={ upc: upc||'X', itemcode:code, desc:norm($('mfDesc').value), cost:money2($('mfCost').value), srp:money2($('mfSrp').value), etc:etc };
     if(!item.itemcode && !item.desc){ toast('ITEMCODE 또는 DESC 중 하나는 입력하세요'); return; }
     curList.push(item);
-    $('ovManual').classList.remove('show');
-    afterListChange(); toast('추가되었습니다 · 총 '+curList.length+'개');
+    afterListChange();
+    // 광고리스트(H-MART)까지 실시간 반영: TITLE 이 있으면 자동 저장
+    var title=norm($('adTitle')?$('adTitle').value:'') || curTitle;
+    var st=$('mfStatus');
+    if(title && titleId(title)!==MASTER_ID){ saveAdList(); if(st) st.textContent='✓ 추가 + AD LIST 실시간 등록됨 · 총 '+curList.length+'개 (계속 입력 가능)'; }
+    else { if(st){ st.style.color='var(--danger)'; st.textContent='✓ 목록에 추가됨 · 총 '+curList.length+'개. (TITLE NAME 을 입력하면 AD LIST에도 자동 등록)'; } }
+    // 폼 초기화 후 이어서 입력
+    ['mfUpc','mfCode','mfDesc','mfCost','mfSrp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
+    Array.prototype.forEach.call($('mfEtc').querySelectorAll('.mf-etc'), function(inp){ inp.value=''; });
+    var up=$('mfUpc'); if(up) up.focus();
   }
 
   function bindAdEditTools(){
     var b;
-    if(b=$('adAddUpBtn')) b.onclick=openAddUpload;
     if(b=$('adDelBtn')) b.onclick=openDelete;
     if(b=$('adManualBtn')) b.onclick=openManual;
     if(b=$('ovAddConfirm')) b.onclick=confirmAdd;
@@ -748,7 +771,7 @@
   function boot(){
     $('backBtn').onclick=function(){ if((isView||isNew) && window.opener && !window.opener.closed){ window.close(); return; } window.location.href=(isView||isNew)?'hmart.html':'egmm.html'; };
     $('exportBtn').onclick=exportXlsx; $('printBtn').onclick=printList;
-    var sB=$('saveAdBtn'); if(sB) sB.onclick=saveAdList;
+    var sB=$('adSaveInlineBtn'); if(sB) sB.onclick=saveAdList;
     if(isView || isNew){
       $('manageUI').classList.add('hidden'); $('viewUI').classList.remove('hidden');
       if(sB) sB.classList.add('hidden');
