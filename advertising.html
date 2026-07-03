@@ -524,8 +524,8 @@
     $('mfEtc').innerHTML=h;
     // 자동 매칭 · 금액 포맷 이벤트(한 번만)
     var up=$('mfUpc'), cd=$('mfCode'), co=$('mfCost'), sr=$('mfSrp');
-    if(up && !up.__wired){ up.__wired=1; up.addEventListener('blur', function(){ var u=norm(up.value); if(!u){ return; } var c=upcToCode(u); if(c){ cd.value=c; } }); }
-    if(cd && !cd.__wired){ cd.__wired=1; cd.addEventListener('blur', function(){ var c=norm(cd.value); if(!c){ return; } var u=codeToUpc(c); if(u){ up.value=u; } }); }
+    if(up && !up.__wired){ up.__wired=1; up.addEventListener('blur', function(){ var u=norm(up.value); if(!u){ return; } var c=upcToCode(u); if(c && !norm(cd.value)){ cd.value=c; } var d=descLookup(cd.value||c, u); if(d && !norm($('mfDesc').value)){ $('mfDesc').value=d; } }); }
+    if(cd && !cd.__wired){ cd.__wired=1; cd.addEventListener('blur', function(){ var c=norm(cd.value); if(!c){ return; } var u=codeToUpc(c); if(u && !norm(up.value)){ up.value=u; } var d=descLookup(c, up.value||u); if(d && !norm($('mfDesc').value)){ $('mfDesc').value=d; } }); }
     if(co && !co.__wired){ co.__wired=1; co.addEventListener('blur', function(){ co.value=money2(co.value); }); }
     if(sr && !sr.__wired){ sr.__wired=1; sr.addEventListener('blur', function(){ sr.value=money2(sr.value); }); }
     $('ovManual').classList.add('show');
@@ -536,22 +536,25 @@
     while(etc.length && etc[etc.length-1]==='') etc.pop();
     var upc=norm($('mfUpc').value);
     var code=norm($('mfCode').value);
-    // 추가 직전 상호 보완
     if(upc && !code){ var c=upcToCode(upc); if(c) code=c; }
     if(code && !upc){ var u=codeToUpc(code); if(u) upc=u; }
-    var item={ upc: upc||'X', itemcode:code, desc:norm($('mfDesc').value), cost:money2($('mfCost').value), srp:money2($('mfSrp').value), etc:etc };
+    var desc=norm($('mfDesc').value); if(!desc){ desc=descLookup(code, upc); }
+    var item={ upc: upc||'X', itemcode:code, desc:desc, cost:money2($('mfCost').value), srp:money2($('mfSrp').value), etc:etc };
     if(!item.itemcode && !item.desc){ toast('ITEMCODE 또는 DESC 중 하나는 입력하세요'); return; }
     curList.push(item);
-    afterListChange();
-    // 광고리스트(H-MART)까지 실시간 반영: TITLE 이 있으면 자동 저장
-    var title=norm($('adTitle')?$('adTitle').value:'') || curTitle;
-    var st=$('mfStatus');
-    if(title && titleId(title)!==MASTER_ID){ saveAdList(); if(st) st.textContent='✓ 추가 + AD LIST 실시간 등록됨 · 총 '+curList.length+'개 (계속 입력 가능)'; }
-    else { if(st){ st.style.color='var(--danger)'; st.textContent='✓ 목록에 추가됨 · 총 '+curList.length+'개. (TITLE NAME 을 입력하면 AD LIST에도 자동 등록)'; } }
-    // 폼 초기화 후 이어서 입력
+    afterListChange();   // 목록·미리보기 갱신 + 등록 버튼 반짝임
+    var st=$('mfStatus'); if(st){ st.style.color='var(--success)'; st.textContent='✓ 목록에 추가됨 · 총 '+curList.length+'개 (계속 입력 가능 · "광고리스트등록/업데이트"로 저장)'; }
     ['mfUpc','mfCode','mfDesc','mfCost','mfSrp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
     Array.prototype.forEach.call($('mfEtc').querySelectorAll('.mf-etc'), function(inp){ inp.value=''; });
     var up=$('mfUpc'); if(up) up.focus();
+  }
+  // 현재 광고리스트에서 같은 코드/UPC 상품의 DESC 찾기
+  function descLookup(code, upc){
+    var ck=code?E.normKey(code):''; var u=norm(upc);
+    for(var i=0;i<curList.length;i++){ var it=curList[i];
+      if(ck && E.normKey(it.itemcode)===ck && it.desc) return it.desc;
+      if(u && u!=='X' && norm(it.upc)===u && it.desc) return it.desc; }
+    return '';
   }
 
   function bindAdEditTools(){
