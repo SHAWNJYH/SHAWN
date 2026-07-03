@@ -698,13 +698,18 @@
   // 배지: 가장 최근 리스트의 올린 시점 기준, 다음주 월요일 전까지만 표시. 기간은 그 다음주(월~일).
   function updateWeeklyBadge(arr){
     var el=$('weeklyBadge'); if(!el) return;
-    var latest=0;
-    (arr||[]).forEach(function(x){ if((x.updatedAt||0)>latest) latest=x.updatedAt; });
-    if(!latest && arr && arr.length) latest=Date.now();   // 저장 시각 정보가 없는 기존 데이터 대비
-    if(!latest || Date.now()>=nextMondayEnd(latest)){ el.textContent=''; el.classList.remove('show'); return; }
-    var monStart=new Date(nextMondayEnd(latest));     // 다음주 월요일
-    var sunEnd=new Date(monStart); sunEnd.setDate(monStart.getDate()+6); // 그 주 일요일
-    el.textContent='UPDATED - NEXT WEEKLY SALE ITEMS ('+mmdd(monStart)+' ~ '+mmdd(sunEnd)+')';
+    // 가장 최근 항목 찾기
+    var latest=null, lt=-1;
+    (arr||[]).forEach(function(x){ var u=x.updatedAt||0; if(u>=lt){ lt=u; latest=x; } });
+    if(!latest && arr && arr.length) latest=arr[0];
+    if(!latest){ el.textContent=''; el.classList.remove('show'); return; }
+    // TITLE 괄호 안 날짜 추출 (예: WEEKLY SALE(07/10~07/16) → 07/10~07/16)
+    var m=String(latest.title||'').match(/\(([^)]*)\)/);
+    var dateStr=m?m[1].trim():'';
+    // 표시 유지 기간: 저장 시각 기준 다음주 월요일까지
+    var ts=latest.updatedAt||Date.now();
+    if(Date.now()>=nextMondayEnd(ts)){ el.textContent=''; el.classList.remove('show'); return; }
+    el.textContent='UPDATED - NEXT WEEKLY SALE ITEMS'+(dateStr?(' ('+dateStr+')'):'');
     el.classList.add('show');
   }
 
