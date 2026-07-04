@@ -408,7 +408,7 @@
     $('dropMaster').querySelector('.dt').textContent='✓ 업로드됨 ('+(aoa.length-1)+'행)'+(empty?' — 저장 여부를 확인하세요':' — 자동 검사 중…');
     fillColSelect($('mMasterCode'), aoa[0]||[], 'ITEMCODE'); fillColSelect($('mMasterUpc'), aoa[0]||[], 'UPC');
     // 컬럼 선택 후 흐름 시작
-    setTimeout(processUpload, 60);
+    setTimeout(processUpload, 200);
   }
   // 컬럼 변경 시에도 재처리
   function onMasterColChange(){ if(lastMasterUpload) processUpload(); }
@@ -424,7 +424,9 @@
 
   // 업로드 원본 행 파싱 (원본 보존)
   function parseNewRows(){
-    var res=E.buildItemIndex(lastMasterUpload,{itemcode:$('mMasterCode').value, upc:$('mMasterUpc').value});
+    var codeVal=$('mMasterCode').value || 'ITEMCODE';
+    var upcVal=$('mMasterUpc').value || 'UPC';
+    var res=E.buildItemIndex(lastMasterUpload,{itemcode:codeVal, upc:upcVal});
     if(res.error) return { error:res.error };
     var aoa=lastMasterUpload, ci=res.itemcodeCol, ui=res.upcCol, rows=[];
     for(var r=1;r<aoa.length;r++){ var row=aoa[r]||[];
