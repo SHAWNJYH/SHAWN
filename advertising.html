@@ -148,7 +148,7 @@
     <div class="grid2">
       <!-- 좌: 아이템 마스터 (누적 임시저장) -->
       <div class="card">
-        <h2>📦 ITEM MASTER <button class="btn ghost sm" id="masterDupBtn" style="margin-left:auto">🔍 중복확인</button><button class="btn ghost sm" id="masterDownloadBtn">⬇ ITEM LIST DOWNLOAD</button></h2>
+        <h2>📦 ITEM MASTER <button class="btn ghost sm" id="masterDownloadBtn" style="margin-left:auto">⬇ ITEM LIST DOWNLOAD</button></h2>
         <div class="hint">엑셀을 올리고 <b>저장(누적)</b>을 누르면 STI LIST에 쌓입니다. 같은 위치에 또 올려 누르면 <b>중복 제외, 신규만</b> 추가됩니다.</div>
         <div class="drop" id="dropMaster"><div class="di">📦</div><div class="dt">아이템마스터 엑셀 선택</div><div class="ds">.xlsx / .xls / .csv</div></div>
         <input type="file" id="fileMaster" accept=".xlsx,.xls,.csv" class="hidden">
@@ -160,6 +160,7 @@
         <div class="mstate">
           <span class="big">임시저장 <b id="masterCount">0</b> 개</span>
           <span class="sp"></span>
+          <button class="btn ghost sm" id="masterDupBtn">🔍 중복항목보기</button>
           <button class="btn danger sm" id="masterClearBtn">전체삭제</button>
         </div>
         <div class="status" id="stMaster"></div>
@@ -423,19 +424,28 @@
     if(u.length<7) return 'UPC 7자리 미만'; return ''; }
 
   // 업로드 원본 행 파싱 (원본 보존)
+  var __lastParsed=[];
   function parseNewRows(){
     var codeVal=$('mMasterCode').value || 'ITEMCODE';
     var upcVal=$('mMasterUpc').value || 'UPC';
     var res=E.buildItemIndex(lastMasterUpload,{itemcode:codeVal, upc:upcVal});
     if(res.error) return { error:res.error };
     var aoa=lastMasterUpload, ci=res.itemcodeCol, ui=res.upcCol, rows=[];
+    var di=E.resolveColIndex(aoa[0]||[], 'DESC');   // desc 컬럼(있으면)
     for(var r=1;r<aoa.length;r++){ var row=aoa[r]||[];
       var rawCode=String(row[ci]==null?'':row[ci]).trim();
       var rawUpc=String(row[ui]==null?'':row[ui]).trim();
+      var desc=(di>=0)?String(row[di]==null?'':row[di]).trim():'';
       if(!rawCode && !rawUpc) continue;
-      rows.push({ code:E.normKey(rawCode), rawCode:rawCode, rawUpc:rawUpc });
+      rows.push({ code:E.normKey(rawCode), rawCode:rawCode, rawUpc:rawUpc, desc:desc });
     }
+    __lastParsed=rows;
     return { rows:rows };
+  }
+  // code/upc로 이번 파일의 desc 찾기
+  function findDesc(code, upc){
+    for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if((code && it.code===code) || (upc && it.rawUpc===upc)){ if(it.desc) return it.desc; } }
+    return '';
   }
 
   // 메인 흐름: 최초(빈 마스터)면 저장확인 / 이후면 신제품 자동등록 + 문제만 팝업
@@ -443,7 +453,9 @@
     if(!lastMasterUpload) return;
     var p=parseNewRows();
     var st=$('stMasterUp');
-    if(p.error){ st.className='status err'; st.textContent='⚠ '+p.error; return; }
+    var dt=$('dropMaster').querySelector('.dt');
+    if(p.error){ st.className='status err'; st.textContent='⚠ '+p.error; if(dt) dt.textContent='✓ 업로드됨 — 컬럼을 확인하세요'; return; }
+    if(dt) dt.textContent='✓ 업로드됨 ('+(lastMasterUpload.length-1)+'행)';
 
     if(masterCount()===0){
       // 최초 업로드: 검증만 하고 "저장할까요" 팝업
@@ -496,21 +508,24 @@
       // 형식오류 → 자동등록 제외(팝업 안 함)
       if(codeIssue(it.rawCode) || upcIssue(u)){ badCount++; return; }
       var existUpcs=masterIndex[code]||null;
-      var codeDupUpcDiff = existUpcs && existUpcs.indexOf(u)<0;      // 코드 같고 UPC 다름
       var upcOwnerCode = upcOwner[u];
-      var upcDupCodeDiff = (upcOwnerCode!==undefined && upcOwnerCode!==code); // UPC 같고 코드 다름
-      var exactDup = existUpcs && existUpcs.indexOf(u)>=0;           // 완전 동일
-      if(exactDup){ dupCount++; return; }                           // 통과(등록 안 함)
+      var codeMultiUpc = (newByCode[code]||[]).length>1;   // 새 파일 내: 같은 code에 UPC 여러 개
+      var upcMultiCode = (newByUpc[u]||[]).length>1;        // 새 파일 내: 같은 UPC에 code 여러 개
+      // 코드 같고 UPC 다름: 기존과 다르거나, 새 파일 내에서 여러 UPC
+      var codeDupUpcDiff = (existUpcs && existUpcs.indexOf(u)<0) || codeMultiUpc;
+      // UPC 같고 코드 다름: 기존 다른 코드가 소유, 또는 새 파일 내에서 여러 code
+      var upcDupCodeDiff = (upcOwnerCode!==undefined && upcOwnerCode!==code) || upcMultiCode;
+      var exactDup = existUpcs && existUpcs.indexOf(u)>=0;  // 기존과 완전 동일
+      // 완전 동일 + 내부 충돌 없음 → 통과
+      if(exactDup && !codeMultiUpc && !upcMultiCode){ dupCount++; return; }
       var conflict=false;
       if(codeDupUpcDiff){
         conflict=true;
-        // 왼쪽: 이 code의 (기존 + 새 전체) upc 묶음
         var set={}; (existUpcs||[]).forEach(function(x){set[x]=1;}); (newByCode[code]||[]).forEach(function(x){set[x]=1;});
         leftGroups[code]=Object.keys(set);
       }
       if(upcDupCodeDiff){
         conflict=true;
-        // 오른쪽: 이 upc의 (기존 소유 code + 새 전체) code 묶음
         var cs={}; if(upcOwnerCode!==undefined) cs[upcOwnerCode]=1; (newByUpc[u]||[]).forEach(function(x){cs[x]=1;});
         rightGroups[u]=Object.keys(cs);
       }
@@ -541,7 +556,7 @@
   // 값 입력칸 + 개별 삭제(🗑)
   function valCell(cls, val){
     return '<span class="dvrow" style="display:flex;gap:6px;align-items:center;margin:4px 0;">'
-      +'<input class="'+cls+'" value="'+esc(val||'')+'" style="flex:1;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;">'
+      +'<input class="'+cls+'" value="'+esc(val||'')+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;">'
       +'<button class="btn sm danger dval-del" type="button">🗑</button></span>';
   }
   // 왼쪽: ITEMCODE / UPC#1 / UPC#2 ...
@@ -551,9 +566,11 @@
     if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
     body.innerHTML=keys.map(function(code){
       var upcs=groups[code]||[];
+      var d=findDesc(code,'');
       return '<div class="dgrp" data-code="'+esc(code)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">ITEMCODE</div>'
-        +'<input class="dgrp-code" value="'+esc(code)+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
+        +'<input class="dgrp-code" value="'+esc(code)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
+        +(d?('<div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">📝 '+esc(d)+'</div>'):'')
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">UPC</div>'
         +'<div class="dgrp-vals">'+upcs.map(function(u){ return valCell('dgrp-upc', u); }).join('')+'</div>'
         +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ UPC 추가</button>'
@@ -568,9 +585,11 @@
     if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
     body.innerHTML=keys.map(function(upc){
       var codes=groups[upc]||[];
+      var d=findDesc('',upc);
       return '<div class="dgrp" data-upc="'+esc(upc)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">UPC</div>'
-        +'<input class="dgrp-upckey" value="'+esc(upc)+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
+        +'<input class="dgrp-upckey" value="'+esc(upc)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
+        +(d?('<div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">📝 '+esc(d)+'</div>'):'')
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">ITEMCODE</div>'
         +'<div class="dgrp-vals">'+codes.map(function(c){ return valCell('dgrp-code2', c); }).join('')+'</div>'
         +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ ITEMCODE 추가</button>'
