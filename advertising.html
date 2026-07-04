@@ -148,7 +148,7 @@
     <div class="grid2">
       <!-- 좌: 아이템 마스터 (누적 임시저장) -->
       <div class="card">
-        <h2>📦 ITEM MASTER <span class="tag">ITEMCODE → UPC · 누적저장</span><button class="btn ghost sm" id="masterDupBtn" style="margin-left:auto">🔍 중복확인</button><button class="btn ghost sm" id="masterDownloadBtn">⬇ ITEM LIST DOWNLOAD</button></h2>
+        <h2>📦 ITEM MASTER <button class="btn ghost sm" id="masterDupBtn" style="margin-left:auto">🔍 중복확인</button><button class="btn ghost sm" id="masterDownloadBtn">⬇ ITEM LIST DOWNLOAD</button></h2>
         <div class="hint">엑셀을 올리고 <b>저장(누적)</b>을 누르면 STI LIST에 쌓입니다. 같은 위치에 또 올려 누르면 <b>중복 제외, 신규만</b> 추가됩니다.</div>
         <div class="drop" id="dropMaster"><div class="di">📦</div><div class="dt">아이템마스터 엑셀 선택</div><div class="ds">.xlsx / .xls / .csv</div></div>
         <input type="file" id="fileMaster" accept=".xlsx,.xls,.csv" class="hidden">
@@ -224,20 +224,23 @@
   <div class="ov-foot"><button class="btn sm" id="ovCsCancel">취소</button><button class="btn warm sm" id="ovCsSave">저장</button></div>
 </div></div>
 
-<!-- 중복 리스트 팝업 -->
-<div class="ov" id="ovDup"><div class="ov-card" style="max-width:840px">
-  <div class="ov-head"><h3>🔍 중복·오류 항목</h3><span class="sp"></span><button class="ov-x" id="ovDupX">✕</button></div>
+<!-- 중복 리스트 팝업 (좌: 코드같고 UPC다름 / 우: UPC같고 코드다름) -->
+<div class="ov" id="ovDup"><div class="ov-card" style="max-width:960px">
+  <div class="ov-head"><h3>🔍 중복 항목 정리</h3><span class="sp"></span><button class="ov-x" id="ovDupX">✕</button></div>
   <div class="ov-body">
     <div class="ov-note" id="ovDupNote"></div>
-    <div style="overflow:auto; max-height:54vh; border:1px solid var(--border); border-radius:10px;">
-      <table class="ov-tbl" id="ovDupTbl">
-        <thead><tr><th style="width:40px">#</th><th>ITEMCODE</th><th>UPC</th><th style="width:170px">사유</th><th style="width:54px">삭제</th></tr></thead>
-        <tbody id="ovDupBody"></tbody>
-      </table>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div>
+        <div style="font-size:12px; font-weight:800; color:var(--text-dim); margin-bottom:6px;">◀ 같은 ITEMCODE · 다른 UPC</div>
+        <div style="border:1px solid var(--border); border-radius:10px; overflow:auto; max-height:52vh;" id="dupLeftWrap"><div id="dupLeftBody"></div></div>
+      </div>
+      <div>
+        <div style="font-size:12px; font-weight:800; color:var(--text-dim); margin-bottom:6px;">같은 UPC · 다른 ITEMCODE ▶</div>
+        <div style="border:1px solid var(--border); border-radius:10px; overflow:auto; max-height:52vh;" id="dupRightWrap"><div id="dupRightBody"></div></div>
+      </div>
     </div>
-    <div style="margin-top:10px;"><button class="btn ghost sm" id="ovDupAddRow">＋ 행 추가</button></div>
   </div>
-  <div class="ov-foot"><button class="btn sm" id="ovDupCancel">나가기</button><button class="btn warm sm" id="ovDupApply">✓ 완료 (ITEM MASTER에 등록)</button></div>
+  <div class="ov-foot"><button class="btn sm" id="ovDupCancel">나가기</button><button class="btn warm sm" id="ovDupApply">✓ UPDATE (ITEM MASTER 누적)</button></div>
 </div></div>
 
 <div class="ov" id="ovAdd"><div class="ov-card">
@@ -456,12 +459,13 @@
     // 신제품(정상·비중복) 자동 등록
     var added=0;
     split.clean.forEach(function(it){ if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); added++; } });
-    if(split.problemRows.length){
-      st.className='status'; st.textContent='신제품 '+added+'쌍 자동등록 · 확인필요 '+split.problemRows.length+'건';
-      persistThen(function(){ updateMasterUI(); openDupResolve(split.problemRows, added); });
+    var tail=(split.badCount?(' · 형식오류 '+split.badCount+' 제외'):'')+(split.dupCount?(' · 중복 '+split.dupCount+' 통과'):'');
+    if(hasConflicts(split)){
+      st.className='status'; st.textContent='신제품 '+added+'쌍 자동등록'+tail+' · 확인필요 항목 있음';
+      persistThen(function(){ updateMasterUI(); openDupResolve(split.leftGroups, split.rightGroups, added); });
     } else {
       st.className='status'; st.innerHTML='<span class="spin"></span> 저장중…';
-      masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ 신제품 '+added+'쌍 등록 · 총 '+masterCount()+'개'; updateMasterUI(); refreshAd(); toast('자동 등록 완료 · 신제품 '+added+'쌍'); })
+      masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ 신제품 '+added+'쌍 등록'+tail+' · 총 '+masterCount()+'개'; updateMasterUI(); refreshAd(); toast('자동 등록 완료 · 신제품 '+added+'쌍'); })
         .catch(function(err){ st.className='status err'; st.textContent='저장 실패: '+(err&&err.message||err); });
     }
   }
@@ -480,76 +484,135 @@
   // 행 분류: clean(정상·비중복) / problemRows(중복 or 형식오류)
   function splitRows(rows){
     var upcOwner={}; for(var k in masterIndex){ (masterIndex[k]||[]).forEach(function(u){ upcOwner[u]=k; }); }
-    var clean=[], problems=[], related={};
+    // 새 파일 안에서의 code별 upc 모음
+    var newByCode={}, newByUpc={};
+    rows.forEach(function(it){ if(!newByCode[it.code]) newByCode[it.code]=[]; if(newByCode[it.code].indexOf(it.rawUpc)<0) newByCode[it.code].push(it.rawUpc);
+      if(!newByUpc[it.rawUpc]) newByUpc[it.rawUpc]=[]; if(newByUpc[it.rawUpc].indexOf(it.code)<0) newByUpc[it.rawUpc].push(it.code); });
+    var clean=[], leftGroups={}, rightGroups={}, badCount=0, dupCount=0;
     rows.forEach(function(it){
-      var code=it.code, u=it.rawUpc, reasons=[];
-      var ci=codeIssue(it.rawCode); if(ci) reasons.push(ci);
-      var ui=upcIssue(u); if(ui) reasons.push(ui);
+      var code=it.code, u=it.rawUpc;
+      // 형식오류 → 자동등록 제외(팝업 안 함)
+      if(codeIssue(it.rawCode) || upcIssue(u)){ badCount++; return; }
       var existUpcs=masterIndex[code]||null;
-      if(existUpcs && existUpcs.indexOf(u)<0) reasons.push('ITEMCODE 중복');
-      if(upcOwner[u]!==undefined && upcOwner[u]!==code) reasons.push('UPC 중복');
-      if(reasons.length){
-        problems.push({ code:code, rawCode:it.rawCode, rawUpc:u, reason:reasons.join(' / ') });
-        related[code]=1; if(upcOwner[u]!==undefined) related[upcOwner[u]]=1;
-      } else {
-        if(!(existUpcs && existUpcs.indexOf(u)>=0)) clean.push(it);
+      var codeDupUpcDiff = existUpcs && existUpcs.indexOf(u)<0;      // 코드 같고 UPC 다름
+      var upcOwnerCode = upcOwner[u];
+      var upcDupCodeDiff = (upcOwnerCode!==undefined && upcOwnerCode!==code); // UPC 같고 코드 다름
+      var exactDup = existUpcs && existUpcs.indexOf(u)>=0;           // 완전 동일
+      if(exactDup){ dupCount++; return; }                           // 통과(등록 안 함)
+      var conflict=false;
+      if(codeDupUpcDiff){
+        conflict=true;
+        // 왼쪽: 이 code의 (기존 + 새 전체) upc 묶음
+        var set={}; (existUpcs||[]).forEach(function(x){set[x]=1;}); (newByCode[code]||[]).forEach(function(x){set[x]=1;});
+        leftGroups[code]=Object.keys(set);
       }
+      if(upcDupCodeDiff){
+        conflict=true;
+        // 오른쪽: 이 upc의 (기존 소유 code + 새 전체) code 묶음
+        var cs={}; if(upcOwnerCode!==undefined) cs[upcOwnerCode]=1; (newByUpc[u]||[]).forEach(function(x){cs[x]=1;});
+        rightGroups[u]=Object.keys(cs);
+      }
+      if(!conflict){ clean.push(it); }   // 정상 신제품
     });
-    // 중복 상대(기존 마스터) 값도 함께 표시
-    var seen={}; problems.forEach(function(pp){ seen[pp.code+'|'+pp.rawUpc]=1; });
-    Object.keys(related).forEach(function(code){ (masterIndex[code]||[]).forEach(function(u){ var key=code+'|'+u; if(!seen[key]){ seen[key]=1; problems.push({ code:code, rawCode:code, rawUpc:u, reason:'기존 값' }); } }); });
-    return { clean:clean, problemRows:problems };
+    return { clean:clean, leftGroups:leftGroups, rightGroups:rightGroups, badCount:badCount, dupCount:dupCount };
   }
+  function hasConflicts(split){ return Object.keys(split.leftGroups).length>0 || Object.keys(split.rightGroups).length>0; }
   function persistThen(cb){ masterPersist().then(function(){ cb&&cb(); }).catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); }); }
 
   /* ===== 중복·오류 팝업 ===== */
-  var __dupCodes=null;
-  function openDupResolve(problemRows, autoAdded){
-    var codes={}; problemRows.forEach(function(p){ codes[p.code]=1; }); __dupCodes=Object.keys(codes);
-    renderDupList(problemRows);
-    $('ovDupNote').textContent='중복(ITEMCODE 또는 UPC) 또는 형식오류 항목입니다. 수정·삭제 후 “완료”를 누르면 해당 ITEMCODE의 최종 값으로 등록됩니다.'+(autoAdded?(' (신제품 '+autoAdded+'쌍은 이미 자동등록됨)'):'');
+  var __leftGroups=null, __rightGroups=null;
+  function openDupResolve(leftGroups, rightGroups, autoAdded){
+    __leftGroups=leftGroups||{}; __rightGroups=rightGroups||{};
+    renderLeftGroups(__leftGroups);
+    renderRightGroups(__rightGroups);
+    var ln=Object.keys(__leftGroups).length, rn=Object.keys(__rightGroups).length;
+    $('ovDupNote').textContent='중복 항목입니다. 왼쪽은 같은 ITEMCODE의 UPC들, 오른쪽은 같은 UPC의 ITEMCODE들입니다. 값을 고치거나 지운 뒤 UPDATE를 누르면 남은 값이 최종으로 저장됩니다.'+(autoAdded?(' (신제품 '+autoAdded+'쌍은 이미 자동등록됨)'):'');
     $('ovDup').classList.add('show');
   }
   function openDupList(){
     if(!lastMasterUpload){ toast('먼저 엑셀을 업로드하세요'); return; }
     var p=parseNewRows(); if(p.error){ toast('⚠ '+p.error); return; }
     var split=splitRows(p.rows);
-    if(!split.problemRows.length){ __dupCodes=[]; renderDupList([]); $('ovDupNote').textContent='중복이나 형식오류가 없습니다. 필요하면 아래에서 직접 행을 추가할 수 있습니다.'; $('ovDup').classList.add('show'); return; }
-    openDupResolve(split.problemRows, 0);
+    if(!hasConflicts(split)){ toast('코드/UPC가 어긋나는 중복이 없습니다'); return; }
+    openDupResolve(split.leftGroups, split.rightGroups, 0);
   }
-  function dupRowHTML(i, code, upc, reason){
-    var col = /오류|한글|영문|특수|자리|비어|미만/.test(reason||'') ? '#c0392b' : (reason==='기존 값' ? '#6b6b72' : '#b8860b');
-    var badge=reason?('<span style="font-size:10px;font-weight:800;color:'+col+';white-space:nowrap;">'+esc(reason)+'</span>'):'';
-    return '<tr>'
-      +'<td>'+(i+1)+'</td>'
-      +'<td><input class="dup-code" value="'+esc(code||'')+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;"></td>'
-      +'<td><input class="dup-upc" value="'+esc(upc||'')+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;"></td>'
-      +'<td>'+badge+'</td>'
-      +'<td><button class="btn sm danger dup-del">🗑</button></td></tr>';
+  // 값 입력칸 + 개별 삭제(🗑)
+  function valCell(cls, val){
+    return '<span class="dvrow" style="display:flex;gap:6px;align-items:center;margin:4px 0;">'
+      +'<input class="'+cls+'" value="'+esc(val||'')+'" style="flex:1;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;">'
+      +'<button class="btn sm danger dval-del" type="button">🗑</button></span>';
   }
-  function renderDupList(rows){ var body=$('ovDupBody'); if(!body) return; body.innerHTML=rows.map(function(d,i){ return dupRowHTML(i,d.code,d.rawUpc,d.reason); }).join(''); bindDupRows(); }
-  function bindDupRows(){ Array.prototype.forEach.call($('ovDupBody').querySelectorAll('.dup-del'), function(b){ b.onclick=function(){ var tr=b.closest('tr'); if(tr) tr.parentNode.removeChild(tr); renumberDup(); }; }); }
-  function renumberDup(){ Array.prototype.forEach.call($('ovDupBody').querySelectorAll('tr'), function(tr,i){ var c=tr.querySelector('td'); if(c) c.textContent=(i+1); }); }
-  function addDupRow(){ var body=$('ovDupBody'); var n=body.querySelectorAll('tr').length; var w=document.createElement('tbody'); w.innerHTML=dupRowHTML(n,'','',''); body.appendChild(w.firstChild); bindDupRows(); }
+  // 왼쪽: ITEMCODE / UPC#1 / UPC#2 ...
+  function renderLeftGroups(groups){
+    var body=$('dupLeftBody'); if(!body) return;
+    var keys=Object.keys(groups);
+    if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
+    body.innerHTML=keys.map(function(code){
+      var upcs=groups[code]||[];
+      return '<div class="dgrp" data-code="'+esc(code)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
+        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">ITEMCODE</div>'
+        +'<input class="dgrp-code" value="'+esc(code)+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
+        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">UPC</div>'
+        +'<div class="dgrp-vals">'+upcs.map(function(u){ return valCell('dgrp-upc', u); }).join('')+'</div>'
+        +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ UPC 추가</button>'
+        +'</div>';
+    }).join('');
+    bindGroupEvents(body, 'dgrp-upc');
+  }
+  // 오른쪽: UPC / ITEMCODE#1 / ITEMCODE#2 ...
+  function renderRightGroups(groups){
+    var body=$('dupRightBody'); if(!body) return;
+    var keys=Object.keys(groups);
+    if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
+    body.innerHTML=keys.map(function(upc){
+      var codes=groups[upc]||[];
+      return '<div class="dgrp" data-upc="'+esc(upc)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
+        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">UPC</div>'
+        +'<input class="dgrp-upckey" value="'+esc(upc)+'" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
+        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">ITEMCODE</div>'
+        +'<div class="dgrp-vals">'+codes.map(function(c){ return valCell('dgrp-code2', c); }).join('')+'</div>'
+        +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ ITEMCODE 추가</button>'
+        +'</div>';
+    }).join('');
+    bindGroupEvents(body, 'dgrp-code2');
+  }
+  function bindGroupEvents(body, valCls){
+    Array.prototype.forEach.call(body.querySelectorAll('.dval-del'), function(b){ b.onclick=function(){ var w=b.closest('.dvrow'); if(w) w.parentNode.removeChild(w); }; });
+    Array.prototype.forEach.call(body.querySelectorAll('.dgrp-add'), function(b){ b.onclick=function(){ var g=b.closest('.dgrp'); var vals=g.querySelector('.dgrp-vals'); var w=document.createElement('div'); w.innerHTML=valCell(valCls,''); var node=w.firstChild; vals.appendChild(node); node.querySelector('.dval-del').onclick=function(){ vals.removeChild(node); }; }; });
+  }
+  // UPDATE: 팝업에 남은 값이 최종값
   function applyDupList(){
     if(!fbReady()){ toast('연결 대기 중입니다'); return; }
-    var rows=$('ovDupBody').querySelectorAll('tr'), resolved={}, invalid=[];
-    Array.prototype.forEach.call(rows, function(tr){
-      var codeEl=tr.querySelector('.dup-code'), upcEl=tr.querySelector('.dup-upc');
-      if(!codeEl||!upcEl) return;
-      var rawCode=norm(codeEl.value), rawUpc=norm(upcEl.value);
-      if(!rawCode && !rawUpc) return;
-      var ci=codeIssue(rawCode), ui=upcIssue(rawUpc);
-      if(ci||ui){ invalid.push((rawCode||'(빈코드)')+' / '+(rawUpc||'(빈UPC)')+' — '+[ci,ui].filter(Boolean).join(', ')); return; }
-      var code=E.normKey(rawCode);
-      if(!resolved[code]) resolved[code]=[];
-      if(resolved[code].indexOf(rawUpc)<0) resolved[code].push(rawUpc);
+    var invalid=[];
+    // 왼쪽: code → 남은 upcs (해당 code의 최종 UPC 집합)
+    var leftResult={};
+    Array.prototype.forEach.call($('dupLeftBody').querySelectorAll('.dgrp'), function(g){
+      var code=E.normKey((g.querySelector('.dgrp-code')||{}).value||'');
+      if(!code) return;
+      var ci=codeIssue(code); if(ci){ invalid.push(code+' — '+ci); }
+      var ups=[];
+      Array.prototype.forEach.call(g.querySelectorAll('.dgrp-upc'), function(inp){ var u=norm(inp.value); if(!u) return; var ui=upcIssue(u); if(ui){ invalid.push(code+'/'+u+' — '+ui); return; } if(ups.indexOf(u)<0) ups.push(u); });
+      leftResult[code]=ups;
+    });
+    // 오른쪽: upc → 남은 codes (해당 UPC를 소유할 최종 ITEMCODE들)
+    var rightResult={};
+    Array.prototype.forEach.call($('dupRightBody').querySelectorAll('.dgrp'), function(g){
+      var upc=norm((g.querySelector('.dgrp-upckey')||{}).value||'');
+      if(!upc) return;
+      var ui=upcIssue(upc); if(ui){ invalid.push(upc+' — '+ui); }
+      var cds=[];
+      Array.prototype.forEach.call(g.querySelectorAll('.dgrp-code2'), function(inp){ var c=E.normKey(inp.value); if(!c) return; var ci=codeIssue(c); if(ci){ invalid.push(c+' — '+ci); return; } if(cds.indexOf(c)<0) cds.push(c); });
+      rightResult[upc]=cds;
     });
     if(invalid.length){ toast('형식오류가 남아있습니다: '+invalid[0]+(invalid.length>1?(' 외 '+(invalid.length-1)+'건'):'')); return; }
-    var targets=(__dupCodes&&__dupCodes.length)?__dupCodes.slice():Object.keys(resolved);
-    targets.forEach(function(code){ if(resolved[code]&&resolved[code].length){ masterIndex[code]=resolved[code]; } else { delete masterIndex[code]; } });
-    for(var code in resolved){ if(!masterIndex[code]) masterIndex[code]=resolved[code]; }
-    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('ovDup').classList.remove('show'); __dupCodes=null; toast('등록 완료 · 총 '+masterCount()+'개'); })
+    // 반영 (1) 왼쪽: 해당 code의 UPC 집합을 최종값으로 교체
+    for(var code in leftResult){ if(leftResult[code].length) masterIndex[code]=leftResult[code]; else delete masterIndex[code]; }
+    // 반영 (2) 오른쪽: 각 upc를 먼저 모든 code에서 제거 후, 남긴 code들에만 추가
+    for(var upc in rightResult){
+      for(var k in masterIndex){ var i=masterIndex[k].indexOf(upc); if(i>=0){ masterIndex[k].splice(i,1); if(!masterIndex[k].length) delete masterIndex[k]; } }
+      rightResult[upc].forEach(function(c){ if(!masterIndex[c]) masterIndex[c]=[]; if(masterIndex[c].indexOf(upc)<0) masterIndex[c].push(upc); });
+    }
+    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; toast('UPDATE 완료 · 총 '+masterCount()+'개'); })
       .catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); });
   }
 
@@ -573,11 +636,10 @@
     if(b=$('ovCsX')) b.onclick=function(){ $('ovConfirmSave').classList.remove('show'); __pendingFirstRows=null; };
     if(b=$('ovCsCancel')) b.onclick=function(){ $('ovConfirmSave').classList.remove('show'); __pendingFirstRows=null; };
     if(b=$('ovCsSave')) b.onclick=saveFirstUpload;
-    if(b=$('ovDupX')) b.onclick=function(){ $('ovDup').classList.remove('show'); __dupCodes=null; };
-    if(b=$('ovDupCancel')) b.onclick=function(){ $('ovDup').classList.remove('show'); __dupCodes=null; };
-    if(b=$('ovDupAddRow')) b.onclick=addDupRow;
+    if(b=$('ovDupX')) b.onclick=function(){ $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; };
+    if(b=$('ovDupCancel')) b.onclick=function(){ $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; };
     if(b=$('ovDupApply')) b.onclick=applyDupList;
-    var ov=$('ovDup'); if(ov) ov.addEventListener('click', function(e){ if(e.target===ov){ ov.classList.remove('show'); __dupCodes=null; } });
+    var ov=$('ovDup'); if(ov) ov.addEventListener('click', function(e){ if(e.target===ov){ ov.classList.remove('show'); __leftGroups=__rightGroups=null; } });
     var ov2=$('ovConfirmSave'); if(ov2) ov2.addEventListener('click', function(e){ if(e.target===ov2){ ov2.classList.remove('show'); __pendingFirstRows=null; } });
   }
   function masterPersist(){
