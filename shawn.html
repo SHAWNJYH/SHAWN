@@ -3008,7 +3008,10 @@
   #multiviewScreen.active{ display:block; }
   /* 멀티뷰 임베드 모드: 화면만 보이게 */
   body.mv-embed .bible-topbar, body.mv-embed .back-btn, body.mv-embed .brand-meta{ display:none !important; }
+  body.mv-embed .mgr-fab{ display:none !important; }
   body.mv-embed .bible-screen, body.mv-embed .upc-screen, body.mv-embed .claude-screen{ padding-top:8px !important; }
+  body.mv-embed{ overflow:hidden !important; }
+  body.mv-embed .bible-screen, body.mv-embed .upc-screen, body.mv-embed .claude-screen{ overflow:auto; }
   #mvStage{ position:absolute; inset:0; background-size:cover; background-position:center; overflow:hidden; }
   #mvGrid{ position:absolute; inset:0; display:grid; gap:0; transform-origin:top left; }
   .mv-cell{ position:relative; border:1.5px dashed rgba(255,255,255,.18); overflow:hidden; background:rgba(255,255,255,.02); }
