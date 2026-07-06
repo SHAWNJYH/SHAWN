@@ -97,6 +97,7 @@
     <div id="mvTop">
       <button class="mv-tbtn" id="mvAddBtn" title="화면 추가">＋</button>
       <button class="mv-tbtn" id="mvLockBtn" title="완료(고정)">✓</button>
+      <button class="mv-tbtn" id="mvFsBtn" title="전체화면">⛶</button>
       <button class="mv-tbtn" id="mvSettingsBtn" title="설정">⚙</button>
       <button class="mv-tbtn" id="mvBackBtn" title="뒤로">←</button>
     </div>
@@ -285,10 +286,29 @@
     if(state.locked){ $('mvPanel').classList.remove('show'); }
     refreshAllScroll();   // 편집=스크롤 표시 / 고정=스크롤 숨김
   }
+  function toggleFullscreen(){
+    var d=document, el=d.documentElement;
+    var isFs = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
+    if(!isFs){
+      var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+      if(req) req.call(el);
+    } else {
+      var exit = d.exitFullscreen || d.webkitExitFullscreen || d.mozCancelFullScreen || d.msExitFullscreen;
+      if(exit) exit.call(d);
+    }
+  }
+  function onFsChange(){
+    var d=document;
+    var isFs = d.fullscreenElement || d.webkitFullscreenElement || d.mozFullScreenElement || d.msFullscreenElement;
+    var b=$('mvFsBtn'); if(b){ b.textContent=isFs?'🗗':'⛶'; b.title=isFs?'전체화면 해제':'전체화면'; }
+  }
+  ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(function(ev){ document.addEventListener(ev, onFsChange); });
+
   function bindControls(){
     $('mvAddBtn').onclick=addPanel;
     $('mvAddBtn2').onclick=addPanel;
     $('mvLockBtn').onclick=function(){ state.locked=!state.locked; applyLock(); save(); };
+    $('mvFsBtn').onclick=toggleFullscreen;
     $('mvSettingsBtn').onclick=function(){ if(state.locked) return; $('mvPanel').classList.toggle('show'); };
     $('mvBackBtn').onclick=function(){ location.href='shawn.html'; };
     $('mvZoomIn').onclick=function(){ state.zoom=Math.min(2, state.zoom+0.1); applyZoom(); save(); };
