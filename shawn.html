@@ -364,6 +364,7 @@
   .menu-card[data-target="plushawn"] .menu-icon { background: #e9f5e1; }
   .menu-card[data-target="plumgr"] .menu-icon { background: #e9f5e1; }
   .menu-card[data-target="upcmgr"] .menu-icon { background: #e1f0ff; }
+  .menu-card[data-target="multiview"] .menu-icon { background: #efe8ff; }
   .menu-card:hover:not(.disabled) .menu-icon {
     transform: scale(1.1) rotate(-4deg);
   }
@@ -2633,6 +2634,13 @@
       </div>
       <div class="menu-card-arrow">↗</div>
     </div>
+    <div class="menu-card" data-target="multiview">
+      <div>
+        <div class="menu-icon">🖥️</div>
+        <div class="menu-card-title">멀티뷰</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
     <div class="menu-card" data-target="accesslog">
       <div>
         <div class="menu-icon">📊</div>
@@ -2991,6 +2999,58 @@
         <tbody id="alBody"><tr><td colspan="5" style="text-align:center; color:#9a9aa0; padding:24px;">불러오는 중…</td></tr></tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<!-- MULTIVIEW SCREEN -->
+<style>
+  #multiviewScreen{ position:fixed; inset:0; z-index:900; background:#1a1a1d; display:none; }
+  #multiviewScreen.active{ display:block; }
+  #mvStage{ position:absolute; inset:0; background-size:cover; background-position:center; overflow:hidden; }
+  #mvGrid{ position:absolute; inset:0; display:grid; gap:0; transform-origin:top left; }
+  .mv-cell{ position:relative; border:1.5px dashed rgba(255,255,255,.18); overflow:hidden; background:rgba(255,255,255,.02); }
+  .mv-cell iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff; }
+  .mv-cell-empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:rgba(255,255,255,.4); font-size:13px; }
+  .mv-cell-bar{ position:absolute; top:0; left:0; right:0; height:0; opacity:0; transition:opacity .15s, height .15s; background:rgba(20,20,24,.82); z-index:5; display:flex; align-items:center; gap:6px; padding:0 8px; }
+  .mv-cell:hover .mv-cell-bar{ height:30px; opacity:1; }
+  .mv-cell-bar select{ flex:1; max-width:200px; background:#2a2a2e; color:#eee; border:1px solid #444; border-radius:6px; padding:3px 6px; font-size:11px; }
+  .mv-cell-bar input{ flex:1; background:#2a2a2e; color:#eee; border:1px solid #444; border-radius:6px; padding:3px 6px; font-size:11px; }
+  .mv-cell-bar button{ background:#3a3a3e; color:#eee; border:0; border-radius:6px; padding:3px 7px; font-size:11px; cursor:pointer; }
+  .mv-resizer{ position:absolute; z-index:6; }
+  .mv-resizer.col{ top:0; bottom:0; width:9px; margin-left:-4px; cursor:col-resize; }
+  .mv-resizer.row{ left:0; right:0; height:9px; margin-top:-4px; cursor:row-resize; }
+  .mv-resizer:hover{ background:rgba(201,169,97,.4); }
+  #mvControls{ position:absolute; top:12px; right:12px; z-index:20; display:flex; gap:8px; align-items:center; }
+  .mv-ctrl-btn{ width:38px; height:38px; border-radius:10px; background:rgba(20,20,24,.72); color:#eee; border:1px solid rgba(255,255,255,.15); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
+  .mv-ctrl-btn:hover{ background:rgba(201,169,97,.5); }
+  #mvPanel{ position:absolute; top:60px; right:12px; z-index:21; width:280px; background:rgba(28,28,32,.97); border:1px solid rgba(255,255,255,.14); border-radius:14px; padding:16px; color:#eee; display:none; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  #mvPanel.show{ display:block; }
+  #mvPanel h4{ margin:0 0 10px; font-size:13px; font-weight:800; letter-spacing:.04em; }
+  #mvPanel label{ display:block; font-size:11px; color:#aaa; margin:10px 0 4px; }
+  #mvPanel input, #mvPanel select{ width:100%; box-sizing:border-box; background:#2a2a2e; color:#eee; border:1px solid #444; border-radius:8px; padding:7px 9px; font-size:12px; }
+  .mv-count-row{ display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .mv-count-row button{ flex:1; min-width:30px; background:#2a2a2e; color:#eee; border:1px solid #444; border-radius:7px; padding:6px 0; font-size:12px; cursor:pointer; }
+  .mv-count-row button.on{ background:#c9a961; color:#1a1a1d; border-color:#c9a961; font-weight:800; }
+  #mvZoom{ display:flex; align-items:center; gap:8px; margin-top:6px; }
+  #mvZoom button{ width:30px; height:30px; border-radius:8px; background:#2a2a2e; color:#eee; border:1px solid #444; cursor:pointer; font-size:15px; }
+</style>
+<div id="multiviewScreen">
+  <div id="mvStage">
+    <div id="mvGrid"></div>
+  </div>
+  <div id="mvControls">
+    <button class="mv-ctrl-btn" id="mvSettingsBtn" title="설정">⚙</button>
+    <button class="mv-ctrl-btn" id="mvBackBtn" title="뒤로">←</button>
+  </div>
+  <div id="mvPanel">
+    <h4>🖥️ 멀티뷰 설정</h4>
+    <label>화면 분할 (칸 수)</label>
+    <div class="mv-count-row" id="mvCountRow"></div>
+    <label>전체 확대/축소</label>
+    <div id="mvZoom"><button id="mvZoomOut">−</button><span id="mvZoomVal" style="flex:1;text-align:center;font-size:12px;">100%</span><button id="mvZoomIn">＋</button></div>
+    <label>배경 이미지 URL (칸 바깥)</label>
+    <input id="mvBgUrl" placeholder="https://... 이미지 주소" autocomplete="off">
+    <div style="margin-top:12px;font-size:10px;color:#888;line-height:1.5;">각 칸 위에 마우스를 올리면 화면을 고를 수 있습니다. 칸 경계(점선)를 드래그해 크기를 조절하세요.</div>
   </div>
 </div>
 
@@ -3893,6 +3953,151 @@
   function alTime(ts){ if(!ts) return ''; var d=new Date(ts); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); }
   function alDur(ms){ if(!ms||ms<0) return '-'; var s=Math.floor(ms/1000), h=Math.floor(s/3600), m=Math.floor((s%3600)/60); if(h>0) return h+'시간 '+m+'분'; if(m>0) return m+'분'; return (s%60)+'초'; }
   function alRecent(ts){ return ts && (Date.now()-ts < 90000); }
+  /* ===== 멀티뷰 대시보드 ===== */
+  var MV_SCREENS=[
+    { id:'', name:'— 빈 칸 —', url:'' },
+    { id:'plumgr', name:'PLU MANAGER', url:'plu-list-manager.html' },
+    { id:'upcmgr', name:'UPC MANAGER', url:'upc-list-manager.html' },
+    { id:'store', name:'STORE MANAGER', url:'store-manager.html' },
+    { id:'ad', name:'광고상품 관리', url:'advertising.html' },
+    { id:'ocr', name:'OCR CONVERT', url:'upc-list-convert-ocr.html' },
+    { id:'egmm', name:'EGMM (REQUEST·메시지)', url:'egmm.html' },
+    { id:'hmart', name:'H-MART 매장', url:'hmart.html', store:true },
+    { id:'ext', name:'외부 링크…', url:'', ext:true }
+  ];
+  var MV_STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var mvState={ count:4, cells:[], zoom:1, bg:'', cols:null, rows:null };
+  function mvLoad(){ try{ var s=JSON.parse(localStorage.getItem('mvLayout')||'null'); if(s){ mvState=Object.assign(mvState,s); } }catch(e){} }
+  function mvSave(){ try{ localStorage.setItem('mvLayout', JSON.stringify(mvState)); }catch(e){} }
+  function mvGridDims(n){ // 칸 수 → [열,행]
+    var map={1:[1,1],2:[2,1],3:[3,1],4:[2,2],5:[3,2],6:[3,2],7:[4,2],8:[4,2]};
+    return map[n]||[2,2];
+  }
+  function showMultiview(){
+    menuScreen.classList.remove('active'); app.classList.remove('active');
+    ['bibleScreen','upcScreen','caseScreen','weightScreen','calcScreen','claudeScreen','accesslogScreen'].forEach(function(id){ var e=$(id); if(e) e.classList.remove('active'); });
+    $('multiviewScreen').classList.add('active');
+    mvLoad(); mvRenderCounts(); mvRenderGrid(); mvApplyZoom(); mvApplyBg();
+    $('mvBgUrl').value=mvState.bg||'';
+    window.scrollTo(0,0);
+  }
+  function mvRenderCounts(){
+    var row=$('mvCountRow'); if(!row) return;
+    var html=''; for(var i=1;i<=8;i++){ html+='<button data-n="'+i+'"'+(i===mvState.count?' class="on"':'')+'>'+i+'</button>'; }
+    row.innerHTML=html;
+    Array.prototype.forEach.call(row.querySelectorAll('button'), function(b){ b.onclick=function(){ mvState.count=parseInt(b.dataset.n,10); mvState.cols=null; mvState.rows=null; mvRenderCounts(); mvRenderGrid(); mvSave(); }; });
+  }
+  function mvCellConfig(i){ return mvState.cells[i] || (mvState.cells[i]={ screen:'', url:'', store:'' }); }
+  function mvRenderGrid(){
+    var grid=$('mvGrid'); if(!grid) return;
+    var dims=mvGridDims(mvState.count), cols=dims[0], rows=dims[1];
+    var colTpl=mvState.cols||Array(cols).fill(1), rowTpl=mvState.rows||Array(rows).fill(1);
+    if(colTpl.length!==cols) colTpl=Array(cols).fill(1);
+    if(rowTpl.length!==rows) rowTpl=Array(rows).fill(1);
+    mvState.cols=colTpl; mvState.rows=rowTpl;
+    grid.style.gridTemplateColumns=colTpl.map(function(f){ return f+'fr'; }).join(' ');
+    grid.style.gridTemplateRows=rowTpl.map(function(f){ return f+'fr'; }).join(' ');
+    var html='';
+    for(var i=0;i<mvState.count;i++){
+      var c=mvCellConfig(i);
+      html+='<div class="mv-cell" data-idx="'+i+'">'
+        +'<div class="mv-cell-bar">'
+          +'<select class="mv-screen-sel">'+MV_SCREENS.map(function(s){ return '<option value="'+s.id+'"'+(s.id===c.screen?' selected':'')+'>'+s.name+'</option>'; }).join('')+'</select>'
+          +'<select class="mv-store-sel" style="display:none;max-width:110px;"><option value="">매장선택</option>'+MV_STORES.map(function(st){ return '<option value="'+st+'"'+(st===c.store?' selected':'')+'>'+st+'</option>'; }).join('')+'</select>'
+          +'<input class="mv-ext-url" style="display:none;" placeholder="https://..." value="'+(c.url||'')+'">'
+          +'<button class="mv-reload">↻</button>'
+        +'</div>'
+        +'<div class="mv-cell-content"></div>'
+      +'</div>';
+    }
+    grid.innerHTML=html;
+    // 셀 콘텐츠 + 이벤트
+    Array.prototype.forEach.call(grid.querySelectorAll('.mv-cell'), function(cell){
+      var idx=parseInt(cell.dataset.idx,10);
+      mvBindCell(cell, idx);
+      mvFillCell(cell, idx);
+    });
+    mvBuildResizers(grid, cols, rows);
+  }
+  function mvBindCell(cell, idx){
+    var c=mvCellConfig(idx);
+    var sel=cell.querySelector('.mv-screen-sel'), storeSel=cell.querySelector('.mv-store-sel'), extInp=cell.querySelector('.mv-ext-url');
+    function syncControls(){
+      var sc=MV_SCREENS.filter(function(s){ return s.id===sel.value; })[0]||MV_SCREENS[0];
+      storeSel.style.display=sc.store?'':'none';
+      extInp.style.display=sc.ext?'':'none';
+    }
+    syncControls();
+    sel.onchange=function(){ c.screen=sel.value; syncControls(); mvFillCell(cell, idx); mvSave(); };
+    storeSel.onchange=function(){ c.store=storeSel.value; mvFillCell(cell, idx); mvSave(); };
+    extInp.onchange=function(){ c.url=extInp.value; mvFillCell(cell, idx); mvSave(); };
+    cell.querySelector('.mv-reload').onclick=function(){ mvFillCell(cell, idx); };
+  }
+  function mvFillCell(cell, idx){
+    var c=mvCellConfig(idx);
+    var box=cell.querySelector('.mv-cell-content');
+    var sc=MV_SCREENS.filter(function(s){ return s.id===c.screen; })[0];
+    var src='';
+    if(sc){
+      if(sc.ext) src=c.url||'';
+      else if(sc.store) src=sc.url+(c.store?('?store='+encodeURIComponent(c.store)):'');
+      else src=sc.url;
+    }
+    if(src){ box.innerHTML='<iframe src="'+src.replace(/"/g,'&quot;')+'" allow="clipboard-read; clipboard-write"></iframe>'; }
+    else { box.innerHTML='<div class="mv-cell-empty"><span style="font-size:22px;">＋</span><span>화면을 선택하세요</span></div>'; }
+  }
+  // 칸 경계 드래그 리사이저
+  function mvBuildResizers(grid, cols, rows){
+    var colTpl=mvState.cols, rowTpl=mvState.rows;
+    // 열 경계
+    for(var ci=1;ci<cols;ci++){ (function(ci){
+      var r=document.createElement('div'); r.className='mv-resizer col';
+      var leftPct=colTpl.slice(0,ci).reduce(function(a,b){return a+b;},0)/colTpl.reduce(function(a,b){return a+b;},0);
+      r.style.left=(leftPct*100)+'%'; grid.appendChild(r);
+      r.onmousedown=function(e){ mvDrag(e, 'col', ci, grid); };
+    })(ci); }
+    for(var ri=1;ri<rows;ri++){ (function(ri){
+      var r=document.createElement('div'); r.className='mv-resizer row';
+      var topPct=rowTpl.slice(0,ri).reduce(function(a,b){return a+b;},0)/rowTpl.reduce(function(a,b){return a+b;},0);
+      r.style.top=(topPct*100)+'%'; grid.appendChild(r);
+      r.onmousedown=function(e){ mvDrag(e, 'row', ri, grid); };
+    })(ri); }
+  }
+  function mvDrag(e, type, idx, grid){
+    e.preventDefault();
+    var rect=grid.getBoundingClientRect();
+    var tpl=(type==='col')?mvState.cols:mvState.rows;
+    var total=tpl.reduce(function(a,b){return a+b;},0);
+    function move(ev){
+      var pos=(type==='col')?((ev.clientX-rect.left)/rect.width):((ev.clientY-rect.top)/rect.height);
+      pos=Math.max(0.08, Math.min(0.92, pos));
+      var before=tpl.slice(0,idx-1).reduce(function(a,b){return a+b;},0)/total;
+      var after=tpl.slice(0,idx+1).reduce(function(a,b){return a+b;},0)/total;
+      var newBefore=Math.max(0.05, pos-before), newAfter=Math.max(0.05, after-pos);
+      tpl[idx-1]=newBefore*total; tpl[idx]=newAfter*total;
+      if(type==='col') grid.style.gridTemplateColumns=tpl.map(function(f){return f+'fr';}).join(' ');
+      else grid.style.gridTemplateRows=tpl.map(function(f){return f+'fr';}).join(' ');
+    }
+    function up(){ document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); mvSave();
+      // 리사이저 위치 갱신
+      var dims=mvGridDims(mvState.count); mvBuildResizersRefresh(grid, dims[0], dims[1]); }
+    document.addEventListener('mousemove',move); document.addEventListener('mouseup',up);
+  }
+  function mvBuildResizersRefresh(grid, cols, rows){
+    Array.prototype.forEach.call(grid.querySelectorAll('.mv-resizer'), function(r){ r.parentNode.removeChild(r); });
+    mvBuildResizers(grid, cols, rows);
+  }
+  function mvApplyZoom(){ var g=$('mvGrid'); if(g){ g.style.transform='scale('+mvState.zoom+')'; g.style.width=(100/mvState.zoom)+'%'; g.style.height=(100/mvState.zoom)+'%'; } var v=$('mvZoomVal'); if(v) v.textContent=Math.round(mvState.zoom*100)+'%'; }
+  function mvApplyBg(){ var s=$('mvStage'); if(s) s.style.backgroundImage=mvState.bg?('url("'+mvState.bg.replace(/"/g,'')+'")'):''; }
+  function mvBindControls(){
+    var b;
+    if(b=$('mvSettingsBtn')) b.onclick=function(){ $('mvPanel').classList.toggle('show'); };
+    if(b=$('mvBackBtn')) b.onclick=function(){ $('multiviewScreen').classList.remove('active'); showMenu(); };
+    if(b=$('mvZoomIn')) b.onclick=function(){ mvState.zoom=Math.min(2, mvState.zoom+0.1); mvApplyZoom(); mvSave(); };
+    if(b=$('mvZoomOut')) b.onclick=function(){ mvState.zoom=Math.max(0.4, mvState.zoom-0.1); mvApplyZoom(); mvSave(); };
+    if(b=$('mvBgUrl')) b.onchange=function(){ mvState.bg=b.value.trim(); mvApplyBg(); mvSave(); };
+  }
+
   function showAccessLog() {
     menuScreen.classList.remove('active');
     app.classList.remove('active');
@@ -3982,6 +4187,7 @@
       else if (target === 'claude') showClaude();
       else if (target === 'plumgr') { window.open('plu-list-manager.html', 'pluMgr', 'width=1400,height=900'); return; }
       else if (target === 'upcmgr') { window.open('upc-list-manager.html', 'upcMgr', 'width=1400,height=900'); return; }
+      else if (target === 'multiview') { showMultiview(); return; }
       else if (target === 'accesslog') showAccessLog();
       else return;
       pushScreen(target); // 브라우저 뒤로가기로 메뉴에 돌아올 수 있도록 기록
@@ -3991,6 +4197,7 @@
   // 화면 안의 "← 메뉴" 버튼들은 브라우저 뒤로가기와 동일하게 동작시킨다.
   // (popstate 핸들러가 메뉴로 되돌리므로 화면 정리도 거기서 일괄 처리됨)
   $('backToMenuBtn').onclick = () => history.back();
+  mvBindControls();
   $('bibleBackBtn').onclick = () => history.back();
   $('upcBackBtn').onclick = () => history.back();
   $('caseBackBtn').onclick = () => history.back();
@@ -5028,6 +5235,7 @@
       case 'calc':   showCalc();   break;
       case 'claude': showClaude(); break;
       case 'accesslog': showAccessLog(); break;
+      case 'multiview': showMultiview(); break;
       case 'menu':
       default:       showMenu();   break;
     }
