@@ -25,7 +25,7 @@
   html,body{ margin:0; height:100%; font-family:var(--serif); color:var(--text); background:var(--bg); overflow:hidden; }
 
   /* THE SHAWN 디자인 프레임 */
-  #mvFrame{ position:fixed; inset:0; display:flex; flex-direction:column; background:var(--bg); }
+  #mvFrame{ position:fixed; inset:0; display:flex; flex-direction:column; background:var(--bg); overflow:hidden; }
   #mvCanvasWrap{ position:relative; flex:1; margin:0; border-radius:0; overflow:hidden;
     border:0; background:
       radial-gradient(1200px 600px at 15% -10%, #fffdf7 0%, transparent 60%),
@@ -192,7 +192,13 @@
   function fillBody(el, p){
     var body=el.querySelector('.mvp-body');
     var src=srcFor(p);
-    if(src){ body.innerHTML='<iframe src="'+src.replace(/"/g,'&quot;')+'" allow="clipboard-read; clipboard-write; microphone; camera"></iframe>'; }
+    if(src){
+      body.innerHTML='<iframe src="'+src.replace(/"/g,'&quot;')+'" scrolling="no" allow="clipboard-read; clipboard-write; microphone; camera"></iframe>';
+      var ifr=body.querySelector('iframe');
+      ifr.addEventListener('load', function(){
+        try{ var d=ifr.contentDocument; if(d){ d.documentElement.style.overflow='hidden'; if(d.body) d.body.style.overflow='hidden'; } }catch(e){}
+      });
+    }
     else { body.innerHTML='<div class="mvp-empty"><span style="font-size:24px;">＋</span><span>제목줄에서 화면을 선택하세요</span></div>'; }
   }
 
