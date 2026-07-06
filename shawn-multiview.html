@@ -79,6 +79,15 @@
 
   #mvHint{ position:absolute; bottom:16px; left:22px; z-index:30; font-size:11px; color:var(--text-faint);
     background:rgba(255,255,255,.8); border:1px solid var(--border); border-radius:20px; padding:6px 14px; }
+
+  /* 완료(잠금) 모드 — 하나의 고정 화면처럼 */
+  body.mv-locked .mvp-head{ display:none; }
+  body.mv-locked .mvp-resize{ display:none; }
+  body.mv-locked .mvp{ box-shadow:none; border-color:var(--border); }
+  body.mv-locked .mvp.active{ box-shadow:none; }
+  body.mv-locked #mvAddBtn,
+  body.mv-locked #mvHint{ display:none; }
+  body.mv-locked #mvLockBtn{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
 </style>
 </head>
 <body>
@@ -88,6 +97,7 @@
 
     <div id="mvTop">
       <button class="mv-tbtn" id="mvAddBtn" title="화면 추가">＋</button>
+      <button class="mv-tbtn" id="mvLockBtn" title="완료(고정)">✓</button>
       <button class="mv-tbtn" id="mvSettingsBtn" title="설정">⚙</button>
       <button class="mv-tbtn" id="mvBackBtn" title="뒤로">←</button>
     </div>
@@ -137,7 +147,7 @@
   ];
   var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
 
-  var state={ panels:[], zoom:1, bg:'', zTop:10 };
+  var state={ panels:[], zoom:1, bg:'', zTop:10, locked:false };
   function load(){ try{ var s=JSON.parse(localStorage.getItem('shawnMvFree')||'null'); if(s) state=Object.assign(state,s); }catch(e){} }
   function save(){ try{ localStorage.setItem('shawnMvFree', JSON.stringify(state)); }catch(e){} }
 
@@ -207,6 +217,7 @@
 
     // 이동(제목줄 드래그) — 셀렉트/버튼 클릭은 제외
     head.addEventListener('mousedown', function(e){
+      if(state.locked) return;
       if(e.target.closest('select')||e.target.closest('button')||e.target.closest('input')) return;
       e.preventDefault(); focus();
       var sx=e.clientX, sy=e.clientY, ox=parseFloat(el.style.left), oy=parseFloat(el.style.top);
@@ -218,6 +229,7 @@
 
     // 크기조절(우하단)
     el.querySelector('.mvp-resize').addEventListener('mousedown', function(e){
+      if(state.locked) return;
       e.preventDefault(); e.stopPropagation(); focus();
       var sx=e.clientX, sy=e.clientY, ow=el.offsetWidth, oh=el.offsetHeight;
       body.classList.add('drag-lock');
@@ -235,13 +247,20 @@
     save();
   }
 
-  function applyZoom(){ var c=$('mvCanvas'); c.style.transform='scale('+state.zoom+')'; c.style.transformOrigin='top left'; c.style.width=(100/state.zoom)+'%'; c.style.height=(100/state.zoom)+'%'; $('mvZoomVal').textContent=Math.round(state.zoom*100)+'%'; }
+  function applyZoom(){ var c=$('mvCanvas'); c.style.transformOrigin='top left'; c.style.transform='scale('+state.zoom+')'; $('mvZoomVal').textContent=Math.round(state.zoom*100)+'%'; }
   function applyBg(){ $('mvCanvas').style.backgroundImage=state.bg?('url("'+state.bg.replace(/"/g,'')+'")'):''; }
 
+  function applyLock(){
+    document.body.classList.toggle('mv-locked', !!state.locked);
+    var b=$('mvLockBtn'); if(b){ b.textContent=state.locked?'✎':'✓'; b.title=state.locked?'편집':'완료(고정)'; }
+    // 잠금 시 열린 설정 패널 닫기
+    if(state.locked){ $('mvPanel').classList.remove('show'); }
+  }
   function bindControls(){
     $('mvAddBtn').onclick=addPanel;
     $('mvAddBtn2').onclick=addPanel;
-    $('mvSettingsBtn').onclick=function(){ $('mvPanel').classList.toggle('show'); };
+    $('mvLockBtn').onclick=function(){ state.locked=!state.locked; applyLock(); save(); };
+    $('mvSettingsBtn').onclick=function(){ if(state.locked) return; $('mvPanel').classList.toggle('show'); };
     $('mvBackBtn').onclick=function(){ location.href='shawn.html'; };
     $('mvZoomIn').onclick=function(){ state.zoom=Math.min(2, state.zoom+0.1); applyZoom(); save(); };
     $('mvZoomOut').onclick=function(){ state.zoom=Math.max(0.4, state.zoom-0.1); applyZoom(); save(); };
@@ -254,6 +273,7 @@
   bindControls();
   $('mvBgUrl').value=state.bg||'';
   if(!state.panels.length){ addPanel(); } else { render(); }
+  applyLock();
 })();
 </script>
 </body>
