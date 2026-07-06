@@ -190,10 +190,22 @@
   }
 
   function setIframeScroll(ifr){
+    var edit=!state.locked;
     try{
-      var d=ifr.contentDocument; if(!d) return;
-      var v=state.locked?'hidden':'auto';
-      d.documentElement.style.overflow=v; if(d.body) d.body.style.overflow=v;
+      var d=ifr.contentDocument; if(d){
+        d.documentElement.style.overflow = edit?'auto':'hidden';
+        if(d.body) d.body.style.overflow = edit?'auto':'hidden';
+        // 맥 대응: 편집 모드에서 스크롤바 항상 보이게 스타일 주입
+        var sid='__mvScrollStyle', ex=d.getElementById(sid);
+        if(edit){
+          if(!ex){ var st=d.createElement('style'); st.id=sid;
+            st.textContent='::-webkit-scrollbar{width:12px;height:12px;-webkit-appearance:none;}'
+              +'::-webkit-scrollbar-thumb{background:rgba(0,0,0,.38);border-radius:6px;border:2px solid rgba(255,255,255,.7);}'
+              +'::-webkit-scrollbar-track{background:rgba(0,0,0,.06);}'
+              +'html{scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.38) rgba(0,0,0,.06);}';
+            (d.head||d.documentElement).appendChild(st); }
+        } else if(ex){ ex.parentNode.removeChild(ex); }
+      }
     }catch(e){}
     ifr.setAttribute('scrolling', state.locked?'no':'yes');
   }
