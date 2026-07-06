@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE SHAWN · 멀티뷰</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script>
+/* 진입 가드 — 통합 로그인 필요 */
+(function(){
+  try{
+    var ok = localStorage.getItem('unifiedLogin')==='1' || sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1';
+    if(!ok){ location.replace('index.html'); }
+  }catch(e){ location.replace('index.html'); }
+})();
+</script>
+<style>
+  :root{
+    --bg:#f7f6f2; --bg-elev:#ffffff; --text:#1a1a1d; --text-dim:#55555c; --text-faint:#9a9aa0;
+    --border:#e5e5e0; --accent-warm:#c9a961; --accent-soft:#f0e9d8;
+    --mono:'SF Mono',ui-monospace,Menlo,monospace; --serif:'Pretendard',sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; font-family:var(--serif); color:var(--text); background:var(--bg); overflow:hidden; }
+
+  /* THE SHAWN 디자인 프레임 */
+  #mvFrame{ position:fixed; inset:0; display:flex; flex-direction:column; background:
+      radial-gradient(1200px 600px at 15% -10%, #fffdf7 0%, transparent 60%),
+      radial-gradient(1000px 500px at 110% 120%, #f3eede 0%, transparent 55%),
+      var(--bg); }
+  #mvCanvasWrap{ position:relative; flex:1; margin:14px; border-radius:20px; overflow:hidden;
+    border:1px solid var(--border); background:var(--bg-elev);
+    box-shadow:0 1px 0 #fff inset, 0 30px 80px rgba(26,26,29,.10); }
+  #mvCanvas{ position:absolute; inset:0; background-size:cover; background-position:center; }
+
+  /* 우측 상단 컨트롤 */
+  #mvTop{ position:absolute; top:14px; right:22px; z-index:40; display:flex; gap:8px; align-items:center; }
+  .mv-tbtn{ width:40px; height:40px; border-radius:12px; background:var(--bg-elev); color:var(--text);
+    border:1px solid var(--border); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 18px rgba(26,26,29,.08); transition:transform .12s, border-color .14s; }
+  .mv-tbtn:hover{ border-color:var(--accent-warm); transform:translateY(-1px); }
+
+  /* 설정 패널 */
+  #mvPanel{ position:absolute; top:64px; right:22px; z-index:41; width:290px; background:var(--bg-elev);
+    border:1px solid var(--border); border-radius:16px; padding:18px; display:none;
+    box-shadow:0 24px 70px rgba(26,26,29,.18); }
+  #mvPanel.show{ display:block; }
+  #mvPanel h4{ margin:0 0 12px; font-family:var(--serif); font-weight:800; font-size:15px; letter-spacing:.02em; }
+  #mvPanel label{ display:block; font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); margin:14px 0 6px; }
+  #mvPanel input, #mvPanel select{ width:100%; box-sizing:border-box; border:1.5px solid var(--border); border-radius:10px; padding:9px 11px; font-size:13px; font-family:inherit; background:#fff; }
+  .mv-btn{ display:inline-flex; align-items:center; gap:6px; background:var(--accent-warm); color:#fff; border:0; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+  .mv-btn.ghost{ background:#fff; color:var(--text); border:1.5px solid var(--border); }
+  .mv-btn.full{ width:100%; justify-content:center; margin-top:6px; }
+  #mvZoom{ display:flex; align-items:center; gap:8px; }
+  #mvZoom button{ width:34px; height:34px; border-radius:9px; background:#fff; border:1.5px solid var(--border); cursor:pointer; font-size:16px; }
+  #mvZoomVal{ flex:1; text-align:center; font-family:var(--mono); font-size:13px; }
+
+  /* 자유 배치 패널 */
+  .mvp{ position:absolute; background:var(--bg-elev); border:1px solid var(--border); border-radius:14px;
+    box-shadow:0 10px 34px rgba(26,26,29,.14); overflow:hidden; display:flex; flex-direction:column; min-width:180px; min-height:120px; }
+  .mvp.active{ box-shadow:0 14px 44px rgba(201,169,97,.28); border-color:var(--accent-warm); }
+  .mvp-head{ height:34px; flex:0 0 34px; display:flex; align-items:center; gap:6px; padding:0 8px;
+    background:linear-gradient(180deg,#fbfaf6,#f4f2ea); border-bottom:1px solid var(--border); cursor:move; user-select:none; }
+  .mvp-head .tick{ width:5px; height:14px; border-radius:2px; background:var(--accent-warm); flex:0 0 auto; }
+  .mvp-head select{ flex:1; min-width:0; border:1px solid var(--border); border-radius:7px; padding:3px 6px; font-size:11px; font-family:inherit; background:#fff; }
+  .mvp-head .mvp-store{ max-width:120px; }
+  .mvp-head .mvp-ext{ flex:1; }
+  .mvp-head button{ flex:0 0 auto; width:24px; height:24px; border:0; border-radius:6px; background:transparent; cursor:pointer; font-size:13px; color:var(--text-dim); }
+  .mvp-head button:hover{ background:#eee; }
+  .mvp-body{ flex:1; position:relative; background:#fff; }
+  .mvp-body iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .mvp-empty{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:var(--text-faint); font-size:13px; }
+  /* 드래그 중 iframe 이벤트 차단 */
+  .mvp-body.drag-lock{ pointer-events:none; }
+  .mvp-resize{ position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; z-index:3;
+    background:linear-gradient(135deg, transparent 50%, var(--accent-warm) 50%); border-bottom-right-radius:14px; opacity:.55; }
+  .mvp-resize:hover{ opacity:1; }
+
+  #mvHint{ position:absolute; bottom:16px; left:22px; z-index:30; font-size:11px; color:var(--text-faint);
+    background:rgba(255,255,255,.8); border:1px solid var(--border); border-radius:20px; padding:6px 14px; }
+</style>
+</head>
+<body>
+<div id="mvFrame">
+  <div id="mvCanvasWrap">
+    <div id="mvCanvas"></div>
+
+    <div id="mvTop">
+      <button class="mv-tbtn" id="mvAddBtn" title="화면 추가">＋</button>
+      <button class="mv-tbtn" id="mvSettingsBtn" title="설정">⚙</button>
+      <button class="mv-tbtn" id="mvBackBtn" title="뒤로">←</button>
+    </div>
+
+    <div id="mvPanel">
+      <h4>🖥️ 멀티뷰</h4>
+      <label>화면 추가</label>
+      <button class="mv-btn full" id="mvAddBtn2">＋ 새 화면 패널 추가</button>
+      <label>전체 확대 / 축소</label>
+      <div id="mvZoom"><button id="mvZoomOut">−</button><span id="mvZoomVal">100%</span><button id="mvZoomIn">＋</button></div>
+      <label>배경 이미지 URL</label>
+      <input id="mvBgUrl" placeholder="https://... 이미지 주소" autocomplete="off">
+      <label>레이아웃</label>
+      <button class="mv-btn ghost full" id="mvResetBtn">초기화 (모든 패널 삭제)</button>
+    </div>
+
+    <div id="mvHint">패널 제목줄을 끌어 이동 · 우하단 모서리를 끌어 크기조절 · 제목줄에서 화면 선택</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var $=function(id){ return document.getElementById(id); };
+
+  // 넣을 수 있는 화면 목록
+  var SCREENS=[
+    { id:'', name:'— 화면 선택 —', url:'' },
+    // THE SHAWN 자체 기능 (shawn.html?mv=…)
+    { id:'calendar', name:'📅 캘린더(일정표)', url:'shawn.html?mv=calendar' },
+    { id:'bible', name:'📖 성경찾기', url:'shawn.html?mv=bible' },
+    { id:'upc', name:'🏷️ UPC 변환', url:'shawn.html?mv=upc' },
+    { id:'case', name:'🔤 대소문자 변환', url:'shawn.html?mv=case' },
+    { id:'weight', name:'⚖️ 용량 변환', url:'shawn.html?mv=weight' },
+    { id:'calc', name:'🧮 계산기', url:'shawn.html?mv=calc' },
+    { id:'claude', name:'📝 작업 지침서', url:'shawn.html?mv=claude' },
+    { id:'log', name:'📊 접속 로그', url:'shawn.html?mv=accesslog' },
+    // 독립 매니저/도구
+    { id:'plumgr', name:'🗂️ PLU MANAGER', url:'plu-list-manager.html' },
+    { id:'upcmgr', name:'🏷️ UPC MANAGER', url:'upc-list-manager.html' },
+    { id:'store', name:'🏬 STORE MANAGER', url:'store-manager.html' },
+    { id:'ad', name:'📢 광고상품 관리', url:'advertising.html' },
+    { id:'ocr', name:'🔎 OCR CONVERT', url:'upc-list-convert-ocr.html' },
+    { id:'egmm', name:'🅔 EGMM (REQUEST·메시지)', url:'egmm.html' },
+    { id:'hmart', name:'🛒 H-MART 매장 · 메시지', url:'hmart.html', store:true },
+    { id:'ext', name:'🔗 외부 링크…', url:'', ext:true }
+  ];
+  var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+
+  var state={ panels:[], zoom:1, bg:'', zTop:10 };
+  function load(){ try{ var s=JSON.parse(localStorage.getItem('shawnMvFree')||'null'); if(s) state=Object.assign(state,s); }catch(e){} }
+  function save(){ try{ localStorage.setItem('shawnMvFree', JSON.stringify(state)); }catch(e){} }
+
+  function screenById(id){ for(var i=0;i<SCREENS.length;i++){ if(SCREENS[i].id===id) return SCREENS[i]; } return SCREENS[0]; }
+  function srcFor(p){
+    var sc=screenById(p.screen);
+    if(!sc || !sc.id) return '';
+    if(sc.ext) return p.url||'';
+    if(sc.store) return sc.url+(p.store?('?store='+encodeURIComponent(p.store)):'');
+    return sc.url;
+  }
+
+  function render(){
+    var canvas=$('mvCanvas');
+    // 기존 패널 제거 후 다시(간단히 전체 재생성)
+    Array.prototype.slice.call(canvas.querySelectorAll('.mvp')).forEach(function(el){ el.parentNode.removeChild(el); });
+    state.panels.forEach(function(p, idx){ canvas.appendChild(buildPanel(p, idx)); });
+    applyZoom(); applyBg();
+  }
+
+  function buildPanel(p, idx){
+    var el=document.createElement('div');
+    el.className='mvp'; el.style.left=(p.x||40)+'px'; el.style.top=(p.y||40)+'px';
+    el.style.width=(p.w||420)+'px'; el.style.height=(p.h||300)+'px'; el.style.zIndex=(p.z||10);
+    var sc=screenById(p.screen);
+    el.innerHTML=
+      '<div class="mvp-head">'
+        +'<span class="tick"></span>'
+        +'<select class="mvp-screen">'+SCREENS.map(function(s){ return '<option value="'+s.id+'"'+(s.id===p.screen?' selected':'')+'>'+s.name+'</option>'; }).join('')+'</select>'
+        +'<select class="mvp-store" style="display:'+(sc.store?'':'none')+'"><option value="">매장</option>'+STORES.map(function(st){ return '<option value="'+st+'"'+(st===p.store?' selected':'')+'>'+st+'</option>'; }).join('')+'</select>'
+        +'<input class="mvp-ext" style="display:'+(sc.ext?'':'none')+'" placeholder="https://..." value="'+(p.url||'').replace(/"/g,'&quot;')+'">'
+        +'<button class="mvp-reload" title="새로고침">↻</button>'
+        +'<button class="mvp-close" title="닫기">✕</button>'
+      +'</div>'
+      +'<div class="mvp-body"></div>'
+      +'<div class="mvp-resize"></div>';
+    wirePanel(el, p, idx);
+    fillBody(el, p);
+    return el;
+  }
+
+  function fillBody(el, p){
+    var body=el.querySelector('.mvp-body');
+    var src=srcFor(p);
+    if(src){ body.innerHTML='<iframe src="'+src.replace(/"/g,'&quot;')+'" allow="clipboard-read; clipboard-write; microphone; camera"></iframe>'; }
+    else { body.innerHTML='<div class="mvp-empty"><span style="font-size:24px;">＋</span><span>제목줄에서 화면을 선택하세요</span></div>'; }
+  }
+
+  function wirePanel(el, p, idx){
+    var head=el.querySelector('.mvp-head');
+    var screenSel=el.querySelector('.mvp-screen'), storeSel=el.querySelector('.mvp-store'), extInp=el.querySelector('.mvp-ext');
+    var body=el.querySelector('.mvp-body');
+
+    function focus(){ state.panels.forEach(function(x){ x.z=(x===p?(++state.zTop):x.z); }); el.style.zIndex=p.z; Array.prototype.slice.call($('mvCanvas').querySelectorAll('.mvp')).forEach(function(o){ o.classList.remove('active'); }); el.classList.add('active'); }
+    el.addEventListener('mousedown', focus, true);
+
+    function syncControls(){
+      var sc=screenById(screenSel.value);
+      storeSel.style.display=sc.store?'':'none';
+      extInp.style.display=sc.ext?'':'none';
+    }
+    screenSel.onchange=function(){ p.screen=screenSel.value; syncControls(); fillBody(el, p); save(); };
+    storeSel.onchange=function(){ p.store=storeSel.value; fillBody(el, p); save(); };
+    extInp.onchange=function(){ p.url=extInp.value; fillBody(el, p); save(); };
+    el.querySelector('.mvp-reload').onclick=function(){ fillBody(el, p); };
+    el.querySelector('.mvp-close').onclick=function(){ var i=state.panels.indexOf(p); if(i>=0) state.panels.splice(i,1); el.parentNode.removeChild(el); save(); };
+
+    // 이동(제목줄 드래그) — 셀렉트/버튼 클릭은 제외
+    head.addEventListener('mousedown', function(e){
+      if(e.target.closest('select')||e.target.closest('button')||e.target.closest('input')) return;
+      e.preventDefault(); focus();
+      var sx=e.clientX, sy=e.clientY, ox=parseFloat(el.style.left), oy=parseFloat(el.style.top);
+      body.classList.add('drag-lock');
+      function mm(ev){ el.style.left=(ox+(ev.clientX-sx)/state.zoom)+'px'; el.style.top=(oy+(ev.clientY-sy)/state.zoom)+'px'; }
+      function mu(){ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); body.classList.remove('drag-lock'); p.x=parseFloat(el.style.left); p.y=parseFloat(el.style.top); save(); }
+      document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+    });
+
+    // 크기조절(우하단)
+    el.querySelector('.mvp-resize').addEventListener('mousedown', function(e){
+      e.preventDefault(); e.stopPropagation(); focus();
+      var sx=e.clientX, sy=e.clientY, ow=el.offsetWidth, oh=el.offsetHeight;
+      body.classList.add('drag-lock');
+      function mm(ev){ el.style.width=Math.max(180,(ow+(ev.clientX-sx)/state.zoom))+'px'; el.style.height=Math.max(120,(oh+(ev.clientY-sy)/state.zoom))+'px'; }
+      function mu(){ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); body.classList.remove('drag-lock'); p.w=el.offsetWidth; p.h=el.offsetHeight; save(); }
+      document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+    });
+  }
+
+  function addPanel(){
+    var n=state.panels.length;
+    var p={ screen:'', store:'', url:'', x:40+(n%5)*34, y:40+(n%5)*34, w:440, h:320, z:(++state.zTop) };
+    state.panels.push(p);
+    $('mvCanvas').appendChild(buildPanel(p, n));
+    save();
+  }
+
+  function applyZoom(){ var c=$('mvCanvas'); c.style.transform='scale('+state.zoom+')'; c.style.transformOrigin='top left'; c.style.width=(100/state.zoom)+'%'; c.style.height=(100/state.zoom)+'%'; $('mvZoomVal').textContent=Math.round(state.zoom*100)+'%'; }
+  function applyBg(){ $('mvCanvas').style.backgroundImage=state.bg?('url("'+state.bg.replace(/"/g,'')+'")'):''; }
+
+  function bindControls(){
+    $('mvAddBtn').onclick=addPanel;
+    $('mvAddBtn2').onclick=addPanel;
+    $('mvSettingsBtn').onclick=function(){ $('mvPanel').classList.toggle('show'); };
+    $('mvBackBtn').onclick=function(){ location.href='shawn.html'; };
+    $('mvZoomIn').onclick=function(){ state.zoom=Math.min(2, state.zoom+0.1); applyZoom(); save(); };
+    $('mvZoomOut').onclick=function(){ state.zoom=Math.max(0.4, state.zoom-0.1); applyZoom(); save(); };
+    $('mvBgUrl').onchange=function(){ state.bg=this.value.trim(); applyBg(); save(); };
+    $('mvResetBtn').onclick=function(){ if(!confirm('모든 패널을 삭제할까요?')) return; state.panels=[]; render(); save(); };
+  }
+
+  // 시작
+  load();
+  bindControls();
+  $('mvBgUrl').value=state.bg||'';
+  if(!state.panels.length){ addPanel(); } else { render(); }
+})();
+</script>
+</body>
+</html>
