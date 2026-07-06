@@ -362,6 +362,8 @@
   .menu-card[data-target="calc"]   .menu-icon { background: #ffedd6; }
   .menu-card[data-target="claude"] .menu-icon { background: #ffe4ef; }
   .menu-card[data-target="plushawn"] .menu-icon { background: #e9f5e1; }
+  .menu-card[data-target="plumgr"] .menu-icon { background: #e9f5e1; }
+  .menu-card[data-target="upcmgr"] .menu-icon { background: #e1f0ff; }
   .menu-card:hover:not(.disabled) .menu-icon {
     transform: scale(1.1) rotate(-4deg);
   }
@@ -2558,7 +2560,7 @@
     .admin-delete { background: transparent; color: #b04141; border: 1.5px solid #d9a3a3; }
     .admin-approve:active, .admin-reject:active, .admin-delete:active { transform: scale(0.97); }
   </style>
-  <div id="adminPanel" style="display:none;"></div>
+  <!-- 가입자 목록: 요청에 따라 제거됨 -->
 
   <div class="menu-grid">
     <div class="menu-card" data-target="todo">
@@ -2617,12 +2619,19 @@
       <div class="menu-card-arrow">→</div>
     </div>
 
-    <div class="menu-card" data-target="plushawn">
+    <div class="menu-card" data-target="plumgr">
       <div>
         <div class="menu-icon">🗂️</div>
-        <div class="menu-card-title">PLU 보기</div>
+        <div class="menu-card-title">PLU MANAGER</div>
       </div>
-      <div class="menu-card-arrow">→</div>
+      <div class="menu-card-arrow">↗</div>
+    </div>
+    <div class="menu-card" data-target="upcmgr">
+      <div>
+        <div class="menu-icon">🏷️</div>
+        <div class="menu-card-title">UPC MANAGER</div>
+      </div>
+      <div class="menu-card-arrow">↗</div>
     </div>
     <div class="menu-card" data-target="accesslog">
       <div>
@@ -3718,6 +3727,7 @@
         isAdmin = res.admin;
         state.mode = 'cloud';
         await loadFromCloud();
+        try{ localStorage.setItem('unifiedLogin','1'); }catch(e){}   // 하위 페이지(EGMM/PLU/UPC/H-MART 등) 통합 로그인
         enterApp();
         showToast('환영합니다!', 'success');
       } else {
@@ -3970,7 +3980,8 @@
       else if (target === 'weight') showWeight();
       else if (target === 'calc') showCalc();
       else if (target === 'claude') showClaude();
-      else if (target === 'plushawn') { window.location.href = 'plu-list-manager.html'; return; }
+      else if (target === 'plumgr') { window.open('plu-list-manager.html', 'pluMgr', 'width=1400,height=900'); return; }
+      else if (target === 'upcmgr') { window.open('upc-list-manager.html', 'upcMgr', 'width=1400,height=900'); return; }
       else if (target === 'accesslog') showAccessLog();
       else return;
       pushScreen(target); // 브라우저 뒤로가기로 메뉴에 돌아올 수 있도록 기록
@@ -4973,6 +4984,7 @@
       lockScreen.style.display = 'flex';
       setSyncStatus('', '');
       // Firebase 로그아웃
+      try{ localStorage.removeItem('unifiedLogin'); }catch(e){}
       if (window.firebaseAuth && currentUser) {
         try { await window.firebaseFns.signOut(window.firebaseAuth); } catch (e) {}
       }

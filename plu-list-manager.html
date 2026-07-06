@@ -582,7 +582,7 @@
      (자동로그인 ON인 본인 기기는 통과 / 다른 컴퓨터·미인증은 차단) */
   (function(){
     try{
-      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1';
+      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1' || localStorage.getItem('unifiedLogin')==='1';
       if(!ok){ location.replace('index.html'); }
     }catch(e){ try{ location.replace('index.html'); }catch(_){} }
   })();

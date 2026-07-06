@@ -284,8 +284,11 @@
 (function(){
   try{
     var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+    // 통합 로그인(멀티뷰 등)에서 ?store=매장 지정 시 세션 매장으로 설정
+    try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore && VALID.indexOf(qstore)>=0){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
     var s=localStorage.getItem('theShawnStore');
-    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); }
+    var unified = localStorage.getItem('unifiedLogin')==='1';
+    if((!s || VALID.indexOf(s)<0) && !unified){ location.replace('index.html'); }
   }catch(e){ location.replace('index.html'); }
 })();
 </script>

@@ -298,24 +298,6 @@
   .sl-catlbl{ font-size:12px; font-weight:800; color:var(--text-dim); flex:0 0 auto; }
   .sl-cat{ flex:1 1 auto; padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-size:13px; }
   .fm-l1 .fm-rtype{ margin-left:auto; width:auto; flex:0 0 auto; min-width:0; height:24px; border:1px solid var(--border); border-radius:5px; font-family:var(--mono); font-size:11px; font-weight:700; color:var(--text-dim); padding:0 4px; background:var(--bg-elev-2); cursor:pointer; box-sizing:border-box; }
-  /* 사용자 관리 */
-  .usr-addrow{ display:grid; grid-template-columns:1fr 150px auto; gap:10px; align-items:center; margin-bottom:16px; padding-bottom:16px; border-bottom:1px dashed var(--border); }
-  .usr-list{ display:flex; flex-direction:column; gap:12px; }
-  .usr-card{ border:1.5px solid var(--border); border-radius:12px; background:var(--bg-elev); padding:12px 14px; }
-  .usr-top{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
-  .usr-name{ flex:1; min-width:120px; border:1.5px solid var(--border); border-radius:8px; padding:8px 10px; font-family:var(--mono); font-size:15px; font-weight:800; background:var(--bg); color:var(--text); }
-  .usr-name:focus,.usr-pin:focus{ outline:none; border-color:var(--accent-warm); }
-  .usr-pin{ width:130px; border:1.5px solid var(--border); border-radius:8px; padding:8px 10px; font-family:var(--mono); font-size:14px; background:var(--bg); color:var(--text); }
-  .usr-pinset{ font-size:11px; font-weight:800; color:#2a8a4a; white-space:nowrap; }
-  .usr-del{ border:1.5px solid #e0b4b4; color:#c0392b; background:#fff; border-radius:8px; padding:7px 12px; font-family:var(--mono); font-size:12px; font-weight:800; cursor:pointer; }
-  .usr-del:hover{ background:#fbeaea; }
-  .usr-menus{ display:flex; flex-direction:column; gap:7px; }
-  .usr-mgroup{ display:flex; gap:7px; align-items:flex-start; flex-wrap:wrap; }
-  .usr-mgroup .gname{ font-size:10px; font-weight:800; letter-spacing:.08em; color:var(--text-faint); min-width:86px; padding-top:7px; }
-  .usr-mtoggle{ display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--border); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer; background:var(--bg); user-select:none; color:var(--text); }
-  .usr-mtoggle input{ margin:0; cursor:pointer; }
-  .usr-mtoggle.off{ opacity:.45; }
-  .usr-empty{ text-align:center; color:var(--text-faint); font-size:13px; padding:26px; }
 </style>
 </head>
 <body>
@@ -324,7 +306,7 @@
      (자동로그인 ON인 본인 기기는 통과 / 다른 컴퓨터·미인증은 차단) */
   (function(){
     try{
-      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1';
+      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1' || localStorage.getItem('unifiedLogin')==='1';
       if(!ok){ location.replace('index.html'); }
     }catch(e){ try{ location.replace('index.html'); }catch(_){} }
   })();
@@ -338,7 +320,6 @@
     <button class="sm-tab" id="smTabFields" type="button">필드 관리</button>
     <button class="sm-tab" id="smTabExport" type="button">EXPORT 설정</button>
     <button class="sm-tab" id="smTabStores" type="button">매장 관리</button>
-    <button class="sm-tab" id="smTabUsers" type="button">사용자 관리</button>
   </div>
   <div class="sm-body">
     <!-- 매장별 PIN 설정: 기존 PLU 매니저(스토어 관리/PIN) iframe -->
@@ -414,25 +395,6 @@
           <input class="st-in st-short" id="stNewShort" placeholder="SHORT" maxlength="8" autocomplete="off">
           <button class="ex-btn warm" id="stAdd" type="button">＋ 매장 추가</button>
         </div>
-      </div>
-    </div>
-
-    <!-- 사용자 관리: EGMM 로그인 사용자 (app-config/egmm-users) -->
-    <div class="sm-panel" id="smPanelUsers">
-      <div class="ex-toolbar">
-        <span class="ex-tb-label">사용자 관리 · EGMM 로그인</span>
-        <span class="ex-spacer"></span>
-        <span class="st-count" id="usrCount"></span>
-        <span class="fm-saved" id="usrSaved"></span>
-      </div>
-      <div class="st-wrap">
-        <div class="st-hint">EGMM 입장 시 사용할 사용자입니다. NAME/PIN 을 만들고 사용자별로 EGMM 메뉴를 켜고 끌 수 있습니다. PIN 은 안전하게 해시로 저장됩니다(변경 시에만 입력).</div>
-        <div class="usr-addrow">
-          <input class="st-in st-in-name" id="usrNewName" placeholder="이름 (예: 김실장)" maxlength="30" autocomplete="off">
-          <input class="st-in" id="usrNewPin" inputmode="numeric" placeholder="PIN (4~8자리)" maxlength="8" autocomplete="off">
-          <button class="ex-btn warm" id="usrAdd" type="button">＋ 사용자 추가</button>
-        </div>
-        <div class="usr-list" id="usrList"></div>
       </div>
     </div>
   </div>
@@ -582,106 +544,26 @@
   if($('slOv')) $('slOv').addEventListener('click', function(e){ if(e.target===$('slOv')) slClose(); });
   document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.addEventListener('change', slSyncDim); });
 
-  /* ===== 사용자 관리 (app-config/egmm-users) — EGMM 로그인 + 메뉴권한 ===== */
-  var USERS_COL='app-config', USERS_DOC='egmm-users';
-  var EGMM_MENUS=[
-    {id:'egmmPluListBtn',label:'PLU LIST',box:'EGMM'},
-    {id:'egmmUpcListBtn',label:'UPC LIST',box:'EGMM'},
-    {id:'egmmPluMemorizeBtn',label:'PLU MEMORIZE',box:'EGMM'},
-    {id:'egmmDeliMemorizeBtn',label:'DELI MEMORIZE',box:'EGMM'},
-    {id:'egmmCalendarBtn',label:'CALENDAR',box:'EGMM'},
-    {id:'egmmStoreManagerBtn',label:'STORE MANAGER',box:'EGMM'},
-    {id:'egmmOcrBtn',label:'OCR',box:'ODP'},
-    {id:'egmmHanaBtn',label:'HANA',box:'ODP'},
-    {id:'egmmAdManageBtn',label:'광고상품 관리',box:'ADVERTISING'},
-    {id:'egmmDeliReqBtn',label:'REQUEST CONFIRMATION',box:'REQUEST'},
-    {id:'egmmTaxBtn',label:'TAX',box:'GUIDE'},
-    {id:'egmmEbtBtn',label:'EBT',box:'GUIDE'},
-    {id:'egmmHardLiquorBtn',label:'HARD LIQUOR',box:'GUIDE'},
-    {id:'egmmProductNameMakerBtn',label:'PRODUCT NAME MAKER',box:'GUIDE'},
-    {id:'egmmDeliMgmtBtn',label:'DELI MANAGEMENT',box:'GUIDE'}
-  ];
-  var USR_BOXES=['EGMM','ODP','ADVERTISING','REQUEST','GUIDE'];
-  var usrWork=[];
-  async function usrHashPin(v){ v=String(v); if(window.crypto&&window.crypto.subtle){ try{ var buf=await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v)); return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }catch(e){} } return 'p:'+v; }
-  function usrSetSaved(t){ var e=$('usrSaved'); if(e) e.textContent=t||''; }
-  function usrMarkCount(){ var c=$('usrCount'); if(c) c.textContent=(usrWork?usrWork.length:0)+'명'; }
-  function usersLoad(){
-    var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(usersLoad,400); return; }
-    fb.getDoc(fb.doc(fb.db,USERS_COL,USERS_DOC)).then(function(snap){
-      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      usrWork=Array.isArray(d.users)?d.users.map(function(u){ return {id:u.id||('u'+Math.random().toString(36).slice(2)), name:u.name||'', pin:u.pin||'', menus:u.menus||{}}; }):[];
-      usersRender();
-    }).catch(function(){ usrWork=[]; usersRender(); });
-  }
-  function usersSave(){
-    var fb=window.smFb; if(!fb||!fb.setDoc) return; usrSetSaved('저장 중…');
-    fb.setDoc(fb.doc(fb.db,USERS_COL,USERS_DOC), {users:usrWork, updatedAt:Date.now()}, {merge:false})
-      .then(function(){ usrSetSaved('저장됨'); setTimeout(function(){usrSetSaved('');},1500); })
-      .catch(function(){ usrSetSaved('저장 실패 (app-config 규칙 확인)'); });
-  }
-  function usersRender(){
-    var box=$('usrList'); if(!box) return; usrMarkCount();
-    if(!usrWork.length){ box.innerHTML='<div class="usr-empty">등록된 사용자가 없습니다. 위에서 추가하세요.</div>'; return; }
-    var byBox={}; EGMM_MENUS.forEach(function(x){ (byBox[x.box]=byBox[x.box]||[]).push(x); });
-    box.innerHTML=usrWork.map(function(u,i){
-      var groups=USR_BOXES.map(function(bx){ var items=byBox[bx]||[]; if(!items.length) return '';
-        return '<div class="usr-mgroup"><span class="gname">'+bx+'</span>'+items.map(function(mn){ var on=!(u.menus&&u.menus[mn.id]===false);
-          return '<label class="usr-mtoggle'+(on?'':' off')+'"><input type="checkbox" data-u="'+i+'" data-m="'+mn.id+'"'+(on?' checked':'')+'><span>'+esc(mn.label)+'</span></label>'; }).join('')+'</div>'; }).join('');
-      return '<div class="usr-card">'+
-        '<div class="usr-top">'+
-          '<input class="usr-name" data-u="'+i+'" value="'+esc(u.name||'')+'" placeholder="이름">'+
-          '<input class="usr-pin" data-u="'+i+'" placeholder="PIN 변경" inputmode="numeric" maxlength="8" autocomplete="off">'+
-          (u.pin?'<span class="usr-pinset">PIN 설정됨</span>':'<span class="usr-pinset" style="color:#c0392b">PIN 없음</span>')+
-          '<button class="usr-del" data-u="'+i+'">삭제</button>'+
-        '</div>'+
-        '<div class="usr-menus">'+groups+'</div>'+
-      '</div>';
-    }).join('');
-  }
-  function usersAdd(){
-    var nn=$('usrNewName'), pn=$('usrNewPin');
-    var name=(nn&&nn.value||'').trim(), pin=(pn&&pn.value||'').trim();
-    if(!name){ usrSetSaved('이름을 입력하세요'); if(nn)nn.focus(); return; }
-    if(!/^[0-9]{4,8}$/.test(pin)){ usrSetSaved('PIN은 숫자 4~8자리'); if(pn)pn.focus(); return; }
-    if(usrWork.some(function(u){ return (u.name||'').trim()===name; })){ usrSetSaved('이미 있는 이름'); return; }
-    usrHashPin(pin).then(function(h){ usrWork.push({id:'u'+Date.now(), name:name, pin:h, menus:{}}); if(nn)nn.value=''; if(pn)pn.value=''; usersSave(); usersRender(); });
-  }
-
   function activate(which){
-    var isPin=(which==='pin'), isFields=(which==='fields'), isExport=(which==='export'), isStores=(which==='stores'), isUsers=(which==='users');
+    var isPin=(which==='pin'), isFields=(which==='fields'), isExport=(which==='export'), isStores=(which==='stores');
     $('smTabPin').classList.toggle('active', isPin);
     $('smTabFields').classList.toggle('active', isFields);
     $('smTabExport').classList.toggle('active', isExport);
     $('smTabStores').classList.toggle('active', isStores);
-    $('smTabUsers').classList.toggle('active', isUsers);
     $('smFramePin').classList.toggle('active', isPin);
     $('smPanelFields').classList.toggle('active', isFields);
     $('smPanelExport').classList.toggle('active', isExport);
     $('smPanelStores').classList.toggle('active', isStores);
-    $('smPanelUsers').classList.toggle('active', isUsers);
     if(isPin){ ensurePin(); }
     else if(isFields){ fmOpen(); }
     else if(isStores){ storesLoad(); }
-    else if(isUsers){ usersLoad(); }
     else { renderExport(); requestAnimationFrame(drawLines); }
   }
   $('smTabPin').onclick = function(){ activate('pin'); };
   $('smTabFields').onclick = function(){ activate('fields'); };
   $('smTabExport').onclick = function(){ activate('export'); };
   $('smTabStores').onclick = function(){ activate('stores'); };
-  $('smTabUsers').onclick = function(){ activate('users'); };
   if($('stAdd')) $('stAdd').onclick = storesAdd;
-  if($('usrAdd')) $('usrAdd').onclick = usersAdd;
-  if($('usrNewPin')) $('usrNewPin').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); usersAdd(); } });
-  if($('usrList')){
-    $('usrList').addEventListener('change', function(e){ var cb=e.target.closest('input[type=checkbox]'); if(!cb) return; var i=+cb.getAttribute('data-u'), m=cb.getAttribute('data-m'); if(!usrWork[i]) return; usrWork[i].menus=usrWork[i].menus||{}; if(cb.checked) delete usrWork[i].menus[m]; else usrWork[i].menus[m]=false; var lb=cb.closest('.usr-mtoggle'); if(lb) lb.classList.toggle('off', !cb.checked); usersSave(); });
-    $('usrList').addEventListener('blur', function(e){ var t=e.target;
-      if(t.classList&&t.classList.contains('usr-name')){ var i=+t.getAttribute('data-u'); if(usrWork[i]){ usrWork[i].name=(t.value||'').trim(); usersSave(); } }
-      else if(t.classList&&t.classList.contains('usr-pin')){ var i=+t.getAttribute('data-u'); var v=(t.value||'').trim(); if(v){ if(!/^[0-9]{4,8}$/.test(v)){ usrSetSaved('PIN은 숫자 4~8자리'); return; } usrHashPin(v).then(function(h){ if(usrWork[i]){ usrWork[i].pin=h; } usersSave(); usersRender(); }); } }
-    }, true);
-    $('usrList').addEventListener('click', function(e){ var d=e.target.closest('.usr-del'); if(!d) return; var i=+d.getAttribute('data-u'); if(!usrWork[i]) return; if(!confirm('사용자 “'+(usrWork[i].name||'')+'” 를 삭제할까요?')) return; usrWork.splice(i,1); usersSave(); usersRender(); });
-  }
   if($('stNewName')) $('stNewName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); storesAdd(); } });
   $('smBack').onclick = function(){ window.location.href='egmm.html'; };
   ensurePin();
