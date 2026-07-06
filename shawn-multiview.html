@@ -25,24 +25,23 @@
   html,body{ margin:0; height:100%; font-family:var(--serif); color:var(--text); background:var(--bg); overflow:hidden; }
 
   /* THE SHAWN 디자인 프레임 */
-  #mvFrame{ position:fixed; inset:0; display:flex; flex-direction:column; background:
+  #mvFrame{ position:fixed; inset:0; display:flex; flex-direction:column; background:var(--bg); }
+  #mvCanvasWrap{ position:relative; flex:1; margin:0; border-radius:0; overflow:hidden;
+    border:0; background:
       radial-gradient(1200px 600px at 15% -10%, #fffdf7 0%, transparent 60%),
       radial-gradient(1000px 500px at 110% 120%, #f3eede 0%, transparent 55%),
       var(--bg); }
-  #mvCanvasWrap{ position:relative; flex:1; margin:14px; border-radius:20px; overflow:hidden;
-    border:1px solid var(--border); background:var(--bg-elev);
-    box-shadow:0 1px 0 #fff inset, 0 30px 80px rgba(26,26,29,.10); }
   #mvCanvas{ position:absolute; inset:0; background-size:cover; background-position:center; }
 
   /* 우측 상단 컨트롤 */
-  #mvTop{ position:absolute; top:14px; right:22px; z-index:40; display:flex; gap:8px; align-items:center; }
-  .mv-tbtn{ width:40px; height:40px; border-radius:12px; background:var(--bg-elev); color:var(--text);
-    border:1px solid var(--border); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 18px rgba(26,26,29,.08); transition:transform .12s, border-color .14s; }
+  #mvTop{ position:absolute; top:8px; right:10px; z-index:40; display:flex; gap:5px; align-items:center; }
+  .mv-tbtn{ width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,.9); color:var(--text);
+    border:1px solid var(--border); cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 3px 10px rgba(26,26,29,.1); transition:transform .12s, border-color .14s; }
   .mv-tbtn:hover{ border-color:var(--accent-warm); transform:translateY(-1px); }
 
   /* 설정 패널 */
-  #mvPanel{ position:absolute; top:64px; right:22px; z-index:41; width:290px; background:var(--bg-elev);
+  #mvPanel{ position:absolute; top:42px; right:10px; z-index:41; width:290px; background:var(--bg-elev);
     border:1px solid var(--border); border-radius:16px; padding:18px; display:none;
     box-shadow:0 24px 70px rgba(26,26,29,.18); }
   #mvPanel.show{ display:block; }
@@ -128,6 +127,7 @@
     { id:'', name:'— 화면 선택 —', url:'' },
     // THE SHAWN 자체 기능 (shawn.html?mv=…)
     { id:'calendar', name:'📅 캘린더(일정표)', url:'shawn.html?mv=calendar' },
+    { id:'egmmcal', name:'🗓️ EGMM 캘린더', url:'egmm-calendar.html' },
     { id:'bible', name:'📖 성경찾기', url:'shawn.html?mv=bible' },
     { id:'upc', name:'🏷️ UPC 변환', url:'shawn.html?mv=upc' },
     { id:'case', name:'🔤 대소문자 변환', url:'shawn.html?mv=case' },

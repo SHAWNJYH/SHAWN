@@ -26,8 +26,7 @@
     getDocs,
     query,
     where,
-    deleteDoc,
-    onSnapshot
+    deleteDoc
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -59,8 +58,7 @@
     getDocs,
     query,
     where,
-    deleteDoc,
-    onSnapshot
+    deleteDoc
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -86,18 +84,6 @@
     --cat-personal-soft: #efe9fc;
     --cat-birthday: #e57ba5;
     --cat-birthday-soft: #fce9f1;
-    --cat-store: #2f9e5e;
-    --cat-store-soft: #e3f5ea;
-    --cat-hanaro: #0e9aa7;
-    --cat-hanaro-soft: #dcf2f4;
-    --cat-gbk: #e07b1f;
-    --cat-gbk-soft: #fceadb;
-    --cat-facility: #9c6b3e;
-    --cat-facility-soft: #f3e8dc;
-    --cat-ad: #b5388a;
-    --cat-ad-soft: #f9e3f1;
-    --cat-usasia: #27408b;
-    --cat-usasia-soft: #e1e6f5;
     --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --code: 'Pretendard', ui-monospace, monospace;
@@ -443,7 +429,7 @@
     margin: 0 auto;
     padding: 48px 32px 120px;
   }
-  .app.active { display: flex; }
+  .app.active { display: block; }
 
   .topbar {
     display: flex;
@@ -840,12 +826,6 @@
   .summary-item.cat-work .summary-date { color: var(--cat-work); background: var(--cat-work-soft); }
   .summary-item.cat-personal .summary-date { color: var(--cat-personal); background: var(--cat-personal-soft); }
   .summary-item.cat-birthday .summary-date { color: var(--cat-birthday); background: var(--cat-birthday-soft); }
-  .summary-item.cat-store .summary-date { color: var(--cat-store); background: var(--cat-store-soft); }
-  .summary-item.cat-hanaro .summary-date { color: var(--cat-hanaro); background: var(--cat-hanaro-soft); }
-  .summary-item.cat-gbk .summary-date { color: var(--cat-gbk); background: var(--cat-gbk-soft); }
-  .summary-item.cat-facility .summary-date { color: var(--cat-facility); background: var(--cat-facility-soft); }
-  .summary-item.cat-ad .summary-date { color: var(--cat-ad); background: var(--cat-ad-soft); }
-  .summary-item.cat-usasia .summary-date { color: var(--cat-usasia); background: var(--cat-usasia-soft); }
   .summary-empty {
     font-family: var(--mono);
     font-size: 12px;
@@ -1612,8 +1592,6 @@
     font-weight: 700;
   }
   .nav-btn:hover { color: var(--accent-warm); border-color: var(--accent-warm); background: var(--accent-soft); }
-  .nav-btn.active { color: #fff; background: var(--accent-warm); border-color: var(--accent-warm); }
-  .nav-btn svg { display: block; }
   .today-btn {
     background: var(--bg-elev);
     border: 1.5px solid var(--border);
@@ -1728,20 +1706,13 @@
   }
   .ev-pill.cat-work { background: var(--cat-work); }
   .ev-pill.cat-personal { background: var(--cat-personal); }
-  .ev-pill.cat-store { background: var(--cat-store); }
-  .ev-pill.cat-hanaro { background: var(--cat-hanaro); }
-  .ev-pill.cat-gbk { background: var(--cat-gbk); }
-  .ev-pill.cat-facility { background: var(--cat-facility); }
-  .ev-pill.cat-ad { background: var(--cat-ad); }
-  .ev-pill.cat-usasia { background: var(--cat-usasia); }
-  .ev-pill.cat-birthday { background: var(--cat-birthday); }
-  .ev-pill.cat-shift { background: #f5c518; color: #3a2e00; }
-  /* 통일 형식 하위 요소: 카테고리 · 내용 · 날짜 · 시간 */
-  .ev-pill .ep-cat { font-weight: 800; }
-  .ev-pill .ep-title { font-weight: 700; }
-  .ev-pill .ep-date,
-  .ev-pill .ep-time { font-family: var(--code); font-size: 0.92em; opacity: 0.85; }
-  .ev-pill .ep-sep { opacity: 0.5; margin: 0 3px; font-weight: 700; }
+  .ev-pill.cat-birthday {
+    background: var(--cat-birthday-soft);
+    color: var(--cat-birthday);
+    font-size: 10px;
+    padding: 2px 6px;
+    font-weight: 700;
+  }
   .ev-pill.done {
     background: var(--bg-elev-2);
     color: var(--text-faint);
@@ -1846,9 +1817,9 @@
   .ev-list { list-style: none; margin-bottom: 8px; }
   .ev-row {
     display: grid;
-    grid-template-columns: auto 1fr auto auto;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     padding: 14px 0;
     border-bottom: 1px solid var(--border);
   }
@@ -1896,12 +1867,6 @@
   .ev-row.cat-work .ev-time-label { color: var(--cat-work); }
   .ev-row.cat-personal .ev-time-label { color: var(--cat-personal); }
   .ev-row.cat-birthday .ev-time-label { color: var(--cat-birthday); }
-  .ev-row.cat-store .ev-time-label { color: var(--cat-store); }
-  .ev-row.cat-hanaro .ev-time-label { color: var(--cat-hanaro); }
-  .ev-row.cat-gbk .ev-time-label { color: var(--cat-gbk); }
-  .ev-row.cat-facility .ev-time-label { color: var(--cat-facility); }
-  .ev-row.cat-ad .ev-time-label { color: var(--cat-ad); }
-  .ev-row.cat-usasia .ev-time-label { color: var(--cat-usasia); }
   .ev-row.done .ev-time-label { color: var(--text-faint); }
   .ev-cat-tag {
     display: inline-block;
@@ -1924,34 +1889,6 @@
   .ev-cat-tag.cat-birthday {
     background: var(--cat-birthday-soft);
     color: var(--cat-birthday);
-  }
-  .ev-cat-tag.cat-store {
-    background: var(--cat-store-soft);
-    color: var(--cat-store);
-  }
-  .ev-cat-tag.cat-hanaro {
-    background: var(--cat-hanaro-soft);
-    color: var(--cat-hanaro);
-  }
-  .ev-cat-tag.cat-gbk {
-    background: var(--cat-gbk-soft);
-    color: var(--cat-gbk);
-  }
-  .ev-cat-tag.cat-facility {
-    background: var(--cat-facility-soft);
-    color: var(--cat-facility);
-  }
-  .ev-cat-tag.cat-ad {
-    background: var(--cat-ad-soft);
-    color: var(--cat-ad);
-  }
-  .ev-cat-tag.cat-usasia {
-    background: var(--cat-usasia-soft);
-    color: var(--cat-usasia);
-  }
-  .ev-cat-tag.cat-shift {
-    background: #fff3b0;
-    color: #4a3b00;
   }
   .ev-row.cat-birthday .ev-title-text {
     font-size: 15px;
@@ -1991,12 +1928,6 @@
   }
   .ev-del:hover { color: var(--danger); }
   .ev-del svg { width: 14px; height: 14px; }
-  .ev-edit {
-    background: transparent; border: none; color: var(--text-faint);
-    cursor: pointer; padding: 6px; transition: color 0.2s; display: flex;
-  }
-  .ev-edit:hover { color: var(--accent-warm); }
-  .ev-edit svg { width: 14px; height: 14px; }
 
   .empty-day {
     text-align: center;
@@ -2019,7 +1950,7 @@
 
   .cat-picker {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
   .cat-btn {
@@ -2052,191 +1983,6 @@
     background: var(--cat-birthday);
     border-color: var(--cat-birthday);
     color: #ffffff;
-  }
-  .cat-btn.active.cat-shift {
-    background: #f5c518;
-    border-color: #f5c518;
-    color: #3a2e00;
-  }
-  .cat-btn.active.cat-store {
-    background: var(--cat-store);
-    border-color: var(--cat-store);
-    color: #ffffff;
-  }
-  .cat-btn.active.cat-hanaro {
-    background: var(--cat-hanaro);
-    border-color: var(--cat-hanaro);
-    color: #ffffff;
-  }
-  .cat-btn.active.cat-gbk {
-    background: var(--cat-gbk);
-    border-color: var(--cat-gbk);
-    color: #ffffff;
-  }
-  .cat-btn.active.cat-facility {
-    background: var(--cat-facility);
-    border-color: var(--cat-facility);
-    color: #ffffff;
-  }
-  .cat-btn.active.cat-ad {
-    background: var(--cat-ad);
-    border-color: var(--cat-ad);
-    color: #ffffff;
-  }
-  .cat-btn.active.cat-usasia {
-    background: var(--cat-usasia);
-    border-color: var(--cat-usasia);
-    color: #ffffff;
-  }
-  /* 매장 선택 picker */
-  .store-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .store-btn {
-    width: 100%; text-align: center;
-    background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
-    padding: 9px 6px; font-family: var(--mono); font-size: 12.5px; font-weight: 700;
-    cursor: pointer; border-radius: 10px; transition: all .15s;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .store-btn:hover { border-color: var(--border-bright); color: var(--text); }
-  .store-btn.active { background: var(--accent-warm); border-color: var(--accent-warm); color: #fff; }
-  /* 달력 칸 하단 근무시간 목록 (노란 바탕) */
-  .shift-list { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: 3px; }
-  .shift-pill {
-    background: #fff3b0; color: #4a3b00; border: 1px solid #f0d24a;
-    border-radius: 5px; padding: 2px 6px; font-size: 11px; font-weight: 700;
-    line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  /* 날짜 클릭 히스토리: 작은 글씨 한 줄 */
-  .ev-row.ev-oneline { align-items: center; }
-  .ev-row.ev-oneline .ev-line { display: flex; align-items: center; gap: 6px; font-size: 12px; line-height: 1.4; white-space: nowrap; overflow: hidden; }
-  .ev-row.ev-oneline .ev-title-text { font-weight: 700; font-size: 13px; line-height: 1.4; display: inline-flex; align-items: center; overflow: hidden; text-overflow: ellipsis; }
-  .ev-row.ev-oneline .ev-time-inline { color: var(--text-faint); font-size: 11px; margin-left: auto; flex: 0 0 auto; line-height: 1.4; display: inline-flex; align-items: center; }
-  .ev-row.ev-oneline .ev-cat-tag { flex: 0 0 auto; font-size: 12px; padding: 2px 9px; margin-left: 0; line-height: 1.4; display: inline-flex; align-items: center; }
-  /* 근무시간: 시작/종료 시간 한 줄 + 휴무 */
-  #dateTimeFields.shift-row { display: flex !important; gap: 12px; align-items: flex-start; }
-  #dateTimeFields.shift-row > .field { flex: 1; margin-bottom: 0; }
-  #dateTimeFields.shift-row > #dayOffField { flex: 0 0 auto; }
-  #dateTimeFields.shift-row .dt-row { grid-template-columns: 1fr; }
-  #dateTimeFields.shift-row .dayoff-row { height: 48px; white-space: nowrap; }
-  .dayoff-spacer { display: block; }
-  #dateTimeFields:not(.shift-row) .dayoff-spacer { display: none; }
-  .dayoff-row { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
-  .dayoff-row input { width: 18px; height: 18px; cursor: pointer; accent-color: #f5c518; position: relative; top: 15px; }
-  .dayoff-row .dayoff-text { position: relative; top: 11px; }
-  /* 메모 영역 여유 */
-  #evNotes { min-height: 56px; }
-
-  /* === 일정 메모 팝업 (호버/클릭) === */
-  .ev-tooltip {
-    position: fixed;
-    z-index: 320;
-    max-width: 300px;
-    min-width: 180px;
-    background: var(--bg-elev);
-    border: 1px solid var(--border-bright);
-    border-radius: 12px;
-    box-shadow: 0 14px 44px rgba(26,26,29,0.20);
-    padding: 13px 15px;
-    font-family: var(--mono);
-    display: none;
-  }
-  .ev-tooltip.show { display: block; animation: fadeIn 0.12s; }
-  .ev-tooltip .ett-head {
-    display: flex; align-items: center; gap: 6px;
-    flex-wrap: wrap; margin-bottom: 5px;
-  }
-  .ev-tooltip .ett-head .ev-cat-tag { margin-left: 0; }
-  .ev-tooltip .ett-title {
-    font-family: var(--serif);
-    font-size: 15px; font-weight: 700; line-height: 1.3;
-    color: var(--text); word-break: break-word;
-  }
-  .ev-tooltip .ett-time {
-    font-family: var(--code);
-    font-size: 11px; font-weight: 600;
-    color: var(--text-dim); margin-bottom: 8px;
-  }
-  .ev-tooltip .ett-notes {
-    font-size: 13px; font-weight: 500; line-height: 1.55;
-    color: var(--text); white-space: pre-wrap; word-break: break-word;
-    border-top: 1px solid var(--border); padding-top: 8px;
-    max-height: 240px; overflow-y: auto;
-  }
-  .ev-tooltip .ett-empty {
-    font-size: 12px; font-weight: 600; color: var(--text-faint);
-    border-top: 1px solid var(--border); padding-top: 8px;
-  }
-  .ev-tooltip .ett-open {
-    margin-top: 11px; width: 100%;
-    background: var(--bg-elev-2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px;
-    font-family: var(--mono); font-size: 12px; font-weight: 700;
-    color: var(--text-dim); cursor: pointer; transition: all .15s;
-  }
-  .ev-tooltip .ett-open:hover {
-    color: var(--text); border-color: var(--border-bright);
-    background: var(--bg);
-  }
-  .ev-pill, .shift-pill { cursor: pointer; }
-  .ett-store, .ev-store-tag {
-    display: inline-flex; align-items: center;
-    font-family: var(--mono); font-size: 11px; font-weight: 800;
-    letter-spacing: .02em; color: var(--accent-warm);
-    border: 1.5px solid var(--accent-warm); border-radius: 999px;
-    padding: 1px 9px; white-space: nowrap;
-  }
-  .ev-row.ev-oneline .ev-store-tag { flex: 0 0 auto; font-size: 11px; padding: 1px 8px; }
-
-  .ev-tooltip .ett-close {
-    position: absolute; top: 8px; right: 8px;
-    width: 22px; height: 22px; line-height: 1;
-    border: none; background: transparent;
-    color: var(--text-faint); font-size: 19px; font-weight: 700;
-    cursor: pointer; border-radius: 6px; padding: 0;
-    display: flex; align-items: center; justify-content: center;
-    transition: all .15s;
-  }
-  .ev-tooltip .ett-close:hover { color: var(--danger); background: var(--bg-elev-2); }
-  .ev-tooltip { padding-right: 30px; }
-
-  /* === 메모 전용 팝업 (자세히) === */
-  .memo-pop-bg {
-    position: fixed; inset: 0;
-    background: rgba(26, 26, 29, 0.35);
-    backdrop-filter: blur(6px);
-    z-index: 340;
-    display: none; align-items: center; justify-content: center;
-    padding: 24px; animation: fadeIn 0.18s;
-  }
-  .memo-pop-bg.show { display: flex; }
-  .memo-pop {
-    position: relative;
-    background: var(--bg-elev);
-    border: 1px solid var(--border-bright);
-    border-radius: 16px;
-    width: 100%; max-width: 440px;
-    max-height: 80vh; overflow-y: auto;
-    padding: 34px 26px 26px;
-    box-shadow: 0 30px 80px rgba(26,26,29,0.18);
-    animation: cardIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  .memo-pop-close {
-    position: absolute; top: 14px; right: 14px;
-    background: var(--bg); border: 1.5px solid var(--border);
-    color: var(--text-dim); width: 32px; height: 32px;
-    cursor: pointer; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-  }
-  .memo-pop-close:hover { color: var(--danger); border-color: var(--danger); background: #fff0f0; }
-  .memo-pop-body {
-    font-family: var(--mono);
-    font-size: 15px; font-weight: 500; line-height: 1.7;
-    color: var(--text);
-    white-space: pre-wrap; word-break: break-word;
-  }
-  .memo-pop-body.empty {
-    color: var(--text-faint); font-weight: 600; text-align: center; padding: 16px 0;
   }
 
   .lunar-picker {
@@ -2508,7 +2254,7 @@
     .lunar-btn { padding: 8px; font-size: 12px; }
 
     /* 이벤트 행 */
-    .ev-row { grid-template-columns: 22px 1fr auto auto; gap: 6px; padding: 12px 0; }
+    .ev-row { grid-template-columns: 22px 1fr 28px; gap: 10px; padding: 12px 0; }
     .ev-title-text { font-size: 16px; }
     .ev-time-label { font-size: 11px; }
     .ev-cat-tag { font-size: 9px; padding: 1px 6px; }
@@ -3194,10 +2940,6 @@
       <h2 class="cal-title" id="calMonth">May <em>2026</em></h2>
     </div>
     <div class="cal-nav">
-      <button class="nav-btn" id="fullscreenBtn" title="전체화면 (F11)" aria-label="전체화면">
-        <svg class="fs-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-        <svg class="fs-close" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
-      </button>
       <button class="today-btn" id="openNotesBtn" title="메모장">📝 메모</button>
       <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
       <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
@@ -3276,45 +3018,19 @@
         <label>카테고리</label>
         <div class="cat-picker">
           <button type="button" class="cat-btn cat-work active" data-cat="work">회사</button>
-          <button type="button" class="cat-btn cat-store" data-cat="store">매장</button>
-          <button type="button" class="cat-btn cat-facility" data-cat="facility">시설</button>
-          <button type="button" class="cat-btn cat-hanaro" data-cat="hanaro">하나로</button>
-          <button type="button" class="cat-btn cat-usasia" data-cat="usasia">USASIA</button>
-          <button type="button" class="cat-btn cat-gbk" data-cat="gbk">GBK</button>
-          <button type="button" class="cat-btn cat-ad" data-cat="ad">주간광고</button>
           <button type="button" class="cat-btn cat-personal" data-cat="personal">개인</button>
           <button type="button" class="cat-btn cat-birthday" data-cat="birthday">생일 🎂</button>
-          <button type="button" class="cat-btn cat-shift" data-cat="shift">근무시간</button>
-        </div>
-      </div>
-
-      <!-- 매장 선택 (회사/매장/시설/하나로/USASIA/GBK 일 때만) -->
-      <div class="field" id="storeField" style="display:none;">
-        <label>매장 선택</label>
-        <div class="store-picker" id="storePicker">
-          <button type="button" class="store-btn" data-store="TACOMA">TACOMA</button>
-          <button type="button" class="store-btn" data-store="FEDERAL WAY">FEDERAL WAY</button>
-          <button type="button" class="store-btn" data-store="BELLEVUE">BELLEVUE</button>
-          <button type="button" class="store-btn" data-store="BALLARD">BALLARD</button>
-          <button type="button" class="store-btn" data-store="LYNNWOOD">LYNNWOOD</button>
-          <button type="button" class="store-btn" data-store="REDMOND">REDMOND</button>
-          <button type="button" class="store-btn" data-store="MELLOW WAY">MELLOW WAY</button>
-          <button type="button" class="store-btn" data-store="DISTRICT H">DISTRICT H</button>
-          <button type="button" class="store-btn" data-store="M2M">M2M</button>
-          <button type="button" class="store-btn" data-store="G-MART">G-MART</button>
-          <button type="button" class="store-btn" data-store="CAMPEON">CAMPEON</button>
-          <button type="button" class="store-btn" data-store="UNIVERSITY">UNIVERSITY</button>
         </div>
       </div>
       <div class="field">
-        <label id="evTitleLabel">제목</label>
+        <label>제목</label>
         <input type="text" id="evTitle" placeholder="예: 회의, 점심 약속...">
       </div>
 
       <!-- 시작/종료 (생일이 아닐 때만) -->
       <div id="dateTimeFields">
         <div class="field">
-          <label id="evStartLabel">시작</label>
+          <label>시작</label>
           <div class="dt-row">
             <input type="date" id="evStartDate">
             <div class="time-input-group">
@@ -3325,7 +3041,7 @@
           </div>
         </div>
         <div class="field">
-          <label id="evEndLabel">종료 (선택)</label>
+          <label>종료 (선택)</label>
           <div class="dt-row">
             <input type="date" id="evEndDate">
             <div class="time-input-group">
@@ -3335,16 +3051,6 @@
             </div>
           </div>
         </div>
-        <div class="field" id="dayOffField" style="display:none;">
-          <label class="dayoff-spacer">&nbsp;</label>
-          <label class="dayoff-row"><input type="checkbox" id="evDayOff"> <span class="dayoff-text">휴무</span></label>
-        </div>
-      </div>
-
-      <!-- 근무 기간 (근무시간일 때만) -->
-      <div class="field" id="shiftRangeField" style="display:none;">
-        <label>기간 (선택) — 이 날부터 종료일까지 매일 동일 적용</label>
-        <input type="date" id="evShiftEnd">
       </div>
 
       <!-- 음력/양력 선택 (생일일 때만) -->
@@ -3385,21 +3091,6 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- 일정 메모 팝업 -->
-<div class="ev-tooltip" id="evTooltip"></div>
-
-<!-- 메모 전용 팝업 (자세히) -->
-<div class="memo-pop-bg" id="memoPopBg">
-  <div class="memo-pop">
-    <button class="memo-pop-close" id="memoPopClose" aria-label="닫기">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-    <div class="memo-pop-body" id="memoPopBody"></div>
-  </div>
-</div>
-
 <!-- Confirm Modal -->
 <div class="modal-bg" id="modal">
   <div class="modal">
@@ -3432,8 +3123,6 @@
   const MONTH_NAMES_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const DAY_NAMES_KO = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
-  const CAT_LABELS = { work:'회사', personal:'개인', birthday:'생일', shift:'근무시간', store:'매장', hanaro:'하나로', gbk:'GBK', facility:'시설', usasia:'USASIA', ad:'주간광고' };
-  const STORE_CATS = new Set(['work','store','facility','hanaro','usasia','gbk']);
 
   // ========== CRYPTO ==========
   function encrypt(data, password) {
@@ -4122,17 +3811,24 @@
       if (weekday === 0) classes.push('sun');
       if (weekday === 6) classes.push('sat');
 
-      // 모든 카테고리 동일 형식: 카테고리 · 내용 · 날짜 · 시간
-      const maxShow = 4;
+      const maxShow = 3;
       const shown = dayEvents.slice(0, maxShow);
       const remain = dayEvents.length - shown.length;
 
       const pillsHtml = shown.map(e => {
-        const cat = e.category ? 'cat-' + e.category : 'cat-work';
+        const cat = e.category ? 'cat-' + e.category : '';
         const color = (e.color && e.color !== 'default') ? 'color-' + e.color : '';
         const multi = e._multiPos ? 'multi-' + e._multiPos : '';
-        const classes = ['ev-pill', cat, color, multi, e.done ? 'done' : ''].filter(Boolean).join(' ');
-        return `<div class="${classes}" data-id="${e.id}">${buildPillContent(e, c.m, c.d)}</div>`;
+        const classes = [cat, color, multi, e.done ? 'done' : ''].filter(Boolean).join(' ');
+
+        if (e.isBirthday) {
+          const lunarMark = e.isLunar ? '🌙 ' : '';
+          return `<div class="ev-pill ${classes}">${lunarMark}${escapeHtml(e.title)}</div>`;
+        }
+        // 다일 일정은 시작일에만 시간 표시, 중간/끝은 제목만
+        const showTime = e._multiPos === 'start' || !e._multiPos;
+        const showTitle = e._multiPos !== 'mid'; // 중간일에는 제목만 (혹은 비움)
+        return `<div class="ev-pill ${classes}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(e.title) : ''}</div>`;
       }).join('');
 
       const moreHtml = remain > 0 ? `<div class="ev-more">+${remain} more</div>` : '';
@@ -4178,7 +3874,6 @@
     for (let d = 1; d <= daysInMonth; d++) {
       const events = getEventsForCell(y, m, d);
       events.forEach(ev => {
-        if (ev.category === 'shift') return;   // 근무시간은 오른쪽 목록에 표시 안 함
         // 다일 일정은 시작일에만 표시
         if (ev._multiPos && ev._multiPos !== 'start') return;
         items.push({ day: d, ev });
@@ -4214,7 +3909,7 @@
             ${dayNameKo}
           </div>
           <div class="summary-body">
-            <div class="summary-title-text">${escapeHtml(ev.store || ev.title)}</div>
+            <div class="summary-title-text">${escapeHtml(ev.title)}</div>
             ${timeInfo ? `<div class="summary-time">${timeInfo}</div>` : ''}
           </div>
         </div>`;
@@ -4275,156 +3970,7 @@
     }
   });
 
-  // ========== 일정 메모 팝업 (호버 / 클릭) ==========
-  const evTooltip = $('evTooltip');
-  let tooltipPinned = false;
-  let currentTipId = null;
-  let tipHideTimer = null;
-
-  function tipTimeLabel(ev) {
-    if (ev.dayOff) return '휴무';
-    if (ev.isBirthday) {
-      const { m: bm, d: bd } = parseDateKey(ev.date);
-      return ev.isLunar ? `🌙 음력 ${bm + 1}/${bd}` : `🎂 양력 ${bm + 1}/${bd}`;
-    }
-    if (ev.endDate && ev.endDate > ev.date) {
-      const s = formatDateShort(ev.date), e2 = formatDateShort(ev.endDate);
-      return `${s}${ev.start ? ' ' + ev.start : ''} → ${e2}${ev.end ? ' ' + ev.end : ''}`;
-    }
-    if (ev.start && ev.end) return `${ev.start} – ${ev.end}`;
-    if (ev.start) return ev.start;
-    return '종일';
-  }
-
-  function positionTooltip(pill) {
-    const r = pill.getBoundingClientRect();
-    evTooltip.style.visibility = 'hidden';
-    const tw = evTooltip.offsetWidth, th = evTooltip.offsetHeight;
-    let left = r.left + r.width / 2 - tw / 2;
-    let top = r.bottom + 8;
-    if (top + th > window.innerHeight - 8) top = r.top - th - 8;
-    if (top < 8) top = 8;
-    left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
-    evTooltip.style.left = left + 'px';
-    evTooltip.style.top = top + 'px';
-    evTooltip.style.visibility = '';
-  }
-
-  function showEvTooltip(pill) {
-    const id = pill.dataset.id;
-    if (!id) return;
-    const ev = state.events.find(x => x.id === id);
-    if (!ev) return;
-    const cat = ev.category || 'work';
-    const catLabel = CAT_LABELS[cat] || '회사';
-    const notesHtml = ev.notes
-      ? `<div class="ett-notes">${escapeHtml(ev.notes)}</div>`
-      : `<div class="ett-empty">메모 없음</div>`;
-    const detailBtn = ev.notes
-      ? `<button type="button" class="ett-open" data-id="${id}">자세히</button>`
-      : '';
-    evTooltip.innerHTML = `
-      <button type="button" class="ett-close" aria-label="닫기">&times;</button>
-      <div class="ett-head">
-        <span class="ev-cat-tag cat-${cat}">${catLabel}</span>
-        ${ev.store ? `<span class="ett-store">${escapeHtml(ev.store)}</span>` : ''}
-        <span class="ett-title">${escapeHtml(ev.title)}</span>
-      </div>
-      <div class="ett-time">${tipTimeLabel(ev)}</div>
-      ${notesHtml}
-      ${detailBtn}
-    `;
-    evTooltip.classList.add('show');
-    currentTipId = id;
-    positionTooltip(pill);
-  }
-
-  function hideEvTooltip() {
-    if (tooltipPinned) return;
-    evTooltip.classList.remove('show');
-    currentTipId = null;
-  }
-  function forceHideTooltip() {
-    tooltipPinned = false;
-    evTooltip.classList.remove('show');
-    currentTipId = null;
-  }
-  window.__forceHideTooltip = forceHideTooltip;
-
-  function scheduleHide() { clearTimeout(tipHideTimer); tipHideTimer = setTimeout(hideEvTooltip, 150); }
-  function cancelHide() { clearTimeout(tipHideTimer); }
-
-  // 메모 전용 팝업
-  const memoPopBg = $('memoPopBg');
-  function openMemoPopup(ev) {
-    const body = $('memoPopBody');
-    if (ev && ev.notes) {
-      body.textContent = ev.notes;
-      body.classList.remove('empty');
-    } else {
-      body.textContent = '메모 없음';
-      body.classList.add('empty');
-    }
-    memoPopBg.classList.add('show');
-  }
-  function closeMemoPopup() { memoPopBg.classList.remove('show'); }
-  $('memoPopClose').onclick = closeMemoPopup;
-  memoPopBg.addEventListener('click', e => { if (e.target === memoPopBg) closeMemoPopup(); });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && memoPopBg.classList.contains('show')) closeMemoPopup();
-  });
-
-  // 호버로 표시
-  calendarEl.addEventListener('mouseover', e => {
-    const pill = e.target.closest('.ev-pill, .shift-pill');
-    if (!pill || !calendarEl.contains(pill)) return;
-    if (tooltipPinned) return;
-    cancelHide();
-    if (pill.dataset.id === currentTipId && evTooltip.classList.contains('show')) return;
-    showEvTooltip(pill);
-  });
-  calendarEl.addEventListener('mouseout', e => {
-    const pill = e.target.closest('.ev-pill, .shift-pill');
-    if (!pill) return;
-    scheduleHide();
-  });
-  evTooltip.addEventListener('mouseover', cancelHide);
-  evTooltip.addEventListener('mouseleave', scheduleHide);
-
-  // 툴팁 내부 버튼 처리
-  evTooltip.addEventListener('click', e => {
-    if (e.target.closest('.ett-close')) { forceHideTooltip(); return; }
-    const openBtn = e.target.closest('.ett-open');
-    if (!openBtn) return;
-    const ev = state.events.find(x => x.id === openBtn.dataset.id);
-    forceHideTooltip();
-    openMemoPopup(ev);
-  });
-
-  // 바깥 클릭 시 고정 팝업 닫기
-  document.addEventListener('click', e => {
-    if (!evTooltip.classList.contains('show')) return;
-    if (e.target.closest('.ev-pill, .shift-pill')) return;
-    if (evTooltip.contains(e.target)) return;
-    forceHideTooltip();
-  });
-
   calendarEl.addEventListener('click', e => {
-    // 일정(pill) 클릭 → 메모 팝업 고정 표시 (패널 열지 않음)
-    const pill = e.target.closest('.ev-pill, .shift-pill');
-    if (pill && calendarEl.contains(pill)) {
-      e.stopPropagation();
-      cancelHide();
-      // 같은 일정 다시 클릭 → 팝업 닫기 (토글)
-      if (tooltipPinned && pill.dataset.id === currentTipId) {
-        forceHideTooltip();
-        return;
-      }
-      tooltipPinned = false;
-      showEvTooltip(pill);
-      tooltipPinned = true;
-      return;
-    }
     const day = e.target.closest('.day');
     if (!day) return;
     const key = day.dataset.key;
@@ -4432,19 +3978,16 @@
   });
 
   $('prevBtn').onclick = () => {
-    if (window.__forceHideTooltip) window.__forceHideTooltip();
     state.viewMonth--;
     if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
     renderCalendar();
   };
   $('nextBtn').onclick = () => {
-    if (window.__forceHideTooltip) window.__forceHideTooltip();
     state.viewMonth++;
     if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
     renderCalendar();
   };
   $('todayBtn').onclick = () => {
-    if (window.__forceHideTooltip) window.__forceHideTooltip();
     const now = new Date();
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
@@ -4456,50 +3999,15 @@
     openDayPanel(todayKey());
   };
 
-  // ========== 전체화면 ==========
-  (function () {
-    const btn = $('fullscreenBtn');
-    if (!btn) return;
-    const root = document.documentElement;
-    function isFs() {
-      return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
-    }
-    function enter() {
-      const el = root;
-      const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-      if (fn) { const r = fn.call(el); if (r && r.catch) r.catch(() => {}); }
-    }
-    function exit() {
-      const fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-      if (fn) { const r = fn.call(document); if (r && r.catch) r.catch(() => {}); }
-    }
-    btn.addEventListener('click', () => { isFs() ? exit() : enter(); });
-    function sync() {
-      const on = !!isFs();
-      const o = btn.querySelector('.fs-open'), c = btn.querySelector('.fs-close');
-      if (o) o.style.display = on ? 'none' : '';
-      if (c) c.style.display = on ? '' : 'none';
-      btn.title = on ? '전체화면 종료 (ESC)' : '전체화면 (F11)';
-      btn.classList.toggle('active', on);
-    }
-    ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(ev =>
-      document.addEventListener(ev, sync)
-    );
-    sync();
-  })();
-
   // ========== DAY PANEL ==========
   // 폼의 현재 선택 상태
   let formState = {
     category: 'work',   // 'work' | 'personal' | 'birthday'
     lunar: 'solar',     // 'solar' | 'lunar'
-    color: 'default',   // 'default' | 'red' | 'orange' | ...
-    store: ''           // 매장 카테고리일 때 선택된 매장명
+    color: 'default'    // 'default' | 'red' | 'orange' | ...
   };
-  let editingId = null;   // 수정 중인 일정 id
 
   function openDayPanel(key) {
-    if (window.__forceHideTooltip) window.__forceHideTooltip();
     state.selectedDate = key;
     const { y, m, d } = parseDateKey(key);
     const dateObj = new Date(y, m, d);
@@ -4518,7 +4026,6 @@
     formState.category = 'work';
     formState.lunar = 'solar';
     formState.color = 'default';
-    formState.store = '';
     updateFormUI();
     const wasOpen = panelBg.classList.contains('show');
     panelBg.classList.add('show');
@@ -4542,36 +4049,11 @@
     document.querySelectorAll('.color-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.color === formState.color);
     });
-    // 매장 선택 picker (회사/매장/시설/하나로/USASIA/GBK 일 때만)
-    const needStore = STORE_CATS.has(formState.category);
-    var __sf = $('storeField'); if (__sf) __sf.style.display = needStore ? '' : 'none';
-    document.querySelectorAll('.store-btn').forEach(btn => {
-      btn.classList.toggle('active', needStore && btn.dataset.store === formState.store);
-    });
     // 생일 카테고리면 시간 숨기고 음력 선택 표시
     const isBirthday = formState.category === 'birthday';
-    const isShift = formState.category === 'shift';
     $('dateTimeFields').style.display = isBirthday ? 'none' : '';
     $('lunarField').style.display = isBirthday ? '' : 'none';
-    $('colorField').style.display = (isBirthday || isShift) ? 'none' : '';
-    // 제목 ↔ 이름
-    var __tl=$('evTitleLabel'), __ti=$('evTitle');
-    if (__tl) __tl.textContent = isShift ? '이름' : '제목';
-    if (__ti) __ti.placeholder = isShift ? '' : '예: 회의, 점심 약속...';
-    // 근무시간이면 시작→시간, 종료→~, 날짜칸 숨기고 시:분만
-    var __sl=$('evStartLabel'), __el=$('evEndLabel'), __sd=$('evStartDate'), __ed=$('evEndDate');
-    if (__sl) __sl.textContent = isShift ? '시간' : '시작';
-    if (__el) __el.textContent = isShift ? '~ 종료' : '종료 (선택)';
-    if (__sd) __sd.style.display = isShift ? 'none' : '';
-    if (__ed) __ed.style.display = isShift ? 'none' : '';
-    // 근무시간이면 시작/종료 시간을 한 줄로
-    $('dateTimeFields').classList.toggle('shift-row', isShift);
-    // 휴무 체크박스는 근무시간일 때만
-    $('dayOffField').style.display = isShift ? '' : 'none';
-    var __srf=$('shiftRangeField'); if(__srf) __srf.style.display = isShift ? '' : 'none';
-    // 휴무 체크 시 시간 입력 비활성
-    var __off = isShift && $('evDayOff') && $('evDayOff').checked;
-    ['evStartH','evStartM','evEndH','evEndM'].forEach(function(id){ var el=$(id); if(el) el.disabled = __off; });
+    $('colorField').style.display = isBirthday ? 'none' : '';
     updateLunarHint();
   }
 
@@ -4605,18 +4087,9 @@
   document.querySelectorAll('.cat-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       formState.category = btn.dataset.cat;
-      if (!STORE_CATS.has(formState.category)) formState.store = '';
       updateFormUI();
     });
   });
-  // 매장 버튼 클릭 (같은 매장 다시 누르면 해제)
-  document.querySelectorAll('.store-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      formState.store = (formState.store === btn.dataset.store) ? '' : btn.dataset.store;
-      updateFormUI();
-    });
-  });
-  var __dayOff=$('evDayOff'); if(__dayOff) __dayOff.addEventListener('change', updateFormUI);
 
   // 음력 버튼 클릭
   document.querySelectorAll('.lunar-btn').forEach(btn => {
@@ -4656,7 +4129,7 @@
 
     listEl.innerHTML = dayEvents.map(ev => {
       const cat = ev.category || 'work';
-      const catLabel = CAT_LABELS[cat] || '회사';
+      const catLabel = cat === 'work' ? '회사' : cat === 'personal' ? '개인' : '생일';
       const colorCls = (ev.color && ev.color !== 'default') ? 'color-' + ev.color : '';
       let timeLabel;
       if (ev.isBirthday) {
@@ -4693,21 +4166,15 @@
       } else {
         timeLabel = '종일';
       }
-      if (ev.dayOff) timeLabel = '휴무';
 
       return `
-        <li class="ev-row ev-oneline cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}" data-id="${ev.id}">
+        <li class="ev-row cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}" data-id="${ev.id}">
           <div class="ev-check" data-action="toggle" title="${ev.done ? '미완료로 표시' : '완료(X) 표시'}"></div>
           <div class="ev-body">
-            <div class="ev-line"><span class="ev-cat-tag cat-${cat}">${catLabel}</span>${ev.store ? `<span class="ev-store-tag">${escapeHtml(ev.store)}</span>` : ''}<span class="ev-title-text">${escapeHtml(ev.title)}</span><span class="ev-time-inline">${timeLabel}</span></div>
+            <div class="ev-time-label">${timeLabel}<span class="ev-cat-tag cat-${cat}">${catLabel}</span></div>
+            <div class="ev-title-text">${escapeHtml(ev.title)}</div>
             ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
           </div>
-          <button class="ev-edit" data-action="edit" title="수정">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
           <button class="ev-del" data-action="delete" title="삭제">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"/>
@@ -4721,31 +4188,6 @@
   function formatDateShort(key) {
     const [y, m, d] = key.split('-').map(Number);
     return `${m}/${d}`;
-  }
-
-  // 달력 알약 통일 형식: 카테고리 · 내용 · 날짜 · 시간
-  function buildPillContent(e, cellM, cellD) {
-    const catLabel = CAT_LABELS[e.category] || '회사';
-    // 날짜 (다일 일정은 범위, 그 외는 해당 칸 날짜)
-    let dateStr;
-    if (e.endDate && e.endDate > e.date) {
-      dateStr = `${formatDateShort(e.date)}~${formatDateShort(e.endDate)}`;
-    } else {
-      dateStr = `${cellM + 1}/${cellD}`;
-    }
-    // 시간
-    let timeStr = '';
-    if (e.dayOff) timeStr = '휴무';
-    else if (e.isBirthday) timeStr = e.isLunar ? '음력' : '양력';
-    else if (e.start && e.end) timeStr = `${e.start}~${e.end}`;
-    else if (e.start) timeStr = e.start;
-    const parts = [
-      `<span class="ep-cat">${escapeHtml(catLabel)}</span>`,
-      `<span class="ep-title">${escapeHtml(e.store || e.title || '')}</span>`,
-      `<span class="ep-date">${dateStr}</span>`
-    ];
-    if (timeStr) parts.push(`<span class="ep-time">${escapeHtml(timeStr)}</span>`);
-    return parts.join('<span class="ep-sep">·</span>');
   }
 
   $('evList').addEventListener('click', e => {
@@ -4766,32 +4208,8 @@
       markDirty();
       renderDayEvents();
       renderCalendar();
-    } else if (action === 'edit') {
-      const ev = state.events.find(x => x.id === id);
-      if (ev) loadEventToForm(ev);
     }
   });
-
-  // 수정: 일정 데이터를 입력 폼에 로드하고 편집 모드로
-  function loadEventToForm(ev) {
-    editingId = ev.id;
-    formState.category = ev.category || 'work';
-    formState.color = ev.color || 'default';
-    formState.lunar = ev.isLunar ? 'lunar' : 'solar';
-    formState.store = ev.store || '';
-    $('evTitle').value = ev.title || '';
-    var sp = ev.start ? ev.start.split(':') : ['',''];
-    var epp = ev.end ? ev.end.split(':') : ['',''];
-    $('evStartH').value = sp[0] || ''; $('evStartM').value = sp[1] || '';
-    $('evEndH').value = epp[0] || ''; $('evEndM').value = epp[1] || '';
-    $('evStartDate').value = ev.date || state.selectedDate;
-    $('evEndDate').value = ev.endDate || '';
-    $('evNotes').value = ev.notes || '';
-    if ($('evDayOff')) $('evDayOff').checked = !!ev.dayOff;
-    updateFormUI();
-    var ab = $('addEvBtn'); if (ab) ab.textContent = '수정 저장';
-    $('evTitle').focus();
-  }
 
   // 시/분 입력 → "HH:MM" 문자열로 변환
   function buildTime(hInput, mInput) {
@@ -4815,10 +4233,6 @@
     const category = formState.category;
     const color = formState.color;
     const isBirthday = category === 'birthday';
-    const isShift = category === 'shift';
-    const needStore = STORE_CATS.has(category);
-    const store = needStore ? formState.store : '';
-    const dayOff = isShift && $('evDayOff') && $('evDayOff').checked;
     const isLunar = isBirthday && formState.lunar === 'lunar';
 
     if (!title) {
@@ -4826,11 +4240,7 @@
       $('evTitle').focus();
       return;
     }
-    if (needStore && !store) {
-      showToast('매장을 선택하세요', 'error');
-      return;
-    }
-    if (!dayOff && (start === 'INVALID' || end === 'INVALID')) {
+    if (start === 'INVALID' || end === 'INVALID') {
       showToast('시간을 0~23시, 0~59분으로 입력하세요', 'error');
       return;
     }
@@ -4844,43 +4254,21 @@
     }
 
     const newEvent = {
-      id: editingId || uid(),
+      id: uid(),
       date: isBirthday ? state.selectedDate : startDate,
       endDate: isBirthday ? null : (endDate || null),
-      start: (isBirthday || dayOff) ? null : (start || null),
-      end: (isBirthday || dayOff) ? null : (end || null),
+      start: isBirthday ? null : (start || null),
+      end: isBirthday ? null : (end || null),
       title,
       notes: notes || null,
       done: false,
       category: category,
-      store: store || '',
       color: isBirthday ? 'default' : color,
       isBirthday: isBirthday,
       isLunar: isLunar,
-      dayOff: dayOff || false,
       created: Date.now()
     };
-    if (editingId) {
-      const idx = state.events.findIndex(x => x.id === editingId);
-      if (idx >= 0) { newEvent.done = state.events[idx].done; state.events[idx] = newEvent; }
-      else state.events.push(newEvent);
-      editingId = null;
-      var __ab = $('addEvBtn'); if (__ab) __ab.textContent = '+ 추가';
-    } else {
-      // 근무시간 + 기간(종료일) 입력 시 그 날부터 종료일까지 매일 동일 생성
-      var __shiftEnd = (isShift && $('evShiftEnd')) ? $('evShiftEnd').value : '';
-      if (isShift && __shiftEnd && __shiftEnd >= startDate) {
-        var __cur = startDate;
-        while (__cur <= __shiftEnd) {
-          state.events.push(Object.assign({}, newEvent, { id: uid(), date: __cur }));
-          var __pd = parseDateKey(__cur);
-          var __nd = new Date(__pd.y, __pd.m, __pd.d + 1);
-          __cur = dateKey(__nd.getFullYear(), __nd.getMonth(), __nd.getDate());
-        }
-      } else {
-        state.events.push(newEvent);
-      }
-    }
+    state.events.push(newEvent);
     markDirty();
     // 입력 초기화
     $('evTitle').value = '';
@@ -4891,9 +4279,6 @@
     $('evEndH').value = '';
     $('evEndM').value = '';
     $('evNotes').value = '';
-    if ($('evShiftEnd')) $('evShiftEnd').value = '';
-    if ($('evDayOff')) $('evDayOff').checked = false;
-    ['evStartH','evStartM','evEndH','evEndM'].forEach(function(id){ var el=$(id); if(el) el.disabled=false; });
     renderDayEvents();
     renderCalendar();
     // 명확한 시각 피드백
@@ -4908,21 +4293,6 @@
 
   $('addEvBtn').onclick = addEvent;
   $('evTitle').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
-
-  // 일정 입력 팝업: 영문 입력 시 자동 대문자 변환 (커서 위치 유지)
-  function attachUppercase(el) {
-    if (!el) return;
-    el.addEventListener('input', () => {
-      const up = el.value.toUpperCase();
-      if (up !== el.value) {
-        const s = el.selectionStart, e = el.selectionEnd;
-        el.value = up;
-        try { el.setSelectionRange(s, e); } catch (_) {}
-      }
-    });
-  }
-  attachUppercase($('evTitle'));
-  attachUppercase($('evNotes'));
 
   // ========== NOTES ==========
   const NOTE_COLORS = ['c-yellow', 'c-pink', 'c-blue', 'c-green', 'c-purple', 'c-orange'];
@@ -5184,8 +4554,6 @@
   // ========== CLOUD SYNC ==========
   let saveTimeout = null;
   let lastSavedAt = 0;
-  let lastWriteToken = 0;   // 내가 쓴 변경을 onSnapshot에서 구분하기 위한 토큰
-  let realtimeUnsub = null; // onSnapshot 해제 함수
 
   function setSyncStatus(status, text) {
     // status: 'synced' | 'syncing' | 'error' | 'offline' | ''
@@ -5213,41 +4581,10 @@
       }
       state.isDirty = false;
       setSyncStatus('synced', '동기화됨');
-      subscribeRealtime();
     } catch (err) {
       console.error('Cloud load error:', err);
       setSyncStatus('error', '연결 실패');
       showToast('클라우드 불러오기 실패', 'error');
-    }
-  }
-
-  // 실시간 동기화: egmm-calendar/main 문서 변경을 구독해 자동 반영
-  function subscribeRealtime() {
-    if (realtimeUnsub) return;
-    if (!window.firebaseFns || !window.firebaseFns.onSnapshot) return;
-    try {
-      const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
-      realtimeUnsub = window.firebaseFns.onSnapshot(docRef, (snap) => {
-        if (!snap || !snap.exists()) return;
-        // 내 변경의 로컬(낙관적) 반영은 건너뜀
-        if (snap.metadata && snap.metadata.hasPendingWrites) return;
-        const data = snap.data() || {};
-        // 내가 방금 저장한 내용이 서버에서 되돌아온 echo는 건너뜀
-        if (data.updatedAt && data.updatedAt === lastWriteToken) return;
-        state.events = Array.isArray(data.events) ? data.events : [];
-        state.notes = Array.isArray(data.notes) ? data.notes : [];
-        state.claudeNotes = Array.isArray(data.claudeNotes) ? data.claudeNotes : [];
-        state.isDirty = false;
-        renderCalendar();
-        if (panelBg.classList.contains('show')) renderDayEvents();
-        try { renderNotes(); } catch (e) {}
-        setSyncStatus('synced', '실시간 업데이트됨');
-      }, (err) => {
-        console.error('Realtime listener error:', err);
-        setSyncStatus('error', '실시간 연결 실패');
-      });
-    } catch (e) {
-      console.error('subscribeRealtime failed', e);
     }
   }
 
@@ -5258,13 +4595,11 @@
       setSyncStatus('syncing', '저장 중...');
       try {
         const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
-        const token = Date.now();
-        lastWriteToken = token;
         await window.firebaseFns.setDoc(docRef, {
           events: state.events,
           notes: state.notes,
           claudeNotes: state.claudeNotes || [],
-          updatedAt: token
+          updatedAt: Date.now()
         });
         state.isDirty = false;
         lastSavedAt = Date.now();
@@ -5363,7 +4698,6 @@
       state.isDirty = false;
       state.selectedDate = null;
       state.mode = null;
-      if (realtimeUnsub) { try { realtimeUnsub(); } catch (e) {} realtimeUnsub = null; }
       isAdmin = false;
       $('adminPanel').style.display = 'none';
       panelBg.classList.remove('show');
