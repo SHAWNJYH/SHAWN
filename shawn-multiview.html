@@ -118,6 +118,13 @@
   .mv-pop-rs.n{ top:-2px; left:22px; right:52px; height:7px; cursor:ns-resize; }
   #mvPopupCard.resizing{ transition:none; }
   #mvPopupBody.drag-lock iframe{ pointer-events:none; }
+  /* 팝업 이동 그립(상단 중앙) */
+  #mvPopupDrag{ position:absolute; top:6px; left:50%; transform:translateX(-50%); z-index:5;
+    width:130px; height:20px; border-radius:10px; cursor:grab; display:flex; align-items:center; justify-content:center;
+    background:rgba(20,20,24,.30); box-shadow:0 2px 8px rgba(0,0,0,.18); }
+  #mvPopupDrag::before{ content:''; width:46px; height:5px; border-radius:3px; background:rgba(255,255,255,.9); }
+  #mvPopupDrag:hover{ background:rgba(20,20,24,.55); }
+  #mvPopupDrag:active{ cursor:grabbing; }
   .mv-dock-name{ position:absolute; bottom:100%; margin-bottom:8px; font-size:11px; font-weight:600; color:#fff;
     background:rgba(20,20,24,.86); padding:3px 9px; border-radius:8px; white-space:nowrap; opacity:0; pointer-events:none;
     transform:translateY(4px); transition:opacity .16s, transform .16s; box-shadow:0 4px 12px rgba(0,0,0,.25); }
@@ -183,7 +190,7 @@
 
     <div id="mvHint">패널 제목줄을 끌어 이동 · 우하단 모서리를 끌어 크기조절 · 제목줄에서 화면 선택</div>
     <div id="mvDock"></div>
-    <div id="mvPopup"><div id="mvPopupCard"><button id="mvPopupX" title="닫기">✕</button><div id="mvPopupBody"></div><div class="mv-pop-rs n"></div><div class="mv-pop-rs s"></div><div class="mv-pop-rs w"></div><div class="mv-pop-rs e"></div><div class="mv-pop-rs se"></div></div></div>
+    <div id="mvPopup"><div id="mvPopupCard"><button id="mvPopupX" title="닫기">✕</button><div id="mvPopupDrag" title="드래그하여 이동"></div><div id="mvPopupBody"></div><div class="mv-pop-rs n"></div><div class="mv-pop-rs s"></div><div class="mv-pop-rs w"></div><div class="mv-pop-rs e"></div><div class="mv-pop-rs se"></div></div></div>
   </div>
 </div>
 
@@ -393,6 +400,36 @@
         }
         document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
       });
+    });
+    bindPopupDrag();
+  }
+
+  // 팝업 이동(상단 그립 드래그)
+  function bindPopupDrag(){
+    var card=$('mvPopupCard'), grip=$('mvPopupDrag'); if(!card||!grip) return;
+    grip.addEventListener('mousedown', function(e){
+      e.preventDefault(); e.stopPropagation();
+      popupResizing=true;
+      var r=card.getBoundingClientRect();
+      card.classList.add('resizing');
+      card.style.position='absolute'; card.style.left=r.left+'px'; card.style.top=r.top+'px';
+      card.style.width=r.width+'px'; card.style.height=r.height+'px';
+      var body=$('mvPopupBody'); if(body) body.classList.add('drag-lock');
+      var sx=e.clientX, sy=e.clientY, ol=r.left, ot=r.top, cw=r.width, ch=r.height;
+      function mm(ev){
+        var nl=ol+(ev.clientX-sx), nt=ot+(ev.clientY-sy);
+        // 화면 밖으로 완전히 나가지 않도록 클램프(그립이 항상 잡히도록 상단은 0 이상)
+        nl=Math.max(60-cw, Math.min(nl, window.innerWidth-60));
+        nt=Math.max(0, Math.min(nt, window.innerHeight-40));
+        card.style.left=nl+'px'; card.style.top=nt+'px';
+      }
+      function mu(){
+        document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+        if(body) body.classList.remove('drag-lock');
+        card.classList.remove('resizing');
+        setTimeout(function(){ popupResizing=false; },0);
+      }
+      document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
     });
   }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
