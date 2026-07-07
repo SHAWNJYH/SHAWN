@@ -80,18 +80,19 @@
     background:rgba(255,255,255,.8); border:1px solid var(--border); border-radius:20px; padding:6px 14px; }
 
   /* 하단 독(Dock) — 선택된 메뉴 아이콘 */
-  #mvDock{ position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:35;
-    display:flex; gap:10px; align-items:flex-end; padding:8px 14px; border-radius:20px;
-    background:rgba(255,255,255,.62); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-    border:1px solid rgba(255,255,255,.6); box-shadow:0 10px 34px rgba(26,26,29,.16); }
+  #mvDock{ position:absolute; left:50%; transform:translateX(-50%); bottom:12px; z-index:35;
+    display:flex; gap:6px; align-items:flex-end; padding:5px 9px; border-radius:14px;
+    background:rgba(255,255,255,.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border:1px solid rgba(0,0,0,.05); box-shadow:0 4px 16px rgba(26,26,29,.1); }
   #mvDock:empty{ display:none; }
-  .mv-dock-item{ display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
-    transition:transform .16s cubic-bezier(.2,.8,.2,1); }
-  .mv-dock-item:hover{ transform:translateY(-8px) scale(1.12); }
-  .mv-dock-ico{ width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center;
-    font-size:22px; background:var(--bg-elev); border:1px solid var(--border); box-shadow:0 4px 12px rgba(26,26,29,.12); }
-  .mv-dock-name{ font-size:9px; font-weight:700; color:var(--text-dim); max-width:60px; overflow:hidden;
-    text-overflow:ellipsis; white-space:nowrap; opacity:0; transition:opacity .16s; }
+  .mv-dock-item{ display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer;
+    transition:transform .15s cubic-bezier(.2,.8,.2,1); }
+  .mv-dock-item:hover{ transform:translateY(-5px); }
+  .mv-dock-ico{ width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-size:19px; background:transparent; border:0; }
+  .mv-dock-item.dragging{ opacity:.4; }
+  .mv-dock-name{ font-size:8px; font-weight:600; color:var(--text-dim); max-width:52px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; opacity:0; transition:opacity .15s; }
   .mv-dock-item:hover .mv-dock-name{ opacity:1; }
   body.mv-locked #mvHint{ display:none; }
 
@@ -121,11 +122,17 @@
     <div id="mvPanel">
       <h4>🖥️ 멀티뷰</h4>
       <label>화면 추가</label>
-      <button class="mv-btn full" id="mvAddBtn2">＋ 새 화면 패널 추가</button>
+      <select id="mvAddScreen"></select>
+      <button class="mv-btn full" id="mvAddBtn2">＋ 선택한 화면 추가</button>
       <label>전체 확대 / 축소</label>
       <div id="mvZoom"><button id="mvZoomOut">−</button><span id="mvZoomVal">100%</span><button id="mvZoomIn">＋</button></div>
-      <label>배경 이미지 URL</label>
+      <label>배경 이미지</label>
       <input id="mvBgUrl" placeholder="https://... 이미지 주소" autocomplete="off">
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <button class="mv-btn ghost" id="mvBgFileBtn" style="flex:1;">🖼️ 파일 선택</button>
+        <button class="mv-btn ghost" id="mvBgClearBtn" style="flex:1;">배경 제거</button>
+      </div>
+      <input type="file" id="mvBgFile" accept="image/*" style="display:none;">
       <label>레이아웃</label>
       <button class="mv-btn ghost full" id="mvResetBtn">초기화 (모든 패널 삭제)</button>
     </div>
@@ -205,13 +212,33 @@
       items.push({ idx:idx, ico:si.ico, label:si.label+(p.store?(' · '+p.store):'') });
     });
     dock.innerHTML=items.map(function(it){
-      return '<div class="mv-dock-item" data-idx="'+it.idx+'" title="'+esc(it.label)+'">'
+      return '<div class="mv-dock-item" draggable="true" data-idx="'+it.idx+'" title="'+esc(it.label)+'">'
         +'<div class="mv-dock-ico">'+esc(it.ico)+'</div>'
         +'<div class="mv-dock-name">'+esc(it.label)+'</div></div>';
     }).join('');
+    var dragEl=null;
     Array.prototype.forEach.call(dock.querySelectorAll('.mv-dock-item'), function(el){
-      el.onclick=function(){ focusPanelByIdx(parseInt(el.dataset.idx,10)); };
+      el.onclick=function(){ if(el.__moved){ el.__moved=false; return; } focusPanelByIdx(parseInt(el.dataset.idx,10)); };
+      el.addEventListener('dragstart', function(){ dragEl=el; el.classList.add('dragging'); });
+      el.addEventListener('dragend', function(){ el.classList.remove('dragging'); dragEl=null; });
+      el.addEventListener('dragover', function(e){ e.preventDefault();
+        if(!dragEl || dragEl===el) return;
+        var r=el.getBoundingClientRect();
+        var before=(e.clientX < r.left + r.width/2);
+        dock.insertBefore(dragEl, before?el:el.nextSibling);
+      });
+      el.addEventListener('drop', function(e){ e.preventDefault(); commitDockOrder(); });
     });
+  }
+  // 독의 현재 DOM 순서대로 state.panels 재정렬
+  function commitDockOrder(){
+    var dock=$('mvDock'); if(!dock) return;
+    var order=Array.prototype.map.call(dock.querySelectorAll('.mv-dock-item'), function(el){ return parseInt(el.dataset.idx,10); });
+    var picked=[], used={};
+    order.forEach(function(i){ if(state.panels[i]){ picked.push(state.panels[i]); used[i]=1; } });
+    state.panels.forEach(function(p,i){ if(!used[i]) picked.push(p); });
+    state.panels=picked;
+    render(); save();
   }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
   // 독 아이콘 클릭 → 해당 패널 맨 앞으로 + 잠깐 강조
@@ -360,9 +387,9 @@
     });
   }
 
-  function addPanel(){
+  function addPanel(screenId, storeVal){
     var n=state.panels.length;
-    var p={ screen:'', store:'', url:'', x:40+(n%5)*34, y:40+(n%5)*34, w:440, h:320, z:(++state.zTop) };
+    var p={ screen:screenId||'', store:storeVal||'', url:'', x:40+(n%5)*34, y:40+(n%5)*34, w:440, h:320, z:(++state.zTop) };
     state.panels.push(p);
     $('mvCanvas').appendChild(buildPanel(p, n));
     save(); renderDock();
@@ -370,6 +397,23 @@
 
   function applyZoom(){ var c=$('mvCanvas'); c.style.transformOrigin='top left'; c.style.transform='scale('+state.zoom+')'; $('mvZoomVal').textContent=Math.round(state.zoom*100)+'%'; }
   function applyBg(){ $('mvCanvas').style.backgroundImage=state.bg?('url("'+state.bg.replace(/"/g,'')+'")'):''; }
+  // 배경 파일 → 리사이즈/압축 후 dataURL (localStorage 용량 절약)
+  function bgFromFile(file){
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var img=new Image();
+      img.onload=function(){
+        var maxW=1920, scale=Math.min(1, maxW/img.width);
+        var cv=document.createElement('canvas'); cv.width=Math.round(img.width*scale); cv.height=Math.round(img.height*scale);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        var data=cv.toDataURL('image/jpeg', 0.82);
+        state.bg=data; applyBg();
+        try{ save(); }catch(e){ alert('배경 이미지가 너무 커서 저장하지 못했습니다. 더 작은 이미지를 사용하세요.'); }
+      };
+      img.src=ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
 
   function applyLock(){
     document.body.classList.toggle('mv-locked', !!state.locked);
@@ -397,8 +441,11 @@
   ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(function(ev){ document.addEventListener(ev, onFsChange); });
 
   function bindControls(){
-    $('mvAddBtn').onclick=addPanel;
-    $('mvAddBtn2').onclick=addPanel;
+    // 설정 패널 화면 선택 드롭다운 채우기
+    var addSel=$('mvAddScreen');
+    if(addSel){ addSel.innerHTML=SCREENS.filter(function(s){ return s.id; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join(''); }
+    $('mvAddBtn').onclick=function(){ addPanel(); };
+    $('mvAddBtn2').onclick=function(){ addPanel(addSel?addSel.value:''); };
     $('mvLockBtn').onclick=function(){ state.locked=!state.locked; applyLock(); save(); };
     $('mvFsBtn').onclick=toggleFullscreen;
     $('mvSettingsBtn').onclick=function(){ if(state.locked) return; $('mvPanel').classList.toggle('show'); };
@@ -406,6 +453,9 @@
     $('mvZoomIn').onclick=function(){ state.zoom=Math.min(2, state.zoom+0.1); applyZoom(); save(); };
     $('mvZoomOut').onclick=function(){ state.zoom=Math.max(0.4, state.zoom-0.1); applyZoom(); save(); };
     $('mvBgUrl').onchange=function(){ state.bg=this.value.trim(); applyBg(); save(); };
+    var bgFileBtn=$('mvBgFileBtn'); if(bgFileBtn) bgFileBtn.onclick=function(){ $('mvBgFile').click(); };
+    var bgFile=$('mvBgFile'); if(bgFile) bgFile.onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) bgFromFile(f); e.target.value=''; };
+    var bgClear=$('mvBgClearBtn'); if(bgClear) bgClear.onclick=function(){ state.bg=''; $('mvBgUrl').value=''; applyBg(); save(); };
     $('mvResetBtn').onclick=function(){ if(!confirm('모든 패널을 삭제할까요?')) return; state.panels=[]; render(); save(); };
   }
 
