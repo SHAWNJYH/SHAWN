@@ -158,6 +158,14 @@
         <button class="mv-btn ghost" id="mvBgClearBtn" style="flex:1;">배경 제거</button>
       </div>
       <input type="file" id="mvBgFile" accept="image/*" style="display:none;">
+      <label>셋팅 프리셋 (서버 저장 · 모든 컴퓨터 공유)</label>
+      <select id="mvPresetSel"><option value="">— 저장된 셋팅 선택 (선택 시 자동 불러옴) —</option></select>
+      <input id="mvPresetName" placeholder="셋팅 이름 (예: 사무실 4분할)" autocomplete="off" style="margin-top:6px;">
+      <div style="display:flex; gap:6px; margin-top:6px;">
+        <button class="mv-btn ghost" id="mvPresetSave" style="flex:1;">💾 이름으로 저장</button>
+        <button class="mv-btn ghost" id="mvPresetDel" style="flex:1;">삭제</button>
+      </div>
+      <div id="mvPresetHint" style="font-size:11px;color:#8a8a90;margin-top:4px;"></div>
       <label>레이아웃</label>
       <button class="mv-btn ghost full" id="mvResetBtn">초기화 (모든 패널 삭제)</button>
     </div>
@@ -552,14 +560,96 @@
     $('mvResetBtn').onclick=function(){ if(!confirm('모든 패널을 삭제할까요?')) return; state.panels=[]; render(); save(); };
   }
 
+  /* ===== 셋팅 프리셋: Firebase(mv-presets) 서버 저장 — 이름으로 저장/불러오기(모든 PC 공유) ===== */
+  var MV_COL='mv-presets';
+  function fbReady(cb){ if(window.mvFb){ cb(window.mvFb); return; } var n=0; var t=setInterval(function(){ if(window.mvFb){ clearInterval(t); cb(window.mvFb); } else if(++n>50){ clearInterval(t); presetHint('서버 모듈 로드 실패'); } },300); }
+  function presetHint(t){ var e=$('mvPresetHint'); if(e) e.textContent=t||''; }
+  function applyPresetState(s){
+    state=Object.assign({panels:[],zoom:1,bg:'',zTop:10,locked:false,dock:[]}, s||{});
+    save();
+    var bu=$('mvBgUrl'); if(bu) bu.value=(state.bg&&state.bg.indexOf('data:')!==0)?state.bg:'';
+    applyBg(); applyZoom(); render(); renderDock(); applyLock();
+  }
+  function presetDocId(n){ return String(n||'').trim().replace(/\//g,'-').slice(0,120); }
+  function bindPresets(){
+    var sel=$('mvPresetSel'), nameIn=$('mvPresetName'); if(!sel) return;
+    fbReady(function(fb){
+      try{
+        fb.onSnapshot(fb.collection(fb.db, MV_COL), function(snap){
+          var names=[]; snap.forEach(function(d){ names.push(d.id); }); names.sort();
+          var cur=sel.value;
+          sel.innerHTML='<option value="">— 저장된 셋팅 선택 (선택 시 자동 불러옴) —</option>'+names.map(function(n){ return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('');
+          if(names.indexOf(cur)>=0) sel.value=cur;
+          presetHint('서버 연결됨 · 저장된 셋팅 '+names.length+'개');
+        }, function(){ presetHint('서버 연결 실패'); });
+      }catch(e){ presetHint('서버 연결 실패'); }
+    });
+    sel.onchange=function(){
+      var n=sel.value; if(!n) return;
+      presetHint('불러오는 중…');
+      fbReady(function(fb){
+        fb.getDoc(fb.doc(fb.db, MV_COL, n)).then(function(snap){
+          if(!snap.exists()){ presetHint('셋팅이 없습니다: '+n); return; }
+          var d=snap.data()||{}, st=null;
+          try{ st=(typeof d.state==='string')?JSON.parse(d.state):(d.state||null); }catch(e){}
+          if(!st){ presetHint('셋팅 데이터 오류'); return; }
+          applyPresetState(st);
+          if(nameIn) nameIn.value=n;
+          try{ localStorage.setItem('shawnMvPresetLast', n); }catch(e){}
+          presetHint('불러옴: '+n);
+        }).catch(function(){ presetHint('불러오기 실패'); });
+      });
+    };
+    var sv=$('mvPresetSave'); if(sv) sv.onclick=function(){
+      var n=presetDocId((nameIn&&nameIn.value)||sel.value);
+      if(!n){ presetHint('셋팅 이름을 입력하세요'); if(nameIn) nameIn.focus(); return; }
+      var st=JSON.parse(JSON.stringify(state)); st.locked=false;
+      var js=JSON.stringify(st);
+      if(js.length>900000){
+        if(!confirm('배경 이미지가 커서 서버 저장 한도(1MB)를 넘습니다.\n배경을 제외하고 저장할까요?')) return;
+        st.bg=''; js=JSON.stringify(st);
+      }
+      presetHint('저장 중…');
+      fbReady(function(fb){
+        fb.setDoc(fb.doc(fb.db, MV_COL, n), {name:n, state:js, updatedAt:Date.now()}).then(function(){
+          presetHint('저장됨: '+n);
+          try{ localStorage.setItem('shawnMvPresetLast', n); }catch(e){}
+        }).catch(function(e){ presetHint('저장 실패: '+(e&&e.message||'')); });
+      });
+    };
+    var del=$('mvPresetDel'); if(del) del.onclick=function(){
+      var n=sel.value||presetDocId(nameIn&&nameIn.value); if(!n){ presetHint('삭제할 셋팅을 선택하세요'); return; }
+      if(!confirm('"'+n+'" 셋팅을 서버에서 삭제할까요?')) return;
+      fbReady(function(fb){ fb.deleteDoc(fb.doc(fb.db, MV_COL, n)).then(function(){ presetHint('삭제됨: '+n); if(nameIn&&nameIn.value===n) nameIn.value=''; sel.value=''; }).catch(function(){ presetHint('삭제 실패'); }); });
+    };
+    try{ var last=localStorage.getItem('shawnMvPresetLast'); if(last && nameIn && !nameIn.value) nameIn.value=last; }catch(e){}
+  }
+
   // 시작
   load();
   bindControls();
+  bindPresets();
   bindDockMagnify();
   $('mvBgUrl').value=state.bg||'';
   if(!state.panels.length){ addPanel(); } else { render(); }
   applyLock();
 })();
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+    authDomain: "the-shawn.firebaseapp.com",
+    projectId: "the-shawn",
+    storageBucket: "the-shawn.firebasestorage.app",
+    messagingSenderId: "519898602513",
+    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+    measurementId: "G-NKGYGC63JN"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window.mvFb = { db, doc, setDoc, getDoc, deleteDoc, collection, onSnapshot };
 </script>
 </body>
 </html>
