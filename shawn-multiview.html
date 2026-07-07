@@ -79,6 +79,22 @@
   #mvHint{ position:absolute; bottom:16px; left:22px; z-index:30; font-size:11px; color:var(--text-faint);
     background:rgba(255,255,255,.8); border:1px solid var(--border); border-radius:20px; padding:6px 14px; }
 
+  /* 하단 독(Dock) — 선택된 메뉴 아이콘 */
+  #mvDock{ position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:35;
+    display:flex; gap:10px; align-items:flex-end; padding:8px 14px; border-radius:20px;
+    background:rgba(255,255,255,.62); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.6); box-shadow:0 10px 34px rgba(26,26,29,.16); }
+  #mvDock:empty{ display:none; }
+  .mv-dock-item{ display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
+    transition:transform .16s cubic-bezier(.2,.8,.2,1); }
+  .mv-dock-item:hover{ transform:translateY(-8px) scale(1.12); }
+  .mv-dock-ico{ width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+    font-size:22px; background:var(--bg-elev); border:1px solid var(--border); box-shadow:0 4px 12px rgba(26,26,29,.12); }
+  .mv-dock-name{ font-size:9px; font-weight:700; color:var(--text-dim); max-width:60px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; opacity:0; transition:opacity .16s; }
+  .mv-dock-item:hover .mv-dock-name{ opacity:1; }
+  body.mv-locked #mvHint{ display:none; }
+
   /* 완료(잠금) 모드 — 하나의 고정 화면처럼 */
   body.mv-locked .mvp-head{ display:none; }
   body.mv-locked .mvp-resize{ display:none; }
@@ -115,6 +131,7 @@
     </div>
 
     <div id="mvHint">패널 제목줄을 끌어 이동 · 우하단 모서리를 끌어 크기조절 · 제목줄에서 화면 선택</div>
+    <div id="mvDock"></div>
   </div>
 </div>
 
@@ -167,7 +184,45 @@
     // 기존 패널 제거 후 다시(간단히 전체 재생성)
     Array.prototype.slice.call(canvas.querySelectorAll('.mvp')).forEach(function(el){ el.parentNode.removeChild(el); });
     state.panels.forEach(function(p, idx){ canvas.appendChild(buildPanel(p, idx)); });
-    applyZoom(); applyBg();
+    applyZoom(); applyBg(); renderDock();
+  }
+  // 아이콘·이름 분리 (name 예: "📅 캘린더(일정표)")
+  function splitIcon(name){
+    var m=String(name||'').match(/^(\S+)\s+(.*)$/);
+    if(m) return { ico:m[1], label:m[2] };
+    return { ico:'▫', label:name||'' };
+  }
+  // 하단 독: 현재 패널에 배정된 화면들을 아이콘으로
+  function renderDock(){
+    var dock=$('mvDock'); if(!dock) return;
+    var seen={}, items=[];
+    state.panels.forEach(function(p, idx){
+      var sc=screenById(p.screen);
+      if(!sc || !sc.id) return;
+      var key=sc.id+(p.store?(':'+p.store):'');
+      if(seen[key]) return; seen[key]=1;
+      var si=splitIcon(sc.name);
+      items.push({ idx:idx, ico:si.ico, label:si.label+(p.store?(' · '+p.store):'') });
+    });
+    dock.innerHTML=items.map(function(it){
+      return '<div class="mv-dock-item" data-idx="'+it.idx+'" title="'+esc(it.label)+'">'
+        +'<div class="mv-dock-ico">'+esc(it.ico)+'</div>'
+        +'<div class="mv-dock-name">'+esc(it.label)+'</div></div>';
+    }).join('');
+    Array.prototype.forEach.call(dock.querySelectorAll('.mv-dock-item'), function(el){
+      el.onclick=function(){ focusPanelByIdx(parseInt(el.dataset.idx,10)); };
+    });
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
+  // 독 아이콘 클릭 → 해당 패널 맨 앞으로 + 잠깐 강조
+  function focusPanelByIdx(idx){
+    var cells=$('mvCanvas').querySelectorAll('.mvp');
+    var el=cells[idx]; if(!el) return;
+    state.panels.forEach(function(x,i){ x.z=(i===idx?(++state.zTop):x.z); });
+    el.style.zIndex=state.panels[idx].z;
+    Array.prototype.forEach.call(cells, function(o){ o.classList.remove('active'); });
+    el.classList.add('active');
+    el.animate([{ transform:'scale(1.0)' },{ transform:'scale(1.02)' },{ transform:'scale(1.0)' }], { duration:260 });
   }
 
   function buildPanel(p, idx){
@@ -257,11 +312,11 @@
       storeSel.style.display=sc.store?'':'none';
       extInp.style.display=sc.ext?'':'none';
     }
-    screenSel.onchange=function(){ p.screen=screenSel.value; syncControls(); fillBody(el, p); save(); };
-    storeSel.onchange=function(){ p.store=storeSel.value; fillBody(el, p); save(); };
+    screenSel.onchange=function(){ p.screen=screenSel.value; syncControls(); fillBody(el, p); save(); renderDock(); };
+    storeSel.onchange=function(){ p.store=storeSel.value; fillBody(el, p); save(); renderDock(); };
     extInp.onchange=function(){ p.url=extInp.value; fillBody(el, p); save(); };
     el.querySelector('.mvp-reload').onclick=function(){ fillBody(el, p); };
-    el.querySelector('.mvp-close').onclick=function(){ var i=state.panels.indexOf(p); if(i>=0) state.panels.splice(i,1); el.parentNode.removeChild(el); save(); };
+    el.querySelector('.mvp-close').onclick=function(){ var i=state.panels.indexOf(p); if(i>=0) state.panels.splice(i,1); el.parentNode.removeChild(el); save(); render(); };
 
     // 이동(제목줄 드래그) — 셀렉트/버튼 클릭은 제외
     head.addEventListener('mousedown', function(e){
@@ -310,7 +365,7 @@
     var p={ screen:'', store:'', url:'', x:40+(n%5)*34, y:40+(n%5)*34, w:440, h:320, z:(++state.zTop) };
     state.panels.push(p);
     $('mvCanvas').appendChild(buildPanel(p, n));
-    save();
+    save(); renderDock();
   }
 
   function applyZoom(){ var c=$('mvCanvas'); c.style.transformOrigin='top left'; c.style.transform='scale('+state.zoom+')'; $('mvZoomVal').textContent=Math.round(state.zoom*100)+'%'; }

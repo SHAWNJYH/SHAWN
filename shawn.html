@@ -5186,7 +5186,7 @@
       state.selectedDate = null;
       state.mode = null;
       isAdmin = false;
-      $('adminPanel').style.display = 'none';
+      var __ap=$('adminPanel'); if(__ap) __ap.style.display = 'none';
       panelBg.classList.remove('show');
       app.classList.remove('active');
       menuScreen.classList.remove('active');
