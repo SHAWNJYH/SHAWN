@@ -89,9 +89,23 @@
   .mv-dock-item{ position:relative; display:flex; flex-direction:column; align-items:center; gap:0; cursor:pointer;
     transition:transform .18s cubic-bezier(.34,1.3,.64,1); transform-origin:bottom center; }
   .mv-dock-item.dragging{ opacity:.35; }
-  .mv-dock-ico{ width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+  .mv-dock-ico{ width:41px; height:41px; border-radius:12px; display:flex; align-items:center; justify-content:center;
     box-shadow:0 4px 12px rgba(0,0,0,.2), inset 0 1px 1px rgba(255,255,255,.45), inset 0 -2px 4px rgba(0,0,0,.12); }
-  .mv-dock-ico svg{ width:26px; height:26px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
+  .mv-dock-ico svg{ width:22px; height:22px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
+
+  /* 독 클릭 팝업 */
+  #mvPopup{ position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+    background:rgba(20,20,24,.42); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+  #mvPopup.show{ display:flex; }
+  #mvPopupCard{ position:relative; width:min(88vw,1200px); height:min(86vh,820px); background:var(--bg-elev);
+    border-radius:18px; overflow:hidden; box-shadow:0 40px 100px rgba(0,0,0,.4); border:1px solid rgba(255,255,255,.5);
+    transform:scale(.86); opacity:0; transition:transform .22s cubic-bezier(.34,1.4,.64,1), opacity .18s; }
+  #mvPopup.show #mvPopupCard{ transform:scale(1); opacity:1; }
+  #mvPopupBody{ position:absolute; inset:0; }
+  #mvPopupBody iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff; }
+  #mvPopupX{ position:absolute; top:10px; right:10px; z-index:5; width:32px; height:32px; border-radius:10px;
+    background:rgba(20,20,24,.62); color:#fff; border:0; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; }
+  #mvPopupX:hover{ background:rgba(224,49,49,.85); }
   .mv-dock-name{ position:absolute; bottom:100%; margin-bottom:8px; font-size:11px; font-weight:600; color:#fff;
     background:rgba(20,20,24,.86); padding:3px 9px; border-radius:8px; white-space:nowrap; opacity:0; pointer-events:none;
     transform:translateY(4px); transition:opacity .16s, transform .16s; box-shadow:0 4px 12px rgba(0,0,0,.25); }
@@ -149,6 +163,7 @@
 
     <div id="mvHint">패널 제목줄을 끌어 이동 · 우하단 모서리를 끌어 크기조절 · 제목줄에서 화면 선택</div>
     <div id="mvDock"></div>
+    <div id="mvPopup"><div id="mvPopupCard"><button id="mvPopupX" title="닫기">✕</button><div id="mvPopupBody"></div></div></div>
   </div>
 </div>
 
@@ -306,14 +321,20 @@
       Array.prototype.forEach.call(dock.querySelectorAll('.mv-dock-item'), function(el){ el.style.transform=''; });
     });
   }
-  // 독 아이콘 클릭 → 그 화면 패널이 있으면 포커스, 없으면 새로 추가
+  // 독 아이콘 클릭 → 중앙 팝업으로 화면 펼치기
   function openFromDock(item){
     if(!item) return;
-    var foundIdx=-1;
-    state.panels.forEach(function(p,i){ if(p.screen===item.screen && (p.store||'')===(item.store||'')) foundIdx=i; });
-    if(foundIdx>=0){ focusPanelByIdx(foundIdx); }
-    else { addPanel(item.screen, item.store); }
+    var sc=screenById(item.screen); if(!sc||!sc.id) return;
+    var src='';
+    if(sc.ext) src=item.url||'';
+    else if(sc.store) src=sc.url+(item.store?('?store='+encodeURIComponent(item.store)):'');
+    else src=sc.url;
+    if(!src) return;
+    var body=$('mvPopupBody');
+    body.innerHTML='<iframe src="'+src.replace(/"/g,'&quot;')+'" allow="clipboard-read; clipboard-write; microphone; camera"></iframe>';
+    $('mvPopup').classList.add('show');
   }
+  function closePopup(){ var p=$('mvPopup'); if(p){ p.classList.remove('show'); var b=$('mvPopupBody'); if(b) b.innerHTML=''; } }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
   // 독 아이콘 클릭 → 해당 패널 맨 앞으로 + 잠깐 강조
   function focusPanelByIdx(idx){
@@ -515,6 +536,9 @@
   ['fullscreenchange','webkitfullscreenchange','mozfullscreenchange','MSFullscreenChange'].forEach(function(ev){ document.addEventListener(ev, onFsChange); });
 
   function bindControls(){
+    var pX=$('mvPopupX'); if(pX) pX.onclick=closePopup;
+    var pOv=$('mvPopup'); if(pOv) pOv.addEventListener('click', function(e){ if(e.target===pOv) closePopup(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePopup(); });
     // 설정 패널 화면 선택 드롭다운 채우기
     var addSel=$('mvAddScreen');
     if(addSel){ addSel.innerHTML=SCREENS.filter(function(s){ return s.id; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join(''); }
