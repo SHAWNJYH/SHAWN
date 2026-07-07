@@ -107,6 +107,17 @@
   #mvPopupX{ position:absolute; top:10px; right:10px; z-index:5; width:32px; height:32px; border-radius:10px;
     background:rgba(20,20,24,.62); color:#fff; border:0; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; }
   #mvPopupX:hover{ background:rgba(224,49,49,.85); }
+  /* 팝업 크기조절 핸들(모서리 + 4변) */
+  .mv-pop-rs{ position:absolute; z-index:6; }
+  .mv-pop-rs.se{ right:0; bottom:0; width:22px; height:22px; cursor:nwse-resize;
+    background:linear-gradient(135deg, transparent 50%, var(--accent-warm) 50%); border-bottom-right-radius:18px; opacity:.55; }
+  .mv-pop-rs.se:hover{ opacity:1; }
+  .mv-pop-rs.e{ right:-2px; top:22px; bottom:26px; width:7px; cursor:ew-resize; }
+  .mv-pop-rs.w{ left:-2px; top:22px; bottom:22px; width:7px; cursor:ew-resize; }
+  .mv-pop-rs.s{ bottom:-2px; left:22px; right:26px; height:7px; cursor:ns-resize; }
+  .mv-pop-rs.n{ top:-2px; left:22px; right:52px; height:7px; cursor:ns-resize; }
+  #mvPopupCard.resizing{ transition:none; }
+  #mvPopupBody.drag-lock iframe{ pointer-events:none; }
   .mv-dock-name{ position:absolute; bottom:100%; margin-bottom:8px; font-size:11px; font-weight:600; color:#fff;
     background:rgba(20,20,24,.86); padding:3px 9px; border-radius:8px; white-space:nowrap; opacity:0; pointer-events:none;
     transform:translateY(4px); transition:opacity .16s, transform .16s; box-shadow:0 4px 12px rgba(0,0,0,.25); }
@@ -172,7 +183,7 @@
 
     <div id="mvHint">패널 제목줄을 끌어 이동 · 우하단 모서리를 끌어 크기조절 · 제목줄에서 화면 선택</div>
     <div id="mvDock"></div>
-    <div id="mvPopup"><div id="mvPopupCard"><button id="mvPopupX" title="닫기">✕</button><div id="mvPopupBody"></div></div></div>
+    <div id="mvPopup"><div id="mvPopupCard"><button id="mvPopupX" title="닫기">✕</button><div id="mvPopupBody"></div><div class="mv-pop-rs n"></div><div class="mv-pop-rs s"></div><div class="mv-pop-rs w"></div><div class="mv-pop-rs e"></div><div class="mv-pop-rs se"></div></div></div>
   </div>
 </div>
 
@@ -324,9 +335,66 @@
     if(!src) return;
     var body=$('mvPopupBody');
     body.innerHTML='<iframe src="'+src.replace(/"/g,'&quot;')+'" allow="clipboard-read; clipboard-write; microphone; camera"></iframe>';
+    applyPopupSize();
     $('mvPopup').classList.add('show');
   }
-  function closePopup(){ var p=$('mvPopup'); if(p){ p.classList.remove('show'); var b=$('mvPopupBody'); if(b) b.innerHTML=''; } }
+  function closePopup(){ var p=$('mvPopup'); if(p){ p.classList.remove('show'); var b=$('mvPopupBody'); if(b) b.innerHTML='';
+    var c=$('mvPopupCard'); if(c){ c.style.position=''; c.style.left=''; c.style.top=''; c.classList.remove('resizing'); } } }
+
+  // 저장된 팝업 크기 적용(뷰포트 초과 시 자동 축소), 위치는 항상 중앙으로 리셋
+  function applyPopupSize(){
+    var c=$('mvPopupCard'); if(!c) return;
+    c.style.position=''; c.style.left=''; c.style.top='';
+    var w=state.popupW, h=state.popupH;
+    if(w&&h){
+      w=Math.max(320, Math.min(w, window.innerWidth-16));
+      h=Math.max(240, Math.min(h, window.innerHeight-16));
+      c.style.width=w+'px'; c.style.height=h+'px';
+    } else { c.style.width=''; c.style.height=''; }
+  }
+
+  // 팝업 크기조절(모서리/변 드래그) — 크기는 localStorage state에 저장되어 유지
+  var popupResizing=false;
+  function bindPopupResize(){
+    var card=$('mvPopupCard'); if(!card) return;
+    Array.prototype.forEach.call(card.querySelectorAll('.mv-pop-rs'), function(hd){
+      hd.addEventListener('mousedown', function(e){
+        e.preventDefault(); e.stopPropagation();
+        popupResizing=true;
+        var dir = hd.classList.contains('se')?'se' : hd.classList.contains('e')?'e' : hd.classList.contains('s')?'s' : hd.classList.contains('w')?'w' : 'n';
+        var r=card.getBoundingClientRect();
+        card.classList.add('resizing');
+        card.style.position='absolute'; card.style.left=r.left+'px'; card.style.top=r.top+'px';
+        card.style.width=r.width+'px'; card.style.height=r.height+'px';
+        var body=$('mvPopupBody'); if(body) body.classList.add('drag-lock');
+        var sx=e.clientX, sy=e.clientY, ol=r.left, ot=r.top, ow=r.width, oh=r.height;
+        var MINW=320, MINH=240;
+        function mm(ev){
+          var dx=ev.clientX-sx, dy=ev.clientY-sy;
+          var nl=ol, nt=ot, nw=ow, nh=oh;
+          if(dir==='se'){ nw=ow+dx; nh=oh+dy; }
+          else if(dir==='e'){ nw=ow+dx; }
+          else if(dir==='s'){ nh=oh+dy; }
+          else if(dir==='w'){ nw=ow-dx; }
+          else if(dir==='n'){ nh=oh-dy; }
+          nw=Math.max(MINW, Math.min(nw, window.innerWidth-8));
+          nh=Math.max(MINH, Math.min(nh, window.innerHeight-8));
+          if(dir==='w') nl=ol+(ow-nw);
+          if(dir==='n') nt=ot+(oh-nh);
+          card.style.left=nl+'px'; card.style.top=nt+'px';
+          card.style.width=nw+'px'; card.style.height=nh+'px';
+        }
+        function mu(){
+          document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu);
+          if(body) body.classList.remove('drag-lock');
+          card.classList.remove('resizing');
+          state.popupW=card.offsetWidth; state.popupH=card.offsetHeight; save();
+          setTimeout(function(){ popupResizing=false; },0);
+        }
+        document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+      });
+    });
+  }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
   // 독 아이콘 클릭 → 해당 패널 맨 앞으로 + 잠깐 강조
   function focusPanelByIdx(idx){
@@ -529,7 +597,8 @@
 
   function bindControls(){
     var pX=$('mvPopupX'); if(pX) pX.onclick=closePopup;
-    var pOv=$('mvPopup'); if(pOv) pOv.addEventListener('click', function(e){ if(e.target===pOv) closePopup(); });
+    var pOv=$('mvPopup'); if(pOv) pOv.addEventListener('click', function(e){ if(popupResizing) return; if(e.target===pOv) closePopup(); });
+    bindPopupResize();
     document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePopup(); });
     // 설정 패널 화면 선택 드롭다운 채우기
     var addSel=$('mvAddScreen');
