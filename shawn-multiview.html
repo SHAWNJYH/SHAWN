@@ -79,26 +79,27 @@
   #mvHint{ position:absolute; bottom:16px; left:22px; z-index:30; font-size:11px; color:var(--text-faint);
     background:rgba(255,255,255,.8); border:1px solid var(--border); border-radius:20px; padding:6px 14px; }
 
-  /* 하단 독(Dock) — 선택된 메뉴 아이콘 */
-  #mvDock{ position:absolute; left:50%; transform:translateX(-50%); bottom:12px; z-index:35;
-    display:flex; gap:6px; align-items:flex-end; padding:5px 9px; border-radius:14px;
-    background:rgba(255,255,255,.55); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-    border:1px solid rgba(0,0,0,.05); box-shadow:0 4px 16px rgba(26,26,29,.1); }
+  /* 하단 독(Dock) — 애플 스타일 */
+  #mvDock{ position:absolute; left:50%; transform:translateX(-50%); bottom:14px; z-index:35;
+    display:flex; gap:8px; align-items:flex-end; padding:8px 12px; border-radius:24px;
+    background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.32));
+    backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%);
+    border:1px solid rgba(255,255,255,.7); box-shadow:0 8px 32px rgba(26,26,29,.22), inset 0 1px 0 rgba(255,255,255,.8); }
   #mvDock:empty{ display:none; }
-  .mv-dock-item{ display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer;
-    transition:transform .15s cubic-bezier(.2,.8,.2,1); }
-  .mv-dock-item:hover{ transform:translateY(-5px); }
-  .mv-dock-ico{ width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
-    font-size:19px; background:transparent; border:0; }
-  .mv-dock-item.dragging{ opacity:.4; }
-  .mv-dock-del{ position:absolute; top:-4px; right:-2px; width:14px; height:14px; border-radius:50%;
-    background:#c0392b; color:#fff; font-size:9px; display:none; align-items:center; justify-content:center;
-    cursor:pointer; z-index:2; }
-  .mv-dock-item{ position:relative; }
+  .mv-dock-item{ position:relative; display:flex; flex-direction:column; align-items:center; gap:0; cursor:pointer;
+    transition:transform .18s cubic-bezier(.34,1.3,.64,1); transform-origin:bottom center; }
+  .mv-dock-item.dragging{ opacity:.35; }
+  .mv-dock-ico{ width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 12px rgba(0,0,0,.2), inset 0 1px 1px rgba(255,255,255,.45), inset 0 -2px 4px rgba(0,0,0,.12); }
+  .mv-dock-ico svg{ width:26px; height:26px; filter:drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
+  .mv-dock-name{ position:absolute; bottom:100%; margin-bottom:8px; font-size:11px; font-weight:600; color:#fff;
+    background:rgba(20,20,24,.86); padding:3px 9px; border-radius:8px; white-space:nowrap; opacity:0; pointer-events:none;
+    transform:translateY(4px); transition:opacity .16s, transform .16s; box-shadow:0 4px 12px rgba(0,0,0,.25); }
+  .mv-dock-item:hover .mv-dock-name{ opacity:1; transform:translateY(0); }
+  .mv-dock-del{ position:absolute; top:-3px; right:-3px; width:15px; height:15px; border-radius:50%;
+    background:#e03131; color:#fff; font-size:9px; display:none; align-items:center; justify-content:center;
+    cursor:pointer; z-index:3; box-shadow:0 2px 5px rgba(0,0,0,.3); }
   .mv-dock-item:hover .mv-dock-del{ display:flex; }
-  .mv-dock-name{ font-size:8px; font-weight:600; color:var(--text-dim); max-width:52px; overflow:hidden;
-    text-overflow:ellipsis; white-space:nowrap; opacity:0; transition:opacity .15s; }
-  .mv-dock-item:hover .mv-dock-name{ opacity:1; }
   body.mv-locked #mvHint{ display:none; }
 
   /* 완료(잠금) 모드 — 하나의 고정 화면처럼 */
@@ -182,6 +183,52 @@
   ];
   var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
 
+  // 애플 독 스타일 아이콘: 그라데이션 + 흰색 라인 심볼(24x24 stroke)
+  var SVG={
+    calendar:'<rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/>',
+    book:'<path d="M4 4.5A2 2 0 0 1 6 3h13v15H6a2 2 0 0 0-2 2z"/><path d="M4 19.5A2 2 0 0 1 6 18h13"/>',
+    tag:'<path d="M3.5 12.5l8-8H20V13l-8 8z"/><circle cx="16" cy="8" r="1.4" fill="#fff" stroke="none"/>',
+    type:'<path d="M5 18l5-12 5 12M6.5 14h7M17 6v12"/>',
+    scale:'<path d="M12 4v16M6 8h12M6 8l-3 6a3 3 0 0 0 6 0zM18 8l-3 6a3 3 0 0 0 6 0z"/>',
+    calc:'<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h4"/>',
+    doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+    chart:'<path d="M4 20V10M10 20V4M16 20v-8M4 20h16"/>',
+    grid:'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+    store:'<path d="M4 9l1.5-4.5h13L20 9M4 9v10h16V9M4 9h16M9 19v-5h6v5"/>',
+    speaker:'<path d="M4 9v6h4l6 4V5L8 9zM18 8a5 5 0 0 1 0 8"/>',
+    search:'<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l4.5 4.5"/>',
+    e:'<circle cx="12" cy="12" r="9"/><path d="M15 8.5H9v7h6M9 12h5"/>',
+    chat:'<path d="M4 5h16v11H9l-4 4v-4H4z"/><path d="M8 9h8M8 12.5h5"/>',
+    cart:'<circle cx="9.5" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/><path d="M3 4h2l2.5 11h10L20 7H6.5"/>',
+    link:'<path d="M9 15l6-6M8 8H6a4 4 0 0 0 0 8h2M16 16h2a4 4 0 0 0 0-8h-2"/>'
+  };
+  var ICON_MAP={
+    calendar:{g:['#ff7a7a','#ee5253'], s:'calendar'},
+    egmmcal:{g:['#ffa94d','#f7710b'], s:'calendar'},
+    bible:{g:['#a78bfa','#7c5cfc'], s:'book'},
+    upc:{g:['#4dabf7','#1c7ed6'], s:'tag'},
+    'case':{g:['#63e6be','#0ca678'], s:'type'},
+    weight:{g:['#f783ac','#d6336c'], s:'scale'},
+    calc:{g:['#748ffc','#4263eb'], s:'calc'},
+    claude:{g:['#e2b98a','#c9a961'], s:'doc'},
+    log:{g:['#4dd4ac','#12b886'], s:'chart'},
+    plumgr:{g:['#69db7c','#37b24d'], s:'grid'},
+    upcmgr:{g:['#3bc9db','#1098ad'], s:'tag'},
+    store:{g:['#ffd43b','#f59f00'], s:'store'},
+    ad:{g:['#ff922b','#e8590c'], s:'speaker'},
+    ocr:{g:['#9775fa','#6741d9'], s:'search'},
+    egmm:{g:['#868e96','#495057'], s:'e'},
+    htalk:{g:['#22b8cf','#0c8599'], s:'chat'},
+    hmart:{g:['#ff8787','#e03131'], s:'cart'},
+    ext:{g:['#adb5bd','#495057'], s:'link'}
+  };
+  function iconHTML(screenId){
+    var m=ICON_MAP[screenId]||{g:['#adb5bd','#868e96'], s:'grid'};
+    var path=SVG[m.s]||SVG.grid;
+    return '<div class="mv-dock-ico" style="background:linear-gradient(145deg,'+m.g[0]+','+m.g[1]+');">'
+      +'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+path+'</svg></div>';
+  }
+
   var state={ panels:[], zoom:1, bg:'', zTop:10, locked:false, dock:[] };
   function load(){ try{ var s=JSON.parse(localStorage.getItem('shawnMvFree')||'null'); if(s) state=Object.assign(state,s); }catch(e){} }
   function save(){ try{ localStorage.setItem('shawnMvFree', JSON.stringify(state)); }catch(e){} }
@@ -218,7 +265,7 @@
       var label=si.label+(it.store?(' · '+it.store):'');
       return '<div class="mv-dock-item" draggable="true" data-i="'+i+'" title="'+esc(label)+'">'
         +(state.locked?'':'<div class="mv-dock-del" title="독에서 제거">✕</div>')
-        +'<div class="mv-dock-ico">'+esc(si.ico)+'</div>'
+        +iconHTML(it.screen)
         +'<div class="mv-dock-name">'+esc(label)+'</div></div>';
     }).join('');
     var dragEl=null;
@@ -240,6 +287,24 @@
     var order=Array.prototype.map.call(dock.querySelectorAll('.mv-dock-item'), function(el){ return parseInt(el.dataset.i,10); });
     var picked=[]; order.forEach(function(i){ if(state.dock[i]) picked.push(state.dock[i]); });
     if(picked.length===state.dock.length){ state.dock=picked; save(); renderDock(); }
+  }
+  // 애플 독 magnification: 커서에 가까운 아이콘일수록 크게
+  function bindDockMagnify(){
+    var dock=$('mvDock'); if(!dock) return;
+    dock.addEventListener('mousemove', function(e){
+      var items=dock.querySelectorAll('.mv-dock-item');
+      Array.prototype.forEach.call(items, function(el){
+        if(el.classList.contains('dragging')) return;
+        var r=el.getBoundingClientRect();
+        var cx=r.left+r.width/2;
+        var dist=Math.abs(e.clientX-cx);
+        var scale=Math.max(1, 1.5 - dist/150);
+        el.style.transform='scale('+scale+') translateY('+(-(scale-1)*16)+'px)';
+      });
+    });
+    dock.addEventListener('mouseleave', function(){
+      Array.prototype.forEach.call(dock.querySelectorAll('.mv-dock-item'), function(el){ el.style.transform=''; });
+    });
   }
   // 독 아이콘 클릭 → 그 화면 패널이 있으면 포커스, 없으면 새로 추가
   function openFromDock(item){
@@ -482,6 +547,7 @@
   // 시작
   load();
   bindControls();
+  bindDockMagnify();
   $('mvBgUrl').value=state.bg||'';
   if(!state.panels.length){ addPanel(); } else { render(); }
   applyLock();
