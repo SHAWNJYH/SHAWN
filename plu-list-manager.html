@@ -710,8 +710,32 @@
         var ms=__MFSTY[__k];
         if(!ms){ var __ck=String((typeof canonColLabel==='function'?canonColLabel(__c.label,__k):__k)||'').trim().toUpperCase(); if(__ck && __ck!==__k && __MFSTY[__ck]) ms=__MFSTY[__ck]; }
         if(!ms){ var __lk=String(__c.label||'').trim().toUpperCase(); if(__lk && __MFSTY[__lk]) ms=__MFSTY[__lk]; }
+        if(!ms){ var __fk=(typeof masterKeyOf==='function')?masterKeyOf(__c.key,__c.label):''; if(__fk&&__MFSTY[__fk]) ms=__MFSTY[__fk]; }   // UPC 별칭 등 마스터 키 해석 폴백
         if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt) __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; __c.fg=(ms.fg||''); __c.bg=(ms.bg||''); __c.bold=!!ms.bold; }
       } } return lay; }
+
+  /* ===== 필드관리(마스터) 100% 연결 — 키 해석·연결 검증 (store-manager 필드관리가 유일한 필드 출처) ===== */
+  function __upcFam(s){ s=String(s==null?'':s).trim().toUpperCase(); if(!s) return '';
+    if(/^UPC\s*\(\s*C\s*\)?$|^UPCC$|^UPC[-_ ]C$/.test(s)) return 'UPC(C)';
+    if(/^UPC$|^UPC\s*\(\s*[O0]\s*\)?$|^UPCO$|^UPC[-_ ]O$|^UPCA$|^UPC[-_ ]A$/.test(s)) return 'UPC(O)';
+    return ''; }
+  function masterKeyOf(key,label){
+    var K=String(key==null?'':key).trim().toUpperCase();
+    if(__MFSTY[K]) return K;
+    try{ if(typeof canonColLabel==='function'){ var CK=String(canonColLabel(label!=null?label:K,K)||'').trim().toUpperCase(); if(CK&&__MFSTY[CK]) return CK; } }catch(e){}
+    var LK=String(label==null?'':label).trim().toUpperCase(); if(LK&&__MFSTY[LK]) return LK;
+    var F=__upcFam(K); if(!F && !K) F=__upcFam(LK);   /* 키 우선 — 라벨은 키가 없을 때만 (코드 기반 관리) */
+    if(F&&__MFSTY[F]) return F;
+    return ''; }
+  function mfDeleted(key,label){ var K=String(key==null?'':key).trim().toUpperCase(); if(__MFDEL[K]) return true; var F=__upcFam(K); if(!F && !K) F=__upcFam(label); return !!(F&&__MFDEL[F]); }
+  function isMasterConnected(c){ if(!c) return false;
+    if(!__MFSTY || !Object.keys(__MFSTY).length) return true;   /* 마스터 미로딩 시 전체 표시(안전) */
+    var K=String(c.key==null?'':c.key).trim().toUpperCase();
+    if(typeof STD_CHECK_COLS!=='undefined' && STD_CHECK_COLS.indexOf(K)>=0) return true;   /* 매장 체크열(기능열) */
+    if(typeof STD_CHECK_COLS!=='undefined' && /\(S\)$/.test(K) && STD_CHECK_COLS.indexOf(K.replace(/\(S\)$/,''))>=0) return true;   /* 매장 가격열(기능열) */
+    var ok=!!masterKeyOf(c.key,c.label);
+    if(!ok){ try{ (window.__unlinkedCols=window.__unlinkedCols||{})[K]=1; }catch(e){} }
+    return ok; }
   function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),CFG_COL,CFG_DOC), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(!d) return; var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if(__ch && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(Array.isArray(d.masterFields)){ masterFields=normMaster(d.masterFields); } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
@@ -797,12 +821,12 @@
   let pluRender=null, visibleCache=[];
   let editMode=false, work=null, workLayout=null, workTrunc=20, workDirty=false, currentUser=null;
   function getTruncLen(){ if(editMode) return (workTrunc>0?workTrunc:(globalTrunc>0?globalTrunc:20)); return (globalTrunc>0?globalTrunc:20); }
-  function exportColsFor(){ var lay = editMode ? (workLayout||[]) : withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
+  function exportColsFor(){ var lay = editMode ? (workLayout||[]) : withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp && isMasterConnected(c) && !mfDeleted(c.key,c.label); }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); var vis=(lay||[]).filter(function(c){ return c && !c.hidden && !mfDeleted(c.key,c.label) && isMasterConnected(c); }); return vis.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); }
 
   function curCat(){ return PLU_TABS[pluBig].label; }
   function curSub(){ var s=PLU_TABS[pluBig].subs; return s.length? s[pluSub]:''; }
   function curLayout(){ return applyMFSTY(editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), layoutByCat[curCat()] || defaultLayout([]))); }
-  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && !__MFDEL[String(c.key||'').toUpperCase()];}); }
+  function visibleCols(){ return curLayout().filter(function(c){return !c.hidden && !mfDeleted(c.key,c.label) && isMasterConnected(c);}); }
   // 매장관리에서 쓰는 훅: 특정 카테고리의 모든 필드 목록 / 카테고리 목록
   window.__catColsFor = function(catLabel){ var lay = layoutByCat[catLabel] || defaultLayout([]); return (lay||[]).filter(function(c){ return c && c.key!=null; }).map(function(c){ return {key:c.key, label:c.label, type:c.type, hidden:!!c.hidden}; }); };
   window.__catList = function(){ return PLU_TABS.map(function(t){ return {label:t.label, doc:(DOCID[t.label]||t.label)}; }); };
@@ -1981,7 +2005,7 @@
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']}];
-  function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
+  function exportVal(r,col){ if(!r) return ''; if(String(col.key==null?'':col.key).toLowerCase()==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } var nk=tareNormKey(col&&col.key); if(nk==='TARE(LB)'||nk==='TARE(G)'){ var s=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); return s; } return round2Disp(raw==null?'':raw); }
   // 내보내기 본문 생성 (header 제외):
   //  · ITEM CODE 1개 이하 → 화면에 보이는 대로 한 행
@@ -2033,9 +2057,10 @@
   // ===== 데이터 내보내기 메뉴 (팝업): 카테고리 선택 EXPORT + 내보내기필드설정 =====
   function exportColsForCat(catLabel){
     var lay = layoutByCat[catLabel]||defaultLayout([]);
-    var chosen=(lay||[]).filter(function(c){ return c && c.exp; });
+    var chosen=(lay||[]).filter(function(c){ return c && c.exp && isMasterConnected(c) && !mfDeleted(c.key,c.label); });
     if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
-    return EXPORT_COLS.map(function(c){ return {key:c.key,label:c.label}; });
+    var vis=(lay||[]).filter(function(c){ return c && !c.hidden && !mfDeleted(c.key,c.label) && isMasterConnected(c); });
+    return vis.map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
   }
   // 내보내기 메뉴에서 체크한 필드 키들을, 각 카테고리의 자기 컬럼(라벨/타입/순서 보존)으로 매핑
   function colsFromKeysForCat(catLabel, fkeys){
@@ -2050,6 +2075,7 @@
   function exportCatSub(catLabel, sub){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     var allRows=rowsFor(catLabel)||[]; var cols=exportColsForCat(catLabel);
+    if(!cols.length){ showToast('내보낼 필드가 없습니다 — 필드관리 연결 확인','error'); return; }
     var wb=XLSX.utils.book_new(); var used={}, made=0;
     function addSheet(name, rows){
       rows=rows.slice().sort(byPluAsc);
