@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE SHAWN · 공용 도구</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{ --gold:#c9a961; --gold-d:#b08d3f; --line:#e5e7eb; --ink:#1f2430; --sub:#6b7280; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:'Pretendard',-apple-system,'Malgun Gothic',sans-serif; background:#eef0f4; color:var(--ink); min-height:100vh; }
+
+  header{ background:linear-gradient(135deg,#1a1a2e 0%,#2d2d44 100%); padding:20px 28px;
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1{ color:#fff; font-size:19px; font-weight:800; letter-spacing:.03em; }
+  header h1 b{ color:var(--gold); font-weight:800; }
+  header .sp{ flex:1; }
+
+  /* 크기 전환 세그먼트 */
+  .seg{ display:flex; background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18);
+    border-radius:12px; padding:3px; gap:3px; }
+  .seg button{ border:0; background:transparent; color:rgba(255,255,255,.72); font-size:13px; font-weight:700;
+    padding:7px 16px; border-radius:9px; cursor:pointer; font-family:inherit; transition:background .15s,color .15s; }
+  .seg button.on{ background:linear-gradient(135deg,var(--gold),var(--gold-d)); color:#fff; }
+
+  main{ padding:26px; max-width:1600px; margin:0 auto; }
+  #grid{ display:grid; gap:20px; align-items:start; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); }
+  body.sz-sm #grid{ gap:14px; grid-template-columns:repeat(auto-fill,minmax(245px,1fr)); }
+
+  footer{ padding:14px 28px 30px; font-size:11.5px; color:var(--sub); text-align:center; }
+</style>
+</head>
+<body class="sz-lg">
+
+<header>
+  <h1><b>THE SHAWN</b> · 공용 도구</h1>
+  <div class="sp"></div>
+  <div class="seg" id="sizeSeg">
+    <button data-size="lg" class="on">큰 화면</button>
+    <button data-size="sm">작은 화면</button>
+  </div>
+</header>
+
+<main><div id="grid"></div></main>
+
+<footer>Function-Tools-UI.js · 크기 전환은 재바인딩 없이 CSS 변수로만 적용됩니다 · 마지막 선택 크기는 이 브라우저에 저장됩니다</footer>
+
+<script src="Function-Calculator.js"></script>
+<script src="Function-Case-Converter.js"></script>
+<script src="Function-Unit-Converter.js"></script>
+<script src="Function-Upc-Converter.js"></script>
+<script src="Function-Tools-UI.js"></script>
+<script>
+(function(){
+  'use strict';
+  var LS_KEY='shawnToolsSize';
+  var size=localStorage.getItem(LS_KEY)==='sm'?'sm':'lg';
+  var grid=document.getElementById('grid');
+
+  var mounts=[
+    FunctionToolsUI.mount(grid,{ tool:'calc', size:size }),
+    FunctionToolsUI.mount(grid,{ tool:'upc',  size:size }),
+    FunctionToolsUI.mount(grid,{ tool:'case', size:size }),
+    FunctionToolsUI.mount(grid,{ tool:'unit', size:size })
+  ].filter(Boolean);
+
+  function applySize(s){
+    size=s;
+    document.body.classList.toggle('sz-sm', s==='sm');
+    document.body.classList.toggle('sz-lg', s!=='sm');
+    mounts.forEach(function(m){ m.setSize(s); });
+    var btns=document.querySelectorAll('#sizeSeg button');
+    Array.prototype.forEach.call(btns,function(b){ b.classList.toggle('on', b.dataset.size===s); });
+    try{ localStorage.setItem(LS_KEY,s); }catch(e){}
+  }
+  document.getElementById('sizeSeg').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(b) applySize(b.dataset.size);
+  });
+  applySize(size);
+})();
+</script>
+</body>
+</html>
