@@ -3605,16 +3605,65 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('niCvSrp').onclick=function(){ niConvApply('srp'); };
     [].slice.call(w.querySelectorAll('.ni-end')).forEach(function(b){ b.onclick=function(){ var kind=b.getAttribute('data-kind'), v=+b.getAttribute('data-v'); var arr=niConvEnds[kind]; var idx=arr.indexOf(v); if(idx>=0){ arr.splice(idx,1); b.classList.remove('on'); } else { arr.push(v); b.classList.add('on'); } }; });
   }
+  function niMoveOptsHTML(){
+    var opts='';
+    PLU_TABS.forEach(function(t){ var subs=(t.subs&&t.subs.length)?t.subs:['']; subs.forEach(function(s){ var val=t.label+'\u0001'+s; var lbl=t.label+(s?(' › '+s):''); opts+='<label class="ni-chk"><input type="checkbox" class="ni-move-chk" value="'+escapeHtml(val)+'"><span>'+escapeHtml(lbl)+'</span></label>'; }); });
+    return opts;
+  }
+  function renderNiMoveOpts(autoCheckVal){
+    var box=$('niMoveOpts'); if(!box) return;
+    box.innerHTML=niMoveOptsHTML();
+    if(autoCheckVal){ var chks=box.querySelectorAll('.ni-move-chk'); for(var i=0;i<chks.length;i++){ if(chks[i].value===autoCheckVal){ chks[i].checked=true; chks[i].closest('.ni-chk').scrollIntoView({block:'nearest'}); break; } } }
+  }
+  function niRenderBigSelect(){
+    var sel=$('niNewBig'); if(!sel) return;
+    sel.innerHTML=PLU_TABS.map(function(t){ return '<option value="'+escapeHtml(t.label)+'">'+escapeHtml(t.label)+'</option>'; }).join('')+'<option value="__NEW__">➕ 새 상위 카테고리 만들기</option>';
+    var ni=$('niNewBigName'); if(ni) ni.style.display=(sel.value==='__NEW__')?'':'none';
+  }
+  async function niCreateCategory(){
+    var F=(typeof fns==='function')?fns():null;
+    if(!F||!F.setDoc||!F.doc){ showToast('Firebase 연결을 확인하세요','error'); return; }
+    var selEl=$('niNewBig'), bigSel=selEl?selEl.value:'';
+    var bigName=(bigSel==='__NEW__') ? String(($('niNewBigName')&&$('niNewBigName').value)||'').trim().toUpperCase() : bigSel;
+    var subName=String(($('niNewSubName')&&$('niNewSubName').value)||'').trim().toUpperCase();
+    if(!bigName){ showToast('상위 카테고리 이름을 입력하세요','error'); return; }
+    if(bigSel!=='__NEW__' && !subName){ showToast('만들 중간 카테고리 이름을 입력하세요','error'); return; }
+    var tab=mainTab(bigName), createdBig=false, createdSub=false;
+    if(!tab){ tab={label:bigName, doc:bigName, subs:[], subDb:{}}; PLU_TABS.push(tab); createdBig=true; }
+    else if(bigSel==='__NEW__'){ showToast('이미 있는 상위 카테고리입니다 — 기존에 추가합니다','error'); }
+    if(subName){ if((tab.subs||[]).indexOf(subName)<0){ tab.subs=(tab.subs||[]); tab.subs.push(subName); createdSub=true; } }
+    if(!createdBig && !createdSub){ showToast('이미 존재하는 카테고리입니다','error'); renderNiMoveOpts(bigName+'\u0001'+(subName||'')); return; }
+    var tabs=PLU_TABS.map(function(t){ return {label:t.label, doc:t.doc||t.label, subs:(t.subs||[]).slice(), subDb:(t.subDb&&typeof t.subDb==='object')?t.subDb:{}}; });
+    var btn=$('niCatCreate'), old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
+    try{
+      await F.setDoc(F.doc(db(), CFG_COL, CFG_DOC), {tabs:tabs, updatedAt:Date.now()}, {merge:true});
+      applyTabs(tabs);
+      niRenderBigSelect(); if(selEl) selEl.value=bigName; var nb=$('niNewBigName'); if(nb){ nb.value=''; nb.style.display='none'; } var ns=$('niNewSubName'); if(ns) ns.value='';
+      renderNiMoveOpts(bigName+'\u0001'+(subName||''));
+      showToast('카테고리 생성: '+bigName+(subName?(' › '+subName):''),'success');
+    }catch(e){ showToast('카테고리 저장 실패: '+(e&&e.message||''),'error'); if(createdSub&&tab) tab.subs=tab.subs.filter(function(s){return s!==subName;}); if(createdBig) PLU_TABS=PLU_TABS.filter(function(t){return t!==tab;}); }
+    finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
+  }
   function openNiMoveModal(){
     if(!niRows.length){ showToast('이동할 데이터가 없습니다','error'); return; }
     var w=niEnsureOv('niMoveOv');
-    var opts='';
-    PLU_TABS.forEach(function(t){ var subs=(t.subs&&t.subs.length)?t.subs:['']; subs.forEach(function(s){ var val=t.label+'\u0001'+s; var lbl=t.label+(s?(' › '+s):''); opts+='<label class="ni-chk"><input type="checkbox" class="ni-move-chk" value="'+escapeHtml(val)+'"><span>'+escapeHtml(lbl)+'</span></label>'; }); });
-    w.innerHTML='<div class="pcm-modal" style="max-width:420px;"><div class="pcm-head">📦 데이터 이동하기<button class="pcm-x" id="niMvX" type="button">✕</button></div>'+
+    w.innerHTML='<div class="pcm-modal" style="max-width:480px;"><div class="pcm-head">📦 데이터 이동하기<button class="pcm-x" id="niMvX" type="button">✕</button></div>'+
       '<div class="pcm-body" style="padding:16px 18px;"><p style="margin:0 0 12px;font-size:13px;color:var(--text-dim);line-height:1.5;">이동할 정식 카테고리를 선택하세요. 선택한 카테고리로 <b>'+niRows.length+'개 전체</b>가 이동되고, OCR에서는 삭제됩니다.</p>'+
-      '<div class="ni-chk-list">'+opts+'</div>'+
+      '<div class="ni-chk-list" id="niMoveOpts"></div>'+
+      '<div style="margin-top:14px;border:1.5px dashed #d5d3cc;border-radius:12px;padding:12px;">'+
+        '<div style="font-size:12px;font-weight:800;margin-bottom:8px;">➕ 카테고리가 없나요? 새로 만들기</div>'+
+        '<div style="display:flex;flex-direction:column;gap:8px;">'+
+          '<select id="niNewBig" class="plu-edit-input" style="width:100%;"></select>'+
+          '<input id="niNewBigName" class="plu-edit-input" placeholder="새 상위 카테고리 이름" style="display:none;width:100%;" autocomplete="off">'+
+          '<input id="niNewSubName" class="plu-edit-input" placeholder="중간 카테고리 이름 (선택)" style="width:100%;" autocomplete="off">'+
+          '<button class="plu-tool-btn" id="niCatCreate" type="button" style="width:100%;">카테고리 생성</button>'+
+        '</div>'+
+      '</div>'+
       '<div style="display:flex;gap:10px;margin-top:16px;"><button class="plu-tool-btn" id="niMvCancel" type="button" style="flex:1;">취소</button><button class="plu-tool-btn" id="niMvGo" type="button" style="flex:1;background:var(--accent);border-color:var(--accent);color:#fff;">이동하기</button></div></div></div>';
     w.classList.add('show');
+    renderNiMoveOpts(); niRenderBigSelect();
+    $('niNewBig').onchange=function(){ var nb=$('niNewBigName'); if(nb) nb.style.display=(this.value==='__NEW__')?'':'none'; };
+    $('niCatCreate').onclick=niCreateCategory;
     $('niMvX').onclick=$('niMvCancel').onclick=function(){ w.classList.remove('show'); };
     $('niMvGo').onclick=niMoveApply;
   }
