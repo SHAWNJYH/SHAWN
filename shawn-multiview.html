@@ -91,6 +91,11 @@
   .mv-dock-ico{ width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
     font-size:19px; background:transparent; border:0; }
   .mv-dock-item.dragging{ opacity:.4; }
+  .mv-dock-del{ position:absolute; top:-4px; right:-2px; width:14px; height:14px; border-radius:50%;
+    background:#c0392b; color:#fff; font-size:9px; display:none; align-items:center; justify-content:center;
+    cursor:pointer; z-index:2; }
+  .mv-dock-item{ position:relative; }
+  .mv-dock-item:hover .mv-dock-del{ display:flex; }
   .mv-dock-name{ font-size:8px; font-weight:600; color:var(--text-dim); max-width:52px; overflow:hidden;
     text-overflow:ellipsis; white-space:nowrap; opacity:0; transition:opacity .15s; }
   .mv-dock-item:hover .mv-dock-name{ opacity:1; }
@@ -124,6 +129,10 @@
       <label>화면 추가</label>
       <select id="mvAddScreen"></select>
       <button class="mv-btn full" id="mvAddBtn2">＋ 선택한 화면 추가</button>
+      <label>하단 독 아이콘</label>
+      <select id="mvDockScreen"></select>
+      <select id="mvDockStore" style="display:none; margin-top:6px;"></select>
+      <button class="mv-btn ghost full" id="mvDockAddBtn">＋ 독에 아이콘 추가</button>
       <label>전체 확대 / 축소</label>
       <div id="mvZoom"><button id="mvZoomOut">−</button><span id="mvZoomVal">100%</span><button id="mvZoomIn">＋</button></div>
       <label>배경 이미지</label>
@@ -173,7 +182,7 @@
   ];
   var STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
 
-  var state={ panels:[], zoom:1, bg:'', zTop:10, locked:false };
+  var state={ panels:[], zoom:1, bg:'', zTop:10, locked:false, dock:[] };
   function load(){ try{ var s=JSON.parse(localStorage.getItem('shawnMvFree')||'null'); if(s) state=Object.assign(state,s); }catch(e){} }
   function save(){ try{ localStorage.setItem('shawnMvFree', JSON.stringify(state)); }catch(e){} }
 
@@ -199,46 +208,46 @@
     if(m) return { ico:m[1], label:m[2] };
     return { ico:'▫', label:name||'' };
   }
-  // 하단 독: 현재 패널에 배정된 화면들을 아이콘으로
+  // 하단 독: state.dock(별도 설정)의 아이콘들
   function renderDock(){
     var dock=$('mvDock'); if(!dock) return;
-    var seen={}, items=[];
-    state.panels.forEach(function(p, idx){
-      var sc=screenById(p.screen);
-      if(!sc || !sc.id) return;
-      var key=sc.id+(p.store?(':'+p.store):'');
-      if(seen[key]) return; seen[key]=1;
+    var items=state.dock||[];
+    dock.innerHTML=items.map(function(it, i){
+      var sc=screenById(it.screen); if(!sc||!sc.id) return '';
       var si=splitIcon(sc.name);
-      items.push({ idx:idx, ico:si.ico, label:si.label+(p.store?(' · '+p.store):'') });
-    });
-    dock.innerHTML=items.map(function(it){
-      return '<div class="mv-dock-item" draggable="true" data-idx="'+it.idx+'" title="'+esc(it.label)+'">'
-        +'<div class="mv-dock-ico">'+esc(it.ico)+'</div>'
-        +'<div class="mv-dock-name">'+esc(it.label)+'</div></div>';
+      var label=si.label+(it.store?(' · '+it.store):'');
+      return '<div class="mv-dock-item" draggable="true" data-i="'+i+'" title="'+esc(label)+'">'
+        +(state.locked?'':'<div class="mv-dock-del" title="독에서 제거">✕</div>')
+        +'<div class="mv-dock-ico">'+esc(si.ico)+'</div>'
+        +'<div class="mv-dock-name">'+esc(label)+'</div></div>';
     }).join('');
     var dragEl=null;
     Array.prototype.forEach.call(dock.querySelectorAll('.mv-dock-item'), function(el){
-      el.onclick=function(){ if(el.__moved){ el.__moved=false; return; } focusPanelByIdx(parseInt(el.dataset.idx,10)); };
+      var i=parseInt(el.dataset.i,10);
+      el.onclick=function(ev){ if(ev.target.classList.contains('mv-dock-del')) return; openFromDock(state.dock[i]); };
+      var del=el.querySelector('.mv-dock-del'); if(del) del.onclick=function(ev){ ev.stopPropagation(); state.dock.splice(i,1); renderDock(); save(); };
       el.addEventListener('dragstart', function(){ dragEl=el; el.classList.add('dragging'); });
       el.addEventListener('dragend', function(){ el.classList.remove('dragging'); dragEl=null; });
-      el.addEventListener('dragover', function(e){ e.preventDefault();
-        if(!dragEl || dragEl===el) return;
-        var r=el.getBoundingClientRect();
-        var before=(e.clientX < r.left + r.width/2);
-        dock.insertBefore(dragEl, before?el:el.nextSibling);
-      });
+      el.addEventListener('dragover', function(e){ e.preventDefault(); if(!dragEl||dragEl===el) return;
+        var r=el.getBoundingClientRect(); var before=(e.clientX < r.left + r.width/2);
+        dock.insertBefore(dragEl, before?el:el.nextSibling); });
       el.addEventListener('drop', function(e){ e.preventDefault(); commitDockOrder(); });
     });
   }
-  // 독의 현재 DOM 순서대로 state.panels 재정렬
+  // 독 DOM 순서 → state.dock 재정렬
   function commitDockOrder(){
     var dock=$('mvDock'); if(!dock) return;
-    var order=Array.prototype.map.call(dock.querySelectorAll('.mv-dock-item'), function(el){ return parseInt(el.dataset.idx,10); });
-    var picked=[], used={};
-    order.forEach(function(i){ if(state.panels[i]){ picked.push(state.panels[i]); used[i]=1; } });
-    state.panels.forEach(function(p,i){ if(!used[i]) picked.push(p); });
-    state.panels=picked;
-    render(); save();
+    var order=Array.prototype.map.call(dock.querySelectorAll('.mv-dock-item'), function(el){ return parseInt(el.dataset.i,10); });
+    var picked=[]; order.forEach(function(i){ if(state.dock[i]) picked.push(state.dock[i]); });
+    if(picked.length===state.dock.length){ state.dock=picked; save(); renderDock(); }
+  }
+  // 독 아이콘 클릭 → 그 화면 패널이 있으면 포커스, 없으면 새로 추가
+  function openFromDock(item){
+    if(!item) return;
+    var foundIdx=-1;
+    state.panels.forEach(function(p,i){ if(p.screen===item.screen && (p.store||'')===(item.store||'')) foundIdx=i; });
+    if(foundIdx>=0){ focusPanelByIdx(foundIdx); }
+    else { addPanel(item.screen, item.store); }
   }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
   // 독 아이콘 클릭 → 해당 패널 맨 앞으로 + 잠깐 강조
@@ -339,8 +348,8 @@
       storeSel.style.display=sc.store?'':'none';
       extInp.style.display=sc.ext?'':'none';
     }
-    screenSel.onchange=function(){ p.screen=screenSel.value; syncControls(); fillBody(el, p); save(); renderDock(); };
-    storeSel.onchange=function(){ p.store=storeSel.value; fillBody(el, p); save(); renderDock(); };
+    screenSel.onchange=function(){ p.screen=screenSel.value; syncControls(); fillBody(el, p); save(); };
+    storeSel.onchange=function(){ p.store=storeSel.value; fillBody(el, p); save(); };
     extInp.onchange=function(){ p.url=extInp.value; fillBody(el, p); save(); };
     el.querySelector('.mvp-reload').onclick=function(){ fillBody(el, p); };
     el.querySelector('.mvp-close').onclick=function(){ var i=state.panels.indexOf(p); if(i>=0) state.panels.splice(i,1); el.parentNode.removeChild(el); save(); render(); };
@@ -392,7 +401,7 @@
     var p={ screen:screenId||'', store:storeVal||'', url:'', x:40+(n%5)*34, y:40+(n%5)*34, w:440, h:320, z:(++state.zTop) };
     state.panels.push(p);
     $('mvCanvas').appendChild(buildPanel(p, n));
-    save(); renderDock();
+    save();
   }
 
   function applyZoom(){ var c=$('mvCanvas'); c.style.transformOrigin='top left'; c.style.transform='scale('+state.zoom+')'; $('mvZoomVal').textContent=Math.round(state.zoom*100)+'%'; }
@@ -446,6 +455,17 @@
     if(addSel){ addSel.innerHTML=SCREENS.filter(function(s){ return s.id; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join(''); }
     $('mvAddBtn').onclick=function(){ addPanel(); };
     $('mvAddBtn2').onclick=function(){ addPanel(addSel?addSel.value:''); };
+    // 독 아이콘 관리
+    var dockSel=$('mvDockScreen'), dockStore=$('mvDockStore');
+    if(dockSel){ dockSel.innerHTML=SCREENS.filter(function(s){ return s.id; }).map(function(s){ return '<option value="'+s.id+'">'+s.name+'</option>'; }).join('');
+      dockSel.onchange=function(){ var sc=screenById(dockSel.value); dockStore.style.display=sc.store?'':'none'; };
+    }
+    if(dockStore){ dockStore.innerHTML='<option value="">매장 선택</option>'+STORES.map(function(st){ return '<option value="'+st+'">'+st+'</option>'; }).join(''); }
+    var dockAdd=$('mvDockAddBtn'); if(dockAdd) dockAdd.onclick=function(){
+      var sc=screenById(dockSel.value); if(!sc||!sc.id) return;
+      var store=(sc.store&&dockStore.value)?dockStore.value:'';
+      state.dock.push({ screen:sc.id, store:store }); renderDock(); save();
+    };
     $('mvLockBtn').onclick=function(){ state.locked=!state.locked; applyLock(); save(); };
     $('mvFsBtn').onclick=toggleFullscreen;
     $('mvSettingsBtn').onclick=function(){ if(state.locked) return; $('mvPanel').classList.toggle('show'); };
