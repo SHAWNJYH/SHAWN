@@ -88,6 +88,7 @@
   #mvDock:empty{ display:none; }
   .mv-dock-item{ position:relative; display:flex; flex-direction:column; align-items:center; gap:0; cursor:pointer;
     transition:transform .18s cubic-bezier(.34,1.3,.64,1); transform-origin:bottom center; }
+  .mv-dock-item:hover{ transform:scale(1.4) translateY(-7px); }
   .mv-dock-item.dragging{ opacity:.35; }
   .mv-dock-ico{ width:37px; height:37px; border-radius:11px; display:flex; align-items:center; justify-content:center;
     box-shadow:0 4px 12px rgba(0,0,0,.2), inset 0 1px 1px rgba(255,255,255,.45), inset 0 -2px 4px rgba(0,0,0,.12); }
@@ -303,24 +304,7 @@
     var picked=[]; order.forEach(function(i){ if(state.dock[i]) picked.push(state.dock[i]); });
     if(picked.length===state.dock.length){ state.dock=picked; save(); renderDock(); }
   }
-  // 애플 독 magnification: 커서에 가까운 아이콘일수록 크게
-  function bindDockMagnify(){
-    var dock=$('mvDock'); if(!dock) return;
-    dock.addEventListener('mousemove', function(e){
-      var items=dock.querySelectorAll('.mv-dock-item');
-      Array.prototype.forEach.call(items, function(el){
-        if(el.classList.contains('dragging')) return;
-        var r=el.getBoundingClientRect();
-        var cx=r.left+r.width/2;
-        var dist=Math.abs(e.clientX-cx);
-        var scale=Math.max(1, 1.5 - dist/150);
-        el.style.transform='scale('+scale+') translateY('+(-(scale-1)*16)+'px)';
-      });
-    });
-    dock.addEventListener('mouseleave', function(){
-      Array.prototype.forEach.call(dock.querySelectorAll('.mv-dock-item'), function(el){ el.style.transform=''; });
-    });
-  }
+  function bindDockMagnify(){ /* 인접 확대 비활성 — hover한 아이콘만 CSS로 확대 */ }
   // 독 아이콘 클릭 → 중앙 팝업으로 화면 펼치기
   function openFromDock(item){
     if(!item) return;
