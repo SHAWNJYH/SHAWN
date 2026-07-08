@@ -2008,6 +2008,44 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname,'success');
   }
   // 이력 EXPORT — 열 구성은 EXPORT 설정(카테고리별 exp) 그대로
+  // EXPORT 카테고리(HANA 등) 설정 로드 — STORE MANAGER EXPORT 설정 공유
+  var __expCats=null;
+  async function loadExpCats(){
+    try{
+      var F=fns(), D=db();
+      if(F && F.getDoc && D){
+        var snap=await F.getDoc(F.doc(D,'app-config','export-config'));
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+        if(d && Array.isArray(d.profiles) && d.profiles.length){ __expCats=d.profiles; return __expCats; }
+      }
+    }catch(e){}
+    try{ var raw=localStorage.getItem('theShawn_exportConfig_v1'); if(raw){ var c=JSON.parse(raw); if(c && Array.isArray(c.profiles)){ __expCats=c.profiles; return __expCats; } } }catch(e){}
+    __expCats=[]; return __expCats;
+  }
+  // 체크된 이력 항목들을 카테고리 매핑으로 EXPORT (신상품/가격변경 → HANA 등 파일 형식)
+  function exportHistWithCategory(entries, cat){
+    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
+    var maps=cat.mappings||{};
+    var aoa=[cat.fields.slice()];
+    var total=0;
+    entries.forEach(function(en){
+      (en.records||[]).forEach(function(rec){
+        var row=histLiveRow(en.cat||rec.cat||curCat(), rec);
+        aoa.push(cat.fields.map(function(ef){
+          var mf=maps[ef]; if(!mf) return '';
+          return exportCell(row, { key:mf, label:mf, type:'text' });
+        }));
+        total++;
+      });
+    });
+    if(total===0){ showToast('내보낼 데이터가 없습니다','error'); return; }
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(cat.name).substring(0,31)||'EXPORT');
+    var d2=new Date(), ymd=String(d2.getFullYear()).slice(-2)+('0'+(d2.getMonth()+1)).slice(-2)+('0'+d2.getDate()).slice(-2);
+    var base=(cat.fileName||'').replace(/\.(xlsx|xls|csv)$/i,'') || cat.name;
+    XLSX.writeFile(wb, base+'('+ymd+').xlsx');
+    showToast(cat.name+' 형식으로 '+total+'건 내보냈습니다','success');
+  }
   function exportHistGroup(records, kind, date, suffix){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
     records=records||[];
@@ -3171,10 +3209,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var listSec = startList ? ('<div class="em-sec">'+
           '<div class="em-tt">신상품 / 가격변경 LIST 선택 EXPORT</div>'+
           '<div class="em-box"><div class="em-row em-modes">'+
-            '<button class="em-allbtn em-go" data-mode="set" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT</button>'+
-            '<button class="em-allbtn em-go" data-mode="hanaro" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANARO)</button>'+
-            '<button class="em-allbtn em-go" data-mode="hana" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANA)</button>'+
-            '<button class="em-allbtn em-go" data-mode="stws" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(STWS)</button>'+
+            '<button class="em-allbtn em-go" data-mode="cat" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT (카테고리 선택)</button>'+
           '</div></div>'+
         '</div>') : '';
       var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+(startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
@@ -3183,16 +3218,18 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     // 리스트 화면 HTML
     var emEntryMap={};
     function listHTML(mode){
-      var label=(mode==='set')?'EXPORT':(mode==='hanaro')?'EXPORT(HANARO)':(mode==='hana')?'EXPORT(HANA)':'EXPORT(STWS)';
       var ents=histGroupEntries(['new','price']); emEntryMap={};
+      var catOpts=(__expCats||[]).map(function(p){ var has=(p.fields&&p.fields.length); return '<option value="'+escapeHtml(p.id)+'">'+escapeHtml(p.name+(has?(' · '+(p.fileName||'파일')):' (파일 없음)'))+'</option>'; }).join('');
       var body=ents.length? ents.map(function(en){
         emEntryMap[en.key]=en;
         var catLabel=en.sub?(en.cat?(en.cat+' › '+en.sub):en.sub):(en.cat||'기타');
         var lbl='['+catLabel+'] '+((en.kind==='new')?('신상품 '+en.records.length+'개'):('가격변동 '+en.records.length+'개'));
-        return '<div class="hist-group"><div class="hist-date">📅 '+escapeHtml(en.date)+' <span>'+escapeHtml(lbl)+'</span>'+
-          '<span class="hist-date-btns"><button class="plu-tool-btn em-exp" data-key="'+escapeHtml(en.key)+'">⬇ '+escapeHtml(label)+'</button></span></div></div>';
+        return '<div class="hist-group"><div class="hist-date"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;"><input type="checkbox" class="em-pick" data-key="'+escapeHtml(en.key)+'" style="width:16px;height:16px;accent-color:#c9a961;">📅 '+escapeHtml(en.date)+' <span>'+escapeHtml(lbl)+'</span></label></div></div>';
       }).join('') : '<div class="hist-empty">이력이 없습니다.</div>';
-      return '<div class="em-sec"><div class="em-row"><button class="plu-tool-btn" id="emBack" type="button">◀ 뒤로</button><span class="em-mode-tt">'+escapeHtml(label)+' — 카테고리별 LIST 선택</span></div></div><div>'+body+'</div>';
+      return '<div class="em-sec"><div class="em-row"><button class="plu-tool-btn" id="emBack" type="button">◀ 뒤로</button><span class="em-mode-tt">EXPORT 카테고리 선택 · 내보낼 유형 체크</span></div>'+
+        '<div class="em-row" style="margin-top:8px;gap:8px;">'+
+        '<select id="emCatSel" style="flex:1;border:1.5px solid var(--border,#e5e5e0);border-radius:9px;padding:8px 10px;font-size:13px;">'+(catOpts||'<option value="">카테고리 없음</option>')+'</select>'+
+        '<button class="em-export-cta" id="emCatExp" type="button" style="margin:0;">⬇ EXPORT</button></div></div><div>'+body+'</div>';
     }
     // 홈 화면 이벤트 연결
     function bindHome(){
@@ -3206,17 +3243,20 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     // 리스트 화면 이벤트 연결
     function bindList(mode){
       var bk=$('emBack'); if(bk) bk.onclick=showHome;
-      document.querySelectorAll('#'+ov+' .em-exp').forEach(function(b){ b.onclick=function(){ var en=emEntryMap[b.getAttribute('data-key')]; if(!en) return; var recs=en.records, k=en.kind, d=en.date;
-        if(mode==='set') exportHistGroup(recs,k,d);
-        else if(mode==='hanaro') exportHistHanaro(recs,k,d);
-        else if(mode==='hana') exportHistHana(recs,k,d);
-        else exportHistStws(recs,k,d);
-      }; });
+      var go=$('emCatExp'); if(go) go.onclick=function(){
+        var picked=[]; document.querySelectorAll('#'+ov+' .em-pick:checked').forEach(function(c){ var en=emEntryMap[c.getAttribute('data-key')]; if(en) picked.push(en); });
+        if(!picked.length){ showToast('내보낼 유형을 체크하세요','error'); return; }
+        var sel=$('emCatSel'); var catId=sel?sel.value:'';
+        var cat=(__expCats||[]).filter(function(p){ return p.id===catId; })[0];
+        if(!cat){ showToast('EXPORT 카테고리를 선택하세요','error'); return; }
+        if(!cat.fields || !cat.fields.length){ showToast(cat.name+' 카테고리에 업로드된 엑셀 파일이 없습니다. STORE MANAGER > EXPORT 설정에서 엑셀 파일을 업로드하세요.','error'); return; }
+        exportHistWithCategory(picked, cat);
+      };
     }
     // 홈 화면 표시
     function showHome(){ var b=$('emBody'); if(b){ b.innerHTML=homeHTML(); bindHome(); } }
     // 리스트 화면 표시
-    function showList(mode){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(mode); bindList(mode); } }
+        function showList(mode){ loadExpCats().then(function(){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(mode); bindList(mode); } }); }
     $('emClose').onclick=close; $(ov).onclick=function(e){ if(e.target&&e.target.id===ov) close(); };
     showHome();
   }
@@ -3545,7 +3585,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var checked=[].slice.call(document.querySelectorAll('.ni-move-chk:checked')).map(function(c){ return c.value; });
     if(!checked.length){ showToast('카테고리를 선택하세요','error'); return; }
     if(!niRows.length){ showToast('이동할 데이터가 없습니다','error'); return; }
-    if(!(await uiConfirm(niRows.length+'개를 '+checked.length+'개 카테고리로 이동하고\nOCR(upc-ocr-list)에서 삭제합니다. 진행할까요?'))) return;
+    if(!(await uiConfirm(niRows.length+'개를 '+checked.length+'개 카테고리로 가져옵니다.\n(UPC LIST CONVERT의 원본 리스트는 그대로 유지됩니다)\n진행할까요?'))) return;
     var moved=niRows.length;
     for(var ci=0; ci<checked.length; ci++){
       var pp=checked[ci].split('\u0001'); var cat=pp[0], sub=pp[1]||'';
@@ -3554,9 +3594,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var add=niRows.map(function(r){ var c={extra:{}}; for(var k in r.extra){ if(k==='__id') continue; c.extra[k]=r.extra[k]; } c.sub=sub; return c; });
       try{ await saveCat(cat, existing.concat(add), lay, (truncLenByCat[cat]||20)); }catch(e){ showToast('저장 실패: '+cat,'error'); }
     }
-    await niDeleteOcr();
+    // OCR 원본 유지 — UPC LIST CONVERT 쪽 삭제는 사용자가 직접 수행
     var w=document.getElementById('niMoveOv'); if(w) w.classList.remove('show');
-    showToast(moved+'건 이동 완료','success');
+    showToast(moved+'건 가져오기 완료 (원본 유지)','success');
     if(!editMode && typeof renderContent==='function') renderContent();
   }
   // ----- 화면/모달 -----
