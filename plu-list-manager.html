@@ -786,7 +786,7 @@
   function mfKind(t){ t=String(t||''); return (t==='check'||t==='rcheck'||t==='price'||t==='margin')?t:'text'; }
   function mfFlag(t){ return t==='price'?'$':(t==='margin'?'%':''); }
   function mfKindToCol(kind){ if(kind==='check')return{type:'check',fmt:'text'}; if(kind==='rcheck')return{type:'rcheck',fmt:'text'}; if(kind==='price')return{type:'text',fmt:'price'}; if(kind==='margin')return{type:'text',fmt:'margin'}; return{type:'text',fmt:'text'}; }
-  function normMaster(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var K=String(m.key).trim().toUpperCase(); if(!K||seen[K])return; seen[K]=1; out.push({key:K,label:K,type:mfKind(m.type)}); }); return out; }
+  function normMaster(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var K=String(m.key).trim().toUpperCase(); if(!K||seen[K])return; seen[K]=1; var __o={key:K,label:K,type:mfKind(m.type)}; if(m.catOf){ __o.catOf=String(m.catOf); __o.catValues=Array.isArray(m.catValues)?m.catValues:[]; } out.push(__o); }); return out; }
   async function saveMasterFields(){ try{ if(fns()&&fns().setDoc) await fns().setDoc(fns().doc(db(),CFG_COL,CFG_DOC),{masterFields:masterFields,updatedAt:Date.now()},{merge:true}); }catch(e){} }
   function registerMaster(name,type){ var K=String(name||'').trim().toUpperCase(); if(!K) return; if(masterFields.some(function(m){return m.key===K;})) return; masterFields.push({key:K,label:K,type:(type==='check'?'check':(type==='rcheck'?'rcheck':'text'))}); saveMasterFields(); }
 
