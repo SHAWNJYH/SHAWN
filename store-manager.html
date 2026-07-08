@@ -803,6 +803,7 @@
     if(!fmWork.length){ box.innerHTML='<div class="fm-empty">아직 필드가 없습니다. 위에서 추가하세요.</div>'; }
     else {
       box.innerHTML = fmWork.map(function(m,i){
+        if(m.catOf){ return '<div class="fm-row" data-i="'+i+'" style="display:none;"></div>'; }  // 카테고리 필드는 팝업에서만 표시
         var fl=mfFlag(m.type);
         var k=String(m.key||'').toUpperCase();
         var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
@@ -835,6 +836,7 @@
       }).join('');
       box.querySelectorAll('.fm-row').forEach(function(row){
         var i=parseInt(row.getAttribute('data-i'),10);
+        if(!row.querySelector('.fm-name')) return;  // 숨김(카테고리) 필드 행
         row.querySelector('.fm-name').addEventListener('input', function(){ var __s=this.selectionStart,__e=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(__s,__e);}catch(_){} fmWork[i].label=this.value; fmDirty=true; });
         var __rt=row.querySelector('.fm-rtype'); if(__rt) __rt.addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
         var __ul=row.querySelector('.fm-userlock'); if(__ul){ __ul.onclick=function(){ fmWork[i].locked=!fmWork[i].locked; fmDirty=true; fmRender(); }; }
