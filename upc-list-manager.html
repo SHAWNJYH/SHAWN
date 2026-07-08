@@ -2022,15 +2022,15 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     try{ var raw=localStorage.getItem('theShawn_exportConfig_v1'); if(raw){ var c=JSON.parse(raw); if(c && Array.isArray(c.profiles)){ __expCats=c.profiles; return __expCats; } } }catch(e){}
     __expCats=[]; return __expCats;
   }
-  // 체크된 이력 항목들을 카테고리 매핑으로 EXPORT (신상품/가격변경 → HANA 등 파일 형식)
-  function exportHistWithCategory(entries, cat){
+  // 체크한 데이터 카테고리 목록을 EXPORT 카테고리(HANA 등) 매핑으로 출력 — UPC LIST CONVERT 방식
+  function exportDataWithCategory(list, cat){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
     var maps=cat.mappings||{};
     var aoa=[cat.fields.slice()];
     var total=0;
-    entries.forEach(function(en){
-      (en.records||[]).forEach(function(rec){
-        var row=histLiveRow(en.cat||rec.cat||curCat(), rec);
+    list.forEach(function(it){
+      var rows=(rowsFor(it.big)||[]).filter(function(r){ return rowSub(it.big, r)===it.sub; }).sort(byPluAsc);
+      rows.forEach(function(row){
         aoa.push(cat.fields.map(function(ef){
           var mf=maps[ef]; if(!mf) return '';
           return exportCell(row, { key:mf, label:mf, type:'text' });
@@ -3206,45 +3206,41 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<div class="em-row-between"><div class="em-tt">내보내기 필드</div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
           '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>';
-      var listSec='';
-      if(startList){
-        var ents=histGroupEntries(['new','price']); emEntryMap={};
-        var entHtml=ents.length? ents.map(function(en){
-          emEntryMap[en.key]=en;
-          var catLabel=en.sub?(en.cat?(en.cat+' › '+en.sub):en.sub):(en.cat||'기타');
-          var lbl='['+catLabel+'] '+((en.kind==='new')?('신상품 '+en.records.length+'개'):('가격변경 '+en.records.length+'개'));
-          return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 10px;border:1px solid var(--border,#e5e5e0);border-radius:9px;margin:5px 0;font-size:12.5px;"><input type="checkbox" class="em-pick" data-key="'+escapeHtml(en.key)+'" style="width:15px;height:15px;accent-color:#c9a961;">📅 '+escapeHtml(en.date)+' <b>'+escapeHtml(lbl)+'</b></label>';
-        }).join('') : '<div class="hist-empty" style="padding:10px;">신상품/가격변경 이력이 없습니다.</div>';
-        listSec='<div class="em-sec">'+
-          '<div class="em-tt">신상품 / 가격변경 LIST 선택 EXPORT</div>'+
+      var catExpSec = startList ? ('<div class="em-sec">'+
+          '<div class="em-tt">EXPORT 카테고리 형식으로 내보내기 (HANA 등)</div>'+
           '<div class="em-box">'+
-            '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">'+
+            '<div style="display:flex;gap:8px;align-items:center;">'+
               '<select id="emCatSel" style="flex:1;border:1.5px solid var(--border,#e5e5e0);border-radius:9px;padding:8px 10px;font-size:13px;"><option value="">EXPORT 카테고리 불러오는 중…</option></select>'+
               '<button class="em-allbtn" id="emCatExp" type="button" style="border-radius:10px;padding:9px 16px;background:#c9a961;color:#fff;border-color:#c9a961;">⬇ EXPORT</button>'+
             '</div>'+
-            '<div style="font-size:11px;color:#9a9aa0;margin-bottom:4px;">아래에서 내보낼 신상품/가격변경 항목을 체크한 뒤, 위에서 카테고리를 선택하고 EXPORT를 누르세요.</div>'+
-            entHtml+
+            '<div style="font-size:11px;color:#9a9aa0;margin-top:6px;">위 <b>카테고리 선택</b>에서 체크한 목록을, 선택한 EXPORT 카테고리의 엑셀 형식(연결 매핑)으로 출력합니다.</div>'+
           '</div>'+
-        '</div>';
-      }
+        '</div>') : '';
+      var listSec = startList ? ('<div class="em-sec">'+
+          '<div class="em-tt">신상품 / 가격변경 LIST 선택 EXPORT</div>'+
+          '<div class="em-box"><div class="em-row em-modes">'+
+            '<button class="em-allbtn em-go" data-mode="set" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT</button>'+
+            '<button class="em-allbtn em-go" data-mode="hanaro" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANARO)</button>'+
+            '<button class="em-allbtn em-go" data-mode="hana" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANA)</button>'+
+            '<button class="em-allbtn em-go" data-mode="stws" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(STWS)</button>'+
+          '</div></div>'+
+        '</div>') : '';
       var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+(startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
-      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">'+catSec+cfgSec+'</div>'+listSec+foot;
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
     }
     // 리스트 화면 HTML
     var emEntryMap={};
     function listHTML(mode){
+      var label=(mode==='set')?'EXPORT':(mode==='hanaro')?'EXPORT(HANARO)':(mode==='hana')?'EXPORT(HANA)':'EXPORT(STWS)';
       var ents=histGroupEntries(['new','price']); emEntryMap={};
-      var catOpts=(__expCats||[]).map(function(p){ var has=(p.fields&&p.fields.length); return '<option value="'+escapeHtml(p.id)+'">'+escapeHtml(p.name+(has?(' · '+(p.fileName||'파일')):' (파일 없음)'))+'</option>'; }).join('');
       var body=ents.length? ents.map(function(en){
         emEntryMap[en.key]=en;
         var catLabel=en.sub?(en.cat?(en.cat+' › '+en.sub):en.sub):(en.cat||'기타');
         var lbl='['+catLabel+'] '+((en.kind==='new')?('신상품 '+en.records.length+'개'):('가격변동 '+en.records.length+'개'));
-        return '<div class="hist-group"><div class="hist-date"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;"><input type="checkbox" class="em-pick" data-key="'+escapeHtml(en.key)+'" style="width:16px;height:16px;accent-color:#c9a961;">📅 '+escapeHtml(en.date)+' <span>'+escapeHtml(lbl)+'</span></label></div></div>';
+        return '<div class="hist-group"><div class="hist-date">📅 '+escapeHtml(en.date)+' <span>'+escapeHtml(lbl)+'</span>'+
+          '<span class="hist-date-btns"><button class="plu-tool-btn em-exp" data-key="'+escapeHtml(en.key)+'">⬇ '+escapeHtml(label)+'</button></span></div></div>';
       }).join('') : '<div class="hist-empty">이력이 없습니다.</div>';
-      return '<div class="em-sec"><div class="em-row"><button class="plu-tool-btn" id="emBack" type="button">◀ 뒤로</button><span class="em-mode-tt">EXPORT 카테고리 선택 · 내보낼 유형 체크</span></div>'+
-        '<div class="em-row" style="margin-top:8px;gap:8px;">'+
-        '<select id="emCatSel" style="flex:1;border:1.5px solid var(--border,#e5e5e0);border-radius:9px;padding:8px 10px;font-size:13px;">'+(catOpts||'<option value="">카테고리 없음</option>')+'</select>'+
-        '<button class="em-export-cta" id="emCatExp" type="button" style="margin:0;">⬇ EXPORT</button></div></div><div>'+body+'</div>';
+      return '<div class="em-sec"><div class="em-row"><button class="plu-tool-btn" id="emBack" type="button">◀ 뒤로</button><span class="em-mode-tt">'+escapeHtml(label)+' — 카테고리별 LIST 선택</span></div></div><div>'+body+'</div>';
     }
     // 홈 화면 이벤트 연결
     function bindHome(){
@@ -3253,42 +3249,40 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var catAll=$('emCatAll'); if(catAll) catAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; }); catAll.textContent=allOn?'전체 선택':'전체 해제'; };
       var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
       var de=$('emDoExp'); if(de) de.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); exportSelectedCats(list); };
-      // 신상품/가격변경 카테고리 EXPORT (한 화면)
+      document.querySelectorAll('#'+ov+' .em-go').forEach(function(b){ b.onclick=function(){ showList(b.getAttribute('data-mode')); }; });
+      // EXPORT 카테고리(HANA 등) 형식으로 현재 데이터 내보내기
       var goBtn=$('emCatExp');
       if(goBtn){
         loadExpCats().then(function(cats){
           var sel=$('emCatSel'); if(!sel) return;
-          if(!cats.length){ sel.innerHTML='<option value=\"\">카테고리 없음 — STORE MANAGER에서 설정</option>'; return; }
-          sel.innerHTML=cats.map(function(pf){ var has=(pf.fields&&pf.fields.length); return '<option value=\"'+escapeHtml(pf.id)+'\">'+escapeHtml(pf.name+(has?(' · '+(pf.fileName||'파일')):' (파일 없음)'))+'</option>'; }).join('');
+          if(!cats.length){ sel.innerHTML='<option value="">카테고리 없음 — STORE MANAGER에서 설정</option>'; return; }
+          sel.innerHTML=cats.map(function(pf){ var has=(pf.fields&&pf.fields.length); return '<option value="'+escapeHtml(pf.id)+'">'+escapeHtml(pf.name+(has?(' · '+(pf.fileName||'파일')):' (파일 없음)'))+'</option>'; }).join('');
         });
         goBtn.onclick=function(){
-          var picked=[]; document.querySelectorAll('#'+ov+' .em-pick:checked').forEach(function(c){ var en=emEntryMap[c.getAttribute('data-key')]; if(en) picked.push(en); });
-          if(!picked.length){ showToast('내보낼 신상품/가격변경 항목을 체크하세요','error'); return; }
+          var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); });
+          if(!list.length){ showToast('위 카테고리 선택에서 내보낼 목록을 체크하세요','error'); return; }
           var sel=$('emCatSel'); var catId=sel?sel.value:'';
           var cat=(__expCats||[]).filter(function(pf){ return pf.id===catId; })[0];
           if(!cat){ showToast('EXPORT 카테고리를 선택하세요','error'); return; }
           if(!cat.fields || !cat.fields.length){ showToast(cat.name+' 카테고리에 업로드된 엑셀 파일이 없습니다. STORE MANAGER > EXPORT 설정에서 엑셀 파일을 업로드하세요.','error'); return; }
-          exportHistWithCategory(picked, cat);
+          exportDataWithCategory(list, cat);
         };
       }
     }
     // 리스트 화면 이벤트 연결
     function bindList(mode){
       var bk=$('emBack'); if(bk) bk.onclick=showHome;
-      var go=$('emCatExp'); if(go) go.onclick=function(){
-        var picked=[]; document.querySelectorAll('#'+ov+' .em-pick:checked').forEach(function(c){ var en=emEntryMap[c.getAttribute('data-key')]; if(en) picked.push(en); });
-        if(!picked.length){ showToast('내보낼 유형을 체크하세요','error'); return; }
-        var sel=$('emCatSel'); var catId=sel?sel.value:'';
-        var cat=(__expCats||[]).filter(function(p){ return p.id===catId; })[0];
-        if(!cat){ showToast('EXPORT 카테고리를 선택하세요','error'); return; }
-        if(!cat.fields || !cat.fields.length){ showToast(cat.name+' 카테고리에 업로드된 엑셀 파일이 없습니다. STORE MANAGER > EXPORT 설정에서 엑셀 파일을 업로드하세요.','error'); return; }
-        exportHistWithCategory(picked, cat);
-      };
+      document.querySelectorAll('#'+ov+' .em-exp').forEach(function(b){ b.onclick=function(){ var en=emEntryMap[b.getAttribute('data-key')]; if(!en) return; var recs=en.records, k=en.kind, d=en.date;
+        if(mode==='set') exportHistGroup(recs,k,d);
+        else if(mode==='hanaro') exportHistHanaro(recs,k,d);
+        else if(mode==='hana') exportHistHana(recs,k,d);
+        else exportHistStws(recs,k,d);
+      }; });
     }
     // 홈 화면 표시
     function showHome(){ var b=$('emBody'); if(b){ b.innerHTML=homeHTML(); bindHome(); } }
     // 리스트 화면 표시
-        function showList(mode){ loadExpCats().then(function(){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(mode); bindList(mode); } }); }
+        function showList(mode){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(mode); bindList(mode); } }
     $('emClose').onclick=close; $(ov).onclick=function(e){ if(e.target&&e.target.id===ov) close(); };
     showHome();
   }
