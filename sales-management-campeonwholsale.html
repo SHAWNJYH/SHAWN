@@ -82,6 +82,18 @@
   .card h2 .push { margin-left: auto; }
   .vdiv { width: 1px; height: 26px; background: #cbd5e1; }
   .entry-data th, .entry-data td { min-width: 128px; }
+  .entry-data thead th { text-align: center; }
+  .entry-data td.dt { text-align: center; font-weight: 600; color: #334155; background: #fafbfd; }
+  .btn-edit { background: #d97706; color: #fff; }
+  .btn-edit.on { background: #16a34a; }
+  .entry-data td.ed { padding: 2px 4px; }
+  .edit-in, .edit-sel {
+    width: 100%; min-width: 110px; border: 1px solid #cbd5e1; border-radius: 5px;
+    padding: 5px 8px; font: inherit; font-size: 13px; text-align: right; background: #fffdf6; color: #111827;
+  }
+  .edit-in:focus, .edit-sel:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  .edit-in.txt { text-align: left; text-transform: uppercase; }
+  .edit-sel { text-align: left; }
   .btn-save  { background: #16a34a; color: #fff; padding: 10px 0; width: 100%; font-size: 14px; }
   .btn-clear { background: #e2e8f0; color: #334155; padding: 10px 0; width: 100%; font-size: 14px; }
   .month-chip { font-weight: 700; color: #475569; background:#e2e8f0; border-radius: 6px; padding: 6px 14px; white-space: nowrap; }
@@ -135,13 +147,13 @@
   (function(){
     try{
       var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
-      if(!ok){ location.replace('campeon-wholsale.html'); }
+      if(!ok){ location.replace('campeonwholsale.html'); }
     }catch(e){}
   })();
 </script>
 <header>
   <div class="logo">영업관리 <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
-  <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">← CAMPEON</button>
+  <button onclick="location.href='campeonwholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">← CAMPEON</button>
   <nav>
     <button id="tab-dashboard" class="active" onclick="showTab('dashboard')">DASHBOARD</button>
     <button id="tab-sales" onclick="showTab('sales')">SALES</button>
@@ -262,7 +274,8 @@
       </div>
       <div class="card entry-data">
         <h2>SALES <span class="sub" id="salesCount"></span><span class="push"></span>
-          <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button></h2>
+          <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-edit btn-sm" id="edit-sales" onclick="toggleEdit('sales')">EDIT</button></h2>
         <div class="data-scroll">
           <table id="tblSalesData">
             <thead><tr>
@@ -307,7 +320,8 @@
       </div>
       <div class="card entry-data">
         <h2>PURCHASE <span class="sub" id="purchaseCount"></span><span class="push"></span>
-          <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button></h2>
+          <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-edit btn-sm" id="edit-purchase" onclick="toggleEdit('purchase')">EDIT</button></h2>
         <div class="data-scroll">
           <table id="tblPurchaseData">
             <thead><tr>
@@ -346,7 +360,8 @@
       </div>
       <div class="card entry-data">
         <h2>STOCK <span class="sub" id="stockCount"></span><span class="push"></span>
-          <button class="btn btn-export btn-sm" onclick="exportStockExcel()">EXCEL EXPORT</button></h2>
+          <button class="btn btn-export btn-sm" onclick="exportStockExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-edit btn-sm" id="edit-stock" onclick="toggleEdit('stock')">EDIT</button></h2>
         <div class="data-scroll">
           <table id="tblStockData">
             <thead><tr>
@@ -513,14 +528,54 @@ function salesSave(){                          // cmdSave_Click: 같은 날짜 �
   function v(id){ const x=document.getElementById(id).value; return x.length>0 ? (parseFloat(x)||0) : null; }
   function int(id){ return parseInt(document.getElementById(id).value,10)||0; }
 }
+/* ===== 편집 모드 (EDIT — 날짜 제외 전 필드 수정) ===== */
+const EDIT = { sales:false, purchase:false, stock:false };
+function toggleEdit(tab){
+  EDIT[tab] = !EDIT[tab];
+  const b = document.getElementById('edit-'+tab);
+  if (b){ b.textContent = EDIT[tab] ? 'DONE' : 'EDIT'; b.classList.toggle('on', EDIT[tab]); }
+  if (tab==='sales') renderSalesData();
+  else if (tab==='purchase') renderPurchaseData();
+  else renderStockData();
+  if (!EDIT[tab]){ renderDashboard(); toast('수정 내용이 저장되었습니다', true); }
+}
+function edCell(idx, k, v, txt){
+  return '<td class="ed"><input class="edit-in'+(txt?' txt':'')+'" data-idx="'+idx+'" data-k="'+k+'" data-t="'+(txt?'t':'n')+'" value="'+esc(v==null?'':v)+'"></td>';
+}
+function bindEdit(tableSel, commit){
+  document.querySelectorAll(tableSel+' .edit-in, '+tableSel+' .edit-sel').forEach(el=>{
+    if (el.dataset.t==='n'){
+      el.addEventListener('input', ()=>{ const f=el.value.replace(/[^0-9.\-]/g,''); if(f!==el.value) el.value=f; });
+    }
+    el.addEventListener('change', ()=>{ commit(+el.dataset.idx, el.dataset.k, el.value, el); });
+  });
+}
 function renderSalesData(){
   const tb = document.querySelector('#tblSalesData tbody');
-  const rows = [...DB.sales].sort((a,b)=>a.date<b.date?-1:1);
-  tb.innerHTML = rows.map(r =>
-    '<tr><td class="lbl">'+fmtMDY4(r.date)+'</td>'+
-    moneyCell(r.g??'')+moneyCell(r.p??'')+moneyCell(r.m??'')+moneyCell(r.h??'')+
-    moneyCell(r.s??'')+moneyCell(r.d??'')+moneyCell(r.b??'')+moneyCell(r.total??'')+'</tr>'
-  ).join('');
+  const rows = DB.sales.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  if (EDIT.sales){
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      edCell(i,'g',r.g)+edCell(i,'p',r.p)+edCell(i,'m',r.m)+edCell(i,'h',r.h)+
+      edCell(i,'s',r.s)+edCell(i,'d',r.d)+edCell(i,'b',r.b)+edCell(i,'total',r.total)+'</tr>'
+    ).join('');
+    bindEdit('#tblSalesData', (idx,k,val,el)=>{
+      const row = DB.sales[idx]; if(!row) return;
+      row[k] = (val==='' ? null : (parseFloat(val)||0));
+      if (k!=='total'){
+        row.total = ['g','p','m','h','s','d','b'].reduce((a,kk)=>a+(row[kk]||0),0);
+        const t = document.querySelector('#tblSalesData .edit-in[data-idx="'+idx+'"][data-k="total"]');
+        if (t) t.value = row.total;
+      }
+      persist();
+    });
+  } else {
+    tb.innerHTML = rows.map(({r}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      moneyCell(r.g??'')+moneyCell(r.p??'')+moneyCell(r.m??'')+moneyCell(r.h??'')+
+      moneyCell(r.s??'')+moneyCell(r.d??'')+moneyCell(r.b??'')+moneyCell(r.total??'')+'</tr>'
+    ).join('');
+  }
   document.getElementById('salesCount').textContent = rows.length+' ROWS';
 }
 
@@ -557,14 +612,31 @@ function purchaseSave(){                       // btnSave_Click: 검증 → 추�
   invoice.value=''; amt.value='';              // VBA와 동일: invoice/amt 초기화 후 vendor 포커스
   vendor.focus();
 }
+const DEPTS = ['Meat','Grocery','Houseware','Produce','Seafood','Deli','Bakery'];
 function renderPurchaseData(){
   const tb = document.querySelector('#tblPurchaseData tbody');
-  const rows = [...DB.purchase].sort((a,b)=>a.date<b.date?-1:1);
-  tb.innerHTML = rows.map(r =>
-    '<tr><td class="lbl">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.dept))+'</td>'+
-    '<td class="lbl">'+esc(up(r.vendor))+'</td><td class="lbl">'+esc(up(r.invoice))+'</td>'+
-    moneyCell(r.amt)+'</tr>'
-  ).join('');
+  const rows = DB.purchase.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  if (EDIT.purchase){
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      '<td class="ed"><select class="edit-sel" data-idx="'+i+'" data-k="dept" data-t="t">'+
+        DEPTS.map(d=>'<option'+(String(r.dept).toLowerCase()===d.toLowerCase()?' selected':'')+'>'+d+'</option>').join('')+
+      '</select></td>'+
+      edCell(i,'vendor',r.vendor,true)+edCell(i,'invoice',r.invoice,true)+edCell(i,'amt',r.amt)+'</tr>'
+    ).join('');
+    bindEdit('#tblPurchaseData', (idx,k,val)=>{
+      const row = DB.purchase[idx]; if(!row) return;
+      if (k==='amt') row.amt = parseFloat(val)||0;
+      else row[k] = (k==='dept') ? val : val.toUpperCase();
+      persist();
+    });
+  } else {
+    tb.innerHTML = rows.map(({r}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.dept))+'</td>'+
+      '<td class="lbl">'+esc(up(r.vendor))+'</td><td class="lbl">'+esc(up(r.invoice))+'</td>'+
+      moneyCell(r.amt)+'</tr>'
+    ).join('');
+  }
   document.getElementById('purchaseCount').textContent = rows.length+' ROWS';
 }
 
@@ -598,11 +670,24 @@ function stockSave(){                          // btnSave_Click: 검증 → 추�
 }
 function renderStockData(){
   const tb = document.querySelector('#tblStockData tbody');
-  const rows = [...DB.stock].sort((a,b)=>a.date<b.date?-1:1);
-  tb.innerHTML = rows.map(r =>
-    '<tr><td class="lbl">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.item))+'</td>'+
-    numCell(r.qty,0)+numCell(r.weight,1)+moneyCell(r.cost)+'</tr>'
-  ).join('');
+  const rows = DB.stock.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  if (EDIT.stock){
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      edCell(i,'item',r.item,true)+edCell(i,'qty',r.qty)+edCell(i,'weight',r.weight)+edCell(i,'cost',r.cost)+'</tr>'
+    ).join('');
+    bindEdit('#tblStockData', (idx,k,val)=>{
+      const row = DB.stock[idx]; if(!row) return;
+      if (k==='item') row.item = val.toUpperCase();
+      else row[k] = parseFloat(val)||0;
+      persist();
+    });
+  } else {
+    tb.innerHTML = rows.map(({r}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.item))+'</td>'+
+      numCell(r.qty,0)+numCell(r.weight,1)+moneyCell(r.cost)+'</tr>'
+    ).join('');
+  }
   document.getElementById('stockCount').textContent = rows.length+' ROWS';
 }
 

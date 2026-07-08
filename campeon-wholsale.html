@@ -109,6 +109,11 @@
   .cw-menu-btn.disabled:hover{ border-color:var(--border); background:var(--bg); }
   .cw-foot{ margin-top:44px; font-size:12px; color:var(--text-faint); font-weight:600; }
 
+  .cw-masthead{ text-align:center; margin-bottom:44px; }
+  .cw-rule{ margin:14px auto 0; }
+  .cw-userline{ justify-content:center; }
+  .cw-single{ display:flex; justify-content:center; }
+  .cw-menu-btn.cw-big{ width:min(440px,100%); padding:18px 22px; font-size:15.5px; border-radius:14px; box-shadow:0 10px 30px rgba(26,26,29,0.12); }
   @media (max-width:640px){
     .cw-menu{ padding:32px 16px 70px; }
     .cw-wordmark{ font-size:34px; }
@@ -119,7 +124,6 @@
 <!-- ===== 로그인 게이트 ===== -->
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
-    <div class="lock-eyebrow">Wholesale Console</div>
     <h1 class="lock-title">CAMPEON WHOLESALE<span class="dot">.</span></h1>
     <div class="field">
       <label for="cwUserPick">아이디</label>
@@ -139,45 +143,15 @@
 <!-- ===== 메인 메뉴 ===== -->
 <div class="cw-menu" id="cwMenu">
   <div class="cw-masthead">
-    <div class="cw-eyebrow">도매 콘솔 · Wholesale</div>
     <div class="cw-wordmark">CAMPEON WHOLESALE<span class="dot">.</span></div>
     <div class="cw-rule"></div>
     <div class="cw-userline"><span id="cwHello"></span><button class="cw-logout" id="cwLogoutBtn" type="button">로그아웃</button></div>
   </div>
 
-  <div class="cw-cards">
-    <!-- SALES -->
-    <div class="cw-card">
-      <div class="cw-card-head"><span class="cw-card-tick"></span><span class="cw-card-name">SALES</span></div>
-      <div class="cw-section-title">MANAGEMENT</div>
-      <button class="cw-menu-btn primary" data-go="sales-management-campeonwholsale.html"><span>SALES MANAGEMENT</span><span class="arrow">→</span></button>
-      <div class="cw-section-title gap">ENTRY</div>
-      <button class="cw-menu-btn" data-go="sales-management-campeonwholsale.html?tab=sales"><span>SALES ENTRY</span><span class="arrow">→</span></button>
-    </div>
-
-    <!-- PURCHASE -->
-    <div class="cw-card">
-      <div class="cw-card-head"><span class="cw-card-tick"></span><span class="cw-card-name">PURCHASE</span></div>
-      <div class="cw-section-title">ENTRY</div>
-      <button class="cw-menu-btn" data-go="sales-management-campeonwholsale.html?tab=purchase"><span>PURCHASE ENTRY</span><span class="arrow">→</span></button>
-    </div>
-
-    <!-- STOCK -->
-    <div class="cw-card">
-      <div class="cw-card-head"><span class="cw-card-tick"></span><span class="cw-card-name">STOCK</span></div>
-      <div class="cw-section-title">ENTRY</div>
-      <button class="cw-menu-btn" data-go="sales-management-campeonwholsale.html?tab=stock"><span>STOCK ENTRY</span><span class="arrow">→</span></button>
-    </div>
-
-    <!-- REPORT -->
-    <div class="cw-card">
-      <div class="cw-card-head"><span class="cw-card-tick"></span><span class="cw-card-name">REPORT</span></div>
-      <div class="cw-section-title">DASHBOARD</div>
-      <button class="cw-menu-btn" data-go="sales-management-campeonwholsale.html?tab=dashboard"><span>DASHBOARD</span><span class="arrow">→</span></button>
-    </div>
+  <div class="cw-single">
+    <button class="cw-menu-btn primary cw-big" data-go="sales-management-campeonwholsale.html"><span>SALES MANAGEMENT</span><span class="arrow">→</span></button>
   </div>
 
-  <div class="cw-foot">CAMPEON WHOLESALE · THE SHAWN 시스템과 같은 Firebase 를 공유합니다.</div>
 </div>
 
 <script>
