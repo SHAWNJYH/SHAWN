@@ -1404,12 +1404,13 @@
 <style>
   #cfOv{ position:fixed; inset:0; z-index:800; background:rgba(20,20,24,.45); display:none; align-items:center; justify-content:center; }
   #cfOv.show{ display:flex; }
-  #cfCard{ width:min(94vw,760px); max-height:88vh; background:#fff; border-radius:16px; display:flex; flex-direction:column; box-shadow:0 30px 80px rgba(0,0,0,.35); overflow:hidden; }
+  #cfCard{ width:min(94vw,1040px); max-height:88vh; background:#fff; border-radius:16px; display:flex; flex-direction:column; box-shadow:0 30px 80px rgba(0,0,0,.35); overflow:hidden; }
   #cfHead{ display:flex; align-items:center; gap:8px; padding:14px 18px; border-bottom:1px solid var(--border,#e5e5e0); }
   #cfHead h3{ margin:0; font-size:15px; font-weight:900; }
-  #cfBody{ flex:1; overflow:auto; padding:14px 18px; }
+  #cfBody{ flex:1; overflow:auto; padding:14px 18px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; align-content:start; }
+  #cfBody .cf-empty{ grid-column:1/-1; }
   #cfFoot{ display:flex; gap:8px; padding:12px 18px; border-top:1px solid var(--border,#e5e5e0); }
-  .cf-field{ border:1.5px solid var(--border,#e5e5e0); border-radius:12px; padding:12px; margin-bottom:12px; }
+  .cf-field{ border:1.5px solid var(--border,#e5e5e0); border-radius:12px; padding:12px; margin-bottom:0; min-width:0; }
   .cf-frow{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
   .cf-frow input.cf-name{ flex:1; border:1.5px solid var(--border,#e5e5e0); border-radius:8px; padding:8px 10px; font-size:13px; font-weight:800; }
   .cf-vals{ display:flex; flex-direction:column; gap:6px; }
@@ -1503,11 +1504,36 @@
 
   $('cfClose').onclick=function(){ $('cfOv').classList.remove('show'); };
   $('cfOv').addEventListener('click', function(e){ if(e.target===$('cfOv')) $('cfOv').classList.remove('show'); });
-  $('cfAddField').onclick=function(){
-    var nm=prompt(CUR_CAT+' 카테고리의 새 필드 이름 (예: ITEM TYPE)');
-    if(!nm) return; nm=nm.trim().toUpperCase(); if(!nm) return;
-    window.cfSaveField&&window.cfSaveField({ orig:'', key:nm, catOf:CUR_CAT, catValues:[] }, function(){ renderCat(); flashSaved('추가됨'); });
-  };
+  $('cfAddField').onclick=function(){ openAddPopup(); };
+  function openAddPopup(){
+    var old=document.getElementById('cfAddOv'); if(old) old.parentNode.removeChild(old);
+    var ov=document.createElement('div'); ov.id='cfAddOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:900;background:rgba(20,20,24,.45);display:flex;align-items:center;justify-content:center;';
+    ov.innerHTML='<div style="width:min(92vw,380px);background:#fff;border-radius:16px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);">'
+      +'<div style="font-size:15px;font-weight:900;margin-bottom:4px;">＋ '+CUR_CAT+' 새 필드</div>'
+      +'<div style="font-size:11.5px;color:#9a9aa0;margin-bottom:12px;">'+CUR_CAT+' 카테고리 전용 필드를 추가합니다.</div>'
+      +'<div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#9a9aa0;margin-bottom:5px;">필드 이름</div>'
+      +'<input id="cfAddName" placeholder="예: ITEM TYPE" maxlength="40" autocomplete="off" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e5e0;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:700;">'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">'
+      +'<button id="cfAddCancel" style="background:#fff;border:1.5px solid #e5e5e0;border-radius:9px;padding:9px 15px;font-size:13px;cursor:pointer;">취소</button>'
+      +'<button id="cfAddOk" style="background:var(--accent-warm,#c9a961);color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;">추가</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    var inp=document.getElementById('cfAddName');
+    inp.addEventListener('input', function(){ this.value=this.value.toUpperCase(); });
+    function close(){ if(ov.parentNode) ov.parentNode.removeChild(ov); }
+    function submit(){
+      var nm=(inp.value||'').trim().toUpperCase();
+      if(!nm){ inp.focus(); return; }
+      window.cfSaveField&&window.cfSaveField({ orig:'', key:nm, catOf:CUR_CAT, catValues:[] }, function(){ renderCat(); flashSaved('추가됨'); });
+      close();
+    }
+    document.getElementById('cfAddOk').onclick=submit;
+    document.getElementById('cfAddCancel').onclick=close;
+    ov.addEventListener('click', function(e){ if(e.target===ov) close(); });
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter') submit(); if(e.key==='Escape') close(); });
+    setTimeout(function(){ inp.focus(); }, 50);
+  }
 })();
 </script>
 </body>
