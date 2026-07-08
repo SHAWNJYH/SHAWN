@@ -723,17 +723,40 @@ function exportBasic(){
   XLSX.writeFile(wb, VENDOR+'('+ymd+').xlsx'); toast('내보냈습니다','success');
 }
 // 카테고리 매핑 EXPORT: 카테고리 엑셀 필드 순서대로, 매핑(관리필드)에 해당하는 현재 값 배치
-function exportWithCategory(cat){
+async function exportWithCategory(cat){
   // 관리필드명 → 현재 데이터(FIELDS label 매칭) 값 함수
   var byLabel={}; FIELDS.forEach(function(f){ byLabel[String(f.label).trim().toUpperCase()]=f; });
+  // 카테고리 필드(숫자 목록) 정의 로드 — OCR 데이터에 없는 필드는 숫자를 골라 전체 적용
+  var mfcat={};
+  try{
+    var F=window.firebaseFns, D=window.firebaseDb;
+    if(F && F.getDoc && D){
+      var snap=await F.getDoc(F.doc(D,'upc-config','main'));
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+      if(d && Array.isArray(d.masterFields)){ d.masterFields.forEach(function(m){ if(m&&m.key&&m.catOf&&Array.isArray(m.catValues)&&m.catValues.length){ mfcat[String(m.key).trim().toUpperCase()]={cat:m.catOf, values:m.catValues}; } }); }
+    }
+  }catch(e){}
+  var fixed={};   // managerField → 고정값(숫자)
+  var maps=cat.mappings||{};
+  var mappedMFs=[]; cat.fields.forEach(function(ef){ var mf=maps[ef]; if(mf && mappedMFs.indexOf(mf)<0) mappedMFs.push(mf); });
+  for(var mi=0; mi<mappedMFs.length; mi++){
+    var MF=String(mappedMFs[mi]).trim().toUpperCase();
+    if(!byLabel[MF] && mfcat[MF]){
+      var opts=mfcat[MF].values.map(function(v){ return v.n+(v.d?(' — '+v.d):''); }).join('\n');
+      var pick=prompt(MF+' 필드 숫자를 선택하세요 (전체 행에 적용됩니다)\n'+opts, mfcat[MF].values[0]&&mfcat[MF].values[0].n||'');
+      if(pick===null){ toast('내보내기를 취소했습니다','error'); return; }
+      fixed[MF]=String(pick).trim();
+    }
+  }
   function valueFor(row, managerField){
-    var f=byLabel[String(managerField||'').trim().toUpperCase()];
+    var MF=String(managerField||'').trim().toUpperCase();
+    if(fixed[MF]!==undefined) return fixed[MF];
+    var f=byLabel[MF];
     if(!f) return '';
     var v=row[f.key]==null?'':row[f.key];
     if(f.money){ var n=parseFloat(String(v).replace(/[^0-9.]/g,'')); return isNaN(n)?'':Number(n.toFixed(2)); }
     return v;
   }
-  var maps=cat.mappings||{};
   var wb=XLSX.utils.book_new();
   var aoa=[cat.fields.slice()];   // 헤더 = 카테고리 엑셀 필드
   ROWS.forEach(function(row){
@@ -743,7 +766,7 @@ function exportWithCategory(cat){
     }));
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), cat.name.substring(0,31));
-  var d=new Date(), ymd=String(d.getFullYear()).slice(-2)+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
+  var d2=new Date(), ymd=String(d2.getFullYear()).slice(-2)+('0'+(d2.getMonth()+1)).slice(-2)+('0'+d2.getDate()).slice(-2);
   var base=(cat.fileName||'').replace(/\.(xlsx|xls|csv)$/i,'') || cat.name;
   XLSX.writeFile(wb, base+'('+ymd+').xlsx');
   toast(cat.name+' 형식으로 내보냈습니다','success');
