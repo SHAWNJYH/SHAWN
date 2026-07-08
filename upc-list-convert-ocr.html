@@ -161,7 +161,7 @@
         <button class="plu-tool-btn" id="word2Btn">✦ 후처리</button>
         <button class="plu-tool-btn icon" id="keyBtn" title="Anthropic API 키 설정">🔑</button>
         <button class="plu-tool-btn danger" id="delBtn">삭제</button>
-        <button class="plu-tool-btn primary" id="exportBtn">EXCEL DOWN</button>
+        <button class="plu-tool-btn primary" id="exportBtn">EXCEL EXPORT</button>
       </div>
     </div>
     <div class="plu-tools" id="ocrNav">
@@ -650,8 +650,67 @@ function handleFiles(files){
 }
 
 /* ===== 내보내기 ===== */
+// EXPORT 카테고리 설정 로드 (STORE MANAGER > EXPORT 설정과 공유)
+async function loadExportCats(){
+  // 1) Firebase (app-config/export-config)
+  try{
+    var F=window.firebaseFns, D=window.firebaseDb;
+    if(F && F.getDoc && D){
+      var snap=await F.getDoc(F.doc(D,'app-config','export-config'));
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+      if(d && Array.isArray(d.profiles) && d.profiles.length) return d.profiles;
+    }
+  }catch(e){}
+  // 2) localStorage 폴백 (같은 브라우저)
+  try{
+    var raw=localStorage.getItem('theShawn_exportConfig_v1');
+    if(raw){ var c=JSON.parse(raw); if(c && Array.isArray(c.profiles)) return c.profiles; }
+  }catch(e){}
+  return [];
+}
 function exportXlsx(){
   if(!ROWS.length){ toast('내보낼 데이터가 없습니다','error'); return; }
+  openExportPicker();
+}
+// 카테고리 선택 팝업
+async function openExportPicker(){
+  var cats=await loadExportCats();
+  var old=document.getElementById('ocrExpPick'); if(old) old.parentNode.removeChild(old);
+  var ov=document.createElement('div'); ov.id='ocrExpPick';
+  ov.style.cssText='position:fixed;inset:0;z-index:9000;background:rgba(20,20,24,.45);display:flex;align-items:center;justify-content:center;';
+  var items=cats.map(function(p){
+    var has=(p.fields&&p.fields.length);
+    return '<button class="ocr-exp-cat" data-id="'+p.id+'" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#fff;border:1.5px solid #e5e5e0;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer;">'
+      +'<span>'+p.name+'</span><span style="margin-left:auto;font-size:11px;font-weight:400;color:'+(has?'#2f7d32':'#c0392b')+';">'+(has?(p.fileName||'파일 연결됨'):'파일 없음')+'</span></button>';
+  }).join('');
+  ov.innerHTML='<div style="width:min(92vw,400px);background:#fff;border-radius:16px;padding:18px;box-shadow:0 30px 80px rgba(0,0,0,.35);">'
+    +'<div style="font-size:15px;font-weight:900;margin-bottom:4px;">EXCEL EXPORT</div>'
+    +'<div style="font-size:11.5px;color:#888;margin-bottom:12px;">출력할 카테고리를 선택하세요. (STORE MANAGER · EXPORT 설정 연동)</div>'
+    +'<div style="display:flex;flex-direction:column;gap:7px;">'
+    +'<button class="ocr-exp-cat" data-id="__basic" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#faf9f5;border:1.5px solid #e5e5e0;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;cursor:pointer;"><span>기본 형식 (현재 필드 그대로)</span></button>'
+    +items+'</div>'
+    +'<div style="display:flex;justify-content:flex-end;margin-top:12px;"><button id="ocrExpCancel" style="background:#fff;border:1.5px solid #e5e5e0;border-radius:9px;padding:8px 14px;font-size:12px;cursor:pointer;">취소</button></div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.parentNode.removeChild(ov); });
+  document.getElementById('ocrExpCancel').onclick=function(){ ov.parentNode.removeChild(ov); };
+  Array.prototype.forEach.call(ov.querySelectorAll('.ocr-exp-cat'), function(b){
+    b.onclick=function(){
+      var id=b.dataset.id;
+      if(id==='__basic'){ ov.parentNode.removeChild(ov); exportBasic(); return; }
+      var cat=cats.filter(function(p){ return p.id===id; })[0];
+      if(!cat) return;
+      if(!cat.fields || !cat.fields.length){
+        toast(cat.name+' 카테고리에 업로드된 엑셀 파일이 없습니다. STORE MANAGER > EXPORT 설정에서 엑셀 파일을 업로드하세요.','error');
+        return;
+      }
+      ov.parentNode.removeChild(ov);
+      exportWithCategory(cat);
+    };
+  });
+}
+// 기본 형식(기존 방식)
+function exportBasic(){
   var wb=XLSX.utils.book_new();
   SUBS.forEach(function(s){
     var rows=ROWS.filter(function(r){ return (r.category||'DRY')===s; });
@@ -662,6 +721,32 @@ function exportXlsx(){
   });
   var d=new Date(), ymd=String(d.getFullYear()).slice(-2)+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
   XLSX.writeFile(wb, VENDOR+'('+ymd+').xlsx'); toast('내보냈습니다','success');
+}
+// 카테고리 매핑 EXPORT: 카테고리 엑셀 필드 순서대로, 매핑(관리필드)에 해당하는 현재 값 배치
+function exportWithCategory(cat){
+  // 관리필드명 → 현재 데이터(FIELDS label 매칭) 값 함수
+  var byLabel={}; FIELDS.forEach(function(f){ byLabel[String(f.label).trim().toUpperCase()]=f; });
+  function valueFor(row, managerField){
+    var f=byLabel[String(managerField||'').trim().toUpperCase()];
+    if(!f) return '';
+    var v=row[f.key]==null?'':row[f.key];
+    if(f.money){ var n=parseFloat(String(v).replace(/[^0-9.]/g,'')); return isNaN(n)?'':Number(n.toFixed(2)); }
+    return v;
+  }
+  var maps=cat.mappings||{};
+  var wb=XLSX.utils.book_new();
+  var aoa=[cat.fields.slice()];   // 헤더 = 카테고리 엑셀 필드
+  ROWS.forEach(function(row){
+    aoa.push(cat.fields.map(function(ef){
+      var mf=maps[ef];              // 이 EXPORT 필드에 연결된 관리필드
+      return mf ? valueFor(row, mf) : '';
+    }));
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), cat.name.substring(0,31));
+  var d=new Date(), ymd=String(d.getFullYear()).slice(-2)+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
+  var base=(cat.fileName||'').replace(/\.(xlsx|xls|csv)$/i,'') || cat.name;
+  XLSX.writeFile(wb, base+'('+ymd+').xlsx');
+  toast(cat.name+' 형식으로 내보냈습니다','success');
 }
 
 /* ===== 특정단어 제거 ===== */

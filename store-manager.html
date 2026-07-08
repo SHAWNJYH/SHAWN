@@ -350,13 +350,14 @@
     <div class="sm-panel" id="smPanelExport">
       <div class="ex-toolbar">
         <div class="ex-tb-group">
-          <span class="ex-tb-label">연결도</span>
-          <select class="ex-sel" id="exProfileSel"><option value="">— 엑셀을 업로드하세요 —</option></select>
+          <span class="ex-tb-label">카테고리</span>
+          <select class="ex-sel" id="exProfileSel"><option value="">— 카테고리 —</option></select>
         </div>
-        <button class="ex-btn" id="exUploadBtn" type="button">＋ 엑셀 업로드</button>
-        <input type="file" id="exFile" accept=".xlsx,.xls,.csv" multiple>
+        <button class="ex-btn" id="exAddCatBtn" type="button">＋ 카테고리</button>
+        <button class="ex-btn" id="exUploadBtn" type="button">📄 엑셀 업로드</button>
+        <input type="file" id="exFile" accept=".xlsx,.xls,.csv">
         <button class="ex-btn" id="exClearBtn" type="button">연결 초기화</button>
-        <button class="ex-btn" id="exDeleteBtn" type="button">프로필 삭제</button>
+        <button class="ex-btn" id="exDeleteBtn" type="button">카테고리 삭제</button>
         <button class="ex-btn ex-warn" id="exFixBtn" type="button" style="display:none;"></button>
         <span class="ex-spacer"></span>
         <span class="ex-armed-note" id="exArmedNote"></span>
@@ -781,6 +782,17 @@
   }
   var __ft=$('fmTrash'); if(__ft) __ft.onclick=openDeletedFieldsModal;
 
+  var DEFAULT_CATS = ['HANA','HANARO','ISHIDA','CAS'];
+  function ensureDefaultCats(){
+    DEFAULT_CATS.forEach(function(nm){
+      if(!state.profiles.some(function(p){ return p.name===nm; })){
+        state.profiles.push({ id: uid(), name: nm, fields: [], mappings: {}, fileName: '' });
+      }
+    });
+    if(!state.activeId || !state.profiles.some(function(p){return p.id===state.activeId;})){
+      state.activeId = (state.profiles[0]&&state.profiles[0].id)||'';
+    }
+  }
   function loadConfig(){
     try{
       var raw = localStorage.getItem(LS_KEY);
@@ -793,13 +805,38 @@
         }
       }
     }catch(e){ console.warn('config load fail', e); }
+    ensureDefaultCats();
   }
-  function saveConfig(){
+  // Firebase에서 로드 (다른 앱과 공유) — 성공 시 로컬 상태 대체
+  function loadConfigCloud(){
+    var fb=window.smFb; if(!fb || !fb.getDoc) return;
+    try{
+      fb.getDoc(fb.doc(fb.db, 'app-config', 'export-config')).then(function(snap){
+        var d=(snap && snap.exists && snap.exists())?(snap.data()||{}):null;
+        if(d && Array.isArray(d.profiles) && d.profiles.length){
+          state.profiles = d.profiles;
+          if(d.activeId) state.activeId = d.activeId;
+          ensureDefaultCats();
+          if($('smPanelExport').classList.contains('active')){ renderExport(); requestAnimationFrame(drawLines); }
+          saveLocal();
+        }
+      }).catch(function(){});
+    }catch(e){}
+  }
+  function saveLocal(){
     try{
       localStorage.setItem(LS_KEY, JSON.stringify({
         profiles: state.profiles, activeId: state.activeId, managerFields: state.managerFields
       }));
     }catch(e){ console.warn('config save fail', e); }
+  }
+  function saveConfig(){
+    saveLocal();
+    // Firebase 저장 (UPC LIST CONVERT 등 다른 앱이 공유)
+    var fb=window.smFb;
+    if(fb && fb.setDoc){
+      try{ fb.setDoc(fb.doc(fb.db, 'app-config', 'export-config'), { profiles: state.profiles, activeId: state.activeId, updatedAt: Date.now() }).catch(function(){}); }catch(e){}
+    }
   }
   function activeProfile(){ return state.profiles.find(function(p){ return p.id===state.activeId; }) || null; }
   function uid(){ return 'pf_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -810,31 +847,43 @@
     var files = Array.prototype.slice.call(e.target.files||[]);
     if(!files.length) return;
     if(!window.XLSX){ alert('엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.'); return; }
-    var done = 0;
-    files.forEach(function(file){
-      var reader = new FileReader();
-      reader.onload = function(ev){
-        try{
-          var wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
-          var ws = wb.Sheets[wb.SheetNames[0]];
-          var rows = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:false });
-          var header = (rows[0]||[]).map(function(h){ return (h==null?'':String(h)).trim(); }).filter(function(h){ return h!==''; });
-          if(!header.length){ alert(file.name+' : 헤더(첫 행)를 찾을 수 없습니다.'); }
-          else{
-            var name = file.name.replace(/\.(xlsx|xls|csv)$/i,'').replace(/_?export$/i,'').replace(/[_\s]+$/,'').toUpperCase() || 'EXPORT';
-            var prof = { id: uid(), name: name, fields: header, mappings: {} };
-            // 같은 이름이 있으면 (2),(3)… 부여
-            var base=name, n=2; while(state.profiles.some(function(p){return p.name===prof.name;})){ prof.name = base+' ('+(n++)+')'; }
-            state.profiles.push(prof);
-            state.activeId = prof.id;
-          }
-        }catch(err){ console.error(err); alert(file.name+' : 읽기 실패'); }
-        done++;
-        if(done===files.length){ saveConfig(); renderExport(); requestAnimationFrame(drawLines); }
-      };
-      reader.readAsArrayBuffer(file);
-    });
+    var p = activeProfile();
+    if(!p){ alert('먼저 카테고리를 선택하세요.'); e.target.value=''; return; }
+    var file = files[0];
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        var wb = XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws, { header:1, blankrows:false });
+        var header = (rows[0]||[]).map(function(h){ return (h==null?'':String(h)).trim(); }).filter(function(h){ return h!==''; });
+        if(!header.length){ alert(file.name+' : 헤더(첫 행)를 찾을 수 없습니다.'); }
+        else{
+          // 활성 카테고리에 파일 적용 — 필드 교체, 이름 같은 매핑은 유지
+          var oldMap = p.mappings||{};
+          var newMap = {};
+          header.forEach(function(f){ if(oldMap[f]) newMap[f]=oldMap[f]; });
+          p.fields = header;
+          p.mappings = newMap;
+          p.fileName = file.name;
+        }
+      }catch(err){ console.error(err); alert(file.name+' : 읽기 실패'); }
+      saveConfig(); renderExport(); requestAnimationFrame(drawLines);
+    };
+    reader.readAsArrayBuffer(file);
     e.target.value='';
+  };
+  // 카테고리 추가
+  $('exAddCatBtn').onclick = function(){
+    var nm = prompt('새 카테고리 이름을 입력하세요 (예: HANA2)');
+    if(!nm) return;
+    nm = nm.trim().toUpperCase();
+    if(!nm) return;
+    if(state.profiles.some(function(p){ return p.name===nm; })){ alert('이미 있는 카테고리입니다.'); return; }
+    var prof = { id: uid(), name: nm, fields: [], mappings: {}, fileName: '' };
+    state.profiles.push(prof);
+    state.activeId = prof.id;
+    saveConfig(); renderExport(); requestAnimationFrame(drawLines);
   };
 
   $('exProfileSel').onchange = function(){ state.activeId = this.value; state.armed=null; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
@@ -860,8 +909,11 @@
   /* ---- 렌더링 ---- */
   function renderProfileSel(){
     var sel = $('exProfileSel');
-    if(!state.profiles.length){ sel.innerHTML='<option value="">— 엑셀을 업로드하세요 —</option>'; return; }
-    sel.innerHTML = state.profiles.map(function(p){ return '<option value="'+p.id+'"'+(p.id===state.activeId?' selected':'')+'>'+esc(p.name)+'</option>'; }).join('');
+    if(!state.profiles.length){ sel.innerHTML='<option value="">— 카테고리 —</option>'; return; }
+    sel.innerHTML = state.profiles.map(function(p){
+      var mark = (p.fields&&p.fields.length) ? ' · '+(p.fileName||'파일') : ' (파일 없음)';
+      return '<option value="'+p.id+'"'+(p.id===state.activeId?' selected':'')+'>'+esc(p.name+mark)+'</option>';
+    }).join('');
   }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function mfLabel(k){ var arr=state.masterRaw||[]; for(var i=0;i<arr.length;i++){ if(arr[i] && arr[i].key===k) return (arr[i].label!=null?arr[i].label:k); } return k; }
@@ -903,7 +955,8 @@
   function renderExportCol(){
     var col = $('exExpCol');
     var p = activeProfile();
-    if(!p){ col.innerHTML = '<div class="ex-empty">오른쪽에 표시할 <b>EXPORT 프로필</b>이 없습니다.<br>상단 <b>＋ 엑셀 업로드</b>로 장비/프로그램별 엑셀을 추가하세요.<br>(엑셀 첫 행의 필드명이 EXPORT 대상 필드가 됩니다)</div>'; return; }
+    if(!p){ col.innerHTML = '<div class="ex-empty">카테고리가 없습니다.<br>상단 <b>＋ 카테고리</b>로 추가하세요.</div>'; return; }
+    if(!p.fields || !p.fields.length){ col.innerHTML = '<div class="ex-empty"><b>'+esc(p.name)+'</b> 카테고리에 업로드된 엑셀 파일이 없습니다.<br>상단 <b>📄 엑셀 업로드</b>로 이 카테고리의 엑셀 파일을 올리세요.<br>(엑셀 첫 행의 필드명이 EXPORT 대상 필드가 됩니다)</div>'; return; }
     var mgrOpts = '<option value="">— 없음 —</option>' + state.managerFields.map(function(f){ return '<option value="'+esc(f)+'">'+esc(mfLabel(f))+'</option>'; }).join('');
     var html = '<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">EXPORT 필드 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
     html += p.fields.map(function(f){
@@ -1180,7 +1233,7 @@
   // 초기화
   loadConfig();
   renderExport();
-  waitForFb().then(function(){ subscribeMaster(); subscribePluMaster(); }).catch(function(){});
+  waitForFb().then(function(){ subscribeMaster(); subscribePluMaster(); loadConfigCloud(); }).catch(function(){});
 })();
 </script>
 <div class="fm-pal-ov" id="fmPalOv">
