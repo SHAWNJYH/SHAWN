@@ -1044,6 +1044,36 @@
   }
   // ==== 카테고리 필드 팝업 연동 ====
   window.cfGetMerged = function(){ return fmMergedRaw(); };
+  // 여러 변경을 한 번에 저장 (전체 적용)
+  window.cfSaveFieldsBulk = function(changes, cb){
+    if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
+    var merged = fmMergedRaw().map(fmNormRow);
+    var err='';
+    (changes||[]).forEach(function(change){
+      if(err) return;
+      var K=String(change.key).trim().toUpperCase();
+      var found=null;
+      merged.forEach(function(m){ if(m.key===(change.orig||K)) found=m; });
+      if(found){
+        // 이름 변경 시 중복 검사
+        if(found.key!==K && merged.some(function(m){ return m!==found && m.key===K; })){ err='이미 있는 필드 이름입니다: '+K; return; }
+        found.key=K; found.label=K; found.catOf=change.catOf; found.catValues=change.catValues||[];
+      } else {
+        if(merged.some(function(m){ return m.key===K; })){ err='이미 있는 필드 이름입니다: '+K; return; }
+        merged.push({ key:K, label:K, type:'text', align:'', trunc:0, bg:'', fg:'', boxc:'', bold:false, locked:false, stores:null, storesByCat:null, catOf:change.catOf, catValues:change.catValues||[] });
+      }
+    });
+    if(err){ alert(err); return; }
+    var data=fmNorm(merged);
+    Promise.all([
+      window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, updatedAt:Date.now() }, { merge:true }),
+      window.smFb.setDoc(window.smFb.doc(window.smFb.db,'plu-config','main'), { masterFields:data, updatedAt:Date.now() }, { merge:true })
+    ]).then(function(){
+      __pluMasterRaw=data.map(fmNormRow); applyMaster(data);
+      if($('smPanelExport').classList.contains('active')){ renderExport(); requestAnimationFrame(drawLines); }
+      cb&&cb();
+    }).catch(function(err2){ alert('저장 실패: '+(err2&&err2.message||err2)); });
+  };
   // change: {orig,key,catOf,catValues} 또는 {del:key}
   window.cfSaveField = function(change, cb){
     if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
@@ -1412,7 +1442,8 @@
   #cfFoot{ display:flex; gap:8px; padding:12px 18px; border-top:1px solid var(--border,#e5e5e0); }
   .cf-field{ border:1.5px solid var(--border,#e5e5e0); border-radius:12px; padding:12px; margin-bottom:0; min-width:0; }
   .cf-frow{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
-  .cf-frow input.cf-name{ flex:1; border:1.5px solid var(--border,#e5e5e0); border-radius:8px; padding:8px 10px; font-size:13px; font-weight:800; }
+  .cf-frow input.cf-name{ flex:1; min-width:0; border:1.5px solid var(--border,#e5e5e0); border-radius:8px; padding:6px 8px; font-size:12px; font-weight:800; }
+  .cf-frow .cf-del{ flex:0 0 auto; }
   .cf-vals{ display:flex; flex-direction:column; gap:3px; }
   .cf-vrow{ display:flex; gap:4px; align-items:center; }
   .cf-vrow input.cf-num{ width:42px; border:1px solid var(--border,#e5e5e0); border-radius:6px; padding:3px 5px; font-size:11px; text-align:center; font-family:var(--mono,monospace); }
@@ -1426,7 +1457,7 @@
 <div id="cfOv"><div id="cfCard">
   <div id="cfHead"><h3 id="cfTitle">필드 관리</h3><span style="flex:1;"></span><button class="cf-btn" id="cfClose">✕</button></div>
   <div id="cfBody"></div>
-  <div id="cfFoot"><button class="cf-btn warm" id="cfAddField">＋ 새 필드 추가</button><span style="flex:1;"></span><span id="cfSaved" style="font-size:11px;color:#2f7d32;align-self:center;"></span></div>
+  <div id="cfFoot"><button class="cf-btn warm" id="cfAddField">＋ 새 필드 추가</button><span style="flex:1;"></span><span id="cfSaved" style="font-size:11px;color:#2f7d32;align-self:center;"></span><button class="cf-btn warm" id="cfApplyAll">✓ 전체 적용</button><button class="cf-btn" id="cfBack">← 돌아가기</button></div>
 </div></div>
 <script>
 (function(){
@@ -1503,8 +1534,49 @@
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
 
   $('cfClose').onclick=function(){ $('cfOv').classList.remove('show'); };
-  $('cfOv').addEventListener('click', function(e){ if(e.target===$('cfOv')) $('cfOv').classList.remove('show'); });
   $('cfAddField').onclick=function(){ openAddPopup(); };
+  // 새 필드 박스를 DOM에만 추가(적용 시 저장)
+  function appendNewFieldBox(name){
+    var body=$('cfBody');
+    var empty=body.querySelector('.cf-empty'); if(empty) empty.parentNode.removeChild(empty);
+    var w=document.createElement('div');
+    w.innerHTML='<div class="cf-field" data-key="">'
+      +'<div class="cf-frow">'
+      +'<input class="cf-name" value="'+esc(name)+'" data-orig="">'
+      +'<button class="cf-btn danger cf-del" type="button" title="필드 삭제" style="padding:4px 8px;">✕</button></div>'
+      +'<div class="cf-vals"></div>'
+      +'<div style="display:flex;gap:8px;margin-top:8px;"><button class="cf-btn cf-vadd" type="button">＋ 숫자 추가</button><span style="flex:1;"></span><button class="cf-btn warm cf-apply" type="button">✓ 적용</button></div>'
+      +'</div>';
+    var box=w.firstChild; body.appendChild(box);
+    // 개별 바인딩
+    box.querySelector('.cf-vadd').onclick=function(){
+      var w2=document.createElement('div'); w2.innerHTML='<div class="cf-vrow"><input class="cf-num" placeholder="숫자"><input class="cf-desc" placeholder="이 숫자에 대한 설명"><button class="cf-btn danger cf-vdel" type="button">🗑</button></div>';
+      var node=w2.firstChild; box.querySelector('.cf-vals').appendChild(node);
+      node.querySelector('.cf-vdel').onclick=function(){ node.parentNode.removeChild(node); };
+    };
+    box.querySelector('.cf-apply').onclick=function(){ applyCatField(box, ''); };
+    box.querySelector('.cf-del').onclick=function(){ if(!confirm('이 새 필드 박스를 지울까요? (아직 저장 전)')) return; box.parentNode.removeChild(box); };
+  }
+  // 전체 적용: 모든 박스를 한 번에 저장
+  $('cfApplyAll').onclick=function(){
+    var boxes=$('cfBody').querySelectorAll('.cf-field');
+    if(!boxes.length) return;
+    var changes=[], bad=[];
+    Array.prototype.forEach.call(boxes, function(box){
+      var name=(box.querySelector('.cf-name').value||'').trim().toUpperCase();
+      if(!name){ bad.push('(이름 없음)'); return; }
+      var vals=[];
+      Array.prototype.forEach.call(box.querySelectorAll('.cf-vrow'), function(r){
+        var n=(r.querySelector('.cf-num').value||'').trim();
+        var d=(r.querySelector('.cf-desc').value||'').trim();
+        if(n!=='') vals.push({n:n,d:d});
+      });
+      changes.push({ orig:(box.dataset.key||''), key:name, catOf:CUR_CAT, catValues:vals });
+    });
+    if(bad.length){ alert('이름이 비어있는 필드가 있습니다.'); return; }
+    if(window.cfSaveFieldsBulk){ window.cfSaveFieldsBulk(changes, function(){ renderCat(); flashSaved('전체 적용됨'); }); }
+  };
+  $('cfBack').onclick=function(){ $('cfOv').classList.remove('show'); };
   function openAddPopup(){
     var old=document.getElementById('cfAddOv'); if(old) old.parentNode.removeChild(old);
     var ov=document.createElement('div'); ov.id='cfAddOv';
@@ -1525,7 +1597,7 @@
     function submit(){
       var nm=(inp.value||'').trim().toUpperCase();
       if(!nm){ inp.focus(); return; }
-      window.cfSaveField&&window.cfSaveField({ orig:'', key:nm, catOf:CUR_CAT, catValues:[] }, function(){ renderCat(); flashSaved('추가됨'); });
+      appendNewFieldBox(nm);   // 저장하지 않고 박스만 추가 — 기존 수정 내용 유지
       close();
     }
     document.getElementById('cfAddOk').onclick=submit;
