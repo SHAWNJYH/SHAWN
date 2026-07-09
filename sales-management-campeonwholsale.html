@@ -143,11 +143,11 @@
 </head>
 <body>
 <script>
-  /* === 진입 가드 === campeonwholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
+  /* === 진입 가드 === campeon-wholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
   (function(){
     try{
       var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
-      if(!ok){ location.replace('campeonwholsale.html'); }
+      if(!ok){ location.replace('campeon-wholsale.html'); }
     }catch(e){}
   })();
 </script>
@@ -160,7 +160,7 @@
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
   <div class="today">Today: <b id="todayLabel"></b></div>
-  <button onclick="location.href='campeonwholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
+  <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
 </header>
 
 <div class="app">
