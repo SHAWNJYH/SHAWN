@@ -4,6 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1920">
 <title>영업관리 v1.0</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  try {
+    const app = initializeApp({
+      apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+      authDomain: "the-shawn.firebaseapp.com",
+      projectId: "the-shawn",
+      storageBucket: "the-shawn.firebasestorage.app",
+      messagingSenderId: "519898602513",
+      appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+      measurementId: "G-NKGYGC63JN"
+    });
+    const db = getFirestore(app);
+    window.fbSM = { db, doc, getDoc, setDoc, onSnapshot };
+    window.dispatchEvent(new Event('fbsm-ready'));
+  } catch (e) { console.error('firebase init fail', e); }
+</script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -93,6 +111,24 @@
   }
   .edit-in:focus, .edit-sel:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
   .edit-in.txt { text-align: left; text-transform: uppercase; }
+  .edit-date {
+    width: 100%; min-width: 130px; border: 1px solid #cbd5e1; border-radius: 5px;
+    padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fffdf6; color: #111827;
+  }
+  .edit-date:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  .entry-left { width: 420px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  .entry-left .entry-form { width: 100%; }
+  .month-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .flt-btn {
+    border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 6px;
+    padding: 7px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all .12s;
+  }
+  .flt-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
+  .flt-btn.on { background: #1e40af; border-color: #1e40af; color: #fff; }
+  .frow input[type="date"] { text-align: left; }
+  .sync { font-size: 11.5px; font-weight: 700; color: #94a3b8; margin-right: 14px; white-space: nowrap; }
+  .sync.on { color: #4ade80; }
+  .sync::before { content: '● '; }
   .edit-sel { text-align: left; }
   .btn-save  { background: #16a34a; color: #fff; padding: 10px 0; width: 100%; font-size: 14px; }
   .btn-clear { background: #e2e8f0; color: #334155; padding: 10px 0; width: 100%; font-size: 14px; }
@@ -159,7 +195,7 @@
     <button id="tab-purchase" onclick="showTab('purchase')">PURCHASE</button>
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
-  <div class="today">Today: <b id="todayLabel"></b></div>
+  <div class="today"><span class="sync" id="syncState">오프라인</span>Today: <b id="todayLabel"></b></div>
   <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
 </header>
 
@@ -241,6 +277,7 @@
   <!-- ══════════ SALES ══════════ -->
   <section id="view-sales" class="view">
     <div class="entry-wrap">
+      <div class="entry-left">
       <div class="card entry-form">
         <h2>Sales Entry <span class="sub">daily sales by department</span></h2>
         <div class="body">
@@ -268,6 +305,19 @@
           <div class="hint">같은 날짜가 있으면 해당 행에 덮어쓰기, 없으면 새 행 추가</div>
         </div>
       </div>
+      <div class="card">
+        <h2>검색 <span class="sub">DATE 기준</span></h2>
+        <div class="body">
+          <div class="frow"><label>시작 날짜</label><input type="date" id="f_sales_from"></div>
+          <div class="frow"><label>끝 날짜</label><input type="date" id="f_sales_to"></div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="applyRange('sales')">검색</button>
+            <button class="btn btn-clear" onclick="clearFilter('sales')">전체보기</button>
+          </div>
+          <div class="month-row" id="mb_sales"></div>
+        </div>
+      </div>
+      </div>
       <div class="card entry-data">
         <h2>SALES <span class="sub" id="salesCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button>
@@ -288,6 +338,7 @@
   <!-- ══════════ PURCHASE ══════════ -->
   <section id="view-purchase" class="view">
     <div class="entry-wrap">
+      <div class="entry-left">
       <div class="card entry-form">
         <h2>Purchase Entry <span class="sub">invoice registration</span></h2>
         <div class="body">
@@ -314,6 +365,19 @@
           </div>
         </div>
       </div>
+      <div class="card">
+        <h2>검색 <span class="sub">DATE 기준</span></h2>
+        <div class="body">
+          <div class="frow"><label>시작 날짜</label><input type="date" id="f_purchase_from"></div>
+          <div class="frow"><label>끝 날짜</label><input type="date" id="f_purchase_to"></div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="applyRange('purchase')">검색</button>
+            <button class="btn btn-clear" onclick="clearFilter('purchase')">전체보기</button>
+          </div>
+          <div class="month-row" id="mb_purchase"></div>
+        </div>
+      </div>
+      </div>
       <div class="card entry-data">
         <h2>PURCHASE <span class="sub" id="purchaseCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button>
@@ -334,6 +398,7 @@
   <!-- ══════════ STOCK ══════════ -->
   <section id="view-stock" class="view">
     <div class="entry-wrap">
+      <div class="entry-left">
       <div class="card entry-form">
         <h2>Stock Entry <span class="sub">meat stock receiving</span></h2>
         <div class="body">
@@ -353,6 +418,19 @@
             <button class="btn btn-save" onclick="stockSave()">SAVE</button>
           </div>
         </div>
+      </div>
+      <div class="card">
+        <h2>검색 <span class="sub">DATE 기준</span></h2>
+        <div class="body">
+          <div class="frow"><label>시작 날짜</label><input type="date" id="f_stock_from"></div>
+          <div class="frow"><label>끝 날짜</label><input type="date" id="f_stock_to"></div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="applyRange('stock')">검색</button>
+            <button class="btn btn-clear" onclick="clearFilter('stock')">전체보기</button>
+          </div>
+          <div class="month-row" id="mb_stock"></div>
+        </div>
+      </div>
       </div>
       <div class="card entry-data">
         <h2>STOCK <span class="sub" id="stockCount"></span><span class="push"></span>
@@ -502,7 +580,65 @@ const SEED_PURCHASE = [
     SEED_PURCHASE.forEach(r=>{ if (!haveP.has(pk(r))) DB.purchase.push({...r}); });
   }
 })();
-function persist(){ try { store.setItem(KEY, JSON.stringify(DB)); } catch(e){} }
+function persist(){
+  try { store.setItem(KEY, JSON.stringify(DB)); } catch(e){}
+  schedulePush();                              // 실시간 Firestore 저장
+}
+
+/* ═════════ Firebase 실시간 동기화 ═════════
+   Firestore(campeon-wholsale/sales-data)가 원본 저장소.
+   - 문서가 있으면: 파일 내장 데이터 대신 Firestore 데이터를 사용
+   - 문서가 없으면: 현재(시드 포함) 데이터를 최초 업로드
+   - 모든 입력/수정은 즉시 저장, 다른 기기 변경은 실시간 반영           */
+const CID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+let pushTimer = null, remotePending = null, fbConnected = false;
+function setSync(t, on){
+  const e = document.getElementById('syncState');
+  if (e){ e.textContent = t; e.classList.toggle('on', !!on); }
+}
+function fbRef(){ const fb = window.fbSM; return fb ? fb.doc(fb.db, 'campeon-wholsale', 'sales-data') : null; }
+function schedulePush(){
+  if (!window.fbSM) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushAll, 500);
+}
+async function pushAll(){
+  const fb = window.fbSM; if (!fb) return;
+  try {
+    await fb.setDoc(fbRef(), {
+      sales: DB.sales, purchase: DB.purchase, stock: DB.stock,
+      stockItems: DB.stockItems, by: CID, updatedAt: Date.now()
+    });
+    setSync('실시간 저장됨', true);
+  } catch(e){ setSync('저장 실패 — 연결 확인', false); }
+}
+function renderAll(){ renderSalesData(); renderPurchaseData(); renderStockData(); renderDashboard(); }
+function applyRemote(d){
+  if (EDIT.sales || EDIT.purchase || EDIT.stock){ remotePending = d; return; }   // 편집 중엔 보류
+  DB.sales = Array.isArray(d.sales) ? d.sales : [];
+  DB.purchase = Array.isArray(d.purchase) ? d.purchase : [];
+  DB.stock = Array.isArray(d.stock) ? d.stock : [];
+  if (Array.isArray(d.stockItems) && d.stockItems.length === 13) DB.stockItems = d.stockItems;
+  try { store.setItem(KEY, JSON.stringify(DB)); } catch(e){}
+  renderAll();
+}
+function startSync(){
+  const fb = window.fbSM;
+  if (!fb){ return; }
+  try {
+    fb.onSnapshot(fbRef(), snap => {
+      fbConnected = true;
+      const exists = snap && snap.exists && snap.exists();
+      if (!exists){ pushAll(); return; }                    // 최초: 현재 데이터를 Firestore 로
+      const d = snap.data() || {};
+      if (d.by === CID){ setSync('실시간 저장됨', true); return; }  // 내 쓰기 에코
+      setSync('실시간 동기화', true);
+      applyRemote(d);                                        // Firestore 데이터가 원본
+    }, err => { setSync('오프라인 (로컬 저장)', false); });
+    setSync('연결 중…', false);
+  } catch(e){ setSync('오프라인 (로컬 저장)', false); }
+}
+window.addEventListener('fbsm-ready', startSync);
 
 /* ═════════ Date helpers ═════════ */
 const pad = n => String(n).padStart(2,'0');
@@ -609,22 +745,70 @@ function salesSave(){                          // cmdSave_Click: 같은 날짜 �
   function v(id){ const x=document.getElementById(id).value; return x.length>0 ? (parseFloat(x)||0) : null; }
   function int(id){ return parseInt(document.getElementById(id).value,10)||0; }
 }
-/* ===== 편집 모드 (EDIT — 날짜 제외 전 필드 수정) ===== */
+/* ===== 검색 · 월별 보기 필터 (DATE 기준) ===== */
+const FILTER = { sales:null, purchase:null, stock:null };
+function rerenderTab(tab){
+  if (tab==='sales') renderSalesData();
+  else if (tab==='purchase') renderPurchaseData();
+  else renderStockData();
+}
+function applyRange(tab){
+  const f = (document.getElementById('f_'+tab+'_from')||{}).value || '';
+  const t = (document.getElementById('f_'+tab+'_to')||{}).value || '';
+  if (!f && !t){ toast('시작 또는 끝 날짜를 선택하세요', false); return; }
+  FILTER[tab] = { from: f || '0000-01-01', to: t || '9999-12-31' };
+  rerenderTab(tab);
+}
+function clearFilter(tab){
+  FILTER[tab] = null;
+  const a = document.getElementById('f_'+tab+'_from'); if (a) a.value = '';
+  const b = document.getElementById('f_'+tab+'_to');   if (b) b.value = '';
+  rerenderTab(tab);
+}
+function setMonthFilter(tab, ym){
+  FILTER[tab] = { from: ym+'-01', to: ym+'-31', ym: ym };
+  rerenderTab(tab);
+}
+function filterRows(tab, arr){
+  const f = FILTER[tab]; if (!f) return arr;
+  return arr.filter(x => x.r.date >= f.from && x.r.date <= f.to);
+}
+function renderMonthButtons(tab){
+  const el = document.getElementById('mb_'+tab); if (!el) return;
+  const list = DB[tab];
+  const months = [...new Set(list.map(r => String(r.date||'').slice(0,7)))].filter(m=>m.length===7).sort();
+  const multiYear = new Set(months.map(m => m.slice(0,4))).size > 1;
+  let h = '<button class="flt-btn'+(FILTER[tab]?'':' on')+'" onclick="clearFilter(\''+tab+'\')">전체보기</button>';
+  months.forEach(m => {
+    const lbl = (multiYear ? m.slice(2,4)+'년 ' : '') + parseInt(m.slice(5,7),10) + '월 보기';
+    const on = (FILTER[tab] && FILTER[tab].ym === m) ? ' on' : '';
+    h += '<button class="flt-btn'+on+'" onclick="setMonthFilter(\''+tab+'\',\''+m+'\')">'+lbl+'</button>';
+  });
+  el.innerHTML = h;
+}
+
+/* ===== 편집 모드 (EDIT — 날짜 포함 전 필드 수정) ===== */
 const EDIT = { sales:false, purchase:false, stock:false };
 function toggleEdit(tab){
   EDIT[tab] = !EDIT[tab];
   const b = document.getElementById('edit-'+tab);
   if (b){ b.textContent = EDIT[tab] ? 'DONE' : 'EDIT'; b.classList.toggle('on', EDIT[tab]); }
-  if (tab==='sales') renderSalesData();
-  else if (tab==='purchase') renderPurchaseData();
-  else renderStockData();
-  if (!EDIT[tab]){ renderDashboard(); toast('수정 내용이 저장되었습니다', true); }
+  rerenderTab(tab);
+  if (!EDIT[tab]){
+    if (remotePending && !EDIT.sales && !EDIT.purchase && !EDIT.stock){
+      const d = remotePending; remotePending = null; applyRemote(d);   // 편집 중 보류했던 원격 변경 반영
+    }
+    renderDashboard(); toast('수정 내용이 저장되었습니다', true);
+  }
+}
+function edDate(idx, date){
+  return '<td class="ed"><input type="date" class="edit-date" data-idx="'+idx+'" data-k="date" data-t="d" value="'+esc(date)+'"></td>';
 }
 function edCell(idx, k, v, txt){
   return '<td class="ed"><input class="edit-in'+(txt?' txt':'')+'" data-idx="'+idx+'" data-k="'+k+'" data-t="'+(txt?'t':'n')+'" value="'+esc(v==null?'':v)+'"></td>';
 }
 function bindEdit(tableSel, commit){
-  document.querySelectorAll(tableSel+' .edit-in, '+tableSel+' .edit-sel').forEach(el=>{
+  document.querySelectorAll(tableSel+' .edit-in, '+tableSel+' .edit-sel, '+tableSel+' .edit-date').forEach(el=>{
     if (el.dataset.t==='n'){
       el.addEventListener('input', ()=>{ const f=el.value.replace(/[^0-9.\-]/g,''); if(f!==el.value) el.value=f; });
     }
@@ -633,15 +817,18 @@ function bindEdit(tableSel, commit){
 }
 function renderSalesData(){
   const tb = document.querySelector('#tblSalesData tbody');
-  const rows = DB.sales.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  let rows = DB.sales.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  const totalN = rows.length;
+  rows = filterRows('sales', rows);
   if (EDIT.sales){
     tb.innerHTML = rows.map(({r,i}) =>
-      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      '<tr>'+edDate(i, r.date)+
       edCell(i,'g',r.g)+edCell(i,'p',r.p)+edCell(i,'m',r.m)+edCell(i,'h',r.h)+
       edCell(i,'s',r.s)+edCell(i,'d',r.d)+edCell(i,'b',r.b)+edCell(i,'total',r.total)+'</tr>'
     ).join('');
     bindEdit('#tblSalesData', (idx,k,val,el)=>{
       const row = DB.sales[idx]; if(!row) return;
+      if (k==='date'){ if(!val) return; row.date = val; persist(); renderSalesData(); return; }
       row[k] = (val==='' ? null : (parseFloat(val)||0));
       if (k!=='total'){
         row.total = ['g','p','m','h','s','d','b'].reduce((a,kk)=>a+(row[kk]||0),0);
@@ -657,7 +844,8 @@ function renderSalesData(){
       moneyCell(r.s??'')+moneyCell(r.d??'')+moneyCell(r.b??'')+moneyCell(r.total??'')+'</tr>'
     ).join('');
   }
-  document.getElementById('salesCount').textContent = rows.length+' ROWS';
+  document.getElementById('salesCount').textContent = (FILTER.sales ? rows.length+' / '+totalN : rows.length)+' ROWS';
+  renderMonthButtons('sales');
 }
 
 /* ═════════════════════════ PURCHASE (frmPurchase 그대로) ═════════════════════════ */
@@ -696,10 +884,12 @@ function purchaseSave(){                       // btnSave_Click: 검증 → 추�
 const DEPTS = ['Meat','Grocery','Houseware','Produce','Seafood','Deli','Bakery'];
 function renderPurchaseData(){
   const tb = document.querySelector('#tblPurchaseData tbody');
-  const rows = DB.purchase.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  let rows = DB.purchase.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  const totalN = rows.length;
+  rows = filterRows('purchase', rows);
   if (EDIT.purchase){
     tb.innerHTML = rows.map(({r,i}) =>
-      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      '<tr>'+edDate(i, r.date)+
       '<td class="ed"><select class="edit-sel" data-idx="'+i+'" data-k="dept" data-t="t">'+
         DEPTS.map(d=>'<option'+(String(r.dept).toLowerCase()===d.toLowerCase()?' selected':'')+'>'+d+'</option>').join('')+
       '</select></td>'+
@@ -707,6 +897,7 @@ function renderPurchaseData(){
     ).join('');
     bindEdit('#tblPurchaseData', (idx,k,val)=>{
       const row = DB.purchase[idx]; if(!row) return;
+      if (k==='date'){ if(!val) return; row.date = val; persist(); renderPurchaseData(); return; }
       if (k==='amt') row.amt = parseFloat(val)||0;
       else row[k] = (k==='dept') ? val : val.toUpperCase();
       persist();
@@ -718,7 +909,8 @@ function renderPurchaseData(){
       moneyCell(r.amt)+'</tr>'
     ).join('');
   }
-  document.getElementById('purchaseCount').textContent = rows.length+' ROWS';
+  document.getElementById('purchaseCount').textContent = (FILTER.purchase ? rows.length+' / '+totalN : rows.length)+' ROWS';
+  renderMonthButtons('purchase');
 }
 
 /* ═════════════════════════ STOCK (frmStock 그대로) ═════════════════════════ */
@@ -751,14 +943,17 @@ function stockSave(){                          // btnSave_Click: 검증 → 추�
 }
 function renderStockData(){
   const tb = document.querySelector('#tblStockData tbody');
-  const rows = DB.stock.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  let rows = DB.stock.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  const totalN = rows.length;
+  rows = filterRows('stock', rows);
   if (EDIT.stock){
     tb.innerHTML = rows.map(({r,i}) =>
-      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      '<tr>'+edDate(i, r.date)+
       edCell(i,'item',r.item,true)+edCell(i,'qty',r.qty)+edCell(i,'weight',r.weight)+edCell(i,'cost',r.cost)+'</tr>'
     ).join('');
     bindEdit('#tblStockData', (idx,k,val)=>{
       const row = DB.stock[idx]; if(!row) return;
+      if (k==='date'){ if(!val) return; row.date = val; persist(); renderStockData(); return; }
       if (k==='item') row.item = val.toUpperCase();
       else row[k] = parseFloat(val)||0;
       persist();
@@ -769,7 +964,8 @@ function renderStockData(){
       numCell(r.qty,0)+numCell(r.weight,1)+moneyCell(r.cost)+'</tr>'
     ).join('');
   }
-  document.getElementById('stockCount').textContent = rows.length+' ROWS';
+  document.getElementById('stockCount').textContent = (FILTER.stock ? rows.length+' / '+totalN : rows.length)+' ROWS';
+  renderMonthButtons('stock');
 }
 
 /* ═════════════════════════ DASHBOARD — 수식 그대로 ═════════════════════════ */
@@ -1122,6 +1318,7 @@ async function exportDashboardPDF(){
 salesInit(); purchaseInit(); stockInit();
 renderSalesData(); renderPurchaseData(); renderStockData();
 renderDashboard();
+startSync();                                   // Firebase 실시간 동기화 시작
 /* ?tab=sales|purchase|stock|dashboard 딥링크 */
 (function(){
   try{
