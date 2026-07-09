@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1920">
-<title>영업관리 v1.0</title>
+<title>SALES MANAGEMENT v1.0 · CAMPEON WHOLESALE</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -126,6 +126,23 @@
   .flt-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
   .flt-btn.on { background: #1e40af; border-color: #1e40af; color: #fff; }
   .frow input[type="date"] { text-align: left; }
+  .delh, .entry-data td.delc { min-width: 64px !important; width: 64px; text-align: center; }
+  .row-del {
+    border: 1px solid #fca5a5; background: #fff; color: #dc2626; border-radius: 5px;
+    padding: 4px 11px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all .12s;
+  }
+  .row-del:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
+  .mtot { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; background: #fbfcfe; }
+  .mtot-chip {
+    border: 1px solid #dbe3ee; background: #fff; border-radius: 8px; padding: 6px 14px;
+    font-size: 12.5px; font-weight: 700; color: #475569; white-space: nowrap;
+  }
+  .mtot-chip b { color: #0f172a; margin-left: 8px; }
+  .mtot-chip.empty { color: #94a3b8; }
+  .entry-left .frow label { width: 158px; font-size: 11.5px; }
+  .entry-left .frow input[type="date"] { min-width: 0; width: 100%; padding: 7px 8px; font-size: 12.5px; }
+  .flt-btn { white-space: nowrap; }
+  .entry-left .btn-row .btn { font-size: 13px; white-space: nowrap; padding: 10px 4px; }
   .sync { font-size: 11.5px; font-weight: 700; color: #94a3b8; margin-right: 14px; white-space: nowrap; }
   .sync.on { color: #4ade80; }
   .sync::before { content: '● '; }
@@ -142,7 +159,7 @@
   .entry-data { flex: 1 1 auto; }
   .data-scroll { overflow-y: auto; max-height: 880px; }
   .frow { display: flex; align-items: center; margin-bottom: 9px; gap: 10px; }
-  .frow label { width: 150px; flex: 0 0 auto; font-weight: 600; color: #475569; white-space: nowrap; }
+  .frow label { width: 158px; flex: 0 0 auto; font-weight: 600; font-size: 11.5px; color: #475569; white-space: nowrap; overflow: hidden; }
   .frow input, .frow select {
     flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 10px;
     font-size: 13px; font-family: inherit; text-align: right; min-width: 0;
@@ -188,14 +205,14 @@
   })();
 </script>
 <header>
-  <div class="logo">영업관리 <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
+  <div class="logo">SALES MANAGEMENT <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
   <nav>
     <button id="tab-dashboard" class="active" onclick="showTab('dashboard')">DASHBOARD</button>
     <button id="tab-sales" onclick="showTab('sales')">SALES</button>
     <button id="tab-purchase" onclick="showTab('purchase')">PURCHASE</button>
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
-  <div class="today"><span class="sync" id="syncState">오프라인</span>Today: <b id="todayLabel"></b></div>
+  <div class="today"><span class="sync" id="syncState">OFFLINE</span>Today: <b id="todayLabel"></b></div>
   <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
 </header>
 
@@ -302,17 +319,17 @@
             <button class="btn btn-save" onclick="salesSave()">SAVE</button>
             <button class="btn btn-clear" onclick="salesClear();document.getElementById('s_g').focus()">CLEAR</button>
           </div>
-          <div class="hint">같은 날짜가 있으면 해당 행에 덮어쓰기, 없으면 새 행 추가</div>
+          <div class="hint">Same date overwrites that row · otherwise a new row is added</div>
         </div>
       </div>
       <div class="card">
-        <h2>검색 <span class="sub">DATE 기준</span></h2>
+        <h2>SEARCH <span class="sub">BY DATE</span></h2>
         <div class="body">
-          <div class="frow"><label>시작 날짜</label><input type="date" id="f_sales_from"></div>
-          <div class="frow"><label>끝 날짜</label><input type="date" id="f_sales_to"></div>
+          <div class="frow"><label>START DATE</label><input type="date" id="f_sales_from"></div>
+          <div class="frow"><label>END DATE</label><input type="date" id="f_sales_to"></div>
           <div class="btn-row">
-            <button class="btn btn-save" onclick="applyRange('sales')">검색</button>
-            <button class="btn btn-clear" onclick="clearFilter('sales')">전체보기</button>
+            <button class="btn btn-save" onclick="applyRange('sales')">SEARCH</button>
+            <button class="btn btn-clear" onclick="clearFilter('sales')">VIEW ALL</button>
           </div>
           <div class="month-row" id="mb_sales"></div>
         </div>
@@ -322,11 +339,12 @@
         <h2>SALES <span class="sub" id="salesCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button>
           <button class="btn btn-edit btn-sm" id="edit-sales" onclick="toggleEdit('sales')">EDIT</button></h2>
+        <div class="mtot" id="mt_sales"></div>
         <div class="data-scroll">
           <table id="tblSalesData">
             <thead><tr>
               <th class="lbl">DATE</th><th>GROCERY</th><th>PRODUCE</th><th>MEAT</th>
-              <th>HOUSEWARE</th><th>SEAFOOD</th><th>DELI</th><th>BAKERY</th><th>TOTAL</th>
+              <th>HOUSEWARE</th><th>SEAFOOD</th><th>DELI</th><th>BAKERY</th><th>TOTAL</th><th class="delh">DEL</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -366,13 +384,13 @@
         </div>
       </div>
       <div class="card">
-        <h2>검색 <span class="sub">DATE 기준</span></h2>
+        <h2>SEARCH <span class="sub">BY DATE</span></h2>
         <div class="body">
-          <div class="frow"><label>시작 날짜</label><input type="date" id="f_purchase_from"></div>
-          <div class="frow"><label>끝 날짜</label><input type="date" id="f_purchase_to"></div>
+          <div class="frow"><label>START DATE</label><input type="date" id="f_purchase_from"></div>
+          <div class="frow"><label>END DATE</label><input type="date" id="f_purchase_to"></div>
           <div class="btn-row">
-            <button class="btn btn-save" onclick="applyRange('purchase')">검색</button>
-            <button class="btn btn-clear" onclick="clearFilter('purchase')">전체보기</button>
+            <button class="btn btn-save" onclick="applyRange('purchase')">SEARCH</button>
+            <button class="btn btn-clear" onclick="clearFilter('purchase')">VIEW ALL</button>
           </div>
           <div class="month-row" id="mb_purchase"></div>
         </div>
@@ -382,11 +400,12 @@
         <h2>PURCHASE <span class="sub" id="purchaseCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button>
           <button class="btn btn-edit btn-sm" id="edit-purchase" onclick="toggleEdit('purchase')">EDIT</button></h2>
+        <div class="mtot" id="mt_purchase"></div>
         <div class="data-scroll">
           <table id="tblPurchaseData">
             <thead><tr>
               <th class="lbl">DATE</th><th class="lbl">DEPT</th><th class="lbl">VENDOR</th>
-              <th class="lbl">INVOICE</th><th>AMT</th>
+              <th class="lbl">INVOICE</th><th>AMT</th><th class="delh">DEL</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -420,13 +439,13 @@
         </div>
       </div>
       <div class="card">
-        <h2>검색 <span class="sub">DATE 기준</span></h2>
+        <h2>SEARCH <span class="sub">BY DATE</span></h2>
         <div class="body">
-          <div class="frow"><label>시작 날짜</label><input type="date" id="f_stock_from"></div>
-          <div class="frow"><label>끝 날짜</label><input type="date" id="f_stock_to"></div>
+          <div class="frow"><label>START DATE</label><input type="date" id="f_stock_from"></div>
+          <div class="frow"><label>END DATE</label><input type="date" id="f_stock_to"></div>
           <div class="btn-row">
-            <button class="btn btn-save" onclick="applyRange('stock')">검색</button>
-            <button class="btn btn-clear" onclick="clearFilter('stock')">전체보기</button>
+            <button class="btn btn-save" onclick="applyRange('stock')">SEARCH</button>
+            <button class="btn btn-clear" onclick="clearFilter('stock')">VIEW ALL</button>
           </div>
           <div class="month-row" id="mb_stock"></div>
         </div>
@@ -436,11 +455,12 @@
         <h2>STOCK <span class="sub" id="stockCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportStockExcel()">EXCEL EXPORT</button>
           <button class="btn btn-edit btn-sm" id="edit-stock" onclick="toggleEdit('stock')">EDIT</button></h2>
+        <div class="mtot" id="mt_stock"></div>
         <div class="data-scroll">
           <table id="tblStockData">
             <thead><tr>
               <th class="lbl">DATE</th><th class="lbl">ITEM</th><th>QTY</th>
-              <th>WEIGHT</th><th>COST</th>
+              <th>WEIGHT</th><th>COST</th><th class="delh">DEL</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -609,8 +629,8 @@ async function pushAll(){
       sales: DB.sales, purchase: DB.purchase, stock: DB.stock,
       stockItems: DB.stockItems, by: CID, updatedAt: Date.now()
     });
-    setSync('실시간 저장됨', true);
-  } catch(e){ setSync('저장 실패 — 연결 확인', false); }
+    setSync('SAVED · LIVE', true);
+  } catch(e){ setSync('SAVE FAILED — CHECK CONNECTION', false); }
 }
 function renderAll(){ renderSalesData(); renderPurchaseData(); renderStockData(); renderDashboard(); }
 function applyRemote(d){
@@ -631,12 +651,12 @@ function startSync(){
       const exists = snap && snap.exists && snap.exists();
       if (!exists){ pushAll(); return; }                    // 최초: 현재 데이터를 Firestore 로
       const d = snap.data() || {};
-      if (d.by === CID){ setSync('실시간 저장됨', true); return; }  // 내 쓰기 에코
-      setSync('실시간 동기화', true);
+      if (d.by === CID){ setSync('SAVED · LIVE', true); return; }  // 내 쓰기 에코
+      setSync('LIVE SYNC', true);
       applyRemote(d);                                        // Firestore 데이터가 원본
-    }, err => { setSync('오프라인 (로컬 저장)', false); });
-    setSync('연결 중…', false);
-  } catch(e){ setSync('오프라인 (로컬 저장)', false); }
+    }, err => { setSync('OFFLINE (LOCAL SAVE)', false); });
+    setSync('CONNECTING…', false);
+  } catch(e){ setSync('OFFLINE (LOCAL SAVE)', false); }
 }
 window.addEventListener('fbsm-ready', startSync);
 
@@ -755,7 +775,7 @@ function rerenderTab(tab){
 function applyRange(tab){
   const f = (document.getElementById('f_'+tab+'_from')||{}).value || '';
   const t = (document.getElementById('f_'+tab+'_to')||{}).value || '';
-  if (!f && !t){ toast('시작 또는 끝 날짜를 선택하세요', false); return; }
+  if (!f && !t){ toast('Select start or end date', false); return; }
   FILTER[tab] = { from: f || '0000-01-01', to: t || '9999-12-31' };
   rerenderTab(tab);
 }
@@ -773,14 +793,39 @@ function filterRows(tab, arr){
   const f = FILTER[tab]; if (!f) return arr;
   return arr.filter(x => x.r.date >= f.from && x.r.date <= f.to);
 }
+const MON3 = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function monthLbl(m, withYear){ return MON3[parseInt(m.slice(5,7),10)-1] + (withYear ? ' '+m.slice(0,4) : ''); }
+/* 리스트 상단 월별 TOTAL (최근 5개월 롤링 — 새 달이 생기면 가장 오래된 달 제거) */
+function renderMonthTotals(tab){
+  const el = document.getElementById('mt_'+tab); if (!el) return;
+  const val = tab==='sales' ? (r=>r.total||0) : (tab==='purchase' ? (r=>r.amt||0) : (r=>r.cost||0));
+  const sums = {};
+  DB[tab].forEach(r => { const m = String(r.date||'').slice(0,7); if (m.length===7) sums[m] = (sums[m]||0) + val(r); });
+  const months = Object.keys(sums).sort().slice(-5);
+  el.innerHTML = months.length
+    ? months.map(m => '<span class="mtot-chip">'+monthLbl(m,true)+' TOTAL<b>'+fmtMoney(sums[m])+'</b></span>').join('')
+    : '<span class="mtot-chip empty">NO DATA</span>';
+}
+function delCell(i){ return '<td class="delc"><button class="row-del" data-idx="'+i+'" type="button">DEL</button></td>'; }
+function bindDel(tableSel, tab){
+  document.querySelectorAll(tableSel+' .row-del').forEach(b=>{
+    b.onclick = () => {
+      const idx = +b.dataset.idx; const r = DB[tab][idx]; if (!r) return;
+      if (!confirm('Delete this row? ('+fmtMDY4(r.date)+')')) return;
+      DB[tab].splice(idx, 1);
+      persist(); rerenderTab(tab); renderDashboard();
+      toast('Row deleted', true);
+    };
+  });
+}
 function renderMonthButtons(tab){
   const el = document.getElementById('mb_'+tab); if (!el) return;
   const list = DB[tab];
   const months = [...new Set(list.map(r => String(r.date||'').slice(0,7)))].filter(m=>m.length===7).sort();
   const multiYear = new Set(months.map(m => m.slice(0,4))).size > 1;
-  let h = '<button class="flt-btn'+(FILTER[tab]?'':' on')+'" onclick="clearFilter(\''+tab+'\')">전체보기</button>';
+  let h = '<button class="flt-btn'+(FILTER[tab]?'':' on')+'" onclick="clearFilter(\''+tab+'\')">VIEW ALL</button>';
   months.forEach(m => {
-    const lbl = (multiYear ? m.slice(2,4)+'년 ' : '') + parseInt(m.slice(5,7),10) + '월 보기';
+    const lbl = monthLbl(m, multiYear);
     const on = (FILTER[tab] && FILTER[tab].ym === m) ? ' on' : '';
     h += '<button class="flt-btn'+on+'" onclick="setMonthFilter(\''+tab+'\',\''+m+'\')">'+lbl+'</button>';
   });
@@ -798,7 +843,7 @@ function toggleEdit(tab){
     if (remotePending && !EDIT.sales && !EDIT.purchase && !EDIT.stock){
       const d = remotePending; remotePending = null; applyRemote(d);   // 편집 중 보류했던 원격 변경 반영
     }
-    renderDashboard(); toast('수정 내용이 저장되었습니다', true);
+    renderDashboard(); toast('Changes saved', true);
   }
 }
 function edDate(idx, date){
@@ -824,8 +869,9 @@ function renderSalesData(){
     tb.innerHTML = rows.map(({r,i}) =>
       '<tr>'+edDate(i, r.date)+
       edCell(i,'g',r.g)+edCell(i,'p',r.p)+edCell(i,'m',r.m)+edCell(i,'h',r.h)+
-      edCell(i,'s',r.s)+edCell(i,'d',r.d)+edCell(i,'b',r.b)+edCell(i,'total',r.total)+'</tr>'
+      edCell(i,'s',r.s)+edCell(i,'d',r.d)+edCell(i,'b',r.b)+edCell(i,'total',r.total)+delCell(i)+'</tr>'
     ).join('');
+    bindDel('#tblSalesData','sales');
     bindEdit('#tblSalesData', (idx,k,val,el)=>{
       const row = DB.sales[idx]; if(!row) return;
       if (k==='date'){ if(!val) return; row.date = val; persist(); renderSalesData(); return; }
@@ -838,14 +884,16 @@ function renderSalesData(){
       persist();
     });
   } else {
-    tb.innerHTML = rows.map(({r}) =>
+    tb.innerHTML = rows.map(({r,i}) =>
       '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
       moneyCell(r.g??'')+moneyCell(r.p??'')+moneyCell(r.m??'')+moneyCell(r.h??'')+
-      moneyCell(r.s??'')+moneyCell(r.d??'')+moneyCell(r.b??'')+moneyCell(r.total??'')+'</tr>'
+      moneyCell(r.s??'')+moneyCell(r.d??'')+moneyCell(r.b??'')+moneyCell(r.total??'')+delCell(i)+'</tr>'
     ).join('');
+    bindDel('#tblSalesData','sales');
   }
   document.getElementById('salesCount').textContent = (FILTER.sales ? rows.length+' / '+totalN : rows.length)+' ROWS';
   renderMonthButtons('sales');
+  renderMonthTotals('sales');
 }
 
 /* ═════════════════════════ PURCHASE (frmPurchase 그대로) ═════════════════════════ */
@@ -893,8 +941,9 @@ function renderPurchaseData(){
       '<td class="ed"><select class="edit-sel" data-idx="'+i+'" data-k="dept" data-t="t">'+
         DEPTS.map(d=>'<option'+(String(r.dept).toLowerCase()===d.toLowerCase()?' selected':'')+'>'+d+'</option>').join('')+
       '</select></td>'+
-      edCell(i,'vendor',r.vendor,true)+edCell(i,'invoice',r.invoice,true)+edCell(i,'amt',r.amt)+'</tr>'
+      edCell(i,'vendor',r.vendor,true)+edCell(i,'invoice',r.invoice,true)+edCell(i,'amt',r.amt)+delCell(i)+'</tr>'
     ).join('');
+    bindDel('#tblPurchaseData','purchase');
     bindEdit('#tblPurchaseData', (idx,k,val)=>{
       const row = DB.purchase[idx]; if(!row) return;
       if (k==='date'){ if(!val) return; row.date = val; persist(); renderPurchaseData(); return; }
@@ -903,14 +952,16 @@ function renderPurchaseData(){
       persist();
     });
   } else {
-    tb.innerHTML = rows.map(({r}) =>
+    tb.innerHTML = rows.map(({r,i}) =>
       '<tr><td class="dt">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.dept))+'</td>'+
       '<td class="lbl">'+esc(up(r.vendor))+'</td><td class="lbl">'+esc(up(r.invoice))+'</td>'+
-      moneyCell(r.amt)+'</tr>'
+      moneyCell(r.amt)+delCell(i)+'</tr>'
     ).join('');
+    bindDel('#tblPurchaseData','purchase');
   }
   document.getElementById('purchaseCount').textContent = (FILTER.purchase ? rows.length+' / '+totalN : rows.length)+' ROWS';
   renderMonthButtons('purchase');
+  renderMonthTotals('purchase');
 }
 
 /* ═════════════════════════ STOCK (frmStock 그대로) ═════════════════════════ */
@@ -949,8 +1000,9 @@ function renderStockData(){
   if (EDIT.stock){
     tb.innerHTML = rows.map(({r,i}) =>
       '<tr>'+edDate(i, r.date)+
-      edCell(i,'item',r.item,true)+edCell(i,'qty',r.qty)+edCell(i,'weight',r.weight)+edCell(i,'cost',r.cost)+'</tr>'
+      edCell(i,'item',r.item,true)+edCell(i,'qty',r.qty)+edCell(i,'weight',r.weight)+edCell(i,'cost',r.cost)+delCell(i)+'</tr>'
     ).join('');
+    bindDel('#tblStockData','stock');
     bindEdit('#tblStockData', (idx,k,val)=>{
       const row = DB.stock[idx]; if(!row) return;
       if (k==='date'){ if(!val) return; row.date = val; persist(); renderStockData(); return; }
@@ -959,13 +1011,15 @@ function renderStockData(){
       persist();
     });
   } else {
-    tb.innerHTML = rows.map(({r}) =>
+    tb.innerHTML = rows.map(({r,i}) =>
       '<tr><td class="dt">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.item))+'</td>'+
-      numCell(r.qty,0)+numCell(r.weight,1)+moneyCell(r.cost)+'</tr>'
+      numCell(r.qty,0)+numCell(r.weight,1)+moneyCell(r.cost)+delCell(i)+'</tr>'
     ).join('');
+    bindDel('#tblStockData','stock');
   }
   document.getElementById('stockCount').textContent = (FILTER.stock ? rows.length+' / '+totalN : rows.length)+' ROWS';
   renderMonthButtons('stock');
+  renderMonthTotals('stock');
 }
 
 /* ═════════════════════════ DASHBOARD — 수식 그대로 ═════════════════════════ */
@@ -1120,7 +1174,7 @@ function up(s){ return String(s??'').toUpperCase(); }
 /* ═════════════════════════ EXPORT ═════════════════════════ */
 function stamp(){ const t=today0(); return t.getFullYear()+pad(t.getMonth()+1)+pad(t.getDate()); }
 function dateUTC(isoStr){ const [y,m,d]=isoStr.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
-function needLib(obj, name){ if(!obj){ toast(name+' 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.', false); return true; } return false; }
+function needLib(obj, name){ if(!obj){ toast(name+' library failed to load. Check internet connection.', false); return true; } return false; }
 function saveBlob(buf, filename, mime){
   const blob = new Blob([buf], {type: mime||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const a = document.createElement('a');
@@ -1175,7 +1229,7 @@ async function exportTabExcel(sheetName, cols, rows){
     });
   });
   saveBlob(await wb.xlsx.writeBuffer(), sheetName+'_'+stamp()+'.xlsx');
-  toast('EXCEL EXPORT 완료', true);
+  toast('EXCEL EXPORT DONE', true);
 }
 function exportSalesExcel(){
   const rows = [...DB.sales].sort((a,b)=>a.date<b.date?-1:1);
@@ -1297,7 +1351,7 @@ async function exportDashboardExcel(){
   C(25,17,null,{});
 
   saveBlob(await wb.xlsx.writeBuffer(), 'DASHBOARD_'+stamp()+'.xlsx');
-  toast('EXCEL EXPORT 완료', true);
+  toast('EXCEL EXPORT DONE', true);
 }
 
 /* ── DASHBOARD PDF EXPORT — 화면 캡처 그대로 ── */
@@ -1311,7 +1365,7 @@ async function exportDashboardPDF(){
   const ih = canvas.height * pw / canvas.width;
   pdf.addImage(img, 'JPEG', 0, ih < ph ? (ph-ih)/2 : 0, pw, ih);
   pdf.save('DASHBOARD_'+stamp()+'.pdf');
-  toast('PDF EXPORT 완료', true);
+  toast('PDF EXPORT DONE', true);
 }
 
 /* ═════════ Init ═════════ */
