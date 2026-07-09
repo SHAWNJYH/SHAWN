@@ -192,6 +192,25 @@
   #toast.show { opacity: 1; transform: translateY(0); }
   #toast.ok  { background: #16a34a; }
   #toast.err { background: #dc2626; }
+  /* ── DEL 열: EDIT 모드에서만 노출 ── */
+  .delh, .entry-data td.delc { display: none; }
+  table.editing .delh, table.editing td.delc { display: table-cell; }
+  /* ── SEARCH 카드: 내부 여백 + START/END DATE 한 줄 배치 ── */
+  .search-body { padding: 14px 16px 16px; }
+  .date-range { display: flex; gap: 12px; margin-bottom: 10px; }
+  .date-range .dr-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .date-range .dr-col label {
+    width: auto; font-size: 11px; font-weight: 700; color: #64748b;
+    letter-spacing: .3px; white-space: nowrap;
+  }
+  .date-range .dr-col input[type="date"] {
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 6px;
+    padding: 8px 10px; font-size: 12.5px; font-family: inherit;
+    background: #fff; color: #111827; text-align: left;
+  }
+  .date-range .dr-col input[type="date"]:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  /* ── PRINT 버튼 ── */
+  .btn-print { background: #475569; color: #fff; }
   /* ── 인터넷 끊김 경고 배너 ── */
   #netWarn{
     position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
@@ -345,9 +364,11 @@
       </div>
       <div class="card">
         <h2>SEARCH <span class="sub">BY DATE</span></h2>
-        <div class="body">
-          <div class="frow"><label>START DATE</label><input type="date" id="f_sales_from"></div>
-          <div class="frow"><label>END DATE</label><input type="date" id="f_sales_to"></div>
+        <div class="body search-body">
+          <div class="date-range">
+            <div class="dr-col"><label>START DATE</label><input type="date" id="f_sales_from"></div>
+            <div class="dr-col"><label>END DATE</label><input type="date" id="f_sales_to"></div>
+          </div>
           <div class="btn-row">
             <button class="btn btn-save" onclick="applyRange('sales')">SEARCH</button>
             <button class="btn btn-clear" onclick="clearFilter('sales')">VIEW ALL</button>
@@ -359,6 +380,7 @@
       <div class="card entry-data">
         <h2>SALES <span class="sub" id="salesCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-print btn-sm" onclick="printTab('sales')">PRINT</button>
           <button class="btn btn-edit btn-sm" id="edit-sales" onclick="toggleEdit('sales')">EDIT</button></h2>
         <div class="mtot" id="mt_sales"></div>
         <div class="data-scroll">
@@ -406,9 +428,11 @@
       </div>
       <div class="card">
         <h2>SEARCH <span class="sub">BY DATE</span></h2>
-        <div class="body">
-          <div class="frow"><label>START DATE</label><input type="date" id="f_purchase_from"></div>
-          <div class="frow"><label>END DATE</label><input type="date" id="f_purchase_to"></div>
+        <div class="body search-body">
+          <div class="date-range">
+            <div class="dr-col"><label>START DATE</label><input type="date" id="f_purchase_from"></div>
+            <div class="dr-col"><label>END DATE</label><input type="date" id="f_purchase_to"></div>
+          </div>
           <div class="btn-row">
             <button class="btn btn-save" onclick="applyRange('purchase')">SEARCH</button>
             <button class="btn btn-clear" onclick="clearFilter('purchase')">VIEW ALL</button>
@@ -420,6 +444,7 @@
       <div class="card entry-data">
         <h2>PURCHASE <span class="sub" id="purchaseCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-print btn-sm" onclick="printTab('purchase')">PRINT</button>
           <button class="btn btn-edit btn-sm" id="edit-purchase" onclick="toggleEdit('purchase')">EDIT</button></h2>
         <div class="mtot" id="mt_purchase"></div>
         <div class="data-scroll">
@@ -461,9 +486,11 @@
       </div>
       <div class="card">
         <h2>SEARCH <span class="sub">BY DATE</span></h2>
-        <div class="body">
-          <div class="frow"><label>START DATE</label><input type="date" id="f_stock_from"></div>
-          <div class="frow"><label>END DATE</label><input type="date" id="f_stock_to"></div>
+        <div class="body search-body">
+          <div class="date-range">
+            <div class="dr-col"><label>START DATE</label><input type="date" id="f_stock_from"></div>
+            <div class="dr-col"><label>END DATE</label><input type="date" id="f_stock_to"></div>
+          </div>
           <div class="btn-row">
             <button class="btn btn-save" onclick="applyRange('stock')">SEARCH</button>
             <button class="btn btn-clear" onclick="clearFilter('stock')">VIEW ALL</button>
@@ -475,6 +502,7 @@
       <div class="card entry-data">
         <h2>STOCK <span class="sub" id="stockCount"></span><span class="push"></span>
           <button class="btn btn-export btn-sm" onclick="exportStockExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-print btn-sm" onclick="printTab('stock')">PRINT</button>
           <button class="btn btn-edit btn-sm" id="edit-stock" onclick="toggleEdit('stock')">EDIT</button></h2>
         <div class="mtot" id="mt_stock"></div>
         <div class="data-scroll">
@@ -895,6 +923,9 @@ function toggleEdit(tab){
   EDIT[tab] = !EDIT[tab];
   const b = document.getElementById('edit-'+tab);
   if (b){ b.textContent = EDIT[tab] ? 'DONE' : 'EDIT'; b.classList.toggle('on', EDIT[tab]); }
+  const tblId = { sales:'tblSalesData', purchase:'tblPurchaseData', stock:'tblStockData' }[tab];
+  const tbl = document.getElementById(tblId);
+  if (tbl) tbl.classList.toggle('editing', EDIT[tab]);
   rerenderTab(tab);
   if (!EDIT[tab]){
     if (remotePending && !EDIT.sales && !EDIT.purchase && !EDIT.stock){
@@ -1350,6 +1381,88 @@ function exportStockExcel(){
     {h:'DATE',k:'date',t:'date'}, {h:'ITEM',k:'item',t:'text'}, {h:'QTY',k:'qty',t:'num0'},
     {h:'WEIGHT',k:'weight',t:'num1'}, {h:'COST',k:'cost',t:'money'}
   ], rows);
+}
+
+/* ── 인쇄 (현재 화면 목록을 Letter 규격 표로) ── */
+const PRINT_CFG = {
+  sales: { title:'SALES', cols:[
+    {h:'DATE',k:'date',t:'date'}, {h:'GROCERY',k:'g',t:'money'}, {h:'PRODUCE',k:'p',t:'money'},
+    {h:'MEAT',k:'m',t:'money'},   {h:'HOUSEWARE',k:'h',t:'money'}, {h:'SEAFOOD',k:'s',t:'money'},
+    {h:'DELI',k:'d',t:'money'},   {h:'BAKERY',k:'b',t:'money'},   {h:'TOTAL',k:'total',t:'money'}
+  ]},
+  purchase: { title:'PURCHASE', cols:[
+    {h:'DATE',k:'date',t:'date'}, {h:'DEPT',k:'dept',t:'text'}, {h:'VENDOR',k:'vendor',t:'text'},
+    {h:'INVOICE',k:'invoice',t:'text'}, {h:'AMT',k:'amt',t:'money'}
+  ]},
+  stock: { title:'STOCK', cols:[
+    {h:'DATE',k:'date',t:'date'}, {h:'ITEM',k:'item',t:'text'}, {h:'QTY',k:'qty',t:'num0'},
+    {h:'WEIGHT',k:'weight',t:'num1'}, {h:'COST',k:'cost',t:'money'}
+  ]}
+};
+function printFmt(v, t){                     // 화면 표시와 동일한 서식
+  if (v===null || v===undefined || v==='') return '';
+  if (t==='date')  return fmtMDY4(v);
+  if (t==='text')  return up(v);
+  if (t==='money') return fmtMoney(v);
+  if (t==='num0')  return fmtAcct(v, 0);
+  if (t==='num1')  return fmtAcct(v, 1);
+  return String(v);
+}
+function printTab(tab){
+  const cfg = PRINT_CFG[tab]; if (!cfg) return;
+  // 화면과 동일하게 필터+정렬된 현재 목록
+  let rows = DB[tab].map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  rows = filterRows(tab, rows).map(x => x.r);
+  const cols  = cfg.cols;
+  const align = cols.map(c => (c.t==='date' || c.t==='text') ? 'left' : 'right');
+  const thead = '<tr>'+cols.map(c=>'<th>'+esc(c.h)+'</th>').join('')+'</tr>';
+  const tbody = rows.length
+    ? rows.map(r => '<tr>'+cols.map((c,i)=>'<td class="'+align[i]+'">'+esc(printFmt(r[c.k], c.t))+'</td>').join('')+'</tr>').join('')
+    : '<tr><td colspan="'+cols.length+'" style="text-align:center;color:#666;">NO DATA</td></tr>';
+  // 날짜 범위 라벨(현재 필터)
+  const f = FILTER[tab];
+  let range = 'ALL';
+  if (f){
+    if (f.ym) range = monthLbl(f.ym, true);
+    else {
+      const a = (f.from==='0000-01-01') ? '…' : fmtMDY4(f.from);
+      const b = (f.to  ==='9999-12-31') ? '…' : fmtMDY4(f.to);
+      range = a+' ~ '+b;
+    }
+  }
+  const orient = cols.length >= 7 ? 'landscape' : 'portrait';   // 열 많으면 가로 자동
+  const now = new Date();
+  const printed = fmtMDY2(now)+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+  const html =
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(cfg.title)+'</title><style>'+
+    '@page{ size: letter '+orient+'; margin: 12mm; }'+
+    '*{ box-sizing:border-box; }'+
+    'body{ font-family: Arial,"Malgun Gothic",sans-serif; color:#111; margin:0; }'+
+    'h1{ font-size:16px; margin:0 0 3px; letter-spacing:.5px; }'+
+    '.meta{ font-size:11px; color:#444; margin-bottom:10px; }'+
+    'table{ border-collapse:collapse; width:100%; table-layout:auto; font-size:10px; }'+
+    'th,td{ border:1px solid #555; padding:4px 7px; white-space:nowrap; }'+   /* 라인(테두리) 표시 */
+    'th{ background:#e5e7eb; color:#111; font-weight:700; text-align:center; }'+ /* 필드=옅은 그레이 */
+    'td.left{ text-align:left; } td.right{ text-align:right; }'+
+    'thead{ display:table-header-group; }'+   /* 페이지마다 헤더 반복 */
+    'tr{ page-break-inside:avoid; }'+
+    '</style></head><body>'+
+    '<h1>'+esc(cfg.title)+'</h1>'+
+    '<div class="meta">CAMPEON WHOLESALE&nbsp; · &nbsp;'+esc(range)+'&nbsp; · &nbsp;'+rows.length+' ROWS&nbsp; · &nbsp;Printed '+esc(printed)+'</div>'+
+    '<table><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table>'+
+    '</body></html>';
+  // 숨김 iframe으로 인쇄(팝업 차단 회피, 라이브러리 불필요)
+  const old = document.getElementById('__printFrame'); if (old) old.remove();
+  const ifr = document.createElement('iframe');
+  ifr.id = '__printFrame';
+  ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(ifr);
+  ifr.onload = () => setTimeout(() => {
+    try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch(e){}
+    setTimeout(() => { try { ifr.remove(); } catch(e){} }, 1500);
+  }, 60);
+  const d = ifr.contentWindow.document;
+  d.open(); d.write(html); d.close();
 }
 
 /* ── DASHBOARD EXCEL EXPORT — 화면 그대로 (색상·라인·글자색) ── */
