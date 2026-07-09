@@ -21,14 +21,14 @@
     });
     const db = getFirestore(app);
     const auth = getAuth(app);
-    onAuthStateChanged(auth, (user) => {
-      if (user && !window.cwFb) {
-        window.cwFb = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: user.uid };
-        window.dispatchEvent(new Event('cwfb-ready'));
-      }
-    });
+    // 게이트는 열린 컬렉션(app-config)만 읽으므로 인증을 기다리지 않고 즉시 준비한다.
+    // (익명 인증이 아직 없어도 아이디 목록이 무한 대기하지 않도록)
+    window.cwFb = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: null };
+    window.dispatchEvent(new Event('cwfb-ready'));
+    // 익명 인증은 백그라운드로 시작 — 이후 sales 페이지에서 쓸 세션을 미리 만들어 둔다.
+    onAuthStateChanged(auth, (user) => { if (user && window.cwFb) window.cwFb.uid = user.uid; });
     signInAnonymously(auth).catch((e) => {
-      console.error('anonymous auth fail', e);
+      console.error('anonymous auth fail (gate)', e);
     });
   } catch (e) { console.error('firebase init fail', e); }
 </script>

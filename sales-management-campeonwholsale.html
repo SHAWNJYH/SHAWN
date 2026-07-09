@@ -20,18 +20,20 @@
     });
     const db = getFirestore(app);
     const auth = getAuth(app);
-    // Firestore 접근은 인증(익명) 세션이 준비된 뒤에만 시작한다.
-    // onAuthStateChanged 는 지속 세션(persistence LOCAL) 덕분에 오프라인 재로드 시에도 캐시된 유저로 발화된다.
-    onAuthStateChanged(auth, (user) => {
-      if (user && !window.fbSM) {
-        window.fbSM = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: user.uid };
-        window.dispatchEvent(new Event('fbsm-ready'));
-      }
-    });
+    let started = false;
+    function start(user){
+      if (started) return; started = true;
+      window.fbSM = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: user ? user.uid : null };
+      window.dispatchEvent(new Event('fbsm-ready'));
+    }
+    // 인증(익명) 세션이 준비되면 그걸로 시작 — 지속 세션 덕에 오프라인 재로드도 커버.
+    onAuthStateChanged(auth, (user) => { if (user) start(user); });
     signInAnonymously(auth).catch((e) => {
-      console.error('anonymous auth fail', e);
-      // 익명 로그인 미활성/네트워크 실패 시: 콘솔 Authentication→Sign-in method→Anonymous 활성화 필요
+      console.error('anonymous auth fail (sales)', e);
     });
+    // 안전장치: 익명 인증이 (미활성/네트워크로) 안 붙어도 3초 뒤 진행해 무한 로딩을 막는다.
+    // 규칙을 잠근 뒤 이 경로로 오면 Firestore가 권한 오류를 상태바에 표시한다(무증상 멈춤 방지).
+    setTimeout(() => { if (!started){ console.warn('sales: proceeding without auth session'); start(null); } }, 3000);
   } catch (e) { console.error('firebase init fail', e); }
 </script>
 <style>
