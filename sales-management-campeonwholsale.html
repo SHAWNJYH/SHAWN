@@ -143,7 +143,7 @@
 </head>
 <body>
 <script>
-  /* === 진입 가드 === campeon-wholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
+  /* === 진입 가드 === campeonwholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
   (function(){
     try{
       var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
@@ -153,7 +153,6 @@
 </script>
 <header>
   <div class="logo">영업관리 <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
-  <button onclick="location.href='campeonwholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">← CAMPEON</button>
   <nav>
     <button id="tab-dashboard" class="active" onclick="showTab('dashboard')">DASHBOARD</button>
     <button id="tab-sales" onclick="showTab('sales')">SALES</button>
@@ -161,6 +160,7 @@
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
   <div class="today">Today: <b id="todayLabel"></b></div>
+  <button onclick="location.href='campeonwholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
 </header>
 
 <div class="app">
@@ -172,10 +172,6 @@
       <span class="month-chip">Month <span id="lastMonthNum"></span> · Last month</span>
       <span class="month-chip cur">Month <span id="curMonthNum"></span> · Current month</span>
       <div class="spacer"></div>
-      <button class="btn btn-sales" onclick="showTab('sales')">Sales</button>
-      <button class="btn btn-purchase" onclick="showTab('purchase')">Purchase</button>
-      <button class="btn btn-stock" onclick="showTab('stock')">Stock</button>
-      <span class="vdiv"></span>
       <button class="btn btn-export" onclick="exportDashboardExcel()">EXCEL EXPORT</button>
       <button class="btn btn-pdf" onclick="exportDashboardPDF()">PDF EXPORT</button>
     </div>
