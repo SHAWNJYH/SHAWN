@@ -8,6 +8,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   try {
     const app = initializeApp({
       apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
@@ -19,8 +20,16 @@
       measurementId: "G-NKGYGC63JN"
     });
     const db = getFirestore(app);
-    window.cwFb = { db, doc, getDoc, setDoc, onSnapshot };
-    window.dispatchEvent(new Event('cwfb-ready'));
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, (user) => {
+      if (user && !window.cwFb) {
+        window.cwFb = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: user.uid };
+        window.dispatchEvent(new Event('cwfb-ready'));
+      }
+    });
+    signInAnonymously(auth).catch((e) => {
+      console.error('anonymous auth fail', e);
+    });
   } catch (e) { console.error('firebase init fail', e); }
 </script>
 <style>

@@ -2,11 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1920">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SALES MANAGEMENT v1.0 · CAMPEON WHOLESALE</title>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   try {
     const app = initializeApp({
       apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
@@ -18,8 +19,19 @@
       measurementId: "G-NKGYGC63JN"
     });
     const db = getFirestore(app);
-    window.fbSM = { db, doc, getDoc, setDoc, onSnapshot };
-    window.dispatchEvent(new Event('fbsm-ready'));
+    const auth = getAuth(app);
+    // Firestore 접근은 인증(익명) 세션이 준비된 뒤에만 시작한다.
+    // onAuthStateChanged 는 지속 세션(persistence LOCAL) 덕분에 오프라인 재로드 시에도 캐시된 유저로 발화된다.
+    onAuthStateChanged(auth, (user) => {
+      if (user && !window.fbSM) {
+        window.fbSM = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: user.uid };
+        window.dispatchEvent(new Event('fbsm-ready'));
+      }
+    });
+    signInAnonymously(auth).catch((e) => {
+      console.error('anonymous auth fail', e);
+      // 익명 로그인 미활성/네트워크 실패 시: 콘솔 Authentication→Sign-in method→Anonymous 활성화 필요
+    });
   } catch (e) { console.error('firebase init fail', e); }
 </script>
 <style>
@@ -30,7 +42,7 @@
     background: #eef1f5; color: #1f2937; font-size: 13px;
     -webkit-font-smoothing: antialiased;
   }
-  .app { width: 1904px; margin: 0 auto; padding: 0 12px; }
+  .app { width: 100%; max-width: 1904px; margin: 0 auto; padding: 0 12px; }
 
   /* ── Header ─────────────────────────────── */
   header {
@@ -81,9 +93,9 @@
 
   /* ── Dashboard layout ───────────────────── */
   .dash-top { display: flex; gap: 14px; margin-bottom: 14px; align-items: stretch; }
-  .dash-top .monthly { flex: 1 1 auto; }
+  .dash-top .monthly { flex: 1 1 auto; min-width: 0; }
   .dash-top .stockbox { width: 560px; flex: 0 0 auto; display: flex; flex-direction: column; }
-  .stock-scroll { overflow-y: auto; flex: 1; max-height: 434px; }
+  .stock-scroll { overflow-y: auto; overflow-x: auto; flex: 1; max-height: 434px; }
   .quick { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
   .quick .spacer { flex: 1; }
   .btn {
@@ -156,8 +168,8 @@
   .entry-wrap { display: flex; gap: 14px; align-items: flex-start; }
   .entry-form { width: 420px; flex: 0 0 auto; }
   .entry-form .body { padding: 16px 18px 18px; }
-  .entry-data { flex: 1 1 auto; }
-  .data-scroll { overflow-y: auto; max-height: 880px; }
+  .entry-data { flex: 1 1 auto; min-width: 0; }
+  .data-scroll { overflow-y: auto; overflow-x: auto; max-height: 880px; }
   .frow { display: flex; align-items: center; margin-bottom: 9px; gap: 10px; }
   .frow label { width: 158px; flex: 0 0 auto; font-weight: 600; font-size: 11.5px; color: #475569; white-space: nowrap; overflow: hidden; }
   .frow input, .frow select {
@@ -231,6 +243,52 @@
   @keyframes netDot{ 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.7); } 70%{ box-shadow: 0 0 0 9px rgba(255,255,255,0); } 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
   /* 배너가 뜰 때 헤더가 가리지 않도록 본문을 살짝 내림 */
   body.netdown header{ box-shadow: inset 0 3px 0 #dc2626; }
+
+  /* ══════════ RESPONSIVE · 태블릿 대응 ══════════ */
+  /* 넓은 표를 감싸 가로 스크롤 처리 (레이아웃이 깨지지 않고 표 안에서만 스크롤) */
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-scroll > table { width: 100%; }
+
+  /* 태블릿 가로(~1024–1366px): 폭 여유가 줄어 고정 패널을 축소 */
+  @media (max-width: 1366px){
+    .app { padding: 0 10px; }
+    .dash-top .stockbox { width: 480px; }
+    .entry-left, .entry-form { width: 360px; }
+  }
+
+  /* 헤더가 한 줄에 안 들어가는 폭부터 줄바꿈 (iPad 가로 등) */
+  @media (max-width: 1120px){
+    header { flex-wrap: wrap; height: auto; padding: 8px 14px; row-gap: 8px; }
+    header .logo { font-size: 15px; }
+    nav { order: 3; width: 100%; overflow-x: auto; }
+    nav button { padding: 0 14px; }
+    header .today { margin-left: auto; font-size: 12px; }
+  }
+
+  /* 태블릿 세로(~768–1024px): 2단 레이아웃을 세로로 쌓음 */
+  @media (max-width: 1024px){
+    .dash-top { flex-direction: column; }
+    .dash-top .stockbox { width: 100%; }
+    .stock-scroll { max-height: 340px; }
+
+    .entry-wrap { flex-direction: column; }
+    .entry-left, .entry-form { width: 100%; }
+    .entry-left { flex-direction: row; flex-wrap: wrap; }
+    .entry-left > .card { flex: 1 1 320px; }
+    .entry-data { width: 100%; }
+    .data-scroll { max-height: 62vh; }
+    /* 카드 헤더 버튼이 좁은 폭에서 다음 줄로 넘어가도록 */
+    .card h2 { flex-wrap: wrap; white-space: normal; row-gap: 6px; }
+
+    .quick { flex-wrap: wrap; }
+    .quick .spacer { flex-basis: 100%; height: 0; }
+  }
+
+  /* 소형 태블릿 세로(~760px 이하): 좌측 폼도 세로로 */
+  @media (max-width: 760px){
+    .entry-left { flex-direction: column; }
+    .entry-left > .card { flex: 1 1 auto; }
+  }
 </style>
 </head>
 <body>
@@ -272,6 +330,7 @@
     <div class="dash-top">
       <div class="card monthly">
         <h2>Monthly Performance <span class="sub">Sales · Purchase · Gross Profit</span></h2>
+        <div class="tbl-scroll">
         <table id="tblMonthly">
           <thead>
             <tr>
@@ -288,6 +347,7 @@
           </thead>
           <tbody></tbody>
         </table>
+        </div>
       </div>
 
       <div class="card stockbox">
@@ -308,6 +368,7 @@
 
     <div class="card">
       <h2>Compare with the previous week</h2>
+      <div class="tbl-scroll">
       <table id="tblWeekly">
         <thead>
           <tr>
@@ -328,6 +389,7 @@
         </thead>
         <tbody></tbody>
       </table>
+      </div>
     </div>
   </section>
 
