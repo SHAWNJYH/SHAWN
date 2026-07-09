@@ -1267,9 +1267,9 @@ function needLib(obj, name){ if(!obj){ toast(name+' library failed to load. Chec
    ExcelJS / jsPDF / html2canvas 를 버튼 클릭 시점에만 CDN에서 불러온다.
    버전을 URL에 고정(pin)하여 예전 인라인 버전과 100% 동일한 출력을 보장한다. */
 const LIB_CDN = {
-  exceljs:     'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
-  jspdf:       'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js',
-  html2canvas: 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+  exceljs:     'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+  jspdf:       'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+  html2canvas: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
 };
 const _libLoading = {};
 function loadScript(src){
@@ -1427,27 +1427,13 @@ function printTab(tab){
         return '<td class="'+align[i]+(neg?' neg':'')+'">'+esc(printFmt(raw, c.t))+'</td>';
       }).join('')+'</tr>').join('')
     : '<tr><td colspan="'+cols.length+'" style="text-align:center;color:#666;">NO DATA</td></tr>';
-  // 날짜 범위 라벨(현재 필터)
-  const f = FILTER[tab];
-  let range = 'ALL';
-  if (f){
-    if (f.ym) range = monthLbl(f.ym, true);
-    else {
-      const a = (f.from==='0000-01-01') ? '…' : fmtMDY4(f.from);
-      const b = (f.to  ==='9999-12-31') ? '…' : fmtMDY4(f.to);
-      range = a+' ~ '+b;
-    }
-  }
   const orient = cols.length >= 7 ? 'landscape' : 'portrait';   // 열 많으면 가로 자동
-  const now = new Date();
-  const printed = fmtMDY2(now)+' '+pad(now.getHours())+':'+pad(now.getMinutes());
   const html =
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(cfg.title)+'</title><style>'+
-    '@page{ size: letter '+orient+'; margin: 12mm; }'+
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(cfg.title)+' REPORT</title><style>'+
+    '@page{ size: letter '+orient+'; margin: 0; }'+     /* 브라우저 자동 머리글/바닥글(날짜·주소·제목) 제거 */
     '*{ box-sizing:border-box; }'+
-    'body{ font-family: Arial,"Malgun Gothic",sans-serif; color:#111; margin:0; }'+
-    'h1{ font-size:16px; margin:0 0 3px; letter-spacing:.5px; }'+
-    '.meta{ font-size:11px; color:#444; margin-bottom:10px; }'+
+    'body{ font-family: Arial,"Malgun Gothic",sans-serif; color:#111; margin:0; padding:12mm; }'+
+    'h1{ font-size:18px; margin:0 0 12px; letter-spacing:.5px; text-align:center; }'+  /* 제목 가운데 */
     'table{ border-collapse:collapse; width:100%; table-layout:auto; font-size:10px; }'+
     'th,td{ border:1px solid #555; padding:4px 7px; white-space:nowrap; }'+   /* 라인(테두리) 표시 */
     'th{ background:#e5e7eb; color:#111; font-weight:700; text-align:center; }'+ /* 필드=옅은 그레이 */
@@ -1456,8 +1442,7 @@ function printTab(tab){
     'thead{ display:table-header-group; }'+   /* 페이지마다 헤더 반복 */
     'tr{ page-break-inside:avoid; }'+
     '</style></head><body>'+
-    '<h1>'+esc(cfg.title)+'</h1>'+
-    '<div class="meta">CAMPEON WHOLESALE&nbsp; · &nbsp;'+esc(range)+'&nbsp; · &nbsp;'+rows.length+' ROWS&nbsp; · &nbsp;Printed '+esc(printed)+'</div>'+
+    '<h1>'+esc(cfg.title)+' REPORT</h1>'+
     '<table><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table>'+
     '</body></html>';
   // 숨김 iframe으로 인쇄(팝업 차단 회피, 라이브러리 불필요)
