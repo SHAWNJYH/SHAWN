@@ -3631,7 +3631,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         ex['VENDER']=dd.vendor;
         var id=niIdOf(o, dd.vendor); var c=niCalc[id]||{};
         ['MSRP','MSRP(%)','SRP','SRP(%)'].forEach(function(k){ ex[k]=(c[k]!=null?c[k]:''); });
-        out.push({extra:ex, sub:'', __id:id});
+        out.push({extra:ex, sub:'', __id:id, __upd:(o.updatedAt||0)});
       });
     });
     niRows=out;
@@ -3686,17 +3686,69 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var F=(typeof fns==='function')?fns():null; if(!F||!F.setDoc||!F.doc) return;
     for(var i=0;i<__ocrCache.length;i++){ var dd=__ocrCache[i]; if(dd.rows&&dd.rows.length){ try{ await F.setDoc(F.doc(db(), OCR_COLLECTION, dd.docId), {vendor:dd.vendor, rows:[], count:0, updatedAt:Date.now()}); }catch(e){} } }
   }
+  function niUpdDay(ms){ if(!ms) return ''; var d=new Date(ms); if(isNaN(d)) return ''; return String(d.getFullYear()).slice(-2)+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
   async function niMoveApply(){
     var checked=[].slice.call(document.querySelectorAll('.ni-move-chk:checked')).map(function(c){ return c.value; });
     if(!checked.length){ showToast('카테고리를 선택하세요','error'); return; }
     if(!niRows.length){ showToast('이동할 데이터가 없습니다','error'); return; }
-    if(!(await uiConfirm(niRows.length+'개를 '+checked.length+'개 카테고리로 가져옵니다.\n(UPC LIST CONVERT의 원본 리스트는 그대로 유지됩니다)\n진행할까요?'))) return;
-    var moved=niRows.length;
+    // 대상 카테고리들의 기존 UPC(O) 집합
+    var existSet={};
+    checked.forEach(function(v){ var cat=v.split('\u0001')[0];
+      (rowsFor(cat)||[]).forEach(function(r){ var u=''; if(r.extra){ for(var k in r.extra){ var K=String(k).trim().toUpperCase(); if(K==='UPC(O)'||K==='UPC'||K==='UPCO'){ u=String(r.extra[k]||'').replace(/\s+/g,''); if(u) break; } } } if(u) existSet[u]=1; });
+    });
+    // 날짜 목록
+    var byDay={}; niRows.forEach(function(r){ var d=niUpdDay(r.__upd)||'(날짜 없음)'; byDay[d]=(byDay[d]||0)+1; });
+    var days=Object.keys(byDay).sort().reverse();
+    // 중복 목록
+    var dups=[]; niRows.forEach(function(r,i){ var u=String(r.extra['UPC(O)']||'').replace(/\s+/g,''); if(u && existSet[u]) dups.push({i:i, upc:u, kor:r.extra['KOR DESC']||'', day:niUpdDay(r.__upd)}); });
+    // 팝업
+    var old=document.getElementById('niPreOv'); if(old) old.parentNode.removeChild(old);
+    var ov=document.createElement('div'); ov.id='niPreOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(20,20,24,.5);display:flex;align-items:center;justify-content:center;';
+    var dayHtml=days.map(function(d){ return '<label style="display:inline-flex;align-items:center;gap:6px;margin:3px 10px 3px 0;font-size:12px;"><input type="checkbox" class="nip-day" value="'+d+'" checked style="accent-color:#c9a961;">'+d+' <span style="color:#9a9aa0;">('+byDay[d]+')</span></label>'; }).join('');
+    var dupHtml=dups.length? dups.map(function(dd){ return '<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid #eee;border-radius:7px;margin:3px 0;font-size:12px;"><input type="checkbox" class="nip-dup" data-i="'+dd.i+'" style="accent-color:#c9a961;"><b style="font-family:monospace;">'+dd.upc+'</b><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+dd.kor+'</span><span style="color:#9a9aa0;font-size:11px;">'+dd.day+'</span></label>'; }).join('') : '<div style="font-size:12px;color:#2f7d32;padding:6px 0;">✓ 중복 없음 — 모두 신규입니다.</div>';
+    ov.innerHTML='<div style="width:min(94vw,560px);max-height:88vh;overflow:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);">'
+      +'<div style="font-size:15px;font-weight:900;margin-bottom:10px;">🆕 NEW ITEM 가져오기 옵션</div>'
+      +'<div style="font-size:11px;font-weight:800;color:#9a9aa0;letter-spacing:.06em;margin-bottom:4px;">가져올 범위</div>'
+      +'<div style="margin-bottom:6px;"><label style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px;margin-right:14px;"><input type="radio" name="nipScope" value="all" checked style="accent-color:#c9a961;">전체 ('+niRows.length+'개)</label>'
+      +'<label style="font-size:12.5px;display:inline-flex;align-items:center;gap:6px;"><input type="radio" name="nipScope" value="days" style="accent-color:#c9a961;">업데이트 날짜 선택</label></div>'
+      +'<div id="nipDays" style="display:none;border:1px solid #eee;border-radius:9px;padding:7px 10px;margin-bottom:8px;">'+dayHtml+'</div>'
+      +'<div style="font-size:11px;font-weight:800;color:#9a9aa0;letter-spacing:.06em;margin:10px 0 4px;">중복 아이템 (UPC 기준 · 선택한 카테고리에 이미 존재 '+dups.length+'개)</div>'
+      +(dups.length?('<div style="font-size:11px;color:#9a9aa0;margin-bottom:4px;">체크한 중복만 함께 가져옵니다. 체크 해제된 중복은 제외됩니다. <button type="button" id="nipDupAll" style="border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">전체 선택</button> <button type="button" id="nipDupNone" style="border:1px solid #ddd;background:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">전체 해제</button></div>'):'')
+      +'<div style="max-height:220px;overflow:auto;">'+dupHtml+'</div>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">'
+      +'<button type="button" id="nipCancel" style="background:#fff;border:1.5px solid #e5e5e0;border-radius:9px;padding:9px 15px;font-size:13px;cursor:pointer;">취소</button>'
+      +'<button type="button" id="nipGo" style="background:#c9a961;color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;">가져오기 실행</button>'
+      +'</div></div>';
+    document.body.appendChild(ov);
+    var scopeRadios=ov.querySelectorAll('input[name="nipScope"]');
+    [].forEach.call(scopeRadios, function(rd){ rd.onchange=function(){ document.getElementById('nipDays').style.display=(ov.querySelector('input[name="nipScope"]:checked').value==='days')?'':'none'; }; });
+    var da=document.getElementById('nipDupAll'); if(da) da.onclick=function(){ [].forEach.call(ov.querySelectorAll('.nip-dup'), function(c){ c.checked=true; }); };
+    var dn=document.getElementById('nipDupNone'); if(dn) dn.onclick=function(){ [].forEach.call(ov.querySelectorAll('.nip-dup'), function(c){ c.checked=false; }); };
+    document.getElementById('nipCancel').onclick=function(){ ov.parentNode.removeChild(ov); };
+    document.getElementById('nipGo').onclick=async function(){
+      var scope=ov.querySelector('input[name="nipScope"]:checked').value;
+      var daySel={}; [].forEach.call(ov.querySelectorAll('.nip-day:checked'), function(c){ daySel[c.value]=1; });
+      var dupInclude={}; [].forEach.call(ov.querySelectorAll('.nip-dup:checked'), function(c){ dupInclude[parseInt(c.getAttribute('data-i'),10)]=1; });
+      var dupIdx={}; dups.forEach(function(dd){ dupIdx[dd.i]=1; });
+      var rows=[];
+      niRows.forEach(function(r,i){
+        if(scope==='days'){ var d=niUpdDay(r.__upd)||'(날짜 없음)'; if(!daySel[d]) return; }
+        if(dupIdx[i] && !dupInclude[i]) return;   // 중복인데 미선택 → 제외
+        rows.push(r);
+      });
+      if(!rows.length){ showToast('가져올 항목이 없습니다 (필터/중복 제외 확인)','error'); return; }
+      ov.parentNode.removeChild(ov);
+      await niMoveExec(checked, rows);
+    };
+  }
+  async function niMoveExec(checked, rows){
+    var moved=rows.length;
     for(var ci=0; ci<checked.length; ci++){
       var pp=checked[ci].split('\u0001'); var cat=pp[0], sub=pp[1]||'';
       var existing=rowsFor(cat).map(copyRow);
       var lay=niMergeLayout(cat);
-      var add=niRows.map(function(r){ var c={extra:{}}; for(var k in r.extra){ if(k==='__id') continue; c.extra[k]=r.extra[k]; } c.sub=sub; return c; });
+      var add=rows.map(function(r){ var c={extra:{}}; for(var k in r.extra){ if(k==='__id') continue; c.extra[k]=r.extra[k]; } c.sub=sub; return c; });
       try{ await saveCat(cat, existing.concat(add), lay, (truncLenByCat[cat]||20)); }catch(e){ showToast('저장 실패: '+cat,'error'); }
     }
     // OCR 원본 유지 — UPC LIST CONVERT 쪽 삭제는 사용자가 직접 수행
