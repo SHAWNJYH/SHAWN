@@ -356,6 +356,7 @@
   var OCR_COL='upc-ocr-list';
 
   var masterIndex={};            // {code:[upcs]} — 누적 임시저장 (STI LIST)
+  var masterMeta={};             // {upc:{kor,eng,size}} — 다운로드용 부가정보
   var lastMasterUpload=null;     // 직전 업로드 aoa
   var adAoa=null;
   var curList=[], curMaxEtc=0, curTitle='';
@@ -399,7 +400,7 @@
   function masterLoad(){
     if(!fbReady()) return;
     window.fbFns.getDoc(window.fbFns.doc(window.fbDb, AD_COL, MASTER_ID)).then(function(s){
-      masterIndex={}; if(s.exists()){ var d=s.data()||{}; var map=d.map||{}; for(var k in map){ var v=String(map[k]||''); masterIndex[k]=v?v.split(','):[]; } }
+      masterIndex={}; masterMeta={}; if(s.exists()){ var d=s.data()||{}; var map=d.map||{}; for(var k in map){ var v=String(map[k]||''); masterIndex[k]=v?v.split(','):[]; } masterMeta=(d.meta&&typeof d.meta==='object')?d.meta:{}; }
       updateMasterUI();
     }).catch(function(){ updateMasterUI(); });
   }
@@ -432,16 +433,22 @@
     if(res.error) return { error:res.error };
     var aoa=lastMasterUpload, ci=res.itemcodeCol, ui=res.upcCol, rows=[];
     var di=E.resolveColIndex(aoa[0]||[], 'DESC');   // desc 컬럼(있으면)
+    var ki=E.resolveColIndex(aoa[0]||[], 'KOR DESC'), ei=E.resolveColIndex(aoa[0]||[], 'ENG DESC'), si=E.resolveColIndex(aoa[0]||[], 'UNIT SIZE');
     for(var r=1;r<aoa.length;r++){ var row=aoa[r]||[];
       var rawCode=String(row[ci]==null?'':row[ci]).trim();
       var rawUpc=String(row[ui]==null?'':row[ui]).trim();
       var desc=(di>=0)?String(row[di]==null?'':row[di]).trim():'';
       if(!rawCode && !rawUpc) continue;
-      rows.push({ code:E.normKey(rawCode), rawCode:rawCode, rawUpc:rawUpc, desc:desc });
+      var kor=(ki>=0)?String(row[ki]==null?'':row[ki]).trim():'';
+      var eng=(ei>=0)?String(row[ei]==null?'':row[ei]).trim():'';
+      var usz=(si>=0)?String(row[si]==null?'':row[si]).trim():'';
+      rows.push({ code:E.normKey(rawCode), rawCode:rawCode, rawUpc:rawUpc, desc:desc, kor:kor, eng:eng, size:usz });
     }
     __lastParsed=rows;
     return { rows:rows };
   }
+  function metaFromParsed(upc){ for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if(it.rawUpc===upc){ if(it.kor||it.eng||it.size) return {kor:it.kor||'',eng:it.eng||'',size:it.size||''}; } } return null; }
+  function setMeta(upc){ var m=metaFromParsed(upc); if(m) masterMeta[upc]=m; }
   // code/upc로 이번 파일의 desc 찾기
   function findDesc(code, upc){
     for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if((code && it.code===code) || (upc && it.rawUpc===upc)){ if(it.desc) return it.desc; } }
@@ -472,7 +479,7 @@
     var split=splitRows(p.rows);
     // 신제품(정상·비중복) 자동 등록
     var added=0;
-    split.clean.forEach(function(it){ if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); added++; } });
+    split.clean.forEach(function(it){ if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); added++; } setMeta(it.rawUpc); });
     var tail=(split.badCount?(' · 형식오류 '+split.badCount+' 제외'):'')+(split.dupCount?(' · 중복 '+split.dupCount+' 통과'):'');
     if(hasConflicts(split)){
       st.className='status'; st.textContent='신제품 '+added+'쌍 자동등록'+tail+' · 확인필요 항목 있음';
@@ -487,7 +494,7 @@
   function saveFirstUpload(){
     if(!__pendingFirstRows){ $('ovConfirmSave').classList.remove('show'); return; }
     var added=0;
-    __pendingFirstRows.forEach(function(it){ if(codeIssue(it.rawCode)||upcIssue(it.rawUpc)) return; if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); added++; } });
+    __pendingFirstRows.forEach(function(it){ if(codeIssue(it.rawCode)||upcIssue(it.rawUpc)) return; if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); setMeta(it.rawUpc); added++; } });
     __pendingFirstRows=null;
     $('ovConfirmSave').classList.remove('show');
     var st=$('stMaster'); st.className='status'; st.innerHTML='<span class="spin"></span> 저장중…';
@@ -517,7 +524,7 @@
       var upcDupCodeDiff = (upcOwnerCode!==undefined && upcOwnerCode!==code) || upcMultiCode;
       var exactDup = existUpcs && existUpcs.indexOf(u)>=0;  // 기존과 완전 동일
       // 완전 동일 + 내부 충돌 없음 → 통과
-      if(exactDup && !codeMultiUpc && !upcMultiCode){ dupCount++; return; }
+      if(exactDup){ dupCount++; try{ setMeta(u); }catch(e){} return; }   // 완전 동일 → 통과(설명 정보는 갱신)
       var conflict=false;
       if(codeDupUpcDiff){
         conflict=true;
@@ -547,11 +554,22 @@
     $('ovDup').classList.add('show');
   }
   function openDupList(){
-    if(!lastMasterUpload){ toast('먼저 엑셀을 업로드하세요'); return; }
-    var p=parseNewRows(); if(p.error){ toast('⚠ '+p.error); return; }
-    var split=splitRows(p.rows);
-    if(!hasConflicts(split)){ toast('코드/UPC가 어긋나는 중복이 없습니다'); return; }
-    openDupResolve(split.leftGroups, split.rightGroups, 0);
+    if(lastMasterUpload){
+      var p=parseNewRows(); if(p.error){ toast('⚠ '+p.error); return; }
+      var split=splitRows(p.rows);
+      if(hasConflicts(split)){ openDupResolve(split.leftGroups, split.rightGroups, 0); return; }
+      toast('업로드 파일과 마스터 간 중복이 없습니다'); return;
+    }
+    // 업로드가 없으면 저장된 ITEM MASTER 자체를 점검
+    var L={}, R={}, owner={};
+    for(var k in masterIndex){
+      var ups=masterIndex[k]||[];
+      if(ups.length>1) L[k]=ups.slice();
+      ups.forEach(function(u){ if(owner[u]===undefined) owner[u]=[]; owner[u].push(k); });
+    }
+    for(var u in owner){ if(owner[u].length>1) R[u]=owner[u].slice(); }
+    if(!Object.keys(L).length && !Object.keys(R).length){ toast('ITEM MASTER에 중복이 없습니다'); return; }
+    openDupResolve(L, R, 0);
   }
   // 값 입력칸 + 개별 삭제(🗑)
   function valCell(cls, val){
@@ -627,13 +645,13 @@
     });
     if(invalid.length){ toast('형식오류가 남아있습니다: '+invalid[0]+(invalid.length>1?(' 외 '+(invalid.length-1)+'건'):'')); return; }
     // 반영 (1) 왼쪽: 해당 code의 UPC 집합을 최종값으로 교체
-    for(var code in leftResult){ if(leftResult[code].length) masterIndex[code]=leftResult[code]; else delete masterIndex[code]; }
+    for(var code in leftResult){ if(leftResult[code].length){ masterIndex[code]=leftResult[code]; leftResult[code].forEach(setMeta); } else delete masterIndex[code]; }
     // 반영 (2) 오른쪽: 각 upc를 먼저 모든 code에서 제거 후, 남긴 code들에만 추가
     for(var upc in rightResult){
       for(var k in masterIndex){ var i=masterIndex[k].indexOf(upc); if(i>=0){ masterIndex[k].splice(i,1); if(!masterIndex[k].length) delete masterIndex[k]; } }
-      rightResult[upc].forEach(function(c){ if(!masterIndex[c]) masterIndex[c]=[]; if(masterIndex[c].indexOf(upc)<0) masterIndex[c].push(upc); });
+      rightResult[upc].forEach(function(c){ if(!masterIndex[c]) masterIndex[c]=[]; if(masterIndex[c].indexOf(upc)<0) masterIndex[c].push(upc); }); setMeta(upc);
     }
-    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; toast('UPDATE 완료 · 총 '+masterCount()+'개'); })
+    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; lastMasterUpload=null; __lastParsed=[]; var dz=$('dropMaster'); if(dz){ var dt=dz.querySelector('.dt'); if(dt) dt.textContent='✓ 중복 정리 완료 — 새 파일을 올릴 수 있습니다'; } toast('UPDATE 완료 · 총 '+masterCount()+'개'); })
       .catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); });
   }
 
@@ -641,8 +659,12 @@
   function masterDownload(){
     var keys=Object.keys(masterIndex);
     if(!keys.length){ toast('다운로드할 데이터가 없습니다'); return; }
-    var aoa=[['ITEMCODE','UPC']];
-    keys.sort().forEach(function(k){ var upcs=masterIndex[k]||[]; if(!upcs.length){ aoa.push([k,'']); return; } upcs.forEach(function(u){ aoa.push([k,u]); }); });
+    var aoa=[['UPC','ITEMCODE','KOR DESC','ENG DESC','UNIT SIZE']];
+    keys.sort().forEach(function(k){
+      var upcs=masterIndex[k]||[];
+      if(!upcs.length){ aoa.push(['',k,'','','']); return; }
+      upcs.forEach(function(u){ var mm=masterMeta[u]||{}; aoa.push([u, k, mm.kor||'', mm.eng||'', mm.size||'']); });
+    });
     var ws=XLSX.utils.aoa_to_sheet(aoa), wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'ITEM_MASTER');
     var d=new Date(), ymd=d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
     XLSX.writeFile(wb, 'ITEM_LIST('+ymd+').xlsx');
@@ -665,11 +687,12 @@
   }
   function masterPersist(){
     var map={}; for(var k in masterIndex){ map[k]=masterIndex[k].join(','); }
-    return window.fbFns.setDoc(window.fbFns.doc(window.fbDb, AD_COL, MASTER_ID), { type:'master', map:map, count:masterCount(), updatedAt:Date.now() }, {merge:false});
+    return window.fbFns.setDoc(window.fbFns.doc(window.fbDb, AD_COL, MASTER_ID), { type:'master', map:map, meta:masterMeta, count:masterCount(), updatedAt:Date.now() }, {merge:false});
   }
   function masterClear(){
     if(!fbReady()) return;
     if(!confirm('임시저장된 아이템마스터('+masterCount()+'개)를 전체 삭제할까요?')) return;
+    masterMeta={};
     masterIndex={};
     masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('stMaster').textContent=''; toast('전체 삭제됨'); }).catch(function(err){ toast('삭제 실패: '+(err&&err.message||err)); });
   }
