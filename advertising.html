@@ -148,7 +148,7 @@
     <div class="grid2">
       <!-- 좌: 아이템 마스터 (누적 임시저장) -->
       <div class="card">
-        <h2>📦 ITEM MASTER <button class="btn ghost sm" id="masterDownloadBtn" style="margin-left:auto">⬇ ITEM LIST DOWNLOAD</button></h2>
+        <h2>📦 ITEM MASTER <button class="btn sm" id="masterDownloadBtn" style="margin-left:auto;background:#fff;color:#1a1a1d;border:1.5px solid #d8d3c8;">⬇ EXCEL EXPORT</button></h2>
         <div class="hint">엑셀을 올리고 <b>저장(누적)</b>을 누르면 STI LIST에 쌓입니다. 같은 위치에 또 올려 누르면 <b>중복 제외, 신규만</b> 추가됩니다.</div>
         <div class="drop" id="dropMaster"><div class="di">📦</div><div class="dt">아이템마스터 엑셀 선택</div><div class="ds">.xlsx / .xls / .csv</div></div>
         <input type="file" id="fileMaster" accept=".xlsx,.xls,.csv" class="hidden">
@@ -160,7 +160,7 @@
         <div class="mstate">
           <span class="big">임시저장 <b id="masterCount">0</b> 개</span>
           <span class="sp"></span>
-          <button class="btn ghost sm" id="masterDupBtn">🔍 중복항목보기</button>
+          <button class="btn sm" id="masterDupBtn" style="background:#fff;color:#1a1a1d;border:1.5px solid #d8d3c8;">🔍 중복확인</button>
           <button class="btn danger sm" id="masterClearBtn">전체삭제</button>
         </div>
         <div class="status" id="stMaster"></div>
@@ -571,6 +571,16 @@
     if(!Object.keys(L).length && !Object.keys(R).length){ toast('ITEM MASTER에 중복이 없습니다'); return; }
     openDupResolve(L, R, 0);
   }
+  // UPC의 KOR DESC 찾기 (업로드 파일 → 마스터 메타)
+  function korOf(upc){
+    for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if(it.rawUpc===upc && it.kor) return it.kor; }
+    var mm=masterMeta[upc]; return (mm&&mm.kor)?mm.kor:'';
+  }
+  function korOfCode(code, upcs){
+    for(var i=0;i<(upcs||[]).length;i++){ var k=korOf(upcs[i]); if(k) return k; }
+    for(var j=0;j<__lastParsed.length;j++){ var it=__lastParsed[j]; if(it.code===code && it.kor) return it.kor; }
+    return '';
+  }
   // 값 입력칸 + 개별 삭제(🗑)
   function valCell(cls, val){
     return '<span class="dvrow" style="display:flex;gap:6px;align-items:center;margin:4px 0;">'
@@ -584,11 +594,13 @@
     if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
     body.innerHTML=keys.map(function(code){
       var upcs=groups[code]||[];
-      var d=findDesc(code,'');
+      var kd=korOfCode(code, upcs);
       return '<div class="dgrp" data-code="'+esc(code)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">ITEMCODE</div>'
-        +'<input class="dgrp-code" value="'+esc(code)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
-        +(d?('<div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">📝 '+esc(d)+'</div>'):'')
+        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">'
+        +'<input class="dgrp-code" value="'+esc(code)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;">'
+        +(kd?('<span style="font-size:12px;color:var(--text-dim);">'+esc(kd)+'</span>'):'')
+        +'</div>'
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">UPC</div>'
         +'<div class="dgrp-vals">'+upcs.map(function(u){ return valCell('dgrp-upc', u); }).join('')+'</div>'
         +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ UPC 추가</button>'
@@ -603,11 +615,13 @@
     if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
     body.innerHTML=keys.map(function(upc){
       var codes=groups[upc]||[];
-      var d=findDesc('',upc);
+      var kd=korOf(upc);
       return '<div class="dgrp" data-upc="'+esc(upc)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">UPC</div>'
-        +'<input class="dgrp-upckey" value="'+esc(upc)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;margin-bottom:6px;">'
-        +(d?('<div style="font-size:11px;color:var(--text-faint);margin-bottom:6px;">📝 '+esc(d)+'</div>'):'')
+        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">'
+        +'<input class="dgrp-upckey" value="'+esc(upc)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;">'
+        +(kd?('<span style="font-size:12px;color:var(--text-dim);">'+esc(kd)+'</span>'):'')
+        +'</div>'
         +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">ITEMCODE</div>'
         +'<div class="dgrp-vals">'+codes.map(function(c){ return valCell('dgrp-code2', c); }).join('')+'</div>'
         +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ ITEMCODE 추가</button>'
