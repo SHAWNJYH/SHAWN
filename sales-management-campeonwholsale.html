@@ -38,7 +38,10 @@
 </script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  /* body를 내용 전체 높이로 늘려야 sticky 헤더가 끝까지 고정된다.
+     (height:100%로 뷰포트에 묶으면 일정 스크롤 후 헤더가 사라지는 원인) */
+  html { height: 100%; }
+  body { min-height: 100%; }
   body {
     font-family: "Segoe UI", "Malgun Gothic", Helvetica, Arial, sans-serif;
     background: #eef1f5; color: #1f2937; font-size: 13px;
@@ -262,7 +265,9 @@
 
   /* 태블릿 가로(~1024–1366px): 폭 여유가 줄어 고정 패널을 축소 */
   @media (max-width: 1366px){
-    .app { padding: 0 10px; }
+    /* 태블릿에서는 콘텐츠 전체를 축소해 한 화면에 더 많이 보이도록 (PC는 영향 없음).
+       헤더(탭)는 축소하지 않아 상단 고정이 흔들리지 않고 터치 영역도 유지된다. */
+    .app { padding: 0 10px; zoom: 0.8; }
     .dash-top .stockbox { width: 480px; }
     .entry-left, .entry-form { width: 360px; }
   }
@@ -307,6 +312,8 @@
      표를 화면 가득 채운다. 미지원 브라우저에서는 이 확대 오버레이만 적용되는 폴백. */
   .btn-full { background: #4f46e5; color: #fff; }
   body.fv-on { overflow: hidden; }               /* 배경 스크롤 잠금 */
+  /* 태블릿 축소(.app zoom) 중 전체화면이면 오버레이가 화면을 100%로 덮도록 축소 해제 */
+  body.fv-on .app { zoom: 1 !important; }
   .fv-active {
     position: fixed !important; top: 0; left: 0; right: 0; bottom: 0;
     z-index: 4000 !important; margin: 0 !important; max-width: none !important;
