@@ -307,32 +307,13 @@
     .entry-left > .card { flex: 1 1 auto; }
   }
 
-  /* ══════════ FULL SCREEN — 태블릿/데스크톱 공용 ══════════ */
-  /* 브라우저 Fullscreen API로 화면 전체(주소창·메뉴 숨김)로 전환하고, 동시에 선택한
-     표를 화면 가득 채운다. 미지원 브라우저에서는 이 확대 오버레이만 적용되는 폴백. */
+  /* ══════════ FULL SCREEN ══════════ */
+  /* 브라우저 Fullscreen API로 화면 전체(주소창·탭·메뉴 숨김)로 전환한다.
+     전체 페이지(입력폼·검색·리스트·헤더)를 그대로 두고 브라우저 UI만 숨김 —
+     특정 카드만 확대하지 않는다. 페이지 스크롤/헤더 고정도 그대로 유지. */
   .btn-full { background: #4f46e5; color: #fff; }
-  body.fv-on { overflow: hidden; }               /* 배경 스크롤 잠금 */
-  /* 태블릿 축소(.app zoom) 중 전체화면이면 오버레이가 화면을 100%로 덮도록 축소 해제 */
-  body.fv-on .app { zoom: 1 !important; }
-  .fv-active {
-    position: fixed !important; top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 4000 !important; margin: 0 !important; max-width: none !important;
-    width: auto !important; border-radius: 0 !important; background: #eef1f5;
-  }
-  /* 데이터 카드가 전체보기가 되면 헤더는 고정, 표 영역이 화면을 채움 */
-  .card.fv-active { display: flex !important; flex-direction: column; border: none; overflow: hidden; }
-  .card.fv-active > h2 { position: sticky; top: 0; z-index: 2; padding-right: 120px; }
-  .card.fv-active .mtot { flex: 0 0 auto; }
-  .card.fv-active .data-scroll,
-  .card.fv-active .stock-scroll {
-    max-height: none !important; flex: 1 1 auto; overflow: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  /* 대시보드 섹션 전체보기: 안쪽 여백 + 세로 스크롤 */
-  section.fv-active { overflow: auto; -webkit-overflow-scrolling: touch; padding: 14px 18px 28px; }
-  section.fv-active .quick { padding-right: 108px; }
 
-  /* 떠 있는 닫기 버튼 (전체보기에서만 노출) — 태블릿 터치 타깃 크게 */
+  /* 떠 있는 EXIT 버튼 (전체화면에서만 노출) — 태블릿 터치 타깃 크게 */
   #fvClose {
     display: none; position: fixed; z-index: 4100;
     top: calc(12px + env(safe-area-inset-top, 0px));
@@ -937,12 +918,10 @@ function showTab(name){
   if (name==='dashboard') renderDashboard();
 }
 
-/* ═════════ 전체보기 (FULL SCREEN) ═════════
-   브라우저 Fullscreen API로 화면 전체(주소창·탭·메뉴 등 브라우저 UI까지 숨김)로 전환.
-   전체화면 대상은 문서 전체(documentElement)라 닫기 버튼·토스트·오프라인 배너가 모두 보인다.
-   동시에 선택한 표(카드/대시보드)를 화면 가득 채워, 좌우 스크롤 없이 넓게 본다.
-   지원하지 않는 브라우저(구형 iOS Safari 등)에서는 표 확대 오버레이만 적용되어 그대로 사용 가능. */
-let fvEl = null, fvBtn = null;
+/* ═════════ FULL SCREEN ═════════
+   브라우저 Fullscreen API로 화면 전체(주소창·탭·메뉴 등 브라우저 UI 숨김)로 전환.
+   전체 페이지(입력폼·검색·리스트·헤더)를 그대로 두고 브라우저 UI만 숨긴다 —
+   특정 카드만 확대하지 않으므로 모든 내용이 보이고 페이지 스크롤/헤더 고정도 그대로. */
 function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
 function reqFull(el){
   const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
@@ -952,40 +931,30 @@ function exitFull(){
   const fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
   if (fsElement() && fn){ try { fn.call(document); } catch(e){} }
 }
-function applyExpand(on){
-  if (!fvEl) return;
-  fvEl.classList.toggle('fv-active', on);
-  document.body.classList.toggle('fv-on', on);
+function setFsUI(on, btn){
   document.getElementById('fvClose').classList.toggle('show', on);
-  if (fvBtn) fvBtn.textContent = on ? 'EXIT' : 'FULL SCREEN';
-  if (on){
-    if (fvEl.id === 'view-dashboard') renderDashboard();
-    const sc = fvEl.querySelector('.data-scroll, .stock-scroll'); if (sc) sc.scrollTop = 0;
-  }
+  // 클릭한 버튼만 EXIT, 나머지는 FULL SCREEN으로 (전체화면 아닐 땐 전부 FULL SCREEN)
+  document.querySelectorAll('.btn-full').forEach(b=>{
+    b.textContent = (on && b === btn) ? 'EXIT' : 'FULL SCREEN';
+  });
 }
-function toggleFullView(id, btn){
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (fvEl === el){ exitFullView(); return; }    // 같은 대상 재클릭 → 닫기
-  if (fvEl) applyExpand(false);                   // 다른 대상이 열려 있으면 이전 것 축소
-  fvEl = el; fvBtn = btn || null;
-  applyExpand(true);
-  // 브라우저 전체화면 요청(주소창·메뉴 숨김). 문서 전체를 대상으로 해야 닫기 버튼도 보인다.
+function toggleFullView(id, btn){         // id는 호환용(무시): 항상 문서 전체를 전체화면
+  if (fsElement()){ exitFullView(); return; }
   const p = reqFull(document.documentElement);
-  if (p && p.catch) p.catch(()=>{});              // 거부돼도 확대 오버레이는 유지
+  if (p && p.catch) p.catch(()=>{});      // 거부/미지원이어도 UI는 정상 유지
+  setFsUI(true, btn);
   document.addEventListener('keydown', fvKey);
 }
 function exitFullView(){
-  applyExpand(false);
-  fvBtn = null; fvEl = null;
+  setFsUI(false, null);
   document.removeEventListener('keydown', fvKey);
-  exitFull();                                     // 브라우저 전체화면 해제
+  exitFull();
 }
 function fvKey(e){ if (e.key === 'Escape') exitFullView(); }
-/* 사용자가 ESC나 브라우저 제스처로 전체화면을 빠져나가면 확대 상태도 함께 정리 */
+/* ESC·브라우저 제스처로 전체화면을 빠져나가도 버튼/EXIT 상태를 동기화 */
 function onFsChange(){
-  if (!fsElement() && fvEl){
-    applyExpand(false); fvBtn = null; fvEl = null;
+  if (!fsElement()){
+    setFsUI(false, null);
     document.removeEventListener('keydown', fvKey);
   }
 }
