@@ -51,6 +51,7 @@
     height: 54px; background: #101827; color: #fff;
     display: flex; align-items: center; padding: 0 24px; gap: 32px;
     box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    position: sticky; top: 0; z-index: 40;   /* 스크롤을 내려도 상단 탭 항상 고정 */
   }
   header .logo { font-size: 17px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
   header .logo span { color: #60a5fa; }
@@ -130,7 +131,13 @@
     padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fffdf6; color: #111827;
   }
   .edit-date:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
-  .entry-left { width: 420px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  .entry-left {
+    width: 420px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 14px;
+    /* 오른쪽 목록이 페이지 스크롤될 때도 입력/검색 박스는 제자리 고정 */
+    position: sticky; top: calc(var(--hdr-h, 54px) + 12px); align-self: flex-start;
+    max-height: calc(100vh - var(--hdr-h, 54px) - 24px); overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .entry-left .entry-form { width: 100%; }
   .month-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .flt-btn {
@@ -171,7 +178,9 @@
   .entry-form { width: 420px; flex: 0 0 auto; }
   .entry-form .body { padding: 16px 18px 18px; }
   .entry-data { flex: 1 1 auto; min-width: 0; }
-  .data-scroll { overflow-y: auto; overflow-x: auto; max-height: 880px; }
+  /* 리스트 카드 자체의 세로 스크롤 제거 → 페이지 스크롤로 목록 이동.
+     가로는 넓은 표(태블릿)에서 필요하므로 표 안에서만 스크롤 유지. */
+  .data-scroll { overflow-x: auto; overflow-y: visible; }
   .frow { display: flex; align-items: center; margin-bottom: 9px; gap: 10px; }
   .frow label { width: 158px; flex: 0 0 auto; font-weight: 600; font-size: 11.5px; color: #475569; white-space: nowrap; overflow: hidden; }
   .frow input, .frow select {
@@ -275,10 +284,11 @@
 
     .entry-wrap { flex-direction: column; }
     .entry-left, .entry-form { width: 100%; }
-    .entry-left { flex-direction: row; flex-wrap: wrap; }
+    /* 세로로 쌓이면 왼쪽 열은 표 위에 오므로 sticky 해제 */
+    .entry-left { flex-direction: row; flex-wrap: wrap; position: static; max-height: none; overflow: visible; }
     .entry-left > .card { flex: 1 1 320px; }
     .entry-data { width: 100%; }
-    .data-scroll { max-height: 62vh; }
+    .data-scroll { max-height: none; }   /* 내부 스크롤 없이 페이지 스크롤로 목록 이동 */
     /* 카드 헤더 버튼이 좁은 폭에서 다음 줄로 넘어가도록 */
     .card h2 { flex-wrap: wrap; white-space: normal; row-gap: 6px; }
 
@@ -292,9 +302,9 @@
     .entry-left > .card { flex: 1 1 auto; }
   }
 
-  /* ══════════ 전체보기 (FULL VIEW) — 태블릿/데스크톱 공용 ══════════ */
-  /* 표를 화면 전체로 펼쳐 좌우 스크롤 없이 넓게 본다. 네이티브 전체화면 API에
-     의존하지 않고 고정 오버레이로 구현해 iPad 등 태블릿에서도 안정적으로 동작. */
+  /* ══════════ FULL SCREEN — 태블릿/데스크톱 공용 ══════════ */
+  /* 브라우저 Fullscreen API로 화면 전체(주소창·메뉴 숨김)로 전환하고, 동시에 선택한
+     표를 화면 가득 채운다. 미지원 브라우저에서는 이 확대 오버레이만 적용되는 폴백. */
   .btn-full { background: #4f46e5; color: #fff; }
   body.fv-on { overflow: hidden; }               /* 배경 스크롤 잠금 */
   .fv-active {
@@ -369,9 +379,9 @@
       <span class="month-chip">Month <span id="lastMonthNum"></span> · Last month</span>
       <span class="month-chip cur">Month <span id="curMonthNum"></span> · Current month</span>
       <div class="spacer"></div>
-      <button class="btn btn-full" onclick="toggleFullView('view-dashboard', this)">전체보기</button>
       <button class="btn btn-export" onclick="exportDashboardExcel()">EXCEL EXPORT</button>
       <button class="btn btn-pdf" onclick="exportDashboardPDF()">PDF EXPORT</button>
+      <button class="btn btn-full" onclick="toggleFullView('view-dashboard', this)">FULL SCREEN</button>
     </div>
 
     <div class="dash-top">
@@ -488,10 +498,10 @@
       </div>
       <div class="card entry-data" id="card-sales">
         <h2>SALES <span class="sub" id="salesCount"></span><span class="push"></span>
-          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-sales', this)">전체보기</button>
           <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button>
           <button class="btn btn-print btn-sm" onclick="printTab('sales')">PRINT</button>
-          <button class="btn btn-edit btn-sm" id="edit-sales" onclick="toggleEdit('sales')">EDIT</button></h2>
+          <button class="btn btn-edit btn-sm" id="edit-sales" onclick="toggleEdit('sales')">EDIT</button>
+          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-sales', this)">FULL SCREEN</button></h2>
         <div class="mtot" id="mt_sales"></div>
         <div class="data-scroll">
           <table id="tblSalesData">
@@ -553,10 +563,10 @@
       </div>
       <div class="card entry-data" id="card-purchase">
         <h2>PURCHASE <span class="sub" id="purchaseCount"></span><span class="push"></span>
-          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-purchase', this)">전체보기</button>
           <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button>
           <button class="btn btn-print btn-sm" onclick="printTab('purchase')">PRINT</button>
-          <button class="btn btn-edit btn-sm" id="edit-purchase" onclick="toggleEdit('purchase')">EDIT</button></h2>
+          <button class="btn btn-edit btn-sm" id="edit-purchase" onclick="toggleEdit('purchase')">EDIT</button>
+          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-purchase', this)">FULL SCREEN</button></h2>
         <div class="mtot" id="mt_purchase"></div>
         <div class="data-scroll">
           <table id="tblPurchaseData">
@@ -612,10 +622,10 @@
       </div>
       <div class="card entry-data" id="card-stock">
         <h2>STOCK <span class="sub" id="stockCount"></span><span class="push"></span>
-          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-stock', this)">전체보기</button>
           <button class="btn btn-export btn-sm" onclick="exportStockExcel()">EXCEL EXPORT</button>
           <button class="btn btn-print btn-sm" onclick="printTab('stock')">PRINT</button>
-          <button class="btn btn-edit btn-sm" id="edit-stock" onclick="toggleEdit('stock')">EDIT</button></h2>
+          <button class="btn btn-edit btn-sm" id="edit-stock" onclick="toggleEdit('stock')">EDIT</button>
+          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-stock', this)">FULL SCREEN</button></h2>
         <div class="mtot" id="mt_stock"></div>
         <div class="data-scroll">
           <table id="tblStockData">
@@ -634,7 +644,7 @@
 </div>
 
 <div id="toast"></div>
-<button id="fvClose" type="button" onclick="exitFullView()">✕ 닫기</button>
+<button id="fvClose" type="button" onclick="exitFullView()">✕ EXIT</button>
 
 <script>
 'use strict';
@@ -940,7 +950,7 @@ function applyExpand(on){
   fvEl.classList.toggle('fv-active', on);
   document.body.classList.toggle('fv-on', on);
   document.getElementById('fvClose').classList.toggle('show', on);
-  if (fvBtn) fvBtn.textContent = on ? '닫기' : '전체보기';
+  if (fvBtn) fvBtn.textContent = on ? 'EXIT' : 'FULL SCREEN';
   if (on){
     if (fvEl.id === 'view-dashboard') renderDashboard();
     const sc = fvEl.querySelector('.data-scroll, .stock-scroll'); if (sc) sc.scrollTop = 0;
@@ -1747,6 +1757,18 @@ salesInit(); purchaseInit(); stockInit();
 renderSalesData(); renderPurchaseData(); renderStockData();
 renderDashboard();
 startSync();                                   // Firebase 실시간 동기화 시작
+
+/* 고정 헤더(탭)의 실제 높이를 CSS 변수로 반영 → 왼쪽 열 sticky 오프셋이
+   태블릿에서 헤더가 줄바꿈돼 높아져도 정확히 헤더 바로 아래에 붙도록. */
+(function trackHeaderHeight(){
+  const h = document.querySelector('header');
+  if (!h) return;
+  const set = () => document.documentElement.style.setProperty('--hdr-h', h.offsetHeight + 'px');
+  set();
+  window.addEventListener('resize', set);
+  window.addEventListener('orientationchange', set);
+  if (window.ResizeObserver){ try { new ResizeObserver(set).observe(h); } catch(e){} }
+})();
 /* ?tab=sales|purchase|stock|dashboard 딥링크 */
 (function(){
   try{
