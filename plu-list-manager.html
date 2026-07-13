@@ -2053,7 +2053,7 @@
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']}];
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
-  function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'O':''; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } var nk=tareNormKey(col&&col.key); if(nk==='TARE(LB)'||nk==='TARE(G)'){ var s=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); return s; } return round2Disp(raw==null?'':raw); }
+  function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'1':'0'; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } var nk=tareNormKey(col&&col.key); if(nk==='TARE(LB)'||nk==='TARE(G)'){ var s=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); return s; } return round2Disp(raw==null?'':raw); }
   // 내보내기 본문 생성 (header 제외):
   //  · ITEM CODE 1개 이하 → 화면에 보이는 대로 한 행
   //  · ITEM CODE 2개 이상 → 마지막 코드만 본 행에 두고, 나머지(마지막 제외)는 PLU+코드만 채운 행으로 맨 아래에 쭉 모음
