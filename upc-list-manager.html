@@ -3146,11 +3146,19 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       // 기본: BRAND 3자리 + ')' + ENG DESC → 총 18자리(공백 포함, 초과분 절단)
       // UNIT SIZE·UOM 있으면: BRAND 3자리 + ')' + ENG DESC 7자리 + '_' + UNITSIZE + UOM
       window.__posAutoGen=function(r){
-        var brand=String(__gv(r,'BRAND(ENG)')||__gv(r,'BRAND')||'').toUpperCase().replace(/\s+/g,'');
+        // BRAND 3글자는 반드시 BRAND(ENG) 필드에서 (라벨 공백 무시 매칭, 폴백 없음)
+        var brand='';
+        (function(){
+          var want='BRAND(ENG)';
+          function normK(k){ return String(k==null?'':k).toUpperCase().replace(/\s+/g,''); }
+          if(r&&r.extra){ for(var k in r.extra){ if(normK(k)===want){ var v=r.extra[k]; if(v!=null&&String(v).trim()!==''){ brand=String(v); return; } } } }
+          if(r){ for(var k2 in r){ if(k2==='extra')continue; if(normK(k2)===want){ var v2=r[k2]; if(v2!=null&&String(v2).trim()!==''){ brand=String(v2); return; } } } }
+        })();
+        brand=brand.toUpperCase().replace(/\s+/g,'');
         var eng=String(__gv(r,'ENG DESC')||'').toUpperCase();
         var size=String(__gv(r,'UNIT SIZE')||'').trim();
         var uom=String(__gv(r,'UOM')||'').trim().toUpperCase();
-        if(!brand && !eng) return '';
+        if(!brand) return '';   // BRAND(ENG) 없으면 생성하지 않음
         var b3=brand.substring(0,3);
         if(size!=='' && uom!==''){
           return (b3+')'+eng.substring(0,7)+'_'+size+uom);
