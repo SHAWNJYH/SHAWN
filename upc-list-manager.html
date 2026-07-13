@@ -2486,40 +2486,62 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var box=$('mfList'); if(!box||!mfWork) return;
     if(!mfWork.length){ box.innerHTML='<div class="mf-empty">아직 등록된 필드가 없습니다. 위에서 추가하거나 ⤵ 수집을 누르세요.</div>'; }
     else {
-      box.innerHTML=mfWork.map(function(m,i){
-        var fl=mfFlag(m.type);
-        return '<div class="mf-row" draggable="true" data-i="'+i+'">'+
+      // 성능: 행별 리스너 없이 HTML만 생성 (이벤트는 박스에 1회 위임)
+      var parts=new Array(mfWork.length);
+      for(var i=0;i<mfWork.length;i++){
+        var mm=mfWork[i]; var fl=mfFlag(mm.type);
+        parts[i]='<div class="mf-row" draggable="true" data-i="'+i+'">'+
           '<div class="mf-rtop">'+
             '<span class="mf-grip" title="드래그로 이동">⠿</span>'+
             '<span class="mf-ord">'+(i+1)+'</span>'+
-            (fl?'<span class="mf-flag">'+fl+'</span>':'')+
+            '<span class="mf-flag"'+(fl?'':' style="display:none;"')+'>'+(fl||'')+'</span>'+
             '<button class="mf-mini mf-del" type="button" title="삭제">✕</button>'+
           '</div>'+
-          '<input class="mf-name" value="'+escapeHtml(m.key)+'" maxlength="40" autocomplete="off">'+
-          '<select class="mf-rtype">'+mfTypeOptionsHTML(m.type)+'</select>'+
+          '<input class="mf-name" value="'+escapeHtml(mm.key)+'" maxlength="40" autocomplete="off">'+
+          '<select class="mf-rtype">'+mfTypeOptionsHTML(mm.type)+'</select>'+
         '</div>';
-      }).join('');
-      box.querySelectorAll('.mf-row').forEach(function(row){
-        var i=parseInt(row.getAttribute('data-i'),10);
-        row.querySelector('.mf-name').addEventListener('input', function(){ mfWork[i].key=this.value.trim().toUpperCase(); mfWork[i].label=mfWork[i].key; });
-        row.querySelector('.mf-rtype').addEventListener('change', function(){ mfWork[i].type=this.value; renderMasterList(); });
-        row.querySelector('.mf-del').onclick=function(){ mfWork.splice(i,1); renderMasterList(); };
-        // 입력/셀렉트에서 시작하는 드래그는 무시(텍스트 선택 보존)
-        row.addEventListener('dragstart', function(e){
-          var tg=e.target;
-          if(tg && (tg.tagName==='INPUT'||tg.tagName==='SELECT'||tg.tagName==='OPTION')){ e.preventDefault(); return; }
-          __mfDrag=i; row.classList.add('dragging');
-          try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(i)); }catch(err){}
-        });
-        row.addEventListener('dragend', function(){ __mfDrag=-1; box.querySelectorAll('.mf-row').forEach(function(r){ r.classList.remove('dragging'); r.classList.remove('drag-over'); }); });
-        row.addEventListener('dragover', function(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} if(__mfDrag>=0 && i!==__mfDrag){ row.classList.add('drag-over'); } });
-        row.addEventListener('dragleave', function(){ row.classList.remove('drag-over'); });
-        row.addEventListener('drop', function(e){ e.preventDefault(); row.classList.remove('drag-over'); var from=__mfDrag; if(from<0){ var dt=e.dataTransfer&&e.dataTransfer.getData('text/plain'); from=dt?parseInt(dt,10):-1; } mfMove(from, i); });
-      });
+      }
+      box.innerHTML=parts.join('');
     }
     var cnt=$('mfCount'); if(cnt) cnt.textContent=(mfWork?mfWork.length:0)+'개';
+    bindMfDelegated(box);
   }
-  function mfAddNew(){
+  var __mfBound=null;
+  function bindMfDelegated(box){
+    if(__mfBound===box) return;   // 1회만 위임 바인딩
+    __mfBound=box;
+    function rowOf(t){ while(t&&t!==box){ if(t.classList&&t.classList.contains('mf-row')) return t; t=t.parentNode; } return null; }
+    function idxOf(row){ return row?parseInt(row.getAttribute('data-i'),10):-1; }
+    box.addEventListener('input', function(e){
+      if(!e.target.classList.contains('mf-name')) return;
+      var i=idxOf(rowOf(e.target)); if(i<0||!mfWork[i]) return;
+      mfWork[i].key=e.target.value.trim().toUpperCase(); mfWork[i].label=mfWork[i].key;
+    });
+    box.addEventListener('change', function(e){
+      if(!e.target.classList.contains('mf-rtype')) return;
+      var row=rowOf(e.target); var i=idxOf(row); if(i<0||!mfWork[i]) return;
+      mfWork[i].type=e.target.value;
+      var fl=mfFlag(mfWork[i].type); var f=row.querySelector('.mf-flag');
+      if(f){ f.textContent=fl||''; f.style.display=fl?'':'none'; }   // 행만 갱신(전체 재렌더 제거)
+    });
+    box.addEventListener('click', function(e){
+      if(!e.target.classList.contains('mf-del')) return;
+      var i=idxOf(rowOf(e.target)); if(i<0) return;
+      mfWork.splice(i,1); renderMasterList();
+    });
+    box.addEventListener('dragstart', function(e){
+      var tg=e.target;
+      if(tg && (tg.tagName==='INPUT'||tg.tagName==='SELECT'||tg.tagName==='OPTION')){ e.preventDefault(); return; }
+      var row=rowOf(tg); if(!row) return;
+      __mfDrag=idxOf(row); row.classList.add('dragging');
+      try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(__mfDrag)); }catch(err){}
+    });
+    box.addEventListener('dragend', function(){ __mfDrag=-1; box.querySelectorAll('.dragging,.drag-over').forEach(function(r){ r.classList.remove('dragging'); r.classList.remove('drag-over'); }); });
+    box.addEventListener('dragover', function(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} var row=rowOf(e.target); if(row && __mfDrag>=0 && idxOf(row)!==__mfDrag){ row.classList.add('drag-over'); } });
+    box.addEventListener('dragleave', function(e){ var row=rowOf(e.target); if(row) row.classList.remove('drag-over'); });
+    box.addEventListener('drop', function(e){ e.preventDefault(); var row=rowOf(e.target); if(!row) return; row.classList.remove('drag-over'); var from=__mfDrag; if(from<0){ var dt=e.dataTransfer&&e.dataTransfer.getData('text/plain'); from=dt?parseInt(dt,10):-1; } mfMove(from, idxOf(row)); });
+  }
+  function mfAddNew  function mfAddNew(){
     var nn=$('mfNewName'), tt=$('mfNewType'); if(!nn||!mfWork) return;
     var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
     if(mfWork.some(function(m){return m.key===name;})){ showToast('이미 있는 필드입니다','error'); nn.select(); return; }
@@ -3009,6 +3031,55 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input')) return;
         var key=String(t.getAttribute('data-key')||'').trim().toUpperCase();
         var mc=(window.__MFCAT||{})[key];
+        // 반복값 필드: 기존 값 목록에서 골라 일괄 적용
+        var __FILL_PICK={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
+        if(!mc && __FILL_PICK[key]){
+          var old2=document.getElementById('mfCatPick'); if(old2) old2.parentNode.removeChild(old2);
+          var oldF2=document.getElementById('mfFillBtn'); if(oldF2) oldF2.parentNode.removeChild(oldF2);
+          // 현재 리스트에서 이 필드의 고유 값 수집
+          var seen={}, vals=[];
+          (work||[]).forEach(function(row){ if(!row) return;
+            var v=''; var bb=t.getAttribute('data-base')==='1';
+            if(bb){ v=row[fieldOf(key)]; } else if(row.extra){ for(var k in row.extra){ if(String(k).trim().toUpperCase()===key){ v=row.extra[k]; break; } } }
+            v=(v==null?'':String(v)).trim(); if(v && !seen[v]){ seen[v]=1; vals.push(v); }
+          });
+          vals.sort(); if(vals.length>40) vals=vals.slice(0,40);
+          var pick=document.createElement('div'); pick.id='mfCatPick';
+          pick.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:190px;max-height:260px;overflow:auto;';
+          pick.innerHTML='<div style="font-size:10px;color:#9a9aa0;padding:2px 6px 6px;">'+key+' — 값 선택 후 일괄 적용</div>'
+            +'<div class="mfc-opt" data-mode="cur" style="padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;color:#b8730f;font-weight:700;">✏ 현재 입력값으로 전체 채우기</div>'
+            +(vals.length?vals.map(function(v){ return '<div class="mfc-opt" data-n="'+v.replace(/"/g,'&quot;')+'" style="padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;">'+v+'</div>'; }).join(''):'<div style="padding:6px 8px;font-size:11px;color:#9a9aa0;">기존 값 없음 — 직접 입력 후 위 항목 사용</div>');
+          var r2=t.getBoundingClientRect();
+          pick.style.left=Math.min(r2.left, window.innerWidth-230)+'px';
+          pick.style.top=(r2.bottom+4)+'px';
+          document.body.appendChild(pick);
+          Array.prototype.forEach.call(pick.querySelectorAll('.mfc-opt'), function(op){
+            op.onmouseenter=function(){ op.style.background='#f4efe2'; };
+            op.onmouseleave=function(){ op.style.background=''; };
+            op.onmousedown=function(ev){
+              ev.preventDefault();
+              var n=(op.getAttribute('data-mode')==='cur') ? t.value : op.getAttribute('data-n');
+              if(op.getAttribute('data-mode')==='cur' && String(n).trim()===''){ showToast('먼저 입력칸에 값을 입력하세요','error'); return; }
+              var idx2=parseInt(t.getAttribute('data-idx'),10);
+              var bb2=t.getAttribute('data-base')==='1';
+              if(confirm('현재 필드('+key+') 전체를 "'+n+'"(으)로 변경할까요?\n[확인]=전체 변경 · [취소]=이 행만')){
+                (work||[]).forEach(function(row){ if(!row) return; if(bb2){ row[fieldOf(key)]=n; } else { if(!row.extra) row.extra={}; row.extra[key]=n; } });
+                var ins2=tb.querySelectorAll('input.plu-edit-input[data-key="'+key.replace(/"/g,'\\"')+'"]');
+                for(var i3=0;i3<ins2.length;i3++){ ins2[i3].value=n; }
+              } else {
+                if(work&&work[idx2]){ if(bb2){ work[idx2][fieldOf(key)]=n; } else { if(!work[idx2].extra) work[idx2].extra={}; work[idx2].extra[key]=n; } }
+                t.value=n;
+              }
+              markDirty();
+              if(pick.parentNode) pick.parentNode.removeChild(pick);
+            };
+          });
+          function closeP(){ if(pick.parentNode) pick.parentNode.removeChild(pick); document.removeEventListener('mousedown', outP, true); }
+          function outP(ev){ if(!pick.contains(ev.target) && ev.target!==t) closeP(); }
+          setTimeout(function(){ document.addEventListener('mousedown', outP, true); },0);
+          t.addEventListener('blur', function(){ setTimeout(function(){ var ae=document.activeElement; if(!pick.contains(ae)) closeP(); }, 150); }, { once:true });
+          return;
+        }
         if(!mc){
           // 일반 필드: 입력값을 필드 전체에 채우는 버튼
           var oldF=document.getElementById('mfFillBtn'); if(oldF) oldF.parentNode.removeChild(oldF);
