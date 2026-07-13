@@ -741,6 +741,7 @@ async function exportWithCategory(cat){
   var mappedMFs=[]; cat.fields.forEach(function(ef){ var mf=maps[ef]; if(mf && mappedMFs.indexOf(mf)<0) mappedMFs.push(mf); });
   for(var mi=0; mi<mappedMFs.length; mi++){
     var MF=String(mappedMFs[mi]).trim().toUpperCase();
+    if(MF==='POS DESC') continue;
     if(!byLabel[MF] && mfcat[MF]){
       var opts=mfcat[MF].values.map(function(v){ return v.n+(v.d?(' — '+v.d):''); }).join('\n');
       var pick=prompt(MF+' 필드 숫자를 선택하세요 (전체 행에 적용됩니다)\n'+opts, mfcat[MF].values[0]&&mfcat[MF].values[0].n||'');
@@ -748,9 +749,21 @@ async function exportWithCategory(cat){
       fixed[MF]=String(pick).trim();
     }
   }
+  // POS DESC 자동 생성 (UPC/PLU MANAGER와 동일 규칙)
+  function posAutoGen(row){
+    var brand=String(row.brandE||'').toUpperCase().replace(/\s+/g,'');
+    var eng=String(row.eng||'').toUpperCase();
+    var size=String(row.size||'').trim();
+    var uom=String(row.sizecode||'').trim().toUpperCase();
+    if(!brand && !eng) return '';
+    var b3=brand.substring(0,3);
+    if(size!=='' && uom!==''){ return (b3+')'+eng.substring(0,7)+'_'+size+uom); }
+    return (b3+')'+eng).substring(0,18);
+  }
   function valueFor(row, managerField){
     var MF=String(managerField||'').trim().toUpperCase();
     if(fixed[MF]!==undefined) return fixed[MF];
+    if(MF==='POS DESC') return posAutoGen(row);   // OCR에는 POS DESC 열이 없으므로 자동 생성
     var f=byLabel[MF];
     if(!f) return '';
     var v=row[f.key]==null?'':row[f.key];

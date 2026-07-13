@@ -1427,7 +1427,7 @@
   function enterEdit(){
     var cat=curCat();
     var __anchorPlu=topVisiblePlu();
-    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow).sort(byPluAsc); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,hiddenStore:!!c.hiddenStore,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); if(__anchorPlu) scrollToPlu(__anchorPlu); };
+    var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow).sort(byPluAsc); var base=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,hiddenStore:!!c.hiddenStore,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; renderContent(); if(healed) markDirty(); try{ var __pn=(window.__posFillAllEmpty?window.__posFillAllEmpty():0); if(__pn>0){ renderContent(); markDirty(); showToast('POS DESC '+__pn+'건 자동 생성','success'); } }catch(e){} if(__anchorPlu) scrollToPlu(__anchorPlu); };
     if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
   }
   function markDirty(){ workDirty=true; var sv=$('pluSaveBtn'); if(sv && sv.textContent.indexOf('*')<0){ sv.textContent='💾 저장 *'; sv.classList.add('on'); } }
@@ -1990,7 +1990,38 @@
         setTimeout(function(){ document.addEventListener('mousedown', outside, true); },0);
         t.addEventListener('blur', function(){ setTimeout(function(){ var ae=document.activeElement; if(!pick.contains(ae)) closePick(); }, 150); }, { once:true });
       });
+      // ===== POS DESC 자동 생성 (UPC MANAGER와 동일 규칙) =====
+      function __gv(r,label){ if(!r) return ''; var W=String(label).trim().toUpperCase(); if(r.extra){ for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ var v=r.extra[k]; if(v!=null) return String(v); } } } for(var k2 in r){ if(k2==='extra')continue; if(String(k2).trim().toUpperCase()===W){ var v2=r[k2]; if(v2!=null) return String(v2); } } return ''; }
+      function __sv(r,label,val){ if(!r) return; var W=String(label).trim().toUpperCase(); if(!r.extra) r.extra={}; for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ r.extra[k]=val; return; } } r.extra[label]=val; }
+      window.__posAutoGen=function(r){
+        var brand=String(__gv(r,'BRAND(ENG)')||__gv(r,'BRAND')||'').toUpperCase().replace(/\s+/g,'');
+        var eng=String(__gv(r,'ENG DESC')||'').toUpperCase();
+        var size=String(__gv(r,'UNIT SIZE')||'').trim();
+        var uom=String(__gv(r,'UOM')||'').trim().toUpperCase();
+        if(!brand && !eng) return '';
+        var b3=brand.substring(0,3);
+        if(size!=='' && uom!==''){ return (b3+')'+eng.substring(0,7)+'_'+size+uom); }
+        return (b3+')'+eng).substring(0,18);
+      };
+      function __posMaybeAuto(row, rowIdx){
+        var cur=__gv(row,'POS DESC');
+        if(cur!=='' && row.__posAuto!==undefined && cur!==row.__posAuto) return;
+        if(cur!=='' && row.__posAuto===undefined) return;
+        var v=window.__posAutoGen(row); if(v==='') return;
+        __sv(row,'POS DESC',v); row.__posAuto=v;
+        var inp=null; var all=tb.querySelectorAll('input.plu-edit-input[data-idx="'+rowIdx+'"]');
+        for(var i=0;i<all.length;i++){ if(String(all[i].getAttribute('data-key')||'').trim().toUpperCase()==='POS DESC'){ inp=all[i]; break; } }
+        if(inp) inp.value=v;
+      }
+      window.__posFillAllEmpty=function(){
+        if(!work) return 0; var n=0;
+        for(var i=0;i<work.length;i++){ var r=work[i]; if(!r) continue; if(__gv(r,'POS DESC')===''){ var v=window.__posAutoGen(r); if(v!==''){ __sv(r,'POS DESC',v); r.__posAuto=v; n++; } } }
+        return n;
+      };
+      var __POS_SRC={'BRAND(ENG)':1,'BRAND':1,'ENG DESC':1,'UNIT SIZE':1,'UOM':1};
       tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var base=t.getAttribute('data-base')==='1'; if(work&&work[idx]){ if(base){ work[idx][fieldOf(key)]=t.value; if(String(key).toUpperCase()==='ITEMCODE1' && Array.isArray(work[idx].itemCodes) && work[idx].itemCodes.length){ work[idx].itemCodes[0]=t.value; } } else { if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=t.value; }
+        var __K=String(key||'').trim().toUpperCase();
+        if(__POS_SRC[__K]){ __posMaybeAuto(work[idx], idx); }
         var _nk=tareNormKey(key);
         if(_nk==='TARE(LB)'){ var g=lbToG(t.value); if(g!=null){ var gv=String(g)+' G'; if(!work[idx].extra) work[idx].extra={}; work[idx].extra['TARE(G)']=gv; var ins=tb.querySelectorAll('input.plu-edit-input[data-idx="'+idx+'"]'); Array.prototype.forEach.call(ins,function(ii){ if(tareNormKey(ii.getAttribute('data-key'))==='TARE(G)'){ ii.value=gv; } }); } }
         else if(_nk==='TARE(G)'){ var lb=gToLb(t.value); if(lb!=null){ var lv=String(lb)+' LB'; if(!work[idx].extra) work[idx].extra={}; work[idx].extra['TARE(LB)']=lv; var ins2=tb.querySelectorAll('input.plu-edit-input[data-idx="'+idx+'"]'); Array.prototype.forEach.call(ins2,function(ii){ if(tareNormKey(ii.getAttribute('data-key'))==='TARE(LB)'){ ii.value=lv; } }); } }

@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SALES MANAGEMENT v1.0 · CAMPEON WHOLESALE</title>
+<script>
+/* 주소창에서 파일명 숨김: 로드 즉시 주소를 루트(/)로 교체 (서버 호스팅에서만 동작) */
+(function(){
+  try{
+    if(location.protocol==='http:'||location.protocol==='https:'){
+      history.replaceState(null, '', './');
+    }
+  }catch(e){}
+})();
+</script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
