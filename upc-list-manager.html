@@ -2541,7 +2541,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     box.addEventListener('dragleave', function(e){ var row=rowOf(e.target); if(row) row.classList.remove('drag-over'); });
     box.addEventListener('drop', function(e){ e.preventDefault(); var row=rowOf(e.target); if(!row) return; row.classList.remove('drag-over'); var from=__mfDrag; if(from<0){ var dt=e.dataTransfer&&e.dataTransfer.getData('text/plain'); from=dt?parseInt(dt,10):-1; } mfMove(from, idxOf(row)); });
   }
-  function mfAddNew  function mfAddNew(){
+  function mfAddNew(){
     var nn=$('mfNewName'), tt=$('mfNewType'); if(!nn||!mfWork) return;
     var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
     if(mfWork.some(function(m){return m.key===name;})){ showToast('이미 있는 필드입니다','error'); nn.select(); return; }
