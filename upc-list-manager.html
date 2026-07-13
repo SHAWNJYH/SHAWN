@@ -3261,7 +3261,15 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 내보내기 값 변환
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } var sig=String(((col&&col.key)||'')+'|'+((col&&col.label)||'')).toUpperCase(); if(isUpcOCol(col) || /UPC\s*\(\s*O\s*\)/.test(sig)){ var __a=__findAltVal(r,__UPCO_ALIAS,col.key); if(__a!=='') return __a; } else if(isUpcCCol(col) || /UPC\s*\(\s*C\s*\)/.test(sig)){ var __b=__findAltVal(r,__UPCC_ALIAS,col.key); if(__b!=='') return __b; } return ''; }
   // 내보내기 셀 값
-  function exportCell(r,col){ var raw=exportVal(r,col); if(col&&(col.type==='check'||col.type==='rcheck')) return raw?'1':'0'; if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
+  // 체크 필드 판정: col.type 우선, 없으면 마스터필드 타입 조회(카테고리 매핑 등 type 미전달 경로 대응)
+  function __isCheckColX(col){
+    if(col&&(col.type==='check'||col.type==='rcheck')) return true;
+    var K=String((col&&(col.key!=null?col.key:col.label))||'').trim().toUpperCase(); if(!K) return false;
+    for(var i=0;i<(masterFields||[]).length;i++){ var m=masterFields[i]; if(m&&String(m.key).trim().toUpperCase()===K) return (m.type==='check'||m.type==='rcheck'); }
+    return false;
+  }
+  function __chkOn(raw){ if(raw===true) return true; if(raw===false||raw==null) return false; var s2=String(raw).trim().toUpperCase(); return s2!=='' && s2!=='0' && s2!=='FALSE' && s2!=='X'; }
+  function exportCell(r,col){ var raw=exportVal(r,col); if(__isCheckColX(col)) return __chkOn(raw)?'1':'0'; if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
   // xlsx 시트 스타일 적용
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
