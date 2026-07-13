@@ -280,6 +280,10 @@
     /* 태블릿에서는 콘텐츠와 상단 탭(헤더)을 함께 축소해 한 화면에 더 많이 보이도록.
        PC(>1366px)는 영향 없음. 헤더는 body 자식이라 축소해도 상단 고정은 유지된다. */
     .app { padding: 0 10px; zoom: 0.8; }
+    /* 검색 영역: zoom 0.8을 감안해 버튼·입력을 키워 태블릿에서도 잘 보이게 */
+    .search-body .btn-row { margin-top: 12px; gap: 12px; }
+    .search-body .btn-save, .search-body .btn-clear { padding: 14px 0; font-size: 16px; min-height: 48px; }
+    .search-body .date-range .dr-col input[type="date"] { padding: 12px 10px; font-size: 15px; min-height: 46px; }
     header { zoom: 0.8; }
     .dash-top .stockbox { width: 480px; }
     .entry-left, .entry-form { width: 360px; }
@@ -305,6 +309,8 @@
     /* 세로로 쌓이면 왼쪽 열은 표 위에 오므로 sticky 해제 */
     .entry-left { flex-direction: row; flex-wrap: wrap; position: static; max-height: none; overflow: visible; }
     .entry-left > .card { flex: 1 1 320px; }
+    /* SEARCH 카드는 한 줄 전체를 차지해 날짜·버튼이 잘리지 않게 */
+    .entry-left > .card:has(.search-body) { flex: 1 1 100%; }
     .entry-data { width: 100%; }
     .data-scroll { max-height: none; }   /* 내부 스크롤 없이 페이지 스크롤로 목록 이동 */
     /* 카드 헤더 버튼이 좁은 폭에서 다음 줄로 넘어가도록 */
@@ -326,20 +332,6 @@
      특정 카드만 확대하지 않는다. 페이지 스크롤/헤더 고정도 그대로 유지. */
   .btn-full { background: #4f46e5; color: #fff; }
 
-  /* 떠 있는 EXIT 버튼 (전체화면에서만 노출) — 태블릿 터치 타깃 크게 */
-  #fvClose {
-    display: none; position: fixed; z-index: 4100;
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    right: calc(14px + env(safe-area-inset-right, 0px));
-    align-items: center; gap: 8px;
-    background: #0f172a; color: #fff; border: none; border-radius: 9px;
-    padding: 12px 20px; font-size: 15px; font-weight: 800; letter-spacing: .4px;
-    cursor: pointer; box-shadow: 0 6px 22px rgba(0,0,0,.32);
-    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-  }
-  #fvClose.show { display: inline-flex; }
-  #fvClose:hover { filter: brightness(1.15); }
-  #fvClose:active { filter: brightness(1.25); }
   /* 네이티브 전체화면 시 배경(브라우저 기본 검정 방지) */
   :fullscreen { background: #eef1f5; }
   :-webkit-full-screen { background: #eef1f5; }
@@ -645,7 +637,6 @@
 </div>
 
 <div id="toast"></div>
-<button id="fvClose" type="button" onclick="exitFullView()">✕ EXIT</button>
 
 <script>
 'use strict';
@@ -945,10 +936,9 @@ function exitFull(){
   if (fsElement() && fn){ try { fn.call(document); } catch(e){} }
 }
 function setFsUI(on, btn){
-  document.getElementById('fvClose').classList.toggle('show', on);
-  // 클릭한 버튼만 EXIT, 나머지는 FULL SCREEN으로 (전체화면 아닐 땐 전부 FULL SCREEN)
+  // 전체화면 중에는 어느 탭에서든 모든 버튼이 EXIT로 보인다
   document.querySelectorAll('.btn-full').forEach(b=>{
-    b.textContent = (on && b === btn) ? 'EXIT' : 'FULL SCREEN';
+    b.textContent = on ? 'EXIT' : 'FULL SCREEN';
   });
 }
 function toggleFullView(id, btn){         // id는 호환용(무시): 항상 문서 전체를 전체화면
