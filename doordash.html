@@ -165,12 +165,12 @@
 <script>
 (function(){
   function $(id){ return document.getElementById(id); }
-  var AUTH_COL='app-config', AUTH_DOC='campeon-users';   // 계정은 CAMPEON 과 동일 문서를 공유
+  /* 계정은 STORE MANAGER → 아이디/패스워드 관리에서 'DOORDASH' 를 체크한 아이디만
+     app-config/doordash-users 에 저장된다(EGMM·CAMPEON 과 동일한 스코프 구조).
+     즉 이 문서에 있으면 곧 DOORDASH 입장 권한이 있는 것. */
+  var AUTH_COL='app-config', AUTH_DOC='doordash-users';
   var GATE_KEY='doordashGate', USER_KEY='doordashUser', AUTO_KEY='doordashAutoLogin';
   var users=[];
-  /* DOORDASH 입장 가능 여부 — STORE MANAGER 매장관리에서 지정하는 플래그.
-     u.doordash 또는 u.menus.doordash(true) 중 하나라도 있으면 입장 허용. */
-  function canDoordash(u){ return !!(u && (u.doordash===true || (u.menus && u.menus.doordash===true))); }
 
   /* index.html 과 동일한 해시 방식 (SHA-256 'THE-SHAWN::'+v → 'h:', 폴백 'p:') */
   async function hashPin(v){
@@ -214,7 +214,7 @@
     if(!fb||!fb.getDoc){ setTimeout(loadUsers,400); return; }
     fb.getDoc(fb.doc(fb.db,AUTH_COL,AUTH_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      users=Array.isArray(d.users)?d.users.filter(function(u){return u&&u.name&&canDoordash(u);}):[];
+      users=Array.isArray(d.users)?d.users.filter(function(u){return u&&u.name;}):[];
       fillUsers();
     }).catch(function(){ var sel=$('cwUserPick'); if(sel) sel.innerHTML='<option value="">불러오기 실패 — 새로고침</option>'; });
   }
