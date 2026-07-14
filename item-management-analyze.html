@@ -108,24 +108,23 @@
   .rs-empty{ text-align:center; padding:52px 20px; border:1.5px dashed var(--border-bright); border-radius:16px; background:var(--bg-elev); color:var(--text-dim); }
   .rs-empty .ic{ font-size:32px; } .rs-empty .t{ font-size:15px; font-weight:800; margin-top:10px; } .rs-empty .s{ font-size:13px; margin-top:5px; }
   .rs-card{ border:1.5px solid var(--border); border-radius:16px; background:var(--bg-elev); padding:18px; }
-  .rs-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
-  .rs-kor{ font-size:20px; font-weight:800; }
-  .rs-eng{ font-size:13.5px; color:var(--text-dim); font-weight:700; }
-  .rs-upc{ font-size:12.5px; color:var(--text-faint); font-weight:800; letter-spacing:.04em; margin-bottom:14px; }
-  .rs-tablewrap{ overflow-x:auto; border:1.5px solid var(--border); border-radius:12px; }
-  table.rs-table{ width:100%; border-collapse:collapse; font-size:13.5px; white-space:nowrap; }
-  .rs-table th{ background:var(--bg-elev-2); color:var(--text-dim); font-weight:800; font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; text-align:left; padding:10px 13px; border-bottom:1.5px solid var(--border); }
-  .rs-table td{ padding:10px 13px; border-bottom:1px solid var(--border); }
-  .rs-table tr:last-child td{ border-bottom:none; }
-  .rs-table td.num{ text-align:right; font-variant-numeric:tabular-nums; }
-  .rs-table .miss{ color:var(--text-faint); }
-  .rs-total{ margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; background:var(--accent-soft); border:1.5px solid var(--accent-warm); border-radius:13px; padding:14px 18px; }
-  .rs-total .lab{ font-size:12.5px; font-weight:800; color:var(--text-dim); letter-spacing:.03em; }
-  .rs-total .lab b{ color:var(--text); }
-  .rs-total .val{ font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; }
-  .rs-total .note{ font-size:12px; color:var(--text-dim); font-weight:700; }
-  .rs-bystore{ margin-top:10px; font-size:12px; color:var(--text-dim); font-weight:700; display:flex; gap:8px 16px; flex-wrap:wrap; }
-  .rs-bystore span b{ color:var(--text); }
+  .rs-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:2px; }
+  .rs-name{ font-size:22px; font-weight:800; letter-spacing:-.01em; }         /* DESC 약간 크게 */
+  .rs-name .hl{ font-size:27px; color:var(--accent-warm); font-weight:900; }  /* 검색어 조금 더 크게 */
+  .rs-upc{ font-family:var(--mono,monospace); font-size:13px; color:var(--text-faint); font-weight:800; letter-spacing:.03em; }
+  .rs-eng2{ font-size:13.5px; color:var(--text-dim); font-weight:700; margin-bottom:8px; }
+  .rs-meta{ font-size:12px; color:var(--text-dim); font-weight:700; margin:6px 0 14px; }
+  .rs-meta b{ color:var(--text); }
+  /* 매장 가로 나열 + 옅은 회색 세로 구분선 */
+  .rs-stores{ display:flex; overflow-x:auto; border:1.5px solid var(--border); border-radius:13px; background:var(--bg); }
+  .rs-st{ flex:0 0 auto; min-width:132px; padding:12px 16px; border-left:1px solid #e7e7e2; }
+  .rs-st:first-child{ border-left:none; }
+  .rs-st-nm{ font-size:13px; font-weight:800; letter-spacing:.02em; text-align:center; padding-bottom:9px; margin-bottom:8px; border-bottom:1.5px solid var(--border); white-space:nowrap; }
+  .rs-metric{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:5px 0; }
+  .rs-metric .lb{ font-size:11px; font-weight:800; color:var(--text-faint); letter-spacing:.03em; }
+  .rs-metric .vv{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .rs-metric .vv.strong{ color:var(--accent-warm); }
+  .rs-nostore{ padding:22px; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; border:1.5px dashed var(--border); border-radius:13px; }
 
   /* 히스토리 */
   .hs-wrap{ border:1.5px solid var(--border); border-radius:14px; background:var(--bg-elev); max-height:300px; overflow-y:auto; }
@@ -151,18 +150,18 @@
   .map-row select:focus{ outline:none; border-color:var(--accent-warm); }
   .map-actions{ display:flex; gap:9px; margin-top:20px; align-items:center; }
   /* 필드 추가/수정 모달 */
-  .fld-row{ display:grid; grid-template-columns:1fr 160px 40px 34px; gap:8px; align-items:center; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:7px; }
+  .fld-row{ display:grid; grid-template-columns:1fr 140px 160px 40px 34px; gap:8px; align-items:center; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:7px; }
   .fld-row.role-upc{ border-color:var(--accent-warm); }
   .fld-lb{ font-size:13.5px; font-weight:800; }
   .fld-lb small{ display:block; font-size:10.5px; font-weight:700; color:var(--text-faint); }
-  .st-in2{ border:1.5px solid var(--border); background:var(--bg); border-radius:9px; padding:8px 10px; font-family:var(--mono); font-size:13px; font-weight:700; color:var(--text); width:100%; }
+  .st-in2{ border:1.5px solid var(--border); background:var(--bg); border-radius:9px; padding:8px 10px; font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--text); width:100%; }
   .st-in2:focus{ outline:none; border-color:var(--accent-warm); }
   .fld-ord{ display:flex; gap:2px; }
   .fld-ord button{ border:1px solid var(--border); background:var(--bg); border-radius:5px; width:18px; height:26px; font-size:9px; cursor:pointer; color:var(--text-dim); }
   .fld-ord button:hover{ border-color:var(--accent-warm); color:var(--text); }
   .fld-del{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:8px; padding:7px 0; font-size:12px; font-weight:800; cursor:pointer; }
   .fld-del:hover{ border-color:var(--danger); color:var(--danger); background:#fff0f0; }
-  .fld-add{ display:grid; grid-template-columns:1fr 160px auto; gap:8px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); }
+  .fld-add{ display:grid; grid-template-columns:1fr 140px 160px auto; gap:8px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); }
   .ex-btn2{ border:1.5px solid var(--accent); background:var(--accent); color:#fff; border-radius:9px; padding:9px 14px; font-size:13px; font-weight:800; cursor:pointer; }
   .ex-btn2:hover{ background:#000; }
   .fld-saved{ font-size:12px; font-weight:800; color:var(--success); }
@@ -248,6 +247,7 @@
     <div class="fld-add">
       <select class="st-in2" id="fldNewKey"></select>
       <select class="st-in2" id="fldNewRole"></select>
+      <select class="st-in2" id="fldNewFn"></select>
       <button class="ex-btn2" id="fldAdd" type="button">＋ 추가</button>
     </div>
     <div class="map-actions">
@@ -294,7 +294,7 @@
   var MATCH_DOC='item-analyze-match';       // STORE MANAGER · ITEM 필드매칭 선 연결
   var MASTER_COL='upc-config', MASTER_DOC='main';  // 필드관리 마스터 필드
   var MASTER=[];        // [{key,label}] — 필드관리 마스터
-  var IMX_MATCH={};     // norm(엑셀열) -> ITEM ANALYZE 필드 key (선 연결에서 생성)
+  var IMX_PROFILES=[];  // [{ 필드key: 엑셀열 }] — ITEM 필드매칭(선 연결)에서 생성. 여러 필드가 같은 열 공유 가능.
 
   /* ITEM ANALYZE 필드 = STORE MANAGER · 필드관리 마스터 중에서 선별(app-config/item-analyze-fields).
      이 앱의 [필드 추가/수정]에서 마스터 필드만 골라 role 을 지정한다. field = {key,label,role}
@@ -311,15 +311,28 @@
     {key:'DATE',label:'판매일 (DATE)',role:'date',aliases:['DATE','날짜','판매일','일자']}
   ];
   var FIELDS=[], ROLES={};
-  function normCfg(arr){ var seen={},out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null)return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k,label:(f.label!=null?String(f.label):k),role:String(f.role||'text'),aliases:Array.isArray(f.aliases)?f.aliases.map(function(x){return String(x).trim();}).filter(Boolean):[]}); }); return out; }
+  var FN_LIST=['none','eng','kor','per_qty'];
+  var FN_LABEL={none:'그대로', eng:'설명 분리 · 영문(/ 왼쪽)', kor:'설명 분리 · 한글(/ 오른쪽)', per_qty:'수량으로 나눔 (단가 $)'};
+  function normCfg(arr){ var seen={},out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null)return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; var fn=String(f.fn||'none'); if(FN_LIST.indexOf(fn)<0) fn='none'; out.push({key:k,label:(f.label!=null?String(f.label):k),role:String(f.role||'text'),fn:fn}); }); return out; }
+  /* 결합 설명(H) 을 단독 '/' 기준으로 영문(왼쪽)/한글(오른쪽) 분리 */
+  function splitDesc(raw){
+    var s=String(raw==null?'':raw).trim(); if(!s) return {eng:'',kor:''};
+    var re=/\s*\/\s*(?=[\uAC00-\uD7A3\u3130-\u318F\u1100-\u11FF])/;
+    var m=s.match(re);
+    if(m){ return { eng:s.slice(0,m.index).trim(), kor:s.slice(m.index+m[0].length).trim() }; }
+    var j=s.indexOf('/');
+    if(j>=0){ return { eng:s.slice(0,j).trim(), kor:s.slice(j+1).trim() }; }
+    var hasKor=/[\uAC00-\uD7A3\u3130-\u318F]/.test(s);
+    return hasKor?{eng:'',kor:s}:{eng:s,kor:''};
+  }
   function fieldIsNum(role){ return role==='cost'||role==='srp'||role==='price'||role==='qty'||role==='amount'; }
   function fieldOpt(role){ return role==='qty'||role==='amount'||role==='date'||role==='category'; }
   function deriveRoles(){
-    var idKey=null,nameKeys=[],priceKeys=[],amountKey=null,dateKey=null,catKey=null,qtyKey=null,disp=[];
+    var idKey=null,nameKeys=[],priceKeys=[],amountKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
     FIELDS.forEach(function(f){
       if(f.role==='upc'){ if(!idKey) idKey=f.key; }
       else if(f.role==='name') nameKeys.push(f.key);
-      else if(f.role==='cost'||f.role==='srp'||f.role==='price') priceKeys.push(f.key);
+      else if(f.role==='cost'||f.role==='srp'||f.role==='price'){ priceKeys.push(f.key); if(f.role==='cost'&&!costKey) costKey=f.key; if(f.role==='srp'&&!srpKey) srpKey=f.key; if(f.role==='price'&&!costKey) costKey=f.key; }
       else if(f.role==='amount'){ if(!amountKey) amountKey=f.key; }
       else if(f.role==='date'){ if(!dateKey) dateKey=f.key; }
       else if(f.role==='category'){ if(!catKey) catKey=f.key; }
@@ -327,8 +340,10 @@
       if(f.role!=='qty'&&f.role!=='amount'&&f.role!=='date') disp.push(f);
     });
     if(!idKey && FIELDS.length) idKey=FIELDS[0].key;
+    if(!costKey && priceKeys.length) costKey=priceKeys[0];
+    if(!srpKey && priceKeys.length>1) srpKey=priceKeys[1];
     var pset={}; priceKeys.forEach(function(k){ pset[k]=1; });
-    ROLES={ idKey:idKey, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, amountKey:amountKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
+    ROLES={ idKey:idKey, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
   }
   function setFields(arr){ FIELDS=(arr&&arr.length)?normCfg(arr):normCfg(FIELD_DEFAULTS); deriveRoles(); }
   function fieldByKey(k){ k=String(k||'').trim().toUpperCase(); for(var i=0;i<FIELDS.length;i++){ if(FIELDS[i].key===k) return FIELDS[i]; } return null; }
@@ -368,22 +383,31 @@
 
   /* ===== 매핑 자동추정 — STORE MANAGER · ITEM 필드매칭(선 연결) 우선 ===== */
   function guessMap(headers){
-    var used={}, m={}; var hnorm=headers.map(function(h){ return norm(h); });
-    // 1) ITEM 필드매칭(선 연결)에 등록된 열 → 필드
-    headers.forEach(function(h,i){ var k=IMX_MATCH[hnorm[i]]; if(k && !m[k] && !used[h] && fieldByKey(k)){ m[k]=h; used[h]=1; } });
-    // 2) 열 이름이 필드 키/라벨과 같으면 연결(보조)
-    FIELDS.forEach(function(f){ if(m[f.key]) return; var fk=norm(f.key), fl=norm(f.label);
-      for(var i=0;i<headers.length;i++){ if(used[headers[i]]) continue; if(hnorm[i]===fk||hnorm[i]===fl){ m[f.key]=headers[i]; used[headers[i]]=1; break; } } });
+    var m={}; var hset={}; headers.forEach(function(h){ hset[norm(h)]=h; });
+    // 프로필의 필드→열 매핑 중, 파일 헤더에 있는 것만 채택 (여러 필드가 같은 열 공유 허용)
+    IMX_PROFILES.forEach(function(mp){
+      Object.keys(mp).forEach(function(fk){ if(m[fk]) return; if(!fieldByKey(fk)) return; var want=norm(mp[fk]); if(hset[want]) m[fk]=hset[want]; });
+    });
+    // 보조: 열 이름이 필드 키/라벨과 같으면
+    FIELDS.forEach(function(f){ if(m[f.key]) return; var w=hset[norm(f.key)]||hset[norm(f.label)]; if(w) m[f.key]=w; });
     FIELDS.forEach(function(f){ if(!m[f.key]) m[f.key]=''; });
     return m;
   }
 
-  /* ===== 정규화 저장 ===== */
+  /* ===== 정규화 저장 (필드 기능 적용) ===== */
   function normalizeRows(rawRows, map){
+    var qk=ROLES.qtyKey;
     return rawRows.map(function(r){
       var o={};
-      FIELDS.forEach(function(f){ var col=map[f.key]; var v=(col!=null&&col!=='')?r[col]:'';
-        if(fieldIsNum(f.role)) o[f.key]=num(v); else if(f.role==='date') o[f.key]=parseDate(v); else o[f.key]=(v==null?'':String(v)).trim(); });
+      var qv=(qk&&map[qk])?num(r[map[qk]]):null;   // per_qty 계산용 수량
+      FIELDS.forEach(function(f){ var col=map[f.key]; var raw=(col!=null&&col!=='')?r[col]:''; var fn=f.fn||'none';
+        if(fn==='eng') o[f.key]=splitDesc(raw).eng;
+        else if(fn==='kor') o[f.key]=splitDesc(raw).kor;
+        else if(fn==='per_qty'){ var v=num(raw); o[f.key]=(v!=null&&qv&&qv!==0)?(v/qv):v; }
+        else if(fieldIsNum(f.role)) o[f.key]=num(raw);
+        else if(f.role==='date') o[f.key]=parseDate(raw);
+        else o[f.key]=(raw==null?'':String(raw)).trim();
+      });
       return o;
     }).filter(function(o){ var id=ROLES.idKey?o[ROLES.idKey]:''; var hasName=ROLES.nameKeys.some(function(k){ return o[k]; }); return (id&&String(id).length)||hasName; });
   }
@@ -404,9 +428,9 @@
         var cur=p.perStore[store];
         if(!cur){ cur={_date:dt}; ROLES.priceKeys.forEach(function(pk){ cur[pk]=row[pk]; }); p.perStore[store]=cur; }
         else if(dt>=(cur._date||0)){ ROLES.priceKeys.forEach(function(pk){ cur[pk]=row[pk]; }); cur._date=dt; }
-        // 판매기록(판매일 + 판매금액)
-        var amt=ROLES.amountKey?row[ROLES.amountKey]:null, d2=ROLES.dateKey?row[ROLES.dateKey]:null;
-        if(d2 && amt!=null){ p.sales.push({store:store, date:d2, amount:amt, qty:(ROLES.qtyKey?row[ROLES.qtyKey]:null)}); }
+        // 판매기록(판매수량/판매금액 — 판매일 없어도 집계)
+        var amt=ROLES.amountKey?row[ROLES.amountKey]:null, d2=ROLES.dateKey?row[ROLES.dateKey]:null, q=ROLES.qtyKey?row[ROLES.qtyKey]:null;
+        if(amt!=null || q!=null){ p.sales.push({store:store, date:d2||0, amount:(amt!=null?amt:0), qty:(q!=null?q:0)}); }
       });
     });
     productList=Object.keys(productsByUpc).map(function(k){ var p=productsByUpc[k];
@@ -574,39 +598,48 @@
   }
 
   /* ===== 결과 렌더 ===== */
-  function renderResultEmpty(msg){ $('rsBox').innerHTML='<div class="rs-empty"><div class="ic">🔎</div><div class="t">'+esc(msg||'상품을 검색하세요')+'</div><div class="s">각 매장의 현재 판매가격과 기간 총 판매금액을 보여드립니다.</div></div>'; }
+  function renderResultEmpty(msg){ $('rsBox').innerHTML='<div class="rs-empty"><div class="ic">🔎</div><div class="t">'+esc(msg||'상품을 검색하세요')+'</div><div class="s">DESC(상품명)로 검색하면 매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 보여드립니다.</div></div>'; }
+  function storeSummary(p){
+    var from=dateMs('srFrom',false), to=dateMs('srTo',true); var out={};
+    STORES.forEach(function(s){ if(!p.perStore[s]) return; var ps=p.perStore[s];
+      out[s]={ cost:(ROLES.costKey?ps[ROLES.costKey]:null), srp:(ROLES.srpKey?ps[ROLES.srpKey]:null), qty:0, amount:0 }; });
+    p.sales.forEach(function(x){ if(!out[x.store]) return; if(from!=null&&x.date&&x.date<from) return; if(to!=null&&x.date&&x.date>to) return; out[x.store].qty+=(x.qty||0); out[x.store].amount+=(x.amount||0); });
+    return out;
+  }
+  function highlightName(name, q){
+    if(name==null||name==='') return '(이름없음)';
+    name=String(name); if(!q) return esc(name);
+    var i=name.toLowerCase().indexOf(String(q).toLowerCase()); if(i<0) return esc(name);
+    return esc(name.slice(0,i))+'<span class="hl">'+esc(name.slice(i,i+q.length))+'</span>'+esc(name.slice(i+q.length));
+  }
+  function fmtQty(n){ if(n==null) return '—'; var v=Number(n); if(isNaN(v)) return '—'; return (Math.round(v*100)/100).toLocaleString('en-US'); }
   function renderResult(p){
     selected=p;
-    var cols=ROLES.displayFields;
-    var stores=STORES.filter(function(s){ return p.perStore[s]; });
-    var body=stores.map(function(s){
-      var cells=cols.map(function(f){
-        if(ROLES.priceSet[f.key]){ var v=p.perStore[s]?p.perStore[s][f.key]:null; return '<td class="num">'+(v!=null?money(v):'<span class="miss">—</span>')+'</td>'; }
-        if(f.key===ROLES.idKey){ return '<td>'+(p.id?esc(p.id):'<span class="miss">—</span>')+'</td>'; }
-        var val=p.vals[f.key];
-        return '<td>'+(val!=null&&val!==''?esc(val):'<span class="miss">—</span>')+'</td>';
-      }).join('');
-      return '<tr><td>'+esc(s)+'</td>'+cells+'</tr>';
-    }).join('');
-    var headCols='<th>매장</th>'+cols.map(function(f){ return '<th>'+esc(f.label)+'</th>'; }).join('');
-    var colspan=cols.length+1;
-    var pt=periodTotal(p);
-    var rangeTxt = (pt.from||pt.to) ? ((pt.from?ymd(pt.from):'처음')+' ~ '+(pt.to?ymd(pt.to):'끝')) : '전체 기간';
-    var totalHtml;
-    if(!pt.hasData){
-      totalHtml='<div class="rs-total"><div class="lab"><b>기간 총 판매금액</b> · '+esc(rangeTxt)+'</div><div class="note">판매금액·판매일 필드가 매핑된 업로드가 없어 집계할 수 없습니다.</div></div>';
-    } else {
-      var by=Object.keys(pt.byStore).sort().map(function(s){ return '<span><b>'+esc(s)+'</b> '+money(pt.byStore[s])+'</span>'; }).join('');
-      totalHtml='<div class="rs-total"><div class="lab"><b>기간 총 판매금액</b> · '+esc(rangeTxt)+' · '+pt.counted+'건</div><div class="val">'+money(pt.total)+'</div></div>'+
-        (by?'<div class="rs-bystore">'+by+'</div>':'');
-    }
+    var summ=storeSummary(p);
+    var stores=STORES.filter(function(s){ return summ[s]; });
+    var q=($('srInput').value||'').trim();
     var nm=pName(p), n2=pName2(p);
+    var from=dateMs('srFrom',false), to=dateMs('srTo',true);
+    var rangeTxt=(from||to)?((from?ymd(from):'처음')+' ~ '+(to?ymd(to):'끝')):'전체 기간';
+    var grand=0; stores.forEach(function(s){ grand+=summ[s].amount||0; });
+    var cols=stores.map(function(s){ var d=summ[s];
+      return '<div class="rs-st">'+
+        '<div class="rs-st-nm">'+esc(s)+'</div>'+
+        '<div class="rs-metric"><span class="lb">COST</span><span class="vv">'+(d.cost!=null?money(d.cost):'—')+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">SRP</span><span class="vv">'+(d.srp!=null?money(d.srp):'—')+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">판매수량</span><span class="vv">'+fmtQty(d.qty)+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">판매금액</span><span class="vv strong">'+money(d.amount)+'</span></div>'+
+      '</div>';
+    }).join('');
+    var storesHtml=stores.length?('<div class="rs-stores">'+cols+'</div>'):'<div class="rs-nostore">판매 매장 데이터가 없습니다.</div>';
     $('rsBox').innerHTML='<div class="rs-card">'+
-      '<div class="rs-head"><span class="rs-kor">'+esc(nm||p.id||'(이름없음)')+'</span>'+(n2?'<span class="rs-eng">'+esc(n2)+'</span>':'')+'</div>'+
-      '<div class="rs-upc">'+(p.id?('UPC '+esc(p.id)):'UPC 없음')+' · '+stores.length+'개 매장 판매</div>'+
-      '<div class="rs-tablewrap"><table class="rs-table"><thead><tr>'+headCols+'</tr></thead><tbody>'+
-      (body||'<tr><td colspan="'+colspan+'" class="miss" style="text-align:center;padding:18px;">판매 매장 없음</td></tr>')+'</tbody></table></div>'+
-      totalHtml+
+      '<div class="rs-head">'+
+        '<span class="rs-name">'+highlightName(nm||p.id, q)+'</span>'+
+        '<span class="rs-upc">('+(p.id?('UPC '+esc(p.id)):'UPC 없음')+')</span>'+
+      '</div>'+
+      (n2?'<div class="rs-eng2">'+esc(n2)+'</div>':'')+
+      '<div class="rs-meta">'+stores.length+'개 매장 · '+esc(rangeTxt)+' · 합계 판매금액 <b>'+money(grand)+'</b></div>'+
+      storesHtml+
     '</div>';
   }
 
@@ -670,9 +703,10 @@
       }, function(){ /* 실패 시 기본 필드 유지 */ });
     }catch(e){}
   }
+  function fnOpts(sel){ return FN_LIST.map(function(v){ return '<option value="'+v+'"'+(v===sel?' selected':'')+'>'+esc(FN_LABEL[v])+'</option>'; }).join(''); }
   function saveFields(fields){
     var fb=window.iaCfgFb;
-    var clean=(fields||[]).map(function(f){ return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key)), role:String(f.role||'text') }; });
+    var clean=(fields||[]).map(function(f){ var fn=String(f.fn||'none'); if(FN_LIST.indexOf(fn)<0) fn='none'; return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key)), role:String(f.role||'text'), fn:fn }; });
     setFields(clean); rebuildIndex(); renderStores();
     if(!fb||!fb.setDoc){ toast('저장 실패 (연결 확인)'); return; }
     try{ fb.setDoc(fb.doc(fb.db,CFG_COL,CFG_DOC), { fields:clean, updatedAt:Date.now() }, {merge:true}).then(function(){ var e=$('fldSaved'); if(e){ e.textContent='저장됨'; setTimeout(function(){ e.textContent=''; },1500); } }).catch(function(){ toast('저장 실패 (규칙 확인)'); }); }catch(e){}
@@ -692,8 +726,8 @@
     var fb=window.iaCfgFb; if(!fb||!fb.onSnapshot){ setTimeout(subscribeMatch,400); return; }
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,MATCH_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      var dict={}; (Array.isArray(d.profiles)?d.profiles:[]).forEach(function(p){ var mp=(p&&p.mappings)||{}; Object.keys(mp).forEach(function(h){ var k=mp[h]; if(h&&k) dict[norm(h)]=String(k).trim().toUpperCase(); }); });
-      IMX_MATCH=dict;
+      var arr=[]; (Array.isArray(d.profiles)?d.profiles:[]).forEach(function(p){ var mp=(p&&p.mappings)||{}; var m={}; Object.keys(mp).forEach(function(ak){ var h=mp[ak]; if(ak&&h) m[String(ak).trim().toUpperCase()]=String(h); }); if(Object.keys(m).length) arr.push(m); });
+      IMX_PROFILES=arr;
     }, function(){}); }catch(e){}
   }
   /* 마스터 필드명으로 role 추정(빈 설정일 때 자동 시드용) */
@@ -721,30 +755,34 @@
     if(!avail.length){ sel.innerHTML='<option value="">(모든 마스터 필드 추가됨)</option>'; return; }
     sel.innerHTML=avail.map(function(m){ return '<option value="'+esc(m.key)+'">'+esc(m.label)+(m.label!==m.key?' ('+esc(m.key)+')':'')+'</option>'; }).join('');
   }
-  function fldOpen(){ fldRender(); fillFldNewKey(); var rs=$('fldNewRole'); if(rs&&!rs.options.length) rs.innerHTML=roleOpts('text'); $('fldOv').classList.add('show'); }
+  function fldOpen(){ fldRender(); fillFldNewKey(); var rs=$('fldNewRole'); if(rs&&!rs.options.length) rs.innerHTML=roleOpts('text'); var fs=$('fldNewFn'); if(fs&&!fs.options.length) fs.innerHTML=fnOpts('none'); $('fldOv').classList.add('show'); }
   function fldClose(){ $('fldOv').classList.remove('show'); }
+  function cloneFields(){ return FIELDS.map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; }); }
   function fldRender(){
     var box=$('fldList'); if(!box) return;
     if(!FIELDS.length){ box.innerHTML='<div class="fld-empty">아직 ITEM ANALYZE 필드가 없습니다.<br>아래에서 필드관리 마스터 필드를 골라 추가하세요.</div>'; return; }
     box.innerHTML=FIELDS.map(function(f,i){
       return '<div class="fld-row'+(f.role==='upc'?' role-upc':'')+'">'+
         '<div class="fld-lb">'+esc(f.label)+'<small>'+esc(f.key)+'</small></div>'+
-        '<select class="st-in2 fld-role" data-i="'+i+'">'+roleOpts(f.role)+'</select>'+
+        '<select class="st-in2 fld-role" data-i="'+i+'" title="역할">'+roleOpts(f.role)+'</select>'+
+        '<select class="st-in2 fld-fn" data-i="'+i+'" title="업로드 시 적용할 기능">'+fnOpts(f.fn||'none')+'</select>'+
         '<div class="fld-ord"><button data-up="'+i+'" type="button" title="위로">▲</button><button data-down="'+i+'" type="button" title="아래로">▼</button></div>'+
         '<button class="fld-del" data-del="'+i+'" type="button" title="제거">✕</button>'+
       '</div>';
     }).join('');
-    box.querySelectorAll('.fld-role').forEach(function(s){ var i=+s.getAttribute('data-i'); s.onchange=function(){ var nf=FIELDS.map(function(x,j){ return j===i?{key:x.key,label:x.label,role:s.value}:{key:x.key,label:x.label,role:x.role}; }); saveFields(nf); fldRender(); }; });
-    box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up'); b.onclick=function(){ if(i<=0)return; var nf=FIELDS.slice(); var t=nf[i-1]; nf[i-1]=nf[i]; nf[i]=t; saveFields(nf); fldRender(); }; });
-    box.querySelectorAll('[data-down]').forEach(function(b){ var i=+b.getAttribute('data-down'); b.onclick=function(){ if(i>=FIELDS.length-1)return; var nf=FIELDS.slice(); var t=nf[i+1]; nf[i+1]=nf[i]; nf[i]=t; saveFields(nf); fldRender(); }; });
-    box.querySelectorAll('[data-del]').forEach(function(b){ var i=+b.getAttribute('data-del'); b.onclick=function(){ if(!confirm('필드 ['+FIELDS[i].label+']를 ITEM ANALYZE 에서 제거할까요?')) return; var nf=FIELDS.slice(); nf.splice(i,1); saveFields(nf); fldRender(); fillFldNewKey(); }; });
+    box.querySelectorAll('.fld-role').forEach(function(s){ var i=+s.getAttribute('data-i'); s.onchange=function(){ var nf=cloneFields(); nf[i].role=s.value; saveFields(nf); fldRender(); }; });
+    box.querySelectorAll('.fld-fn').forEach(function(s){ var i=+s.getAttribute('data-i'); s.onchange=function(){ var nf=cloneFields(); nf[i].fn=s.value; saveFields(nf); fldRender(); }; });
+    box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up'); b.onclick=function(){ if(i<=0)return; var nf=cloneFields(); var t=nf[i-1]; nf[i-1]=nf[i]; nf[i]=t; saveFields(nf); fldRender(); }; });
+    box.querySelectorAll('[data-down]').forEach(function(b){ var i=+b.getAttribute('data-down'); b.onclick=function(){ if(i>=FIELDS.length-1)return; var nf=cloneFields(); var t=nf[i+1]; nf[i+1]=nf[i]; nf[i]=t; saveFields(nf); fldRender(); }; });
+    box.querySelectorAll('[data-del]').forEach(function(b){ var i=+b.getAttribute('data-del'); b.onclick=function(){ if(!confirm('필드 ['+FIELDS[i].label+']를 ITEM ANALYZE 에서 제거할까요?')) return; var nf=cloneFields(); nf.splice(i,1); saveFields(nf); fldRender(); fillFldNewKey(); }; });
   }
   function fldAddField(){
     var sel=$('fldNewKey'); var key=(sel&&sel.value||'').trim().toUpperCase(); if(!key){ toast('추가할 마스터 필드를 선택하세요'); return; }
     if(FIELDS.some(function(f){ return f.key===key; })){ toast('이미 추가된 필드입니다'); return; }
     var m=null; for(var i=0;i<MASTER.length;i++){ if(MASTER[i].key===key){ m=MASTER[i]; break; } }
     var role=($('fldNewRole')&&$('fldNewRole').value)||'text';
-    var nf=FIELDS.map(function(x){ return {key:x.key,label:x.label,role:x.role}; }); nf.push({ key:key, label:(m?m.label:key), role:role });
+    var fn=($('fldNewFn')&&$('fldNewFn').value)||'none';
+    var nf=cloneFields(); nf.push({ key:key, label:(m?m.label:key), role:role, fn:fn });
     saveFields(nf); fldRender(); fillFldNewKey();
   }
   if($('iaFieldsBtn')) $('iaFieldsBtn').onclick=fldOpen;

@@ -249,6 +249,13 @@
   .efld .map-sel{ border:1px solid var(--border); background:var(--bg-elev-2); border-radius:6px; font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--text-dim); padding:2px 4px; max-width:96px; cursor:pointer; }
   .efld .map-x{ border:none; background:transparent; color:var(--text-faint); font-size:13px; font-weight:800; cursor:pointer; padding:0 2px; line-height:1; }
   .efld .map-x:hover{ color:#c0392b; }
+  /* ITEM 필드매칭: 왼쪽(필드) 소스 선택/태그 */
+  .mfld .map-tag{ font-size:10.5px; font-weight:800; padding:2px 7px; border-radius:6px; color:#fff; white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+  .mfld .map-tag.broken{ background:#d9534f !important; }
+  .mfld .imx-src{ border:1px solid var(--border); background:var(--bg-elev-2); border-radius:6px; font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--text-dim); padding:2px 4px; max-width:96px; cursor:pointer; }
+  .mfld .map-x{ border:none; background:transparent; color:var(--text-faint); font-size:13px; font-weight:800; cursor:pointer; padding:0 2px; line-height:1; }
+  .mfld .map-x:hover{ color:#c0392b; }
+  .efld.mapped{ border-color:var(--mf-color,var(--border)); }
 
   .ex-empty{ grid-column:1 / -1; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; padding:40px 20px; border:1.5px dashed var(--border); border-radius:14px; }
   .ex-empty b{ color:var(--text-dim); }
@@ -467,9 +474,9 @@
         </div>
       </div>
       <div class="st-hint" style="padding:0 22px 16px; margin:0;">
-        왼쪽 <b>ITEM ANALYZE 필드</b>(ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 선택 · 필드관리 마스터 필드만 사용)를 클릭해 선택한 뒤,
-        오른쪽 <b>엑셀 열</b>을 클릭하면 선으로 연결됩니다. 여기서 연결한 매칭으로 ITEM ANALYZE 엑셀 업로드 시 데이터가 자동 매핑됩니다.
-        카테고리별로 서로 다른 엑셀 형식을 저장해 둘 수 있습니다.
+        왼쪽 <b>ITEM ANALYZE 필드</b>(ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 선택 · 필드관리 마스터 필드만)를 클릭해 선택한 뒤,
+        오른쪽 <b>엑셀 열</b>을 클릭하면 선으로 연결됩니다(필드 왼쪽의 선택 상자로도 지정 가능). 여러 필드가 <b>같은 엑셀 열</b>을 공유할 수 있어
+        KOR DESC·ENG DESC 처럼 한 열을 나눠 쓰는 경우에도 대응합니다. 여기서 연결한 매칭으로 ITEM ANALYZE 엑셀 업로드 시 데이터가 자동 매핑됩니다.
       </div>
     </div>
 
@@ -842,10 +849,9 @@
     var fb=window.smFb; if(!fb||!fb.setDoc) return;
     try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { profiles:imxState.profiles, activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
   }
-  function imxSetMap(excelField, analyzeKey){
+  function imxSetMap(analyzeKey, excelField){
     var p=imxActive(); if(!p) return; if(!p.mappings) p.mappings={};
-    if(analyzeKey){ Object.keys(p.mappings).forEach(function(ef){ if(ef!==excelField && p.mappings[ef]===analyzeKey) delete p.mappings[ef]; }); p.mappings[excelField]=analyzeKey; }
-    else delete p.mappings[excelField];
+    if(excelField) p.mappings[analyzeKey]=excelField; else delete p.mappings[analyzeKey];
     imxSaveMatch();
   }
   function imxArm(key){ imxState.armed=(imxState.armed===key)?null:key; imxRender(); requestAnimationFrame(imxDraw); }
@@ -855,65 +861,69 @@
     if(!imxState.profiles.length){ sel.innerHTML='<option value="">— 카테고리 —</option>'; return; }
     sel.innerHTML=imxState.profiles.map(function(p){ var mark=(p.fields&&p.fields.length)?(' · '+(p.fileName||'파일')):' (파일 없음)'; return '<option value="'+p.id+'"'+(p.id===imxState.activeId?' selected':'')+'>'+esc(p.name+mark)+'</option>'; }).join('');
   }
+  // 왼쪽: ITEM ANALYZE 필드. mappings[필드key]=엑셀열. 여러 필드가 같은 엑셀 열을 공유 가능(KOR/ENG 분리).
   function imxRenderAnalyzeCol(){
     var col=$('imxAnalyzeCol'); if(!col) return;
     if(!imxAnalyzeFields.length){ col.innerHTML='<div class="ex-empty">ITEM ANALYZE 필드가 없습니다.<br>ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 필드관리 마스터 필드를 선택하세요.</div>'; return; }
-    var p=imxActive(); var used={};
-    if(p&&p.mappings){ Object.keys(p.mappings).forEach(function(ef){ used[p.mappings[ef]]=ef; }); }
+    var p=imxActive(); var excelFields=(p&&p.fields)||[];
+    var opts='<option value="">— 없음 —</option>'+excelFields.map(function(h){ return '<option value="'+esc(h)+'">'+esc(h)+'</option>'; }).join('');
     var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">ITEM ANALYZE 필드</span><span class="ex-col-sub">'+imxAnalyzeFields.length+'개 · 필드관리 마스터</span></div>';
     html+=imxAnalyzeFields.map(function(f,i){
-      var c=imxColor(f.key); var armed=imxState.armed===f.key?' armed':''; var linked=used[f.key]?' linked':'';
-      var mark=used[f.key]?'<span class="mf-linked" title="'+esc(used[f.key])+' 에 연결됨">✓</span>':'';
+      var c=imxColor(f.key); var armed=imxState.armed===f.key?' armed':'';
+      var mapped=(p&&p.mappings)?p.mappings[f.key]:''; var brokenSrc=mapped&&excelFields.indexOf(mapped)<0;
+      var linked=mapped?' linked':'';
+      var tag=mapped?('<span class="map-tag'+(brokenSrc?' broken':'')+'"'+(brokenSrc?'':' style="background:'+c+'"')+'>'+esc(mapped)+(brokenSrc?' ⚠':'')+'</span>'):'';
+      var selHtml=excelFields.length?('<select class="imx-src" data-key="'+esc(f.key)+'">'+opts.replace('value="'+esc(mapped)+'"','value="'+esc(mapped)+'" selected')+'</select>'):'';
+      var xBtn=mapped?'<button class="map-x" data-key="'+esc(f.key)+'" title="연결 해제">✕</button>':'';
       return '<div class="fld mfld'+armed+linked+'" data-field="'+esc(f.key)+'" style="--mf-color:'+c+'">'+
         '<span class="swatch" style="background:'+c+'"></span>'+
         '<span class="fld-name" title="'+esc(f.role)+'">'+esc(f.label)+'</span>'+
-        mark+'<span class="fld-idx">'+esc(f.role)+'</span>'+
+        tag+selHtml+xBtn+
         '<span class="anchor mf-anchor"></span></div>';
     }).join('');
     col.innerHTML=html;
     col.querySelectorAll('.mfld').forEach(function(row){
-      row.addEventListener('click', function(e){ if(e.target.classList.contains('anchor')) return; imxArm(row.dataset.field); });
-      var a=row.querySelector('.anchor'); if(a) a.addEventListener('click', function(){ imxArm(row.dataset.field); });
+      var key=row.dataset.field;
+      row.addEventListener('click', function(e){ if(e.target.closest('.imx-src')||e.target.closest('.map-x')||e.target.classList.contains('anchor')) return; imxArm(key); });
+      var a=row.querySelector('.anchor'); if(a) a.addEventListener('click', function(){ imxArm(key); });
+      var sel=row.querySelector('.imx-src'); if(sel){ sel.value=(p&&p.mappings&&p.mappings[key])||''; sel.addEventListener('change', function(){ imxSetMap(key, this.value); imxRender(); requestAnimationFrame(imxDraw); }); }
+      var x=row.querySelector('.map-x'); if(x){ x.addEventListener('click', function(){ imxSetMap(key,''); imxRender(); requestAnimationFrame(imxDraw); }); }
     });
   }
+  // 오른쪽: 엑셀 열. 어떤 필드들이 이 열을 사용하는지 표시. 필드 arm 후 클릭하면 연결.
   function imxRenderExcelCol(){
     var col=$('imxExcelCol'); if(!col) return;
     var p=imxActive();
     if(!p){ col.innerHTML='<div class="ex-empty">카테고리가 없습니다.<br>상단 <b>＋ 카테고리</b>로 추가하세요.</div>'; return; }
     if(!p.fields||!p.fields.length){ col.innerHTML='<div class="ex-empty"><b>'+esc(p.name)+'</b> 카테고리에 업로드된 엑셀이 없습니다.<br>상단 <b>📄 엑셀 업로드</b>로 이 카테고리의 샘플 엑셀을 올리세요.<br>(엑셀 첫 행이 열 목록이 됩니다)</div>'; return; }
-    var opts='<option value="">— 없음 —</option>'+imxAnalyzeFields.map(function(f){ return '<option value="'+esc(f.key)+'">'+esc(f.label)+'</option>'; }).join('');
+    var rev={}; if(p.mappings){ Object.keys(p.mappings).forEach(function(ak){ var ef=p.mappings[ak]; if(!imxField(ak)) return; if(!rev[ef]) rev[ef]=[]; rev[ef].push(ak); }); }
     var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">엑셀 열 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
-    html+=p.fields.map(function(f){
-      var mapped=p.mappings?p.mappings[f]:''; var broken=mapped&&!imxField(mapped);
-      var c=(mapped&&!broken)?imxColor(mapped):''; var mappedCls=mapped?(broken?' mapped broken':' mapped'):'';
-      var style=(mapped&&!broken)?' style="--mf-color:'+c+'"':'';
-      var lab=(mapped&&!broken)?(imxField(mapped).label):mapped;
-      var tag=mapped?('<span class="map-tag'+(broken?' broken':'')+'"'+(broken?'':' style="background:'+c+'"')+'>'+esc(broken?mapped:lab)+(broken?' ⚠':'')+'</span>'):'';
-      var selHtml='<select class="map-sel" data-field="'+esc(f)+'">'+opts.replace('value="'+esc(mapped)+'"','value="'+esc(mapped)+'" selected')+'</select>';
-      var xBtn=mapped?'<button class="map-x" data-field="'+esc(f)+'" title="연결 해제">✕</button>':'';
-      return '<div class="fld efld'+mappedCls+'" data-field="'+esc(f)+'"'+style+'>'+
+    html+=p.fields.map(function(ef){
+      var users=rev[ef]||[]; var mappedCls=users.length?' mapped':''; var c=users.length?imxColor(users[0]):''; var style=users.length?' style="--mf-color:'+c+'"':'';
+      var tags=users.map(function(ak){ var fld=imxField(ak); return '<span class="map-tag" style="background:'+imxColor(ak)+'">'+esc(fld?fld.label:ak)+'</span>'; }).join('');
+      return '<div class="fld efld'+mappedCls+'" data-field="'+esc(ef)+'"'+style+'>'+
         '<span class="anchor ef-anchor"></span>'+
-        '<span class="fld-name" title="'+esc(f)+'">'+esc(f)+'</span>'+
-        tag+selHtml+xBtn+'</div>';
+        '<span class="fld-name" title="'+esc(ef)+'">'+esc(ef)+'</span>'+
+        tags+'</div>';
     }).join('');
     col.innerHTML=html;
     col.querySelectorAll('.efld').forEach(function(row){
-      var field=row.dataset.field;
-      row.addEventListener('click', function(e){ if(e.target.closest('.map-sel')||e.target.closest('.map-x')) return; if(imxState.armed){ imxSetMap(field, imxState.armed); imxRender(); requestAnimationFrame(imxDraw); } });
-      var sel=row.querySelector('.map-sel'); if(sel){ sel.value=(p.mappings&&p.mappings[field])||''; sel.addEventListener('change', function(){ imxSetMap(field, this.value); imxRender(); requestAnimationFrame(imxDraw); }); }
-      var x=row.querySelector('.map-x'); if(x){ x.addEventListener('click', function(){ imxSetMap(field,''); imxRender(); requestAnimationFrame(imxDraw); }); }
+      var ef=row.dataset.field;
+      function connect(){ if(imxState.armed){ imxSetMap(imxState.armed, ef); imxRender(); requestAnimationFrame(imxDraw); } }
+      row.addEventListener('click', function(e){ if(e.target.classList.contains('anchor')) return; connect(); });
+      var a=row.querySelector('.anchor'); if(a) a.addEventListener('click', connect);
     });
   }
-  function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 엑셀 열을 클릭해 연결'):''; }
+  function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 엑셀 열을 클릭해 연결 (여러 필드가 같은 열 공유 가능)'):''; }
   function imxRender(){ imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed(); }
   function imxCssEsc(s){ return String(s).replace(/["\\]/g,'\\$&'); }
   function imxDraw(){
     var svg=$('imxSvg'), canvas=$('imxCanvas'); if(!svg||!canvas) return; svg.innerHTML='';
     var p=imxActive(); if(!p||!p.mappings) return;
     var crect=canvas.getBoundingClientRect(); svg.setAttribute('width',canvas.scrollWidth); svg.setAttribute('height',canvas.scrollHeight);
-    Object.keys(p.mappings).forEach(function(ef){
-      var mk=p.mappings[ef];
-      var mEl=$('imxAnalyzeCol').querySelector('.mfld[data-field="'+imxCssEsc(mk)+'"] .anchor');
+    Object.keys(p.mappings).forEach(function(ak){
+      var ef=p.mappings[ak];
+      var mEl=$('imxAnalyzeCol').querySelector('.mfld[data-field="'+imxCssEsc(ak)+'"] .anchor');
       var eEl=$('imxExcelCol').querySelector('.efld[data-field="'+imxCssEsc(ef)+'"] .anchor');
       if(!mEl||!eEl) return;
       var mr=mEl.getBoundingClientRect(), er=eEl.getBoundingClientRect();
@@ -922,8 +932,8 @@
       var dx=Math.max(40,Math.abs(x2-x1)*0.5);
       var path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d','M '+x1+' '+y1+' C '+(x1+dx)+' '+y1+', '+(x2-dx)+' '+y2+', '+x2+' '+y2);
-      path.setAttribute('fill','none'); path.setAttribute('stroke',imxColor(mk)); path.setAttribute('stroke-width','2.4'); path.setAttribute('opacity','0.9');
-      path.addEventListener('click', function(){ if(confirm('이 연결을 해제할까요?')){ imxSetMap(ef,''); imxRender(); requestAnimationFrame(imxDraw); } });
+      path.setAttribute('fill','none'); path.setAttribute('stroke',imxColor(ak)); path.setAttribute('stroke-width','2.4'); path.setAttribute('opacity','0.9');
+      path.addEventListener('click', function(){ if(confirm('이 연결을 해제할까요?')){ imxSetMap(ak,''); imxRender(); requestAnimationFrame(imxDraw); } });
       svg.appendChild(path);
     });
   }
