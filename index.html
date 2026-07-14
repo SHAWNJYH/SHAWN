@@ -2373,8 +2373,8 @@
   }
 
   /* 좌상단 MANAGER 아이콘 */
+  .topbar-left { position: fixed; top: 16px; left: 16px; z-index: 1200; display: flex; align-items: center; gap: 8px; }
   .mgr-fab {
-    position: fixed; top: 16px; left: 16px; z-index: 1200;
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
     padding: 8px 12px; border-radius: 999px; cursor: pointer;
@@ -2411,7 +2411,8 @@
     animation: portalIn .55s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @keyframes portalIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
-  .portal-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; width:100%; }
+  .portal-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; width:100%; max-width:660px; margin:0 auto; }
+  .portal-card-wide{ grid-column:1 / -1; min-height:118px; }
   .portal-card{
     position:relative; overflow:hidden; background:var(--bg-elev);
     border:1.5px solid var(--border); border-radius:18px;
@@ -2441,21 +2442,24 @@
 </head>
 <body>
 
-<!-- 좌상단 MANAGER 아이콘 -->
-<button class="mgr-fab" id="mgrFab" type="button" title="MANAGER 로그인">👤 <span>MANAGER</span></button>
+<!-- 좌상단 MANAGER · EGMM 아이콘 -->
+<div class="topbar-left">
+  <button class="mgr-fab" id="mgrFab" type="button" title="MANAGER 로그인">👤 <span>MANAGER</span></button>
+  <button class="mgr-fab" id="toOdpBtn" type="button" title="EGMM" aria-label="EGMM">🛠 <span>EGMM</span></button>
+</div>
 
 <!-- LOGIN SCREEN -->
 <div class="lock-screen" id="lockScreen">
   <div class="portal-wrap">
     <div class="portal-grid">
-      <div class="portal-card" id="toOdpBtn" role="button" tabindex="0" aria-label="EGMM">
-        <div class="portal-name">EGMM</div>
-      </div>
       <div class="portal-card" id="toHmartBtn" role="button" tabindex="0" aria-label="H-MART">
         <div class="portal-name">H-MART</div>
       </div>
       <div class="portal-card" id="toCampeonBtn" role="button" tabindex="0" aria-label="CAMPEON WHOLESALE">
         <div class="portal-name">CAMPEON WHOLESALE</div>
+      </div>
+      <div class="portal-card portal-card-wide" id="toDoordashBtn" role="button" tabindex="0" aria-label="DOORDASH">
+        <div class="portal-name">DOORDASH</div>
       </div>
     </div>
   </div>
@@ -2849,6 +2853,14 @@
     $('toCampeonBtn').onclick = () => enterCampeon();
     $('toCampeonBtn').addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterCampeon(); }
+    });
+  }
+  // DOORDASH 박스 → 아이디/패스워드 로그인(doordash.html)으로 이동
+  const enterDoordash = () => { window.location.href = 'doordash.html'; };
+  if($('toDoordashBtn')){
+    $('toDoordashBtn').onclick = () => enterDoordash();
+    $('toDoordashBtn').addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterDoordash(); }
     });
   }
   $('egmmPwBtn').onclick = submitEgmmPw;

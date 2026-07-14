@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>CAMPEON WHOLESALE · THE SHAWN</title>
+<title>DOORDASH · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -23,10 +23,10 @@
     const auth = getAuth(app);
     // 게이트는 열린 컬렉션(app-config)만 읽으므로 인증을 기다리지 않고 즉시 준비한다.
     // (익명 인증이 아직 없어도 아이디 목록이 무한 대기하지 않도록)
-    window.cwFb = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: null };
-    window.dispatchEvent(new Event('cwfb-ready'));
-    // 익명 인증은 백그라운드로 시작 — 이후 sales 페이지에서 쓸 세션을 미리 만들어 둔다.
-    onAuthStateChanged(auth, (user) => { if (user && window.cwFb) window.cwFb.uid = user.uid; });
+    window.ddFb = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: null };
+    window.dispatchEvent(new Event('ddfb-ready'));
+    // 익명 인증은 백그라운드로 시작 — 이후 item-management 페이지에서 쓸 세션을 미리 만들어 둔다.
+    onAuthStateChanged(auth, (user) => { if (user && window.ddFb) window.ddFb.uid = user.uid; });
     signInAnonymously(auth).catch((e) => {
       console.error('anonymous auth fail (gate)', e);
     });
@@ -133,7 +133,7 @@
 <!-- ===== 로그인 게이트 ===== -->
 <div class="lock-screen" id="lockScreen">
   <div class="lock-card">
-    <h1 class="lock-title">CAMPEON WHOLESALE<span class="dot">.</span></h1>
+    <h1 class="lock-title">DOORDASH<span class="dot">.</span></h1>
     <div class="field">
       <label for="cwUserPick">아이디</label>
       <select id="cwUserPick"><option value="">불러오는 중…</option></select>
@@ -151,13 +151,13 @@
 <!-- ===== 메인 메뉴 ===== -->
 <div class="cw-menu" id="cwMenu">
   <div class="cw-masthead">
-    <div class="cw-wordmark">CAMPEON WHOLESALE<span class="dot">.</span></div>
+    <div class="cw-wordmark">DOORDASH<span class="dot">.</span></div>
     <div class="cw-rule"></div>
     <div class="cw-userline"><span id="cwHello"></span><button class="cw-logout" id="cwLogoutBtn" type="button">로그아웃</button></div>
   </div>
 
   <div class="cw-single">
-    <button class="cw-menu-btn primary cw-big" data-go="sales-management-campeonwholsale.html"><span>SALES MANAGEMENT</span><span class="arrow">→</span></button>
+    <button class="cw-menu-btn primary cw-big" data-go="item-management-doordash.html"><span>ITEM MANAGEMENT</span><span class="arrow">→</span></button>
   </div>
 
 </div>
@@ -165,9 +165,12 @@
 <script>
 (function(){
   function $(id){ return document.getElementById(id); }
-  var AUTH_COL='app-config', AUTH_DOC='campeon-users';
-  var GATE_KEY='campeonGate', USER_KEY='campeonUser', AUTO_KEY='campeonAutoLogin';
+  var AUTH_COL='app-config', AUTH_DOC='campeon-users';   // 계정은 CAMPEON 과 동일 문서를 공유
+  var GATE_KEY='doordashGate', USER_KEY='doordashUser', AUTO_KEY='doordashAutoLogin';
   var users=[];
+  /* DOORDASH 입장 가능 여부 — STORE MANAGER 매장관리에서 지정하는 플래그.
+     u.doordash 또는 u.menus.doordash(true) 중 하나라도 있으면 입장 허용. */
+  function canDoordash(u){ return !!(u && (u.doordash===true || (u.menus && u.menus.doordash===true))); }
 
   /* index.html 과 동일한 해시 방식 (SHA-256 'THE-SHAWN::'+v → 'h:', 폴백 'p:') */
   async function hashPin(v){
@@ -207,11 +210,11 @@
     sel.innerHTML=users.map(function(u,i){ return '<option value="'+i+'">'+String(u.name||'').replace(/</g,'&lt;')+'</option>'; }).join('');
   }
   function loadUsers(){
-    var fb=window.cwFb;
+    var fb=window.ddFb;
     if(!fb||!fb.getDoc){ setTimeout(loadUsers,400); return; }
     fb.getDoc(fb.doc(fb.db,AUTH_COL,AUTH_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      users=Array.isArray(d.users)?d.users.filter(function(u){return u&&u.name;}):[];
+      users=Array.isArray(d.users)?d.users.filter(function(u){return u&&u.name&&canDoordash(u);}):[];
       fillUsers();
     }).catch(function(){ var sel=$('cwUserPick'); if(sel) sel.innerHTML='<option value="">불러오기 실패 — 새로고침</option>'; });
   }
