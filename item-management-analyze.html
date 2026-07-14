@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+<!-- THE SHAWN WITH EGMM BY CLAUDE -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>ITEM ANALYZE · THE SHAWN</title>
+<title>ITEM ANALYZE · H-MART</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script type="module">
@@ -124,6 +125,7 @@
   .rs-st{ flex:0 0 auto; min-width:132px; padding:12px 16px; border-left:1px solid #e7e7e2; }
   .rs-st:first-child{ border-left:none; }
   .rs-st-nm{ font-size:13px; font-weight:800; letter-spacing:.02em; text-align:center; padding-bottom:9px; margin-bottom:8px; border-bottom:1.5px solid var(--border); white-space:nowrap; }
+  .rs-date{ font-size:11px; font-weight:800; color:var(--accent-warm); text-align:center; padding-bottom:8px; margin-bottom:6px; border-bottom:1px dashed var(--border); white-space:nowrap; letter-spacing:.02em; }
   .rs-metric{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:5px 0; }
   .rs-metric .lb{ font-size:11px; font-weight:800; color:var(--text-faint); letter-spacing:.03em; }
   .rs-metric .vv{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -188,8 +190,8 @@
 <body>
 <div class="ia-top">
   <div class="ia-top-in">
-    <button class="ia-back" id="iaBack" type="button">← THE SHAWN</button>
-    <div class="ia-brand"><span class="eyebrow">THE SHAWN</span><span class="title">ITEM ANALYZE</span></div>
+    <button class="ia-back" id="iaBack" type="button">← H-MART</button>
+    <div class="ia-brand"><span class="eyebrow">H-MART</span><span class="title">ITEM ANALYZE</span></div>
     <div class="ia-spacer"></div>
     <button class="ia-back" id="iaFieldsBtn" type="button" title="ITEM ANALYZE 필드 추가/수정">⚙ 필드 추가/수정</button>
     <span class="ia-user" id="iaUser"></span>
@@ -213,18 +215,10 @@
           <input id="srInput" type="text" placeholder="상품명 또는 UPC 입력 (예: 신라 · 신라면 · 8801…)" autocomplete="off">
           <div class="sr-sugg" id="srSugg"></div>
         </div>
-        <div class="sr-date sr-field">
-          <label>기간 시작</label>
-          <input id="srFrom" type="date">
-        </div>
-        <div class="sr-date sr-field">
-          <label>기간 종료</label>
-          <input id="srTo" type="date">
-        </div>
         <button class="sr-go" id="srGo" type="button">검색</button>
         <button class="sr-clear" id="srClear" type="button">초기화</button>
       </div>
-      <div class="sr-hint">기간을 비워두면 전체 기간 기준으로 총 판매금액을 계산합니다. (판매금액·판매일 필드가 매핑된 매장만 집계)</div>
+      <div class="sr-hint">매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 비교합니다. (COST · SRP 는 판매수량으로 나눈 단가)</div>
     </div>
   </div>
 
@@ -409,18 +403,18 @@
     return m;
   }
 
-  /* ===== 정규화 저장 (필드 기능 적용) ===== */
-  function normalizeRows(rawRows, map){
-    var qk=ROLES.qtyKey;
+  /* ===== 정규화 저장 (필드 기능 적용) =====
+     - eng/kor : 한 열(H)에 섞인 영문/한글을 '/' 기준으로 분리
+     - 판매일   : 매핑이 없으면 엑셀 파일의 저장 날짜를 사용
+     - COST/SRP : 원본 그대로 저장하고, 검색결과 표시 시점에 판매수량으로 나눔 */
+  function normalizeRows(rawRows, map, fileDate){
     return rawRows.map(function(r){
       var o={};
-      var qv=(qk&&map[qk])?num(r[map[qk]]):null;   // per_qty 계산용 수량
       FIELDS.forEach(function(f){ var col=map[f.key]; var raw=(col!=null&&col!=='')?r[col]:''; var fn=f.fn||'none';
         if(fn==='eng') o[f.key]=splitDesc(raw).eng;
         else if(fn==='kor') o[f.key]=splitDesc(raw).kor;
-        else if(fn==='per_qty'){ var v=num(raw); o[f.key]=(v!=null&&qv&&qv!==0)?(v/qv):v; }
+        else if(f.role==='date'){ var dv=parseDate(raw); o[f.key]=(dv!=null?dv:(fileDate||null)); }
         else if(fieldIsNum(f.role)) o[f.key]=num(raw);
-        else if(f.role==='date') o[f.key]=parseDate(raw);
         else o[f.key]=(raw==null?'':String(raw)).trim();
       });
       return o;
@@ -435,17 +429,23 @@
         var idv=ROLES.idKey?String(row[ROLES.idKey]||'').trim():'';
         var nmv=''; for(var ni=0;ni<ROLES.nameKeys.length;ni++){ if(row[ROLES.nameKeys[ni]]){ nmv=row[ROLES.nameKeys[ni]]; break; } }
         var key=idv||('nm:'+norm(nmv)); if(!key||key==='nm:') return;
-        var p=productsByUpc[key]; if(!p){ p={ key:key, id:idv, vals:{}, perStore:{}, sales:[] }; productsByUpc[key]=p; }
+        var p=productsByUpc[key]; if(!p){ p={ key:key, id:idv, vals:{}, perStore:{} }; productsByUpc[key]=p; }
         // 표시 값(식별·이름·카테고리·텍스트) — 비어있으면 채움
         ROLES.displayFields.forEach(function(f){ if(ROLES.priceSet[f.key]) return; if((p.vals[f.key]==null||p.vals[f.key]==='')&&row[f.key]!=null&&row[f.key]!=='') p.vals[f.key]=row[f.key]; });
-        // 매장별 현재가(최신 날짜 우선)
-        var dt=(ROLES.dateKey?row[ROLES.dateKey]:0)||0;
+        // 매장별 집계 — COST·SRP 는 합계로 모아두고 표시 시점에 판매수량으로 나눔
         var cur=p.perStore[store];
-        if(!cur){ cur={_date:dt}; ROLES.priceKeys.forEach(function(pk){ cur[pk]=row[pk]; }); p.perStore[store]=cur; }
-        else if(dt>=(cur._date||0)){ ROLES.priceKeys.forEach(function(pk){ cur[pk]=row[pk]; }); cur._date=dt; }
-        // 판매기록(판매수량/판매금액 — 판매일 없어도 집계)
-        var amt=ROLES.amountKey?row[ROLES.amountKey]:null, d2=ROLES.dateKey?row[ROLES.dateKey]:null, q=ROLES.qtyKey?row[ROLES.qtyKey]:null;
-        if(amt!=null || q!=null){ p.sales.push({store:store, date:d2||0, amount:(amt!=null?amt:0), qty:(q!=null?q:0)}); }
+        if(!cur){ cur={ costSum:null, srpSum:null, qty:0, amount:0, costLast:null, srpLast:null, date:0, rows:0, hasQty:false, hasAmt:false }; p.perStore[store]=cur; }
+        var q=ROLES.qtyKey?num(row[ROLES.qtyKey]):null;
+        var c=ROLES.costKey?num(row[ROLES.costKey]):null;
+        var sp=ROLES.srpKey?num(row[ROLES.srpKey]):null;
+        var amt=ROLES.amountKey?num(row[ROLES.amountKey]):null;
+        var dt=(ROLES.dateKey?row[ROLES.dateKey]:0)||(ds.fileDate||0);
+        if(q!=null){ cur.qty+=q; cur.hasQty=true; }
+        if(amt!=null){ cur.amount+=amt; cur.hasAmt=true; }
+        if(c!=null){ cur.costSum=(cur.costSum||0)+c; cur.costLast=c; }
+        if(sp!=null){ cur.srpSum=(cur.srpSum||0)+sp; cur.srpLast=sp; }
+        if(dt && dt>(cur.date||0)) cur.date=dt;
+        cur.rows++;
       });
     });
     productList=Object.keys(productsByUpc).map(function(k){ var p=productsByUpc[k];
@@ -472,14 +472,7 @@
     return out.slice(0, limit||14).map(function(x){ return x.p; });
   }
 
-  /* ===== 기간 판매금액 ===== */
-  function dateMs(id, end){ var v=$(id).value; if(!v) return null; var t=Date.parse(v+'T00:00:00'); if(isNaN(t)) return null; return end?(t+86399999):t; }
-  function periodTotal(p){
-    var from=dateMs('srFrom',false), to=dateMs('srTo',true);
-    var total=0, byStore={}, counted=0;
-    p.sales.forEach(function(x){ if(from!=null&&x.date<from) return; if(to!=null&&x.date>to) return; total+=(x.amount||0); byStore[x.store]=(byStore[x.store]||0)+(x.amount||0); counted++; });
-    return { total:total, byStore:byStore, counted:counted, hasData:p.sales.length>0, from:from, to:to };
-  }
+  /* ===== 기간 필터 없음 — 업로드된 파일 전체 기준 집계 ===== */
 
   /* ===== 토스트 ===== */
   var tT=null; function toast(m){ var e=$('iaToast'); e.textContent=m; e.classList.add('show'); if(tT) clearTimeout(tT); tT=setTimeout(function(){ e.classList.remove('show'); },1800); }
@@ -491,7 +484,7 @@
     $('stGrid').innerHTML=STORES.map(function(s){
       var ds=datasets[s]; var has=!!ds;
       var legacy=has&&!ds.raw;
-      var unmapped=has?FIELDS.filter(function(f){ return !(ds.map&&ds.map[f.key]); }):[];
+      var unmapped=has?FIELDS.filter(function(f){ return f.role!=='date' && !(ds.map&&ds.map[f.key]); }):[];   // 판매일은 파일 날짜 사용 → 통과
       var warn='';
       if(legacy) warn='<br><span class="st-warn">⚠ 이전 형식 — 다시 업로드하면 최신 매핑/기능이 적용됩니다</span>';
       else if(has&&unmapped.length) warn='<br><span class="st-warn">⚠ 미연결 '+unmapped.length+'개: '+esc(unmapped.map(function(f){ return f.label; }).join(', '))+'</span>';
@@ -554,6 +547,11 @@
       try{
         var wb=XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
         var ws=wb.Sheets[wb.SheetNames[0]];
+        // 엑셀 파일의 저장 날짜 (판매일 미매핑 시 사용)
+        var fileDate=null;
+        try{ var pr=wb.Props||{}; var wd=pr.ModifiedDate||pr.CreatedDate; if(wd) fileDate=(wd instanceof Date)?wd.getTime():Date.parse(wd); }catch(e){}
+        if(!fileDate && file.lastModified) fileDate=file.lastModified;
+        if(!fileDate || isNaN(fileDate)) fileDate=Date.now();
         var aoa=XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:''});
         var parsed=sheetToRows(aoa);
         var headers=parsed.headers, rows=parsed.rows;
@@ -563,10 +561,10 @@
         var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
         if(hasId || hasName){
           pending=null;
-          commitUpload(store, file.name, rows, map, true, headers);   // 모달 없이 바로 업로드
+          commitUpload(store, file.name, rows, map, true, headers, fileDate);   // 모달 없이 바로 업로드
         } else {
           // 매칭되는 열이 없을 때만 수동 매핑 모달로 폴백
-          pending={ store:store, fileName:file.name, headers:headers, rawRows:rows };
+          pending={ store:store, fileName:file.name, headers:headers, rawRows:rows, fileDate:fileDate };
           openMapModal();
           toast('자동 매칭 실패 — 열을 직접 연결하세요');
         }
@@ -583,7 +581,7 @@
   /* ===== 매핑 모달 ===== */
   function openMapFor(store){
     var ds=datasets[store]; if(!ds||!ds.raw){ toast('원본이 없어 다시 업로드가 필요합니다'); return; }
-    pending={ store:store, fileName:ds.fileName, headers:(ds.headers||Object.keys(ds.raw[0]||{})), rawRows:ds.raw, existing:ds.map };
+    pending={ store:store, fileName:ds.fileName, headers:(ds.headers||Object.keys(ds.raw[0]||{})), rawRows:ds.raw, existing:ds.map, fileDate:ds.fileDate };
     openMapModal();
   }
   function openMapModal(){
@@ -594,7 +592,7 @@
     var map={}; FIELDS.forEach(function(f){ map[f.key]=(base&&base[f.key]&&pending.headers.indexOf(base[f.key])>=0)?base[f.key]:(guess[f.key]||''); });
     // 이름 없는 열은 샘플 값을 함께 보여줌
     var smp={}; pending.headers.forEach(function(h){ for(var i=0;i<pending.rawRows.length&&i<12;i++){ var v=pending.rawRows[i][h]; if(v!=null&&String(v).trim()!==''){ smp[h]=String(v).trim().slice(0,28); break; } } });
-    var missing=FIELDS.filter(function(f){ return !map[f.key]; });
+    var missing=FIELDS.filter(function(f){ return f.role!=='date' && !map[f.key]; });
     $('mapTitle').textContent=pending.store+' · 필드 매핑';
     $('mapSub').innerHTML='<b>'+esc(pending.fileName)+'</b> — 헤더가 없는 열은 <b>열 H</b> 처럼 엑셀 열 문자로 표시되며 괄호 안에 실제 데이터 예시가 보입니다.'+
       (missing.length?'<br><span style="color:#b06a00;font-weight:800;">미연결: '+esc(missing.map(function(f){ return f.label; }).join(', '))+'</span>':'')+
@@ -603,22 +601,23 @@
       var opts='<option value="">— 없음 —</option>'+pending.headers.map(function(h){
         var lab=h+(smp[h]?('  ('+smp[h]+')'):'');
         return '<option value="'+esc(h)+'"'+(map[f.key]===h?' selected':'')+'>'+esc(lab)+'</option>'; }).join('');
-      var fnTag=(f.fn&&f.fn!=='none')?' <small>'+esc(FN_LABEL[f.fn])+'</small>':'';
+      var fnTag=(f.role==='date')?' <small>비워두면 엑셀 파일 저장 날짜 사용</small>':((f.fn&&f.fn!=='none')?' <small>'+esc(FN_LABEL[f.fn])+'</small>':'');
       return '<div class="map-row"><div class="cf">'+esc(f.label)+fnTag+'</div><select data-k="'+esc(f.key)+'">'+opts+'</select></div>';
     }).join('');
     $('mapOv').classList.add('show');
   }
   function closeMap(){ $('mapOv').classList.remove('show'); pending=null; }
-  async function commitUpload(store, fileName, rawRows, map, auto, headers){
-    var rows=normalizeRows(rawRows, map);
-    // raw(원본 행)+headers 보관 → 필드 기능·선 연결이 바뀌면 재계산
+  async function commitUpload(store, fileName, rawRows, map, auto, headers, fileDate){
+    fileDate=fileDate||Date.now();
+    var rows=normalizeRows(rawRows, map, fileDate);
+    // raw(원본 행)+headers+파일 저장날짜 보관 → 필드 기능·선 연결이 바뀌면 재계산
     var ds={ store:store, fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, map:map, auto:!!auto,
-             headers:headers||Object.keys(rawRows[0]||{}), raw:rawRows, rows:rows };
+             headers:headers||Object.keys(rawRows[0]||{}), fileDate:fileDate, raw:rawRows, rows:rows };
     try{
       await idbPut(store, ds);
       try{ localStorage.setItem(MAP_LS+store, JSON.stringify(map)); }catch(e){}
       datasets[store]=ds; rebuildIndex(); renderStores();
-      var miss=FIELDS.filter(function(f){ return !map[f.key]; });
+      var miss=FIELDS.filter(function(f){ return f.role!=='date' && !map[f.key]; });
       if(auto && miss.length) toast(store+' 업로드됨 · '+rows.length+'개 — 미연결: '+miss.map(function(f){ return f.label; }).join(', '));
       else toast(store+' 업로드됨 · '+rows.length+'개'+(auto?' · 자동 매핑 적용':''));
       if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else renderResult(selected); }
@@ -640,7 +639,7 @@
         if(ds.auto===false){ // 수동 매핑은 유지하되, 비어있는 필드만 자동 매칭으로 보완
           map={}; FIELDS.forEach(function(f){ var v=(ds.map&&ds.map[f.key])||''; if(v&&hdrs.indexOf(v)<0) v=''; map[f.key]=v||g[f.key]||''; });
         } else { map=g; }
-        var rows=normalizeRows(ds.raw, map);
+        var rows=normalizeRows(ds.raw, map, ds.fileDate);
         ds.map=map; ds.rows=rows; ds.rowCount=rows.length; changed=true;
         try{ await idbPut(ds.store, ds); }catch(e){}
       }
@@ -655,7 +654,7 @@
     var map={}; $('mapRows').querySelectorAll('select').forEach(function(sel){ map[sel.getAttribute('data-k')]=sel.value; });
     var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
     if(!hasId && !hasName){ toast('식별(UPC) 또는 상품명 중 하나는 매핑하세요'); return; }
-    var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false, pending.headers);
+    var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false, pending.headers, pending.fileDate||(datasets[pending.store]&&datasets[pending.store].fileDate));
     if(okc) closeMap();
   }
   async function removeStore(store){
@@ -687,13 +686,21 @@
 
   /* ===== 결과 렌더 ===== */
   function renderResultEmpty(msg){ $('rsBox').innerHTML='<div class="rs-empty"><div class="ic">🔎</div><div class="t">'+esc(msg||'상품을 검색하세요')+'</div><div class="s">DESC(상품명)로 검색하면 매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 보여드립니다.</div></div>'; }
+  /* 매장별 집계 — COST·SRP 는 판매수량 기준으로 나눈 단가로 표시 */
   function storeSummary(p){
-    var from=dateMs('srFrom',false), to=dateMs('srTo',true); var out={};
-    STORES.forEach(function(s){ if(!p.perStore[s]) return; var ps=p.perStore[s];
-      out[s]={ cost:(ROLES.costKey?ps[ROLES.costKey]:null), srp:(ROLES.srpKey?ps[ROLES.srpKey]:null), qty:0, amount:0 }; });
-    p.sales.forEach(function(x){ if(!out[x.store]) return; if(from!=null&&x.date&&x.date<from) return; if(to!=null&&x.date&&x.date>to) return; out[x.store].qty+=(x.qty||0); out[x.store].amount+=(x.amount||0); });
+    var out={};
+    STORES.forEach(function(s){
+      var ps=p.perStore[s]; if(!ps) return;
+      var qty=ps.qty||0;
+      var cost=(ps.costSum==null)?null:((qty>0)?(ps.costSum/qty):ps.costLast);
+      var srp =(ps.srpSum==null) ?null:((qty>0)?(ps.srpSum/qty) :ps.srpLast);
+      out[s]={ cost:cost, srp:srp, qty:(ps.hasQty?qty:null), amount:(ps.hasAmt?ps.amount:null), date:ps.date||0 };
+    });
     return out;
   }
+  /* YY년 MM월 DD일 */
+  function ymdK(ms){ if(!ms) return '—'; var d=new Date(ms); var p=function(x){ return (x<10?'0':'')+x; };
+    return p(d.getFullYear()%100)+'년 '+p(d.getMonth()+1)+'월 '+p(d.getDate())+'일'; }
   function highlightName(name, q){
     if(name==null||name==='') return '(이름없음)';
     name=String(name); if(!q) return esc(name);
@@ -707,16 +714,15 @@
     var stores=STORES.filter(function(s){ return summ[s]; });
     var q=($('srInput').value||'').trim();
     var nm=pName(p), n2=pName2(p);
-    var from=dateMs('srFrom',false), to=dateMs('srTo',true);
-    var rangeTxt=(from||to)?((from?ymd(from):'처음')+' ~ '+(to?ymd(to):'끝')):'전체 기간';
-    var grand=0; stores.forEach(function(s){ grand+=summ[s].amount||0; });
+    var grand=0; stores.forEach(function(s){ grand+=(summ[s].amount||0); });
     var cols=stores.map(function(s){ var d=summ[s];
       return '<div class="rs-st">'+
         '<div class="rs-st-nm">'+esc(s)+'</div>'+
+        '<div class="rs-date">'+esc(ymdK(d.date))+'</div>'+
         '<div class="rs-metric"><span class="lb">COST</span><span class="vv">'+(d.cost!=null?money(d.cost):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">SRP</span><span class="vv">'+(d.srp!=null?money(d.srp):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">판매수량</span><span class="vv">'+fmtQty(d.qty)+'</span></div>'+
-        '<div class="rs-metric"><span class="lb">판매금액</span><span class="vv strong">'+money(d.amount)+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">판매금액</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
       '</div>';
     }).join('');
     var storesHtml=stores.length?('<div class="rs-stores">'+cols+'</div>'):'<div class="rs-nostore">판매 매장 데이터가 없습니다.</div>';
@@ -726,7 +732,7 @@
         '<span class="rs-upc">('+(p.id?('UPC '+esc(p.id)):'UPC 없음')+')</span>'+
       '</div>'+
       (n2?'<div class="rs-eng2">'+esc(n2)+'</div>':'')+
-      '<div class="rs-meta">'+stores.length+'개 매장 · '+esc(rangeTxt)+' · 합계 판매금액 <b>'+money(grand)+'</b></div>'+
+      '<div class="rs-meta">'+stores.length+'개 매장 · 합계 판매금액 <b>'+money(grand)+'</b></div>'+
       storesHtml+
     '</div>';
   }
@@ -765,9 +771,7 @@
   });
   function hlSugg(){ var box=$('srSugg'); box.querySelectorAll('.sr-sugg-item').forEach(function(el,i){ el.classList.toggle('active', i===suggActive); if(i===suggActive) el.scrollIntoView({block:'nearest'}); }); }
   $('srGo').onclick=doSearch;
-  $('srClear').onclick=function(){ $('srInput').value=''; $('srFrom').value=''; $('srTo').value=''; $('srSugg').classList.remove('show'); selected=null; renderResultEmpty(); };
-  $('srFrom').onchange=function(){ if(selected) renderResult(selected); };
-  $('srTo').onchange=function(){ if(selected) renderResult(selected); };
+  $('srClear').onclick=function(){ $('srInput').value=''; $('srSugg').classList.remove('show'); selected=null; renderResultEmpty(); };
   document.addEventListener('click', function(e){ if(!e.target.closest('.sr-search')) $('srSugg').classList.remove('show'); });
   $('mapClose').onclick=closeMap; $('mapCancel').onclick=closeMap; $('mapSave').onclick=saveMapping;
   $('mapOv').addEventListener('click', function(e){ if(e.target===$('mapOv')) closeMap(); });
