@@ -443,31 +443,33 @@
       </div>
     </div>
 
-    <!-- ITEM 필드 매칭: ITEM ANALYZE 필드 정의 + 엑셀 열 별칭(강제 매칭) -->
+    <!-- ITEM 필드 매칭: EXPORT 설정처럼 선으로 연결 (엑셀 열 → ITEM ANALYZE 필드) -->
     <div class="sm-panel" id="smPanelItemMatch">
       <div class="ex-toolbar">
-        <span class="ex-tb-label">ITEM 필드 매칭</span>
+        <div class="ex-tb-group">
+          <span class="ex-tb-label">카테고리</span>
+          <select class="ex-sel" id="imxProfileSel"><option value="">— 카테고리 —</option></select>
+        </div>
+        <button class="ex-btn" id="imxAddCatBtn" type="button">＋ 카테고리</button>
+        <button class="ex-btn" id="imxUploadBtn" type="button">📄 엑셀 업로드</button>
+        <input type="file" id="imxFile" accept=".xlsx,.xls,.csv" style="display:none;">
+        <button class="ex-btn" id="imxClearBtn" type="button">연결 초기화</button>
+        <button class="ex-btn" id="imxDeleteBtn" type="button">카테고리 삭제</button>
         <span class="ex-spacer"></span>
-        <span class="fm-saved" id="imSaved"></span>
-        <button class="ex-btn" id="imReset" type="button">기본 필드 복원</button>
+        <span class="ex-armed-note" id="imxArmedNote"></span>
+        <span class="fm-saved" id="imxSaved"></span>
       </div>
-      <div class="st-wrap">
-        <div class="st-hint">
-          <b>ITEM ANALYZE</b> 가 사용할 필드를 정의하고, 각 필드에 대응하는 <b>엑셀 열 이름(별칭)</b>을 등록하세요.
-          업로드하는 엑셀의 열 이름이 달라도(예: <code>price</code>, <code>원가</code>, <code>단가</code> → <b>COST</b>) 여기에 별칭을 넣어두면
-          <b>ITEM ANALYZE 업로드 시 자동으로 매칭</b>됩니다. 역할(ROLE)은 분석 방식(식별·검색·가격·판매금액·판매일 등)을 결정합니다.
-          여기서 저장한 필드·별칭은 <code>app-config/item-analyze-fields</code> 에 저장되어 ITEM ANALYZE 와 즉시 연동됩니다.
+      <div class="ex-canvas-wrap">
+        <div class="ex-canvas" id="imxCanvas">
+          <svg class="ex-svg" id="imxSvg"></svg>
+          <div class="ex-col left" id="imxAnalyzeCol"></div>
+          <div class="ex-col right" id="imxExcelCol"></div>
         </div>
-        <div class="im-head">
-          <span></span><span>필드 이름 (라벨)</span><span>역할 (ROLE)</span><span>엑셀 열 별칭 — 쉼표(,)로 구분</span><span></span>
-        </div>
-        <div class="st-list" id="imList"><div class="st-hint">불러오는 중…</div></div>
-        <div class="im-addrow">
-          <input class="st-in" id="imNewLabel" placeholder="새 필드 이름 (예: CATEGORY)" maxlength="40" autocomplete="off">
-          <select class="st-in" id="imNewRole"></select>
-          <input class="st-in" id="imNewAlias" placeholder="엑셀 열 별칭 (예: 카테고리, category, cate)" maxlength="200" autocomplete="off">
-          <button class="ex-btn warm" id="imAdd" type="button">＋ 필드 추가</button>
-        </div>
+      </div>
+      <div class="st-hint" style="padding:0 22px 16px; margin:0;">
+        왼쪽 <b>ITEM ANALYZE 필드</b>(ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 선택 · 필드관리 마스터 필드만 사용)를 클릭해 선택한 뒤,
+        오른쪽 <b>엑셀 열</b>을 클릭하면 선으로 연결됩니다. 여기서 연결한 매칭으로 ITEM ANALYZE 엑셀 업로드 시 데이터가 자동 매핑됩니다.
+        카테고리별로 서로 다른 엑셀 형식을 저장해 둘 수 있습니다.
       </div>
     </div>
 
@@ -486,7 +488,7 @@
       </div>
     </div>
   </div>
-  <div class="sm-hint" id="smHint">아이디/패스워드 관리(계정 · 매장) · 필드 관리(공통 마스터) · EXPORT 설정(관리필드→엑셀필드 연결) · ITEM 필드 매칭(ITEM ANALYZE 필드 정의 + 엑셀 열 별칭). 모든 탭은 같은 Firebase를 공유합니다.</div>
+  <div class="sm-hint" id="smHint">아이디/패스워드 관리(계정 · 매장) · 필드 관리(공통 마스터) · EXPORT 설정(관리필드→엑셀필드 연결) · ITEM 필드 매칭(엑셀 열→ITEM ANALYZE 필드 선 연결). 모든 탭은 같은 Firebase를 공유합니다.</div>
 
   <!-- 소스 미리보기 모달 -->
   <div class="ex-modal-bg" id="exPrevBg">
@@ -791,100 +793,167 @@
     if(isAuth){ authLoad(); storesLoad(); }
     else if(isFields){ fmOpen(); }
     else if(isHtml){ hmLoad(); }
-    else if(isItem){ imLoad(); }
+    else if(isItem){ imxLoad(); requestAnimationFrame(imxDraw); }
     else { renderExport(); requestAnimationFrame(drawLines); }
   }
   $('smTabAuth').onclick = function(){ activate('auth'); };
   $('smTabFields').onclick = function(){ activate('fields'); };
   $('smTabExport').onclick = function(){ activate('export'); };
   if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
-  if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
   if($('smTabHtml')) $('smTabHtml').onclick = function(){ activate('html'); };
 
-  /* ===== ITEM 필드 매칭 (app-config/item-analyze-fields) =====
-     ITEM ANALYZE 가 사용할 필드 정의 + 엑셀 열 별칭(강제 매칭).
-     저장 형식: { fields:[{key,label,role,aliases:[...]}], updatedAt }.
-     ITEM ANALYZE(item-management-analyze.html)가 이 문서를 읽어 업로드 시 자동 매칭한다. */
-  var IM_COL='app-config', IM_DOC='item-analyze-fields';
-  var IM_ROLES=[
-    {v:'upc',      t:'UPC · 식별'},
-    {v:'name',     t:'상품명 · 검색'},
-    {v:'cost',     t:'COST · 원가'},
-    {v:'srp',      t:'SRP · 판매가'},
-    {v:'price',    t:'가격 · 기타'},
-    {v:'qty',      t:'수량 (QTY)'},
-    {v:'amount',   t:'판매금액 (AMOUNT)'},
-    {v:'date',     t:'판매일 (DATE)'},
-    {v:'category', t:'카테고리'},
-    {v:'text',     t:'일반 텍스트'}
-  ];
-  var IM_DEFAULTS=[
-    {key:'UPC',    label:'UPC',            role:'upc',    aliases:['UPC','바코드','BARCODE','CODE','PLU']},
-    {key:'KOR',    label:'KOR DESC',       role:'name',   aliases:['KOR DESC','상품명','한글','국문','품명','KOR']},
-    {key:'ENG',    label:'ENG DESC',       role:'name',   aliases:['ENG DESC','영문','ENGLISH','ENG','NAME','DESC']},
-    {key:'COST',   label:'COST',           role:'cost',   aliases:['COST','원가','매입','단가','PRICE']},
-    {key:'SRP',    label:'SRP',            role:'srp',    aliases:['SRP','RETAIL','판매가','소비자가','SELL','정가']},
-    {key:'QTY',    label:'수량 (QTY)',      role:'qty',    aliases:['QTY','수량','판매수량','개수','COUNT']},
-    {key:'AMOUNT', label:'판매금액 (AMOUNT)', role:'amount', aliases:['AMOUNT','판매금액','매출','SALES','금액','TOTAL']},
-    {key:'DATE',   label:'판매일 (DATE)',    role:'date',   aliases:['DATE','날짜','판매일','일자']}
-  ];
-  var imFields=[];
-  function imSetSaved(t){ var e=$('imSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2200); } }
-  function imRoleOptions(sel){ return IM_ROLES.map(function(r){ return '<option value="'+r.v+'"'+(r.v===sel?' selected':'')+'>'+r.t+'</option>'; }).join(''); }
-  function imGenKey(label){ var base=String(label||'FIELD').trim().toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'FIELD'; var used={}; imFields.forEach(function(f){ used[f.key]=1; }); var k=base,n=2; while(used[k]){ k=base+'_'+n; n++; } return k; }
-  function imParseAliases(s){ return String(s||'').split(',').map(function(x){ return x.trim(); }).filter(Boolean); }
-  function imNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; var role=String(f.role||'text'); if(!IM_ROLES.some(function(r){return r.v===role;})) role='text'; var al=Array.isArray(f.aliases)?f.aliases.map(function(x){return String(x).trim();}).filter(Boolean):[]; out.push({key:k, label:(f.label!=null?String(f.label):k), role:role, aliases:al}); }); return out; }
-  function imLoad(){
-    var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(imLoad,400); return; }
-    var s=$('imNewRole'); if(s && !s.options.length) s.innerHTML=imRoleOptions('text');
-    fb.getDoc(fb.doc(fb.db,IM_COL,IM_DOC)).then(function(snap){
+  /* ===== ITEM 필드 매칭 — EXPORT 설정과 동일한 "선 연결" 방식 =====
+     왼쪽: ITEM ANALYZE 필드(app-config/item-analyze-fields · 필드관리 마스터 중 선별 · ITEM ANALYZE 앱에서 관리)
+     오른쪽: 카테고리별 업로드 엑셀의 열
+     연결: mappings[엑셀열] = ITEM ANALYZE 필드 key → app-config/item-analyze-match 저장
+     ITEM ANALYZE 는 이 매칭으로 업로드 데이터를 자동 매핑한다. */
+  var IMX_FIELDS_DOC='item-analyze-fields', IMX_MATCH_DOC='item-analyze-match';
+  var imxState={ profiles:[], activeId:'', armed:null, _fsub:false };
+  var imxAnalyzeFields=[];   // [{key,label,role}]
+  var IMX_PALETTE=['#4a6cc9','#2f9e5e','#e07b1f','#8b5cf6','#e57ba5','#0e9aa7','#b5388a','#7a6cc4','#c0653a','#5b7083','#a8703e','#27408b','#d4543b','#3a8f6a'];
+  function imxColor(key){ var i=-1; for(var n=0;n<imxAnalyzeFields.length;n++){ if(imxAnalyzeFields[n].key===key){ i=n; break; } } return IMX_PALETTE[(i<0?0:i)%IMX_PALETTE.length]; }
+  function imxField(key){ for(var i=0;i<imxAnalyzeFields.length;i++){ if(imxAnalyzeFields[i].key===key) return imxAnalyzeFields[i]; } return null; }
+  function imxSaved(t){ var e=$('imxSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
+  function imxUid(){ return 'im_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+  function imxActive(){ return imxState.profiles.find(function(p){ return p.id===imxState.activeId; })||null; }
+  function imxParseFields(d){ return (d&&Array.isArray(d.fields))?d.fields.map(function(f){ return {key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text')}; }).filter(function(f){return f.key;}):[]; }
+
+  function imxLoad(){
+    var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(imxLoad,400); return; }
+    if(!imxState._fsub){ imxState._fsub=true;
+      try{ fb.onSnapshot(fb.doc(fb.db,'app-config',IMX_FIELDS_DOC), function(snap){
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+        imxAnalyzeFields=imxParseFields(d);
+        if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); }
+      }); }catch(e){}
+    }
+    fb.getDoc(fb.doc(fb.db,'app-config',IMX_FIELDS_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      var f=Array.isArray(d.fields)?imNorm(d.fields):[];
-      var seed=!f.length;
-      imFields = seed ? imNorm(IM_DEFAULTS) : f;
-      imRender();
-      if(seed) imSave(true);   // 최초 진입 시 기본 필드 시드
-    }).catch(function(){ imFields=imNorm(IM_DEFAULTS); imRender(); });
+      imxAnalyzeFields=imxParseFields(d); imxRender(); requestAnimationFrame(imxDraw);
+    }).catch(function(){});
+    fb.getDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC)).then(function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      imxState.profiles=Array.isArray(d.profiles)?d.profiles:[];
+      imxState.activeId=d.activeId||((imxState.profiles[0]&&imxState.profiles[0].id)||'');
+      imxRender(); requestAnimationFrame(imxDraw);
+    }).catch(function(){ imxRender(); });
   }
-  function imRender(){
-    var box=$('imList'); if(!box) return;
-    if(!imFields.length){ box.innerHTML='<div class="st-hint">필드가 없습니다. 아래에서 추가하거나 [기본 필드 복원]을 누르세요.</div>'; return; }
-    box.innerHTML=imFields.map(function(f,i){
-      return '<div class="im-row'+(f.role==='upc'?' role-upc':'')+'" data-i="'+i+'">'+
-        '<div class="im-ord"><button data-up="'+i+'" type="button" title="위로">▲</button><button data-down="'+i+'" type="button" title="아래로">▼</button></div>'+
-        '<input class="st-in im-lb" data-i="'+i+'" maxlength="40" value="'+esc(f.label)+'">'+
-        '<select class="st-in im-rl" data-i="'+i+'">'+imRoleOptions(f.role)+'</select>'+
-        '<input class="st-in im-al" data-i="'+i+'" maxlength="300" value="'+esc(f.aliases.join(', '))+'" placeholder="엑셀 열 이름들 · 쉼표로 구분">'+
-        '<button class="im-del" data-del="'+i+'" type="button" title="삭제">✕</button>'+
-      '</div>';
+  function imxSaveMatch(){
+    var fb=window.smFb; if(!fb||!fb.setDoc) return;
+    try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { profiles:imxState.profiles, activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
+  }
+  function imxSetMap(excelField, analyzeKey){
+    var p=imxActive(); if(!p) return; if(!p.mappings) p.mappings={};
+    if(analyzeKey){ Object.keys(p.mappings).forEach(function(ef){ if(ef!==excelField && p.mappings[ef]===analyzeKey) delete p.mappings[ef]; }); p.mappings[excelField]=analyzeKey; }
+    else delete p.mappings[excelField];
+    imxSaveMatch();
+  }
+  function imxArm(key){ imxState.armed=(imxState.armed===key)?null:key; imxRender(); requestAnimationFrame(imxDraw); }
+
+  function imxRenderProfileSel(){
+    var sel=$('imxProfileSel'); if(!sel) return;
+    if(!imxState.profiles.length){ sel.innerHTML='<option value="">— 카테고리 —</option>'; return; }
+    sel.innerHTML=imxState.profiles.map(function(p){ var mark=(p.fields&&p.fields.length)?(' · '+(p.fileName||'파일')):' (파일 없음)'; return '<option value="'+p.id+'"'+(p.id===imxState.activeId?' selected':'')+'>'+esc(p.name+mark)+'</option>'; }).join('');
+  }
+  function imxRenderAnalyzeCol(){
+    var col=$('imxAnalyzeCol'); if(!col) return;
+    if(!imxAnalyzeFields.length){ col.innerHTML='<div class="ex-empty">ITEM ANALYZE 필드가 없습니다.<br>ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 필드관리 마스터 필드를 선택하세요.</div>'; return; }
+    var p=imxActive(); var used={};
+    if(p&&p.mappings){ Object.keys(p.mappings).forEach(function(ef){ used[p.mappings[ef]]=ef; }); }
+    var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">ITEM ANALYZE 필드</span><span class="ex-col-sub">'+imxAnalyzeFields.length+'개 · 필드관리 마스터</span></div>';
+    html+=imxAnalyzeFields.map(function(f,i){
+      var c=imxColor(f.key); var armed=imxState.armed===f.key?' armed':''; var linked=used[f.key]?' linked':'';
+      var mark=used[f.key]?'<span class="mf-linked" title="'+esc(used[f.key])+' 에 연결됨">✓</span>':'';
+      return '<div class="fld mfld'+armed+linked+'" data-field="'+esc(f.key)+'" style="--mf-color:'+c+'">'+
+        '<span class="swatch" style="background:'+c+'"></span>'+
+        '<span class="fld-name" title="'+esc(f.role)+'">'+esc(f.label)+'</span>'+
+        mark+'<span class="fld-idx">'+esc(f.role)+'</span>'+
+        '<span class="anchor mf-anchor"></span></div>';
     }).join('');
-    box.querySelectorAll('.im-lb').forEach(function(inp){ var i=+inp.getAttribute('data-i'); inp.onchange=function(){ var v=(inp.value||'').trim(); if(!v){ imRender(); return; } imFields[i].label=v; imSave('이름 변경됨'); }; });
-    box.querySelectorAll('.im-rl').forEach(function(sel){ var i=+sel.getAttribute('data-i'); sel.onchange=function(){ imFields[i].role=sel.value; imRender(); imSave('역할 변경됨'); }; });
-    box.querySelectorAll('.im-al').forEach(function(inp){ var i=+inp.getAttribute('data-i'); inp.onchange=function(){ imFields[i].aliases=imParseAliases(inp.value); imSave('별칭 저장됨'); }; });
-    box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up'); b.onclick=function(){ if(i<=0)return; var t=imFields[i-1]; imFields[i-1]=imFields[i]; imFields[i]=t; imRender(); imSave(); }; });
-    box.querySelectorAll('[data-down]').forEach(function(b){ var i=+b.getAttribute('data-down'); b.onclick=function(){ if(i>=imFields.length-1)return; var t=imFields[i+1]; imFields[i+1]=imFields[i]; imFields[i]=t; imRender(); imSave(); }; });
-    box.querySelectorAll('[data-del]').forEach(function(b){ var i=+b.getAttribute('data-del'); b.onclick=function(){ var f=imFields[i]; if(!confirm('필드 ['+f.label+']를 삭제할까요?')) return; imFields.splice(i,1); imRender(); imSave('필드 삭제됨'); }; });
+    col.innerHTML=html;
+    col.querySelectorAll('.mfld').forEach(function(row){
+      row.addEventListener('click', function(e){ if(e.target.classList.contains('anchor')) return; imxArm(row.dataset.field); });
+      var a=row.querySelector('.anchor'); if(a) a.addEventListener('click', function(){ imxArm(row.dataset.field); });
+    });
   }
-  function imAddField(){
-    var lb=($('imNewLabel').value||'').trim(); if(!lb){ $('imNewLabel').focus(); return; }
-    if(imFields.some(function(f){ return f.label.trim().toUpperCase()===lb.toUpperCase(); })){ alert('이미 있는 필드 이름입니다'); $('imNewLabel').select(); return; }
-    var role=($('imNewRole')&&$('imNewRole').value)||'text';
-    var aliases=imParseAliases($('imNewAlias').value);
-    imFields.push({ key:imGenKey(lb), label:lb, role:role, aliases:aliases });
-    $('imNewLabel').value=''; $('imNewAlias').value='';
-    imRender(); imSave('필드 추가됨 · '+lb); $('imNewLabel').focus();
+  function imxRenderExcelCol(){
+    var col=$('imxExcelCol'); if(!col) return;
+    var p=imxActive();
+    if(!p){ col.innerHTML='<div class="ex-empty">카테고리가 없습니다.<br>상단 <b>＋ 카테고리</b>로 추가하세요.</div>'; return; }
+    if(!p.fields||!p.fields.length){ col.innerHTML='<div class="ex-empty"><b>'+esc(p.name)+'</b> 카테고리에 업로드된 엑셀이 없습니다.<br>상단 <b>📄 엑셀 업로드</b>로 이 카테고리의 샘플 엑셀을 올리세요.<br>(엑셀 첫 행이 열 목록이 됩니다)</div>'; return; }
+    var opts='<option value="">— 없음 —</option>'+imxAnalyzeFields.map(function(f){ return '<option value="'+esc(f.key)+'">'+esc(f.label)+'</option>'; }).join('');
+    var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">엑셀 열 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
+    html+=p.fields.map(function(f){
+      var mapped=p.mappings?p.mappings[f]:''; var broken=mapped&&!imxField(mapped);
+      var c=(mapped&&!broken)?imxColor(mapped):''; var mappedCls=mapped?(broken?' mapped broken':' mapped'):'';
+      var style=(mapped&&!broken)?' style="--mf-color:'+c+'"':'';
+      var lab=(mapped&&!broken)?(imxField(mapped).label):mapped;
+      var tag=mapped?('<span class="map-tag'+(broken?' broken':'')+'"'+(broken?'':' style="background:'+c+'"')+'>'+esc(broken?mapped:lab)+(broken?' ⚠':'')+'</span>'):'';
+      var selHtml='<select class="map-sel" data-field="'+esc(f)+'">'+opts.replace('value="'+esc(mapped)+'"','value="'+esc(mapped)+'" selected')+'</select>';
+      var xBtn=mapped?'<button class="map-x" data-field="'+esc(f)+'" title="연결 해제">✕</button>':'';
+      return '<div class="fld efld'+mappedCls+'" data-field="'+esc(f)+'"'+style+'>'+
+        '<span class="anchor ef-anchor"></span>'+
+        '<span class="fld-name" title="'+esc(f)+'">'+esc(f)+'</span>'+
+        tag+selHtml+xBtn+'</div>';
+    }).join('');
+    col.innerHTML=html;
+    col.querySelectorAll('.efld').forEach(function(row){
+      var field=row.dataset.field;
+      row.addEventListener('click', function(e){ if(e.target.closest('.map-sel')||e.target.closest('.map-x')) return; if(imxState.armed){ imxSetMap(field, imxState.armed); imxRender(); requestAnimationFrame(imxDraw); } });
+      var sel=row.querySelector('.map-sel'); if(sel){ sel.value=(p.mappings&&p.mappings[field])||''; sel.addEventListener('change', function(){ imxSetMap(field, this.value); imxRender(); requestAnimationFrame(imxDraw); }); }
+      var x=row.querySelector('.map-x'); if(x){ x.addEventListener('click', function(){ imxSetMap(field,''); imxRender(); requestAnimationFrame(imxDraw); }); }
+    });
   }
-  async function imSave(note){
-    imFields=imNorm(imFields);
-    var fb=window.smFb; if(!fb||!fb.setDoc){ if(note!==true) imSetSaved('저장 대기 (연결 확인)'); return; }
-    try{ await fb.setDoc(fb.doc(fb.db,IM_COL,IM_DOC), {fields:imFields, updatedAt:Date.now()}, {merge:true}); if(note!==true) imSetSaved(typeof note==='string'?note:'저장됨'); }
-    catch(e){ imSetSaved('저장 실패 (규칙 확인)'); }
+  function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 엑셀 열을 클릭해 연결'):''; }
+  function imxRender(){ imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed(); }
+  function imxCssEsc(s){ return String(s).replace(/["\\]/g,'\\$&'); }
+  function imxDraw(){
+    var svg=$('imxSvg'), canvas=$('imxCanvas'); if(!svg||!canvas) return; svg.innerHTML='';
+    var p=imxActive(); if(!p||!p.mappings) return;
+    var crect=canvas.getBoundingClientRect(); svg.setAttribute('width',canvas.scrollWidth); svg.setAttribute('height',canvas.scrollHeight);
+    Object.keys(p.mappings).forEach(function(ef){
+      var mk=p.mappings[ef];
+      var mEl=$('imxAnalyzeCol').querySelector('.mfld[data-field="'+imxCssEsc(mk)+'"] .anchor');
+      var eEl=$('imxExcelCol').querySelector('.efld[data-field="'+imxCssEsc(ef)+'"] .anchor');
+      if(!mEl||!eEl) return;
+      var mr=mEl.getBoundingClientRect(), er=eEl.getBoundingClientRect();
+      var x1=mr.left+mr.width/2-crect.left, y1=mr.top+mr.height/2-crect.top;
+      var x2=er.left+er.width/2-crect.left, y2=er.top+er.height/2-crect.top;
+      var dx=Math.max(40,Math.abs(x2-x1)*0.5);
+      var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d','M '+x1+' '+y1+' C '+(x1+dx)+' '+y1+', '+(x2-dx)+' '+y2+', '+x2+' '+y2);
+      path.setAttribute('fill','none'); path.setAttribute('stroke',imxColor(mk)); path.setAttribute('stroke-width','2.4'); path.setAttribute('opacity','0.9');
+      path.addEventListener('click', function(){ if(confirm('이 연결을 해제할까요?')){ imxSetMap(ef,''); imxRender(); requestAnimationFrame(imxDraw); } });
+      svg.appendChild(path);
+    });
   }
-  function imReset(){ if(!confirm('ITEM ANALYZE 기본 필드로 되돌릴까요?\n현재 필드·별칭 설정이 기본값으로 대체됩니다.')) return; imFields=imNorm(IM_DEFAULTS); imRender(); imSave('기본 필드로 복원됨'); }
-  if($('imAdd')) $('imAdd').onclick=imAddField;
-  if($('imNewLabel')) $('imNewLabel').addEventListener('keydown', function(e){ if(e.key==='Enter') imAddField(); });
-  if($('imNewAlias')) $('imNewAlias').addEventListener('keydown', function(e){ if(e.key==='Enter') imAddField(); });
-  if($('imReset')) $('imReset').onclick=imReset;
+  if($('imxUploadBtn')) $('imxUploadBtn').onclick=function(){ if(!imxActive()){ alert('먼저 카테고리를 선택하거나 추가하세요.'); return; } $('imxFile').click(); };
+  if($('imxFile')) $('imxFile').onchange=function(e){
+    var files=Array.prototype.slice.call(e.target.files||[]); if(!files.length) return;
+    if(!window.XLSX){ alert('엑셀 라이브러리를 불러오지 못했습니다.'); e.target.value=''; return; }
+    var p=imxActive(); if(!p){ alert('먼저 카테고리를 선택하세요.'); e.target.value=''; return; }
+    var file=files[0], reader=new FileReader();
+    reader.onload=function(ev){ try{
+      var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,blankrows:false});
+      var header=(rows[0]||[]).map(function(h){ return (h==null?'':String(h)).trim(); }).filter(function(h){ return h!==''; });
+      if(!header.length){ alert(file.name+' : 헤더(첫 행)를 찾을 수 없습니다.'); }
+      else{ var oldMap=p.mappings||{}, newMap={}; header.forEach(function(f){ if(oldMap[f]) newMap[f]=oldMap[f]; }); p.fields=header; p.mappings=newMap; p.fileName=file.name; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); }
+    }catch(err){ alert(file.name+' : 읽기 실패'); } };
+    reader.readAsArrayBuffer(file); e.target.value='';
+  };
+  if($('imxAddCatBtn')) $('imxAddCatBtn').onclick=function(){
+    var nm=prompt('새 카테고리 이름 (예: POS-A, 매장양식1)'); if(!nm) return; nm=nm.trim().toUpperCase(); if(!nm) return;
+    if(imxState.profiles.some(function(p){ return p.name===nm; })){ alert('이미 있는 카테고리입니다.'); return; }
+    var prof={ id:imxUid(), name:nm, fields:[], mappings:{}, fileName:'' };
+    imxState.profiles.push(prof); imxState.activeId=prof.id; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw);
+  };
+  if($('imxProfileSel')) $('imxProfileSel').onchange=function(){ imxState.activeId=this.value; imxState.armed=null; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
+  if($('imxClearBtn')) $('imxClearBtn').onclick=function(){ var p=imxActive(); if(!p) return; if(!confirm('현재 카테고리("'+p.name+'")의 모든 연결을 초기화할까요?')) return; p.mappings={}; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
+  if($('imxDeleteBtn')) $('imxDeleteBtn').onclick=function(){ var p=imxActive(); if(!p) return; if(!confirm('카테고리 "'+p.name+'"를 삭제할까요?')) return; imxState.profiles=imxState.profiles.filter(function(x){ return x.id!==p.id; }); imxState.activeId=(imxState.profiles[0]&&imxState.profiles[0].id)||''; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
+  var __imxCw=document.querySelector('#smPanelItemMatch .ex-canvas-wrap'); if(__imxCw) __imxCw.addEventListener('scroll', function(){ imxDraw(); });
+  window.addEventListener('resize', function(){ if($('smPanelItemMatch')&&$('smPanelItemMatch').classList.contains('active')) imxDraw(); });
 
   /* ===== HTML 관리 ===== */
   // 알려진 파일 설명 사전 (업로드 시 자동 부여)
