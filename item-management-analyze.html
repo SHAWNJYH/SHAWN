@@ -107,6 +107,9 @@
   /* 결과 */
   .rs-empty{ text-align:center; padding:52px 20px; border:1.5px dashed var(--border-bright); border-radius:16px; background:var(--bg-elev); color:var(--text-dim); }
   .rs-empty .ic{ font-size:32px; } .rs-empty .t{ font-size:15px; font-weight:800; margin-top:10px; } .rs-empty .s{ font-size:13px; margin-top:5px; }
+  .st-fix{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:9px; padding:7px 10px; font-size:12px; font-weight:800; cursor:pointer; }
+  .st-fix:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .st-fix.need{ border-color:#e0a33a; color:#b06a00; background:#fff8ec; }
   .st-warn{ display:inline-block; margin-top:4px; font-size:10.5px; font-weight:800; color:#b06a00; }
   .rs-card{ border:1.5px solid var(--border); border-radius:16px; background:var(--bg-elev); padding:18px; }
   .rs-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:2px; }
@@ -488,7 +491,11 @@
     $('stGrid').innerHTML=STORES.map(function(s){
       var ds=datasets[s]; var has=!!ds;
       var legacy=has&&!ds.raw;
-      var meta=has? ('<span class="fn">'+esc(ds.fileName)+'</span><br>'+ds.rowCount+'개 · '+ymd(ds.uploadedAt)+(legacy?'<br><span class="st-warn">⚠ 이전 형식 — 다시 업로드하면 최신 매핑/기능이 적용됩니다</span>':'')) : '업로드된 파일 없음';
+      var unmapped=has?FIELDS.filter(function(f){ return !(ds.map&&ds.map[f.key]); }):[];
+      var warn='';
+      if(legacy) warn='<br><span class="st-warn">⚠ 이전 형식 — 다시 업로드하면 최신 매핑/기능이 적용됩니다</span>';
+      else if(has&&unmapped.length) warn='<br><span class="st-warn">⚠ 미연결 '+unmapped.length+'개: '+esc(unmapped.map(function(f){ return f.label; }).join(', '))+'</span>';
+      var meta=has? ('<span class="fn">'+esc(ds.fileName)+'</span><br>'+ds.rowCount+'개 · '+ymd(ds.uploadedAt)+warn) : '업로드된 파일 없음';
       return '<div class="st-card'+(has?' has':'')+'" data-store="'+esc(s)+'">'+
         '<div class="st-drop">↓ 여기에 놓기</div>'+
         '<div class="st-name"><span class="dotk"></span>'+esc(s)+'</div>'+
@@ -496,10 +503,12 @@
         '<div class="st-drophint">엑셀 파일을 카드로 드래그하거나 버튼을 누르세요</div>'+
         '<div class="st-actions">'+
           '<button class="st-up'+(has?' re':'')+'" data-up="'+esc(s)+'" type="button">'+(has?'다시 업로드':'엑셀 업로드')+'</button>'+
+          (has&&ds.raw?'<button class="st-fix'+(unmapped.length?' need':'')+'" data-fix="'+esc(s)+'" type="button">매핑 수정</button>':'')+
           (has?'<button class="st-rm" data-rm="'+esc(s)+'" type="button">삭제</button>':'')+
         '</div></div>';
     }).join('');
     $('stGrid').querySelectorAll('[data-up]').forEach(function(b){ b.onclick=function(){ startUpload(b.getAttribute('data-up')); }; });
+    $('stGrid').querySelectorAll('[data-fix]').forEach(function(b){ b.onclick=function(){ openMapFor(b.getAttribute('data-fix')); }; });
     $('stGrid').querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ removeStore(b.getAttribute('data-rm')); }; });
     $('stGrid').querySelectorAll('.st-card').forEach(function(card){
       var store=card.getAttribute('data-store'); if(!store) return;
@@ -572,16 +581,30 @@
   window.addEventListener('drop', function(e){ e.preventDefault(); });
 
   /* ===== 매핑 모달 ===== */
+  function openMapFor(store){
+    var ds=datasets[store]; if(!ds||!ds.raw){ toast('원본이 없어 다시 업로드가 필요합니다'); return; }
+    pending={ store:store, fileName:ds.fileName, headers:(ds.headers||Object.keys(ds.raw[0]||{})), rawRows:ds.raw, existing:ds.map };
+    openMapModal();
+  }
   function openMapModal(){
     if(!pending) return;
     var saved=null; try{ saved=JSON.parse(localStorage.getItem(MAP_LS+pending.store)||'null'); }catch(e){}
+    var base=pending.existing||saved;
     var guess=guessMap(pending.headers);
-    var map={}; FIELDS.forEach(function(f){ map[f.key]=(saved&&saved[f.key]!=null&&pending.headers.indexOf(saved[f.key])>=0)?saved[f.key]:(guess[f.key]||''); });
+    var map={}; FIELDS.forEach(function(f){ map[f.key]=(base&&base[f.key]&&pending.headers.indexOf(base[f.key])>=0)?base[f.key]:(guess[f.key]||''); });
+    // 이름 없는 열은 샘플 값을 함께 보여줌
+    var smp={}; pending.headers.forEach(function(h){ for(var i=0;i<pending.rawRows.length&&i<12;i++){ var v=pending.rawRows[i][h]; if(v!=null&&String(v).trim()!==''){ smp[h]=String(v).trim().slice(0,28); break; } } });
+    var missing=FIELDS.filter(function(f){ return !map[f.key]; });
     $('mapTitle').textContent=pending.store+' · 필드 매핑';
-    $('mapSub').innerHTML='<b>'+esc(pending.fileName)+'</b> 의 열이 STORE MANAGER · <b>ITEM 필드 매칭</b>에 등록돼 있지 않아 자동 매칭에 실패했습니다.<br>아래에서 직접 연결하거나, STORE MANAGER · ITEM 필드매칭에서 이 엑셀 형식을 선 연결로 등록하면 다음부터 자동 적용됩니다.';
+    $('mapSub').innerHTML='<b>'+esc(pending.fileName)+'</b> — 헤더가 없는 열은 <b>열 H</b> 처럼 엑셀 열 문자로 표시되며 괄호 안에 실제 데이터 예시가 보입니다.'+
+      (missing.length?'<br><span style="color:#b06a00;font-weight:800;">미연결: '+esc(missing.map(function(f){ return f.label; }).join(', '))+'</span>':'')+
+      '<br>여기서 고친 매핑은 이 매장에만 적용됩니다. 모든 매장에 적용하려면 STORE MANAGER · <b>ITEM 필드매칭</b>에서 선 연결하세요.';
     $('mapRows').innerHTML=FIELDS.map(function(f){
-      var opts='<option value="">— 없음 —</option>'+pending.headers.map(function(h){ return '<option value="'+esc(h)+'"'+(map[f.key]===h?' selected':'')+'>'+esc(h)+'</option>'; }).join('');
-      return '<div class="map-row"><div class="cf">'+esc(f.label)+(fieldOpt(f.role)?' <small>선택(기간/분류용)</small>':'')+'</div><select data-k="'+esc(f.key)+'">'+opts+'</select></div>';
+      var opts='<option value="">— 없음 —</option>'+pending.headers.map(function(h){
+        var lab=h+(smp[h]?('  ('+smp[h]+')'):'');
+        return '<option value="'+esc(h)+'"'+(map[f.key]===h?' selected':'')+'>'+esc(lab)+'</option>'; }).join('');
+      var fnTag=(f.fn&&f.fn!=='none')?' <small>'+esc(FN_LABEL[f.fn])+'</small>':'';
+      return '<div class="map-row"><div class="cf">'+esc(f.label)+fnTag+'</div><select data-k="'+esc(f.key)+'">'+opts+'</select></div>';
     }).join('');
     $('mapOv').classList.add('show');
   }
@@ -595,7 +618,9 @@
       await idbPut(store, ds);
       try{ localStorage.setItem(MAP_LS+store, JSON.stringify(map)); }catch(e){}
       datasets[store]=ds; rebuildIndex(); renderStores();
-      toast(store+' 업로드됨 · '+rows.length+'개'+(auto?' · 자동 매핑 적용':''));
+      var miss=FIELDS.filter(function(f){ return !map[f.key]; });
+      if(auto && miss.length) toast(store+' 업로드됨 · '+rows.length+'개 — 미연결: '+miss.map(function(f){ return f.label; }).join(', '));
+      else toast(store+' 업로드됨 · '+rows.length+'개'+(auto?' · 자동 매핑 적용':''));
       if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else renderResult(selected); }
       return true;
     }catch(e){ toast('저장 실패 (IndexedDB)'); return false; }
