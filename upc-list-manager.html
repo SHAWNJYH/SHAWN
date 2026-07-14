@@ -2033,8 +2033,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var rows=(rowsFor(it.big)||[]).filter(function(r){ return rowSub(it.big, r)===it.sub; }).sort(byPluAsc);
       rows.forEach(function(row){
         aoa.push(cat.fields.map(function(ef){
-          var mf=maps[ef]; if(!mf) return '';
-          return exportCell(row, { key:mf, label:mf, type:'text' });
+          var mf=maps[ef];
+          // 매핑이 없으면 엑셀 헤더명과 같은 이름의 필드로 폴백 / label 은 헤더명 유지(POS DESC 자동생성 판정용)
+          return exportCell(row, { key:(mf||ef), label:ef, type:'text' });
         }));
         total++;
       });
@@ -3143,28 +3144,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       function __gv(r,label){ if(!r) return ''; var W=String(label).trim().toUpperCase(); if(r.extra){ for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ var v=r.extra[k]; if(v!=null) return String(v); } } } for(var k2 in r){ if(k2==='extra')continue; if(String(k2).trim().toUpperCase()===W){ var v2=r[k2]; if(v2!=null) return String(v2); } } return ''; }
       function __sv(r,label,val){ if(!r) return; var W=String(label).trim().toUpperCase(); if(!r.extra) r.extra={}; for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ r.extra[k]=val; return; } } r.extra[label]=val; }
       // ===== POS DESC 자동 생성 =====
-      // 기본: BRAND 3자리 + ')' + ENG DESC → 총 18자리(공백 포함, 초과분 절단)
-      // UNIT SIZE·UOM 있으면: BRAND 3자리 + ')' + ENG DESC 7자리 + '_' + UNITSIZE + UOM
-      window.__posAutoGen=function(r){
-        // BRAND 3글자는 반드시 BRAND(ENG) 필드에서 (라벨 공백 무시 매칭, 폴백 없음)
-        var brand='';
-        (function(){
-          var want='BRAND(ENG)';
-          function normK(k){ return String(k==null?'':k).toUpperCase().replace(/\s+/g,''); }
-          if(r&&r.extra){ for(var k in r.extra){ if(normK(k)===want){ var v=r.extra[k]; if(v!=null&&String(v).trim()!==''){ brand=String(v); return; } } } }
-          if(r){ for(var k2 in r){ if(k2==='extra')continue; if(normK(k2)===want){ var v2=r[k2]; if(v2!=null&&String(v2).trim()!==''){ brand=String(v2); return; } } } }
-        })();
-        brand=brand.toUpperCase().replace(/\s+/g,'');
-        var eng=String(__gv(r,'ENG DESC')||'').toUpperCase();
-        var size=String(__gv(r,'UNIT SIZE')||'').trim();
-        var uom=String(__gv(r,'UOM')||'').trim().toUpperCase();
-        if(!brand) return '';   // BRAND(ENG) 없으면 생성하지 않음
-        var b3=brand.substring(0,3);
-        if(size!=='' && uom!==''){
-          return (b3+')'+eng.substring(0,7)+'_'+size+uom);
-        }
-        return (b3+')'+eng).substring(0,18);
-      };
+      // 규칙은 전역 posDescGen() 단일 소스 사용 (내보내기와 동일 결과 보장)
+      window.__posAutoGen=function(r){ return posDescGen(r); };
       function __posMaybeAuto(row, rowIdx){
         var cur=__gv(row,'POS DESC');
         if(cur!=='' && row.__posAuto!==undefined && cur!==row.__posAuto) return;  // 수동 입력 보호
@@ -3266,6 +3247,32 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
+  // ===== POS DESC 공용 유틸 (편집·내보내기 공용 · 전역) =====
+  // 필드명 정규화(대문자·공백제거)로 라벨 표기 차이 흡수
+  function __normFK(k){ return String(k==null?'':k).toUpperCase().replace(/\s+/g,''); }
+  // row(extra 우선)에서 라벨로 값 읽기
+  function __rowFV(r,label){
+    if(!r) return '';
+    var W=__normFK(label);
+    if(r.extra){ for(var k in r.extra){ if(__normFK(k)===W){ var v=r.extra[k]; if(v!=null) return String(v); } } }
+    for(var k2 in r){ if(k2==='extra') continue; if(__normFK(k2)===W){ var v2=r[k2]; if(v2!=null) return String(v2); } }
+    return '';
+  }
+  // POS DESC 자동 생성 규칙(단일 소스)
+  // 기본: BRAND(ENG) 3자리 + ')' + ENG DESC → 총 18자리(초과분 절단)
+  // UNIT SIZE·UOM 있으면: BRAND 3자리 + ')' + ENG DESC 7자리 + '_' + UNITSIZE + UOM
+  function posDescGen(r){
+    var brand=__rowFV(r,'BRAND(ENG)').toUpperCase().replace(/\s+/g,'');
+    if(!brand) return '';   // BRAND(ENG) 없으면 생성하지 않음
+    var eng=__rowFV(r,'ENG DESC').toUpperCase();
+    var size=__rowFV(r,'UNIT SIZE').trim();
+    var uom=__rowFV(r,'UOM').trim().toUpperCase();
+    var b3=brand.substring(0,3);
+    if(size!=='' && uom!=='') return (b3+')'+eng.substring(0,7)+'_'+size+uom);
+    return (b3+')'+eng).substring(0,18);
+  }
+  // POS DESC 열 판정(키 또는 라벨 기준)
+  function __isPosDescCol(col){ if(!col) return false; return __normFK(col.key)==='POSDESC' || __normFK(col.label)==='POSDESC'; }
   // 내보내기 값 변환
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } var sig=String(((col&&col.key)||'')+'|'+((col&&col.label)||'')).toUpperCase(); if(isUpcOCol(col) || /UPC\s*\(\s*O\s*\)/.test(sig)){ var __a=__findAltVal(r,__UPCO_ALIAS,col.key); if(__a!=='') return __a; } else if(isUpcCCol(col) || /UPC\s*\(\s*C\s*\)/.test(sig)){ var __b=__findAltVal(r,__UPCC_ALIAS,col.key); if(__b!=='') return __b; } return ''; }
   // 내보내기 셀 값
@@ -3277,7 +3284,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return false;
   }
   function __chkOn(raw){ if(raw===true) return true; if(raw===false||raw==null) return false; var s2=String(raw).trim().toUpperCase(); return s2!=='' && s2!=='0' && s2!=='FALSE' && s2!=='X'; }
-  function exportCell(r,col){ var raw=exportVal(r,col); if(__isCheckColX(col)) return __chkOn(raw)?'1':'0'; if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
+  function exportCell(r,col){ var raw=exportVal(r,col);
+    if(__isCheckColX(col)) return __chkOn(raw)?1:0;   // 체크 필드 = 숫자 1 / 0 (문자 아님)
+    if(__isPosDescCol(col) && String(raw==null?'':raw).trim()===''){ var __pv=posDescGen(r); if(__pv!=='') return __pv; }   // 저장값 없으면 규칙대로 생성
+    if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
   // xlsx 시트 스타일 적용
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
@@ -3309,10 +3319,15 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     for(var c=0;c<cols.length;c++){
       var col=cols[c];
       var isAcct=((typeof isEaPriceCol==='function')&&isEaPriceCol(col))||((typeof isSalesPriceCol==='function')&&isSalesPriceCol(col));
+      var isChk=((typeof __isCheckColX==='function')&&__isCheckColX(col));
       for(var r=1;r<nrows;r++){
         var ad=XLSX.utils.encode_cell({r:r,c:c});
         if(!ws[ad]) ws[ad]={t:'s',v:''};
-        if(isAcct){
+        if(isChk){
+          // 체크 필드: TEXT(@) 강제 대상에서 제외 — 숫자 1/0 으로 기록
+          var cv=String(ws[ad].v==null?'':ws[ad].v).trim();
+          ws[ad].t='n'; ws[ad].v=(cv==='1'?1:0); ws[ad].z='0';
+        } else if(isAcct){
           var raw=String(ws[ad].v==null?'':ws[ad].v).trim();
           var n=Number(raw.replace(/[^0-9.\-]/g,''));
           if(raw!=='' && !isNaN(n)){ ws[ad].t='n'; ws[ad].v=n; ws[ad].z=ACCT; }
