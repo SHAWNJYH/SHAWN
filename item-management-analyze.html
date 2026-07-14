@@ -489,8 +489,18 @@
         var rows=XLSX.utils.sheet_to_json(ws, {defval:''});
         if(!rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
         var headers=Object.keys(rows[0]);
-        pending={ store:store, fileName:file.name, headers:headers, rawRows:rows };
-        openMapModal();
+        // STORE MANAGER · ITEM 필드매칭에서 해둔 매핑을 그대로 적용
+        var map=guessMap(headers);
+        var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
+        if(hasId || hasName){
+          pending=null;
+          commitUpload(store, file.name, rows, map, true);   // 모달 없이 바로 업로드
+        } else {
+          // 매칭되는 열이 없을 때만 수동 매핑 모달로 폴백
+          pending={ store:store, fileName:file.name, headers:headers, rawRows:rows };
+          openMapModal();
+          toast('자동 매칭 실패 — 열을 직접 연결하세요');
+        }
       }catch(err){ toast('엑셀 파싱 실패 — 형식 확인'); }
     };
     fr.onerror=function(){ toast('파일 읽기 실패'); };
@@ -508,7 +518,7 @@
     var guess=guessMap(pending.headers);
     var map={}; FIELDS.forEach(function(f){ map[f.key]=(saved&&saved[f.key]!=null&&pending.headers.indexOf(saved[f.key])>=0)?saved[f.key]:(guess[f.key]||''); });
     $('mapTitle').textContent=pending.store+' · 필드 매핑';
-    $('mapSub').innerHTML='엑셀 파일 <b>'+esc(pending.fileName)+'</b> 의 열을 ITEM ANALYZE 필드에 연결하세요.<br>대부분 STORE MANAGER 의 <b>ITEM 필드 매칭</b> 선 연결로 자동 매칭됩니다. (수량·판매금액·판매일을 매핑하면 기간 판매금액 집계가 됩니다.)';
+    $('mapSub').innerHTML='<b>'+esc(pending.fileName)+'</b> 의 열이 STORE MANAGER · <b>ITEM 필드 매칭</b>에 등록돼 있지 않아 자동 매칭에 실패했습니다.<br>아래에서 직접 연결하거나, STORE MANAGER · ITEM 필드매칭에서 이 엑셀 형식을 선 연결로 등록하면 다음부터 자동 적용됩니다.';
     $('mapRows').innerHTML=FIELDS.map(function(f){
       var opts='<option value="">— 없음 —</option>'+pending.headers.map(function(h){ return '<option value="'+esc(h)+'"'+(map[f.key]===h?' selected':'')+'>'+esc(h)+'</option>'; }).join('');
       return '<div class="map-row"><div class="cf">'+esc(f.label)+(fieldOpt(f.role)?' <small>선택(기간/분류용)</small>':'')+'</div><select data-k="'+esc(f.key)+'">'+opts+'</select></div>';
@@ -516,21 +526,25 @@
     $('mapOv').classList.add('show');
   }
   function closeMap(){ $('mapOv').classList.remove('show'); pending=null; }
+  async function commitUpload(store, fileName, rawRows, map, auto){
+    var rows=normalizeRows(rawRows, map);
+    var ds={ store:store, fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, map:map, rows:rows };
+    try{
+      await idbPut(store, ds);
+      try{ localStorage.setItem(MAP_LS+store, JSON.stringify(map)); }catch(e){}
+      datasets[store]=ds; rebuildIndex(); renderStores();
+      toast(store+' 업로드됨 · '+rows.length+'개'+(auto?' · 자동 매핑 적용':''));
+      if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else renderResult(selected); }
+      return true;
+    }catch(e){ toast('저장 실패 (IndexedDB)'); return false; }
+  }
   async function saveMapping(){
     if(!pending) return;
     var map={}; $('mapRows').querySelectorAll('select').forEach(function(sel){ map[sel.getAttribute('data-k')]=sel.value; });
     var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
     if(!hasId && !hasName){ toast('식별(UPC) 또는 상품명 중 하나는 매핑하세요'); return; }
-    var rows=normalizeRows(pending.rawRows, map);
-    var ds={ store:pending.store, fileName:pending.fileName, uploadedAt:Date.now(), rowCount:rows.length, map:map, rows:rows };
-    try{
-      await idbPut(pending.store, ds);
-      try{ localStorage.setItem(MAP_LS+pending.store, JSON.stringify(map)); }catch(e){}
-      datasets[pending.store]=ds; rebuildIndex(); renderStores();
-      toast(pending.store+' 업로드됨 · '+rows.length+'개');
-      if(selected) renderResult(selected);
-      closeMap();
-    }catch(e){ toast('저장 실패 (IndexedDB)'); }
+    var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false);
+    if(okc) closeMap();
   }
   async function removeStore(store){
     if(!confirm('['+store+'] 업로드 데이터를 삭제할까요?')) return;
