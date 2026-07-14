@@ -2458,8 +2458,11 @@
       <div class="portal-card" id="toCampeonBtn" role="button" tabindex="0" aria-label="CAMPEON WHOLESALE">
         <div class="portal-name">CAMPEON WHOLESALE</div>
       </div>
-      <div class="portal-card portal-card-wide" id="toDoordashBtn" role="button" tabindex="0" aria-label="DOORDASH">
+      <div class="portal-card" id="toDoordashBtn" role="button" tabindex="0" aria-label="DOORDASH">
         <div class="portal-name">DOORDASH</div>
+      </div>
+      <div class="portal-card" id="toAnalyzeBtn" role="button" tabindex="0" aria-label="ITEM ANALYZE">
+        <div class="portal-name">ITEM ANALYZE</div>
       </div>
     </div>
   </div>
@@ -2570,6 +2573,63 @@
     <div class="err" id="hmartPwErr"></div>
     <label class="egmm-auto-row"><input type="checkbox" id="hmartAutoChk"><span>자동 로그인</span></label>
     <button class="btn" id="hmartPwBtn">들어가기</button>
+  </div>
+</div>
+
+<!-- CAMPEON WHOLESALE 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
+<div class="mgr-ov" id="cwLoginOv">
+  <div class="lock-card mgr-login-card mgr-pw-card">
+    <button class="mgr-x" id="cwLoginClose" type="button">✕</button>
+    <h1 class="lock-title">CAMPEON WHOLESALE</h1>
+    <div class="field">
+      <label>아이디</label>
+      <select id="cwLoginUser"><option value="">불러오는 중…</option></select>
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="cwLoginPw" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="err" id="cwLoginErr"></div>
+    <label class="egmm-auto-row"><input type="checkbox" id="cwLoginAuto"><span>자동 로그인</span></label>
+    <button class="btn" id="cwLoginBtn" type="button">입장</button>
+  </div>
+</div>
+
+<!-- DOORDASH 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
+<div class="mgr-ov" id="ddLoginOv">
+  <div class="lock-card mgr-login-card mgr-pw-card">
+    <button class="mgr-x" id="ddLoginClose" type="button">✕</button>
+    <h1 class="lock-title">DOORDASH</h1>
+    <div class="field">
+      <label>아이디</label>
+      <select id="ddLoginUser"><option value="">불러오는 중…</option></select>
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="ddLoginPw" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="err" id="ddLoginErr"></div>
+    <label class="egmm-auto-row"><input type="checkbox" id="ddLoginAuto"><span>자동 로그인</span></label>
+    <button class="btn" id="ddLoginBtn" type="button">입장</button>
+  </div>
+</div>
+
+<!-- ITEM ANALYZE 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
+<div class="mgr-ov" id="iaLoginOv">
+  <div class="lock-card mgr-login-card mgr-pw-card">
+    <button class="mgr-x" id="iaLoginClose" type="button">✕</button>
+    <h1 class="lock-title">ITEM ANALYZE</h1>
+    <div class="field">
+      <label>아이디</label>
+      <select id="iaLoginUser"><option value="">불러오는 중…</option></select>
+    </div>
+    <div class="field">
+      <label>PASSWORD</label>
+      <input type="password" id="iaLoginPw" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="err" id="iaLoginErr"></div>
+    <label class="egmm-auto-row"><input type="checkbox" id="iaLoginAuto"><span>자동 로그인</span></label>
+    <button class="btn" id="iaLoginBtn" type="button">입장</button>
   </div>
 </div>
 
@@ -2847,21 +2907,82 @@
   $('toOdpBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
   });
-  // CAMPEON WHOLESALE 박스 → 아이디/패스워드 로그인(campeon-wholsale.html)으로 이동
-  const enterCampeon = () => { window.location.href = 'campeon-wholsale.html'; };
-  if($('toCampeonBtn')){
-    $('toCampeonBtn').onclick = () => enterCampeon();
-    $('toCampeonBtn').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterCampeon(); }
-    });
+  // ===== 아이디/패스워드 스코프 로그인 (index 화면 팝업) — CAMPEON · DOORDASH · ITEM ANALYZE =====
+  // H-MART 처럼 index 화면에서 팝업으로 로그인 → 성공 시 대상 페이지로 이동(대상 페이지는 게이트로 로그인 생략).
+  function initScopeGate(cfg){
+    var ov=$(cfg.ov); if(!ov) return function(){};
+    var scopeUsers=[];
+    function fillSel(){
+      var sel=$(cfg.userSel); if(!sel) return;
+      if(!scopeUsers.length){ sel.innerHTML='<option value="">등록된 아이디 없음</option>'; return; }
+      sel.innerHTML=scopeUsers.map(function(u,i){ return '<option value="'+i+'">'+String(u.name||'').replace(/</g,'&lt;')+'</option>'; }).join('');
+    }
+    function loadScope(){
+      if(!window.firebaseFns || !window.firebaseDb){ setTimeout(loadScope,400); return; }
+      try{
+        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'app-config',cfg.doc)).then(function(snap){
+          var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+          scopeUsers=Array.isArray(d.users)?d.users.filter(function(u){return u&&u.name;}):[];
+          fillSel();
+        }).catch(function(){ var sel=$(cfg.userSel); if(sel) sel.innerHTML='<option value="">불러오기 실패 — 새로고침</option>'; });
+      }catch(e){}
+    }
+    function scopeAuto(){ try{ return localStorage.getItem(cfg.autoKey)==='1'; }catch(e){ return false; } }
+    function open(){
+      var e=$(cfg.err); if(e) e.textContent='';
+      var p=$(cfg.pwInput); if(p) p.value='';
+      var a=$(cfg.autoChk); if(a) a.checked=scopeAuto();
+      var sel=$(cfg.userSel); if(sel) sel.value='';
+      loadScope(); ov.classList.add('show');
+      setTimeout(function(){ var pp=$(cfg.pwInput); if(pp) pp.focus(); }, 80);
+    }
+    function close(){ ov.classList.remove('show'); }
+    async function submit(){
+      var err=$(cfg.err); if(err) err.textContent='';
+      var sel=$(cfg.userSel), pw=($(cfg.pwInput)&&$(cfg.pwInput).value||'').trim();
+      var i=sel?parseInt(sel.value,10):NaN;
+      var u=(!isNaN(i)&&scopeUsers[i])?scopeUsers[i]:null;
+      if(!u){ if(err) err.textContent='아이디를 선택하세요'; return; }
+      if(!pw){ if(err) err.textContent='PASSWORD 를 입력하세요'; var p=$(cfg.pwInput); if(p) p.focus(); return; }
+      if(await matchUserPin(pw, u.pin)){
+        try{
+          sessionStorage.setItem(cfg.gateKey,'1');
+          var uj=JSON.stringify({name:u.name, id:u.id||'', menus:u.menus||{}});
+          sessionStorage.setItem(cfg.userKey, uj);
+          var auto=$(cfg.autoChk)&&$(cfg.autoChk).checked;
+          localStorage.setItem(cfg.autoKey, auto?'1':'0');
+          if(auto) localStorage.setItem(cfg.userKey, uj); else localStorage.removeItem(cfg.userKey);
+        }catch(e){}
+        window.location.href=cfg.dest;
+      } else {
+        if(err) err.textContent='PASSWORD 가 올바르지 않습니다';
+        var p2=$(cfg.pwInput); if(p2) p2.select();
+      }
+    }
+    var btn=$(cfg.btn); if(btn) btn.onclick=submit;
+    var cl=$(cfg.closeBtn); if(cl) cl.onclick=close;
+    ov.addEventListener('click', function(ev){ if(ev.target===ov) close(); });
+    var pin=$(cfg.pwInput); if(pin) pin.addEventListener('keydown', function(ev){ if(ev.key==='Enter') submit(); });
+    return open;
   }
-  // DOORDASH 박스 → 아이디/패스워드 로그인(doordash.html)으로 이동
-  const enterDoordash = () => { window.location.href = 'doordash.html'; };
+  const openCampeonPw = initScopeGate({ ov:'cwLoginOv', userSel:'cwLoginUser', pwInput:'cwLoginPw', err:'cwLoginErr', autoChk:'cwLoginAuto', btn:'cwLoginBtn', closeBtn:'cwLoginClose', doc:'campeon-users', gateKey:'campeonGate', userKey:'campeonUser', autoKey:'campeonAutoLogin', dest:'campeon-wholsale.html' });
+  const openDoordashPw = initScopeGate({ ov:'ddLoginOv', userSel:'ddLoginUser', pwInput:'ddLoginPw', err:'ddLoginErr', autoChk:'ddLoginAuto', btn:'ddLoginBtn', closeBtn:'ddLoginClose', doc:'doordash-users', gateKey:'doordashGate', userKey:'doordashUser', autoKey:'doordashAutoLogin', dest:'doordash.html' });
+  const openAnalyzePw = initScopeGate({ ov:'iaLoginOv', userSel:'iaLoginUser', pwInput:'iaLoginPw', err:'iaLoginErr', autoChk:'iaLoginAuto', btn:'iaLoginBtn', closeBtn:'iaLoginClose', doc:'item-analyze-users', gateKey:'analyzeGate', userKey:'analyzeUser', autoKey:'analyzeAutoLogin', dest:'item-management-analyze.html' });
+
+  // CAMPEON WHOLESALE 박스 → index 팝업 로그인
+  if($('toCampeonBtn')){
+    $('toCampeonBtn').onclick = () => openCampeonPw();
+    $('toCampeonBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCampeonPw(); } });
+  }
+  // DOORDASH 박스 → index 팝업 로그인
   if($('toDoordashBtn')){
-    $('toDoordashBtn').onclick = () => enterDoordash();
-    $('toDoordashBtn').addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterDoordash(); }
-    });
+    $('toDoordashBtn').onclick = () => openDoordashPw();
+    $('toDoordashBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoordashPw(); } });
+  }
+  // ITEM ANALYZE 박스 → index 팝업 로그인
+  if($('toAnalyzeBtn')){
+    $('toAnalyzeBtn').onclick = () => openAnalyzePw();
+    $('toAnalyzeBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAnalyzePw(); } });
   }
   $('egmmPwBtn').onclick = submitEgmmPw;
   $('egmmPwClose').onclick = closeEgmmPw;
