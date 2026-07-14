@@ -6,6 +6,28 @@
 <title>ITEM ANALYZE · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script type="module">
+  // ITEM ANALYZE 필드 정의(app-config/item-analyze-fields)를 STORE MANAGER 와 실시간 공유
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  try {
+    const app = initializeApp({
+      apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+      authDomain: "the-shawn.firebaseapp.com",
+      projectId: "the-shawn",
+      storageBucket: "the-shawn.firebasestorage.app",
+      messagingSenderId: "519898602513",
+      appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+      measurementId: "G-NKGYGC63JN"
+    });
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    window.iaCfgFb = { db, doc, getDoc, onSnapshot, auth };
+    window.dispatchEvent(new Event('iacfg-ready'));
+    signInAnonymously(auth).catch((e) => { console.error('anonymous auth fail', e); });
+  } catch (e) { console.error('firebase init fail', e); }
+</script>
 <style>
   :root{
     --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f3f3ee; --border:#e5e5e0; --border-bright:#c8c8c0;
@@ -223,21 +245,52 @@
 
   /* ===== 상수 ===== */
   var STORES=['TACOMA','FEDERAL WAY','BELLEVUE','LYNNWOOD','REDMOND','BALLARD','MELLOW WAY','DISTRICT H','M2M','G-MART'];
-  var CANON=[
-    {key:'UPC',label:'UPC'},
-    {key:'KOR',label:'KOR DESC'},
-    {key:'ENG',label:'ENG DESC'},
-    {key:'COST',label:'COST',num:true},
-    {key:'SRP',label:'SRP',num:true},
-    {key:'QTY',label:'수량 (QTY)',num:true,opt:true},
-    {key:'AMOUNT',label:'판매금액 (AMOUNT)',num:true,opt:true},
-    {key:'DATE',label:'판매일 (DATE)',date:true,opt:true}
-  ];
   var MAP_LS='iaMap:', HIST_LS='iaHistory';
+  var CFG_COL='app-config', CFG_DOC='item-analyze-fields';
+
+  /* ITEM ANALYZE 필드 정의 — STORE MANAGER → ITEM 필드 매칭에서 관리(app-config/item-analyze-fields).
+     못 읽으면 아래 기본값 사용. field = {key,label,role,aliases[]}
+     role: upc(식별)·name(검색)·cost·srp·price·qty·amount·date·category·text */
+  var FIELD_DEFAULTS=[
+    {key:'UPC',label:'UPC',role:'upc',aliases:['UPC','바코드','BARCODE','CODE','PLU']},
+    {key:'KOR',label:'KOR DESC',role:'name',aliases:['KOR DESC','상품명','한글','국문','품명','KOR']},
+    {key:'ENG',label:'ENG DESC',role:'name',aliases:['ENG DESC','영문','ENGLISH','ENG','NAME','DESC']},
+    {key:'COST',label:'COST',role:'cost',aliases:['COST','원가','매입','단가','PRICE']},
+    {key:'SRP',label:'SRP',role:'srp',aliases:['SRP','RETAIL','판매가','소비자가','SELL','정가']},
+    {key:'QTY',label:'수량 (QTY)',role:'qty',aliases:['QTY','수량','판매수량','개수','COUNT']},
+    {key:'AMOUNT',label:'판매금액 (AMOUNT)',role:'amount',aliases:['AMOUNT','판매금액','매출','SALES','금액','TOTAL']},
+    {key:'DATE',label:'판매일 (DATE)',role:'date',aliases:['DATE','날짜','판매일','일자']}
+  ];
+  var FIELDS=[], ROLES={};
+  function normCfg(arr){ var seen={},out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null)return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push({key:k,label:(f.label!=null?String(f.label):k),role:String(f.role||'text'),aliases:Array.isArray(f.aliases)?f.aliases.map(function(x){return String(x).trim();}).filter(Boolean):[]}); }); return out; }
+  function fieldIsNum(role){ return role==='cost'||role==='srp'||role==='price'||role==='qty'||role==='amount'; }
+  function fieldOpt(role){ return role==='qty'||role==='amount'||role==='date'||role==='category'; }
+  function deriveRoles(){
+    var idKey=null,nameKeys=[],priceKeys=[],amountKey=null,dateKey=null,catKey=null,qtyKey=null,disp=[];
+    FIELDS.forEach(function(f){
+      if(f.role==='upc'){ if(!idKey) idKey=f.key; }
+      else if(f.role==='name') nameKeys.push(f.key);
+      else if(f.role==='cost'||f.role==='srp'||f.role==='price') priceKeys.push(f.key);
+      else if(f.role==='amount'){ if(!amountKey) amountKey=f.key; }
+      else if(f.role==='date'){ if(!dateKey) dateKey=f.key; }
+      else if(f.role==='category'){ if(!catKey) catKey=f.key; }
+      else if(f.role==='qty'){ if(!qtyKey) qtyKey=f.key; }
+      if(f.role!=='qty'&&f.role!=='amount'&&f.role!=='date') disp.push(f);
+    });
+    if(!idKey && FIELDS.length) idKey=FIELDS[0].key;
+    var pset={}; priceKeys.forEach(function(k){ pset[k]=1; });
+    ROLES={ idKey:idKey, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, amountKey:amountKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
+  }
+  function setFields(arr){ FIELDS=(arr&&arr.length)?normCfg(arr):normCfg(FIELD_DEFAULTS); deriveRoles(); }
+  setFields(FIELD_DEFAULTS);
+  /* 제품 접근 헬퍼 */
+  function pId(p){ return p.id||''; }
+  function pName(p){ for(var i=0;i<ROLES.nameKeys.length;i++){ var v=p.vals[ROLES.nameKeys[i]]; if(v) return v; } return ''; }
+  function pName2(p){ var seen=false; for(var i=0;i<ROLES.nameKeys.length;i++){ var v=p.vals[ROLES.nameKeys[i]]; if(v){ if(seen) return v; seen=true; } } return ''; }
 
   /* ===== 상태 ===== */
   var datasets={};        // store -> {store,fileName,uploadedAt,rowCount,map,rows:[normalized]}
-  var productsByUpc={};   // key -> {upc,kor,eng,perStore:{store:{cost,srp,_date}},sales:[{store,date,amount,qty}]}
+  var productsByUpc={};   // key -> {key,id,vals:{fieldKey:val}, perStore:{store:{priceKey:val,_date}}, sales:[{store,date,amount,qty}]}
   var productList=[];
   var selected=null;      // 현재 선택된 product
   var pending=null;       // {store, fileName, headers, rawRows}
@@ -263,16 +316,23 @@
   function bigrams(s){ s=norm(s); var b=[]; for(var i=0;i<s.length-1;i++) b.push(s.slice(i,i+2)); return b; }
   function dice(a,b){ var A=bigrams(a),B=bigrams(b); if(!A.length||!B.length){ return norm(a)&&norm(a)===norm(b)?1:0; } var m={},hit=0; A.forEach(function(x){m[x]=(m[x]||0)+1;}); B.forEach(function(x){ if(m[x]>0){ hit++; m[x]--; } }); return (2*hit)/(A.length+B.length); }
 
-  /* ===== 매핑 자동추정 ===== */
+  /* ===== 매핑 자동추정 — STORE MANAGER 에 등록한 별칭(강제 매칭) 우선 ===== */
   function guessMap(headers){
-    var rules={ UPC:['upc','바코드','barcode','code','plu'], KOR:['kordesc','한글','상품명','국문','품명','kor'], ENG:['engdesc','영문','english','eng','name','desc'], COST:['cost','원가','매입','단가','price'], SRP:['srp','retail','판매가','소비자가','sell','saleprice','정가'], QTY:['qty','수량','판매수량','개수','count','ea'], AMOUNT:['amount','판매금액','매출','sales','totalsales','금액','total'], DATE:['date','날짜','판매일','일자'] };
+    var hnorm=headers.map(function(h){ return norm(h); });
     var used={}, m={};
-    CANON.forEach(function(f){
-      var cands=rules[f.key]||[]; var found='';
-      for(var i=0;i<headers.length&&!found;i++){ var raw=headers[i]; if(used[raw]) continue; var h=norm(raw);
-        for(var j=0;j<cands.length;j++){ if(h.indexOf(cands[j])>=0){ found=raw; break; } } }
-      if(found) used[found]=1; m[f.key]=found;
+    // 1) 별칭 정확(정규화) 매칭
+    FIELDS.forEach(function(f){
+      if(m[f.key]) return; var al=(f.aliases||[]).map(norm);
+      for(var i=0;i<headers.length;i++){ if(used[headers[i]]) continue; if(al.indexOf(hnorm[i])>=0){ m[f.key]=headers[i]; used[headers[i]]=1; break; } }
     });
+    // 2) 별칭 부분 매칭
+    FIELDS.forEach(function(f){
+      if(m[f.key]) return; var al=(f.aliases||[]).map(norm).filter(Boolean);
+      for(var i=0;i<headers.length;i++){ if(used[headers[i]]) continue; var h=hnorm[i]; var hit=false;
+        for(var j=0;j<al.length;j++){ if(h.indexOf(al[j])>=0 || al[j].indexOf(h)>=0){ hit=true; break; } }
+        if(hit){ m[f.key]=headers[i]; used[headers[i]]=1; break; } }
+    });
+    FIELDS.forEach(function(f){ if(!m[f.key]) m[f.key]=''; });
     return m;
   }
 
@@ -280,10 +340,10 @@
   function normalizeRows(rawRows, map){
     return rawRows.map(function(r){
       var o={};
-      CANON.forEach(function(f){ var col=map[f.key]; var v=(col!=null&&col!=='')?r[col]:'';
-        if(f.num) o[f.key]=num(v); else if(f.date) o[f.key]=parseDate(v); else o[f.key]=(v==null?'':String(v)).trim(); });
+      FIELDS.forEach(function(f){ var col=map[f.key]; var v=(col!=null&&col!=='')?r[col]:'';
+        if(fieldIsNum(f.role)) o[f.key]=num(v); else if(f.role==='date') o[f.key]=parseDate(v); else o[f.key]=(v==null?'':String(v)).trim(); });
       return o;
-    }).filter(function(o){ return (o.UPC&&String(o.UPC).length) || o.KOR || o.ENG; });
+    }).filter(function(o){ var id=ROLES.idKey?o[ROLES.idKey]:''; var hasName=ROLES.nameKeys.some(function(k){ return o[k]; }); return (id&&String(id).length)||hasName; });
   }
 
   /* ===== 인덱스 재구성 ===== */
@@ -291,24 +351,33 @@
     productsByUpc={};
     STORES.forEach(function(store){ var ds=datasets[store]; if(!ds||!ds.rows) return;
       ds.rows.forEach(function(row){
-        var key=(row.UPC&&String(row.UPC).trim())||('nm:'+norm(row.KOR||row.ENG)); if(!key) return;
-        var p=productsByUpc[key]; if(!p){ p={ upc:(row.UPC||''), kor:'', eng:'', perStore:{}, sales:[] }; productsByUpc[key]=p; }
-        if(!p.kor&&row.KOR) p.kor=row.KOR; if(!p.eng&&row.ENG) p.eng=row.ENG;
-        var cur=p.perStore[store]; var dt=row.DATE||0;
-        if(!cur){ p.perStore[store]={cost:row.COST, srp:row.SRP, _date:dt}; }
-        else if(dt>=(cur._date||0)){ cur.cost=row.COST; cur.srp=row.SRP; cur._date=dt; }
-        if(row.DATE && row.AMOUNT!=null){ p.sales.push({store:store, date:row.DATE, amount:row.AMOUNT, qty:row.QTY}); }
+        var idv=ROLES.idKey?String(row[ROLES.idKey]||'').trim():'';
+        var nmv=''; for(var ni=0;ni<ROLES.nameKeys.length;ni++){ if(row[ROLES.nameKeys[ni]]){ nmv=row[ROLES.nameKeys[ni]]; break; } }
+        var key=idv||('nm:'+norm(nmv)); if(!key||key==='nm:') return;
+        var p=productsByUpc[key]; if(!p){ p={ key:key, id:idv, vals:{}, perStore:{}, sales:[] }; productsByUpc[key]=p; }
+        // 표시 값(식별·이름·카테고리·텍스트) — 비어있으면 채움
+        ROLES.displayFields.forEach(function(f){ if(ROLES.priceSet[f.key]) return; if((p.vals[f.key]==null||p.vals[f.key]==='')&&row[f.key]!=null&&row[f.key]!=='') p.vals[f.key]=row[f.key]; });
+        // 매장별 현재가(최신 날짜 우선)
+        var dt=(ROLES.dateKey?row[ROLES.dateKey]:0)||0;
+        var cur=p.perStore[store];
+        if(!cur){ cur={_date:dt}; ROLES.priceKeys.forEach(function(pk){ cur[pk]=row[pk]; }); p.perStore[store]=cur; }
+        else if(dt>=(cur._date||0)){ ROLES.priceKeys.forEach(function(pk){ cur[pk]=row[pk]; }); cur._date=dt; }
+        // 판매기록(판매일 + 판매금액)
+        var amt=ROLES.amountKey?row[ROLES.amountKey]:null, d2=ROLES.dateKey?row[ROLES.dateKey]:null;
+        if(d2 && amt!=null){ p.sales.push({store:store, date:d2, amount:amt, qty:(ROLES.qtyKey?row[ROLES.qtyKey]:null)}); }
       });
     });
     productList=Object.keys(productsByUpc).map(function(k){ var p=productsByUpc[k];
-      p._upcn=String(p.upc||'').toLowerCase(); p._korn=norm(p.kor); p._engn=norm(p.eng); return p; });
+      p._idn=String(p.id||'').toLowerCase();
+      p._names=ROLES.nameKeys.map(function(nk){ return norm(p.vals[nk]); }).filter(Boolean);
+      return p; });
   }
 
   /* ===== 검색 (부분 + 유사) ===== */
   function scoreProduct(p,q){
     var qn=norm(q), qu=String(q).trim().toLowerCase(); if(!qn) return 0; var s=0;
-    if(p._upcn){ if(p._upcn===qu) s=Math.max(s,1000); else if(p._upcn.indexOf(qu)===0) s=Math.max(s,650); else if(p._upcn.indexOf(qu)>=0) s=Math.max(s,420); }
-    [p._korn,p._engn].forEach(function(nm){ if(!nm) return;
+    if(p._idn){ if(p._idn===qu) s=Math.max(s,1000); else if(p._idn.indexOf(qu)===0) s=Math.max(s,650); else if(p._idn.indexOf(qu)>=0) s=Math.max(s,420); }
+    p._names.forEach(function(nm){ if(!nm) return;
       if(nm===qn) s=Math.max(s,900);
       else if(nm.indexOf(qn)===0) s=Math.max(s,560);
       else if(nm.indexOf(qn)>=0) s=Math.max(s,320+Math.round(qn.length/nm.length*90));
@@ -380,12 +449,12 @@
     if(!pending) return;
     var saved=null; try{ saved=JSON.parse(localStorage.getItem(MAP_LS+pending.store)||'null'); }catch(e){}
     var guess=guessMap(pending.headers);
-    var map={}; CANON.forEach(function(f){ map[f.key]=(saved&&saved[f.key]!=null&&pending.headers.indexOf(saved[f.key])>=0)?saved[f.key]:(guess[f.key]||''); });
+    var map={}; FIELDS.forEach(function(f){ map[f.key]=(saved&&saved[f.key]!=null&&pending.headers.indexOf(saved[f.key])>=0)?saved[f.key]:(guess[f.key]||''); });
     $('mapTitle').textContent=pending.store+' · 필드 매핑';
-    $('mapSub').innerHTML='엑셀 파일 <b>'+esc(pending.fileName)+'</b> 의 열을 프로그램 필드에 연결하세요.<br>예: 엑셀의 <b>price</b> 열을 <b>COST</b> 에 연결. (수량·판매금액·판매일을 매핑하면 기간 판매금액 집계가 됩니다.)';
-    $('mapRows').innerHTML=CANON.map(function(f){
+    $('mapSub').innerHTML='엑셀 파일 <b>'+esc(pending.fileName)+'</b> 의 열을 프로그램 필드에 연결하세요.<br>대부분 STORE MANAGER 의 <b>ITEM 필드 매칭</b> 별칭으로 자동 연결됩니다. (수량·판매금액·판매일을 매핑하면 기간 판매금액 집계가 됩니다.)';
+    $('mapRows').innerHTML=FIELDS.map(function(f){
       var opts='<option value="">— 없음 —</option>'+pending.headers.map(function(h){ return '<option value="'+esc(h)+'"'+(map[f.key]===h?' selected':'')+'>'+esc(h)+'</option>'; }).join('');
-      return '<div class="map-row"><div class="cf">'+esc(f.label)+(f.opt?' <small>선택(기간 집계용)</small>':'')+'</div><select data-k="'+f.key+'">'+opts+'</select></div>';
+      return '<div class="map-row"><div class="cf">'+esc(f.label)+(fieldOpt(f.role)?' <small>선택(기간/분류용)</small>':'')+'</div><select data-k="'+esc(f.key)+'">'+opts+'</select></div>';
     }).join('');
     $('mapOv').classList.add('show');
   }
@@ -393,7 +462,8 @@
   async function saveMapping(){
     if(!pending) return;
     var map={}; $('mapRows').querySelectorAll('select').forEach(function(sel){ map[sel.getAttribute('data-k')]=sel.value; });
-    if(!map.UPC && !map.KOR && !map.ENG){ toast('UPC 또는 상품명(KOR/ENG) 중 하나는 매핑하세요'); return; }
+    var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
+    if(!hasId && !hasName){ toast('식별(UPC) 또는 상품명 중 하나는 매핑하세요'); return; }
     var rows=normalizeRows(pending.rawRows, map);
     var ds={ store:pending.store, fileName:pending.fileName, uploadedAt:Date.now(), rowCount:rows.length, map:map, rows:rows };
     try{
@@ -418,14 +488,14 @@
     suggList=runSearch(q, 14); suggActive=-1;
     if(!suggList.length){ box.innerHTML='<div class="sr-sugg-empty">일치하는 상품이 없습니다</div>'; box.classList.add('show'); return; }
     box.innerHTML=suggList.map(function(p,i){
-      var stores=Object.keys(p.perStore).length;
-      return '<div class="sr-sugg-item" data-i="'+i+'"><div class="sr-sugg-nm">'+esc(p.kor||p.eng||'(이름없음)')+'</div>'+
-        '<div class="sr-sugg-sub">'+(p.upc?('UPC '+esc(p.upc)+' · '):'')+(p.eng&&p.kor?esc(p.eng)+' · ':'')+stores+'개 매장</div></div>';
+      var stores=Object.keys(p.perStore).length; var nm=pName(p), n2=pName2(p);
+      return '<div class="sr-sugg-item" data-i="'+i+'"><div class="sr-sugg-nm">'+esc(nm||p.id||'(이름없음)')+'</div>'+
+        '<div class="sr-sugg-sub">'+(p.id?('UPC '+esc(p.id)+' · '):'')+(n2?esc(n2)+' · ':'')+stores+'개 매장</div></div>';
     }).join('');
     box.classList.add('show');
     box.querySelectorAll('.sr-sugg-item').forEach(function(el){ el.onclick=function(){ pick(suggList[+el.getAttribute('data-i')]); }; });
   }
-  function pick(p){ if(!p) return; selected=p; $('srInput').value=p.kor||p.eng||p.upc||''; $('srSugg').classList.remove('show'); renderResult(p); addHistory($('srInput').value, p); }
+  function pick(p){ if(!p) return; selected=p; $('srInput').value=pName(p)||p.id||''; $('srSugg').classList.remove('show'); renderResult(p); addHistory($('srInput').value, p); }
   function doSearch(){
     var q=($('srInput').value||'').trim(); if(!q){ toast('검색어를 입력하세요'); return; }
     var r=runSearch(q,1); if(!r.length){ toast('일치하는 상품이 없습니다'); renderResultEmpty('검색 결과 없음'); return; }
@@ -436,14 +506,19 @@
   function renderResultEmpty(msg){ $('rsBox').innerHTML='<div class="rs-empty"><div class="ic">🔎</div><div class="t">'+esc(msg||'상품을 검색하세요')+'</div><div class="s">각 매장의 현재 판매가격과 기간 총 판매금액을 보여드립니다.</div></div>'; }
   function renderResult(p){
     selected=p;
-    var rows=STORES.filter(function(s){ return p.perStore[s]; }).map(function(s){
-      var d=p.perStore[s];
-      return '<tr><td>'+esc(s)+'</td><td>'+(p.upc?esc(p.upc):'<span class="miss">—</span>')+'</td>'+
-        '<td>'+(p.kor?esc(p.kor):'<span class="miss">—</span>')+'</td>'+
-        '<td>'+(p.eng?esc(p.eng):'<span class="miss">—</span>')+'</td>'+
-        '<td class="num">'+(d.cost!=null?money(d.cost):'<span class="miss">—</span>')+'</td>'+
-        '<td class="num">'+(d.srp!=null?money(d.srp):'<span class="miss">—</span>')+'</td></tr>';
+    var cols=ROLES.displayFields;
+    var stores=STORES.filter(function(s){ return p.perStore[s]; });
+    var body=stores.map(function(s){
+      var cells=cols.map(function(f){
+        if(ROLES.priceSet[f.key]){ var v=p.perStore[s]?p.perStore[s][f.key]:null; return '<td class="num">'+(v!=null?money(v):'<span class="miss">—</span>')+'</td>'; }
+        if(f.key===ROLES.idKey){ return '<td>'+(p.id?esc(p.id):'<span class="miss">—</span>')+'</td>'; }
+        var val=p.vals[f.key];
+        return '<td>'+(val!=null&&val!==''?esc(val):'<span class="miss">—</span>')+'</td>';
+      }).join('');
+      return '<tr><td>'+esc(s)+'</td>'+cells+'</tr>';
     }).join('');
+    var headCols='<th>매장</th>'+cols.map(function(f){ return '<th>'+esc(f.label)+'</th>'; }).join('');
+    var colspan=cols.length+1;
     var pt=periodTotal(p);
     var rangeTxt = (pt.from||pt.to) ? ((pt.from?ymd(pt.from):'처음')+' ~ '+(pt.to?ymd(pt.to):'끝')) : '전체 기간';
     var totalHtml;
@@ -454,11 +529,12 @@
       totalHtml='<div class="rs-total"><div class="lab"><b>기간 총 판매금액</b> · '+esc(rangeTxt)+' · '+pt.counted+'건</div><div class="val">'+money(pt.total)+'</div></div>'+
         (by?'<div class="rs-bystore">'+by+'</div>':'');
     }
+    var nm=pName(p), n2=pName2(p);
     $('rsBox').innerHTML='<div class="rs-card">'+
-      '<div class="rs-head"><span class="rs-kor">'+esc(p.kor||p.eng||'(이름없음)')+'</span>'+(p.eng&&p.kor?'<span class="rs-eng">'+esc(p.eng)+'</span>':'')+'</div>'+
-      '<div class="rs-upc">'+(p.upc?('UPC '+esc(p.upc)):'UPC 없음')+' · '+rows.split('<tr>').length+'개 매장 판매</div>'+
-      '<div class="rs-tablewrap"><table class="rs-table"><thead><tr><th>매장</th><th>UPC</th><th>KOR DESC</th><th>ENG DESC</th><th>COST</th><th>SRP</th></tr></thead><tbody>'+
-      (rows||'<tr><td colspan="6" class="miss" style="text-align:center;padding:18px;">판매 매장 없음</td></tr>')+'</tbody></table></div>'+
+      '<div class="rs-head"><span class="rs-kor">'+esc(nm||p.id||'(이름없음)')+'</span>'+(n2?'<span class="rs-eng">'+esc(n2)+'</span>':'')+'</div>'+
+      '<div class="rs-upc">'+(p.id?('UPC '+esc(p.id)):'UPC 없음')+' · '+stores.length+'개 매장 판매</div>'+
+      '<div class="rs-tablewrap"><table class="rs-table"><thead><tr>'+headCols+'</tr></thead><tbody>'+
+      (body||'<tr><td colspan="'+colspan+'" class="miss" style="text-align:center;padding:18px;">판매 매장 없음</td></tr>')+'</tbody></table></div>'+
       totalHtml+
     '</div>';
   }
@@ -470,7 +546,7 @@
     q=(q||'').trim(); if(!q) return;
     var h=loadHistory();
     h=h.filter(function(x){ return x.q!==q; });
-    h.unshift({ q:q, at:Date.now(), name:(p&&(p.kor||p.eng))||'', upc:(p&&p.upc)||'' });
+    h.unshift({ q:q, at:Date.now(), name:(p&&pName(p))||'', upc:(p&&p.id)||'' });
     saveHistory(h); renderHistory();
   }
   function renderHistory(){
@@ -504,9 +580,24 @@
   $('mapClose').onclick=closeMap; $('mapCancel').onclick=closeMap; $('mapSave').onclick=saveMapping;
   $('mapOv').addEventListener('click', function(e){ if(e.target===$('mapOv')) closeMap(); });
 
+  /* ===== ITEM ANALYZE 필드 설정 구독 (STORE MANAGER 와 실시간) ===== */
+  function subscribeFieldCfg(){
+    var fb=window.iaCfgFb; if(!fb||!fb.onSnapshot){ setTimeout(subscribeFieldCfg,400); return; }
+    try{
+      fb.onSnapshot(fb.doc(fb.db, CFG_COL, CFG_DOC), function(snap){
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+        if(Array.isArray(d.fields) && d.fields.length){
+          setFields(d.fields); rebuildIndex(); renderStores();
+          if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else renderResultEmpty(); }
+        }
+      }, function(){ /* 실패 시 기본 필드 유지 */ });
+    }catch(e){}
+  }
+
   /* ===== 초기 로드 ===== */
   renderStores(); renderHistory();
   idbAll().then(function(all){ datasets=all||{}; rebuildIndex(); renderStores(); }).catch(function(){ /* IndexedDB 미지원/차단 */ });
+  if(window.iaCfgFb) subscribeFieldCfg(); else window.addEventListener('iacfg-ready', subscribeFieldCfg);
 })();
 </script>
 </body>

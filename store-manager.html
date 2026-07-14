@@ -93,6 +93,19 @@
   .au-row{ display:grid; grid-template-columns:1fr 220px 90px 190px 120px 130px 44px; gap:10px; align-items:center; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:12px; padding:10px 12px; }
   .au-row .au-scope{ justify-self:start; }
   .au-divider{ border-top:1px dashed var(--border); margin:24px 0 18px; }
+  /* ITEM 필드 매칭 */
+  .im-head{ display:grid; grid-template-columns:44px 1fr 170px 2fr 60px; gap:10px; padding:0 12px 8px; font-size:12px; font-weight:800; color:var(--text-dim); }
+  .im-row{ display:grid; grid-template-columns:44px 1fr 170px 2fr 60px; gap:10px; align-items:center; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
+  .im-row.role-upc{ border-color:var(--accent-warm); }
+  .im-ord{ display:flex; flex-direction:column; gap:3px; }
+  .im-ord button{ border:1px solid var(--border); background:var(--bg); border-radius:5px; width:26px; height:15px; line-height:1; font-size:9px; cursor:pointer; color:var(--text-dim); }
+  .im-ord button:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .im-row select.st-in{ font-size:12.5px; }
+  .im-del{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:8px; padding:7px; font-size:12px; font-weight:800; cursor:pointer; }
+  .im-del:hover{ border-color:var(--danger); color:var(--danger); background:#fff0f0; }
+  .im-addrow{ display:grid; grid-template-columns:1fr 170px 2fr auto; gap:10px; align-items:center; margin-top:16px; padding-top:16px; border-top:1px dashed var(--border); }
+  .st-hint code{ background:var(--bg-elev-2); border:1px solid var(--border); border-radius:5px; padding:1px 5px; font-size:12px; }
+  @media (max-width:860px){ .im-head{ display:none; } .im-row{ grid-template-columns:1fr 1fr; } .im-addrow{ grid-template-columns:1fr 1fr; } }
   @media (max-width:860px){ .au-newrow{ grid-template-columns:1fr 1fr; } .au-head{ display:none; } .au-row{ grid-template-columns:1fr 1fr; } }
 
   /* ===== EXPORT 설정 패널 ===== */
@@ -331,6 +344,7 @@
     <button class="sm-tab active" id="smTabAuth" type="button">아이디/패스워드 관리</button>
     <button class="sm-tab" id="smTabFields" type="button">필드 관리</button>
     <button class="sm-tab" id="smTabExport" type="button">EXPORT 설정</button>
+    <button class="sm-tab" id="smTabItemMatch" type="button">ITEM 필드 매칭</button>
     <button class="sm-tab" id="smTabHtml" type="button">HTML 관리</button>
   </div>
   <div class="sm-body">
@@ -429,6 +443,34 @@
       </div>
     </div>
 
+    <!-- ITEM 필드 매칭: ITEM ANALYZE 필드 정의 + 엑셀 열 별칭(강제 매칭) -->
+    <div class="sm-panel" id="smPanelItemMatch">
+      <div class="ex-toolbar">
+        <span class="ex-tb-label">ITEM 필드 매칭</span>
+        <span class="ex-spacer"></span>
+        <span class="fm-saved" id="imSaved"></span>
+        <button class="ex-btn" id="imReset" type="button">기본 필드 복원</button>
+      </div>
+      <div class="st-wrap">
+        <div class="st-hint">
+          <b>ITEM ANALYZE</b> 가 사용할 필드를 정의하고, 각 필드에 대응하는 <b>엑셀 열 이름(별칭)</b>을 등록하세요.
+          업로드하는 엑셀의 열 이름이 달라도(예: <code>price</code>, <code>원가</code>, <code>단가</code> → <b>COST</b>) 여기에 별칭을 넣어두면
+          <b>ITEM ANALYZE 업로드 시 자동으로 매칭</b>됩니다. 역할(ROLE)은 분석 방식(식별·검색·가격·판매금액·판매일 등)을 결정합니다.
+          여기서 저장한 필드·별칭은 <code>app-config/item-analyze-fields</code> 에 저장되어 ITEM ANALYZE 와 즉시 연동됩니다.
+        </div>
+        <div class="im-head">
+          <span></span><span>필드 이름 (라벨)</span><span>역할 (ROLE)</span><span>엑셀 열 별칭 — 쉼표(,)로 구분</span><span></span>
+        </div>
+        <div class="st-list" id="imList"><div class="st-hint">불러오는 중…</div></div>
+        <div class="im-addrow">
+          <input class="st-in" id="imNewLabel" placeholder="새 필드 이름 (예: CATEGORY)" maxlength="40" autocomplete="off">
+          <select class="st-in" id="imNewRole"></select>
+          <input class="st-in" id="imNewAlias" placeholder="엑셀 열 별칭 (예: 카테고리, category, cate)" maxlength="200" autocomplete="off">
+          <button class="ex-btn warm" id="imAdd" type="button">＋ 필드 추가</button>
+        </div>
+      </div>
+    </div>
+
     <!-- HTML 관리: 파일 업로드/다운로드 + 설명 -->
     <div class="sm-panel" id="smPanelHtml">
       <div class="ex-toolbar">
@@ -444,7 +486,7 @@
       </div>
     </div>
   </div>
-  <div class="sm-hint" id="smHint">아이디/패스워드 관리(계정 · 매장) · 필드 관리(공통 마스터) · EXPORT 설정(관리필드→엑셀필드 연결). 모든 탭은 같은 Firebase를 공유합니다.</div>
+  <div class="sm-hint" id="smHint">아이디/패스워드 관리(계정 · 매장) · 필드 관리(공통 마스터) · EXPORT 설정(관리필드→엑셀필드 연결) · ITEM 필드 매칭(ITEM ANALYZE 필드 정의 + 엑셀 열 별칭). 모든 탭은 같은 Firebase를 공유합니다.</div>
 
   <!-- 소스 미리보기 모달 -->
   <div class="ex-modal-bg" id="exPrevBg">
@@ -735,24 +777,114 @@
   document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.addEventListener('change', slSyncDim); });
 
   function activate(which){
-    var isAuth=(which==='auth'), isFields=(which==='fields'), isExport=(which==='export'), isHtml=(which==='html');
+    var isAuth=(which==='auth'), isFields=(which==='fields'), isExport=(which==='export'), isHtml=(which==='html'), isItem=(which==='itemmatch');
     $('smTabAuth').classList.toggle('active', isAuth);
     $('smTabFields').classList.toggle('active', isFields);
     $('smTabExport').classList.toggle('active', isExport);
+    if($('smTabItemMatch')) $('smTabItemMatch').classList.toggle('active', isItem);
     if($('smTabHtml')) $('smTabHtml').classList.toggle('active', isHtml);
     $('smPanelAuth').classList.toggle('active', isAuth);
     $('smPanelFields').classList.toggle('active', isFields);
     $('smPanelExport').classList.toggle('active', isExport);
+    if($('smPanelItemMatch')) $('smPanelItemMatch').classList.toggle('active', isItem);
     if($('smPanelHtml')) $('smPanelHtml').classList.toggle('active', isHtml);
     if(isAuth){ authLoad(); storesLoad(); }
     else if(isFields){ fmOpen(); }
     else if(isHtml){ hmLoad(); }
+    else if(isItem){ imLoad(); }
     else { renderExport(); requestAnimationFrame(drawLines); }
   }
   $('smTabAuth').onclick = function(){ activate('auth'); };
   $('smTabFields').onclick = function(){ activate('fields'); };
   $('smTabExport').onclick = function(){ activate('export'); };
+  if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
+  if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
   if($('smTabHtml')) $('smTabHtml').onclick = function(){ activate('html'); };
+
+  /* ===== ITEM 필드 매칭 (app-config/item-analyze-fields) =====
+     ITEM ANALYZE 가 사용할 필드 정의 + 엑셀 열 별칭(강제 매칭).
+     저장 형식: { fields:[{key,label,role,aliases:[...]}], updatedAt }.
+     ITEM ANALYZE(item-management-analyze.html)가 이 문서를 읽어 업로드 시 자동 매칭한다. */
+  var IM_COL='app-config', IM_DOC='item-analyze-fields';
+  var IM_ROLES=[
+    {v:'upc',      t:'UPC · 식별'},
+    {v:'name',     t:'상품명 · 검색'},
+    {v:'cost',     t:'COST · 원가'},
+    {v:'srp',      t:'SRP · 판매가'},
+    {v:'price',    t:'가격 · 기타'},
+    {v:'qty',      t:'수량 (QTY)'},
+    {v:'amount',   t:'판매금액 (AMOUNT)'},
+    {v:'date',     t:'판매일 (DATE)'},
+    {v:'category', t:'카테고리'},
+    {v:'text',     t:'일반 텍스트'}
+  ];
+  var IM_DEFAULTS=[
+    {key:'UPC',    label:'UPC',            role:'upc',    aliases:['UPC','바코드','BARCODE','CODE','PLU']},
+    {key:'KOR',    label:'KOR DESC',       role:'name',   aliases:['KOR DESC','상품명','한글','국문','품명','KOR']},
+    {key:'ENG',    label:'ENG DESC',       role:'name',   aliases:['ENG DESC','영문','ENGLISH','ENG','NAME','DESC']},
+    {key:'COST',   label:'COST',           role:'cost',   aliases:['COST','원가','매입','단가','PRICE']},
+    {key:'SRP',    label:'SRP',            role:'srp',    aliases:['SRP','RETAIL','판매가','소비자가','SELL','정가']},
+    {key:'QTY',    label:'수량 (QTY)',      role:'qty',    aliases:['QTY','수량','판매수량','개수','COUNT']},
+    {key:'AMOUNT', label:'판매금액 (AMOUNT)', role:'amount', aliases:['AMOUNT','판매금액','매출','SALES','금액','TOTAL']},
+    {key:'DATE',   label:'판매일 (DATE)',    role:'date',   aliases:['DATE','날짜','판매일','일자']}
+  ];
+  var imFields=[];
+  function imSetSaved(t){ var e=$('imSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2200); } }
+  function imRoleOptions(sel){ return IM_ROLES.map(function(r){ return '<option value="'+r.v+'"'+(r.v===sel?' selected':'')+'>'+r.t+'</option>'; }).join(''); }
+  function imGenKey(label){ var base=String(label||'FIELD').trim().toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'FIELD'; var used={}; imFields.forEach(function(f){ used[f.key]=1; }); var k=base,n=2; while(used[k]){ k=base+'_'+n; n++; } return k; }
+  function imParseAliases(s){ return String(s||'').split(',').map(function(x){ return x.trim(); }).filter(Boolean); }
+  function imNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; var role=String(f.role||'text'); if(!IM_ROLES.some(function(r){return r.v===role;})) role='text'; var al=Array.isArray(f.aliases)?f.aliases.map(function(x){return String(x).trim();}).filter(Boolean):[]; out.push({key:k, label:(f.label!=null?String(f.label):k), role:role, aliases:al}); }); return out; }
+  function imLoad(){
+    var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(imLoad,400); return; }
+    var s=$('imNewRole'); if(s && !s.options.length) s.innerHTML=imRoleOptions('text');
+    fb.getDoc(fb.doc(fb.db,IM_COL,IM_DOC)).then(function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      var f=Array.isArray(d.fields)?imNorm(d.fields):[];
+      var seed=!f.length;
+      imFields = seed ? imNorm(IM_DEFAULTS) : f;
+      imRender();
+      if(seed) imSave(true);   // 최초 진입 시 기본 필드 시드
+    }).catch(function(){ imFields=imNorm(IM_DEFAULTS); imRender(); });
+  }
+  function imRender(){
+    var box=$('imList'); if(!box) return;
+    if(!imFields.length){ box.innerHTML='<div class="st-hint">필드가 없습니다. 아래에서 추가하거나 [기본 필드 복원]을 누르세요.</div>'; return; }
+    box.innerHTML=imFields.map(function(f,i){
+      return '<div class="im-row'+(f.role==='upc'?' role-upc':'')+'" data-i="'+i+'">'+
+        '<div class="im-ord"><button data-up="'+i+'" type="button" title="위로">▲</button><button data-down="'+i+'" type="button" title="아래로">▼</button></div>'+
+        '<input class="st-in im-lb" data-i="'+i+'" maxlength="40" value="'+esc(f.label)+'">'+
+        '<select class="st-in im-rl" data-i="'+i+'">'+imRoleOptions(f.role)+'</select>'+
+        '<input class="st-in im-al" data-i="'+i+'" maxlength="300" value="'+esc(f.aliases.join(', '))+'" placeholder="엑셀 열 이름들 · 쉼표로 구분">'+
+        '<button class="im-del" data-del="'+i+'" type="button" title="삭제">✕</button>'+
+      '</div>';
+    }).join('');
+    box.querySelectorAll('.im-lb').forEach(function(inp){ var i=+inp.getAttribute('data-i'); inp.onchange=function(){ var v=(inp.value||'').trim(); if(!v){ imRender(); return; } imFields[i].label=v; imSave('이름 변경됨'); }; });
+    box.querySelectorAll('.im-rl').forEach(function(sel){ var i=+sel.getAttribute('data-i'); sel.onchange=function(){ imFields[i].role=sel.value; imRender(); imSave('역할 변경됨'); }; });
+    box.querySelectorAll('.im-al').forEach(function(inp){ var i=+inp.getAttribute('data-i'); inp.onchange=function(){ imFields[i].aliases=imParseAliases(inp.value); imSave('별칭 저장됨'); }; });
+    box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up'); b.onclick=function(){ if(i<=0)return; var t=imFields[i-1]; imFields[i-1]=imFields[i]; imFields[i]=t; imRender(); imSave(); }; });
+    box.querySelectorAll('[data-down]').forEach(function(b){ var i=+b.getAttribute('data-down'); b.onclick=function(){ if(i>=imFields.length-1)return; var t=imFields[i+1]; imFields[i+1]=imFields[i]; imFields[i]=t; imRender(); imSave(); }; });
+    box.querySelectorAll('[data-del]').forEach(function(b){ var i=+b.getAttribute('data-del'); b.onclick=function(){ var f=imFields[i]; if(!confirm('필드 ['+f.label+']를 삭제할까요?')) return; imFields.splice(i,1); imRender(); imSave('필드 삭제됨'); }; });
+  }
+  function imAddField(){
+    var lb=($('imNewLabel').value||'').trim(); if(!lb){ $('imNewLabel').focus(); return; }
+    if(imFields.some(function(f){ return f.label.trim().toUpperCase()===lb.toUpperCase(); })){ alert('이미 있는 필드 이름입니다'); $('imNewLabel').select(); return; }
+    var role=($('imNewRole')&&$('imNewRole').value)||'text';
+    var aliases=imParseAliases($('imNewAlias').value);
+    imFields.push({ key:imGenKey(lb), label:lb, role:role, aliases:aliases });
+    $('imNewLabel').value=''; $('imNewAlias').value='';
+    imRender(); imSave('필드 추가됨 · '+lb); $('imNewLabel').focus();
+  }
+  async function imSave(note){
+    imFields=imNorm(imFields);
+    var fb=window.smFb; if(!fb||!fb.setDoc){ if(note!==true) imSetSaved('저장 대기 (연결 확인)'); return; }
+    try{ await fb.setDoc(fb.doc(fb.db,IM_COL,IM_DOC), {fields:imFields, updatedAt:Date.now()}, {merge:true}); if(note!==true) imSetSaved(typeof note==='string'?note:'저장됨'); }
+    catch(e){ imSetSaved('저장 실패 (규칙 확인)'); }
+  }
+  function imReset(){ if(!confirm('ITEM ANALYZE 기본 필드로 되돌릴까요?\n현재 필드·별칭 설정이 기본값으로 대체됩니다.')) return; imFields=imNorm(IM_DEFAULTS); imRender(); imSave('기본 필드로 복원됨'); }
+  if($('imAdd')) $('imAdd').onclick=imAddField;
+  if($('imNewLabel')) $('imNewLabel').addEventListener('keydown', function(e){ if(e.key==='Enter') imAddField(); });
+  if($('imNewAlias')) $('imNewAlias').addEventListener('keydown', function(e){ if(e.key==='Enter') imAddField(); });
+  if($('imReset')) $('imReset').onclick=imReset;
 
   /* ===== HTML 관리 ===== */
   // 알려진 파일 설명 사전 (업로드 시 자동 부여)
