@@ -126,6 +126,8 @@
   .btn-stock    { background: #0d9488; color: #fff; }
   .btn-export   { background: #0f172a; color: #fff; }
   .btn-pdf      { background: #dc2626; color: #fff; }
+  .btn-backup   { background: #059669; color: #fff; }   /* 백업: 초록 */
+  .btn-restore  { background: #7c3aed; color: #fff; }   /* 복원: 보라 */
   .btn-sm       { padding: 6px 16px; font-size: 12px; border-radius: 6px; }
   .card h2 .push { margin-left: auto; }
   .vdiv { width: 1px; height: 26px; background: #cbd5e1; }
@@ -372,6 +374,9 @@
       <span class="month-chip">Month <span id="lastMonthNum"></span> · Last month</span>
       <span class="month-chip cur">Month <span id="curMonthNum"></span> · Current month</span>
       <div class="spacer"></div>
+      <button class="btn btn-backup" onclick="backupAll()" title="모든 데이터(SALES·PURCHASE·STOCK·품목명)를 파일 하나로 저장">⬇ BACKUP</button>
+      <button class="btn btn-restore" onclick="restorePick()" title="백업 파일에서 전체 데이터 복원">⬆ RESTORE</button>
+      <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" onchange="restoreRun(this)">
       <button class="btn btn-export" onclick="exportDashboardExcel()">EXCEL EXPORT</button>
       <button class="btn btn-pdf" onclick="exportDashboardPDF()">PDF EXPORT</button>
       <button class="btn btn-full" onclick="toggleFullView('view-dashboard', this)">FULL SCREEN</button>
@@ -1467,6 +1472,91 @@ function saveBlob(buf, filename, mime){
   a.href = URL.createObjectURL(blob); a.download = filename;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+
+/* ═════════ 전체 백업 / 복원 ═════════
+   DB(sales·purchase·stock·stockItems)가 이 앱의 데이터 전부이며,
+   localStorage와 Firestore(campeon-wholsale/sales-data)에 저장되는 원본과 동일하다.
+   → JSON 한 파일에 통째로 담으므로 한 건도 빠짐없이 보존·복원된다.
+   (탭별 EXCEL EXPORT는 화면 필터/서식이 적용된 '보고서'라 백업용이 아니다.) */
+const BACKUP_APP = 'campeon-wholsale-sales-management';
+
+function backupAll(){
+  try {
+    const data = {
+      sales:      Array.isArray(DB.sales)      ? DB.sales      : [],
+      purchase:   Array.isArray(DB.purchase)   ? DB.purchase   : [],
+      stock:      Array.isArray(DB.stock)      ? DB.stock      : [],
+      stockItems: Array.isArray(DB.stockItems) ? DB.stockItems : []
+    };
+    const payload = {
+      app: BACKUP_APP,
+      formatVersion: 1,
+      exportedAt: new Date().toISOString(),
+      counts: {
+        sales: data.sales.length, purchase: data.purchase.length,
+        stock: data.stock.length, stockItems: data.stockItems.length
+      },
+      data: data                                  // ← 원본 그대로(가공·필터 없음)
+    };
+    const d = new Date();
+    const stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate())
+                + '_' + pad(d.getHours()) + pad(d.getMinutes());
+    saveBlob(JSON.stringify(payload, null, 2),
+             'CAMPEON-SALES-BACKUP_' + stamp + '.json', 'application/json');
+    toast('백업 완료 — SALES ' + data.sales.length + ' · PURCHASE ' + data.purchase.length
+          + ' · STOCK ' + data.stock.length + ' 건', true);
+  } catch(e){
+    toast('백업 실패 — ' + (e && e.message ? e.message : '알 수 없는 오류'), false);
+  }
+}
+
+function restorePick(){
+  if (EDIT.sales || EDIT.purchase || EDIT.stock){
+    toast('EDIT(편집) 중에는 복원할 수 없습니다. 편집을 끝낸 뒤 다시 시도하세요.', false);
+    return;
+  }
+  const f = document.getElementById('restoreFile');
+  if (f){ f.value = ''; f.click(); }
+}
+
+function restoreRun(input){
+  const file = input && input.files && input.files[0];
+  if (input) input.value = '';                   // 같은 파일 재선택 가능하도록
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onerror = () => toast('파일을 읽지 못했습니다.', false);
+  rd.onload = () => {
+    let p;
+    try { p = JSON.parse(rd.result); }
+    catch(e){ toast('백업 파일이 아닙니다 — JSON 형식 오류', false); return; }
+    const d = (p && p.data) ? p.data : p;         // data 래퍼가 있든 없든 처리
+    if (!d || (!Array.isArray(d.sales) && !Array.isArray(d.purchase) && !Array.isArray(d.stock))){
+      toast('백업 파일 형식이 올바르지 않습니다.', false); return;
+    }
+    const ns = Array.isArray(d.sales)    ? d.sales    : [];
+    const np = Array.isArray(d.purchase) ? d.purchase : [];
+    const nk = Array.isArray(d.stock)    ? d.stock    : [];
+    const ni = (Array.isArray(d.stockItems) && d.stockItems.length === 13) ? d.stockItems : null;
+    let when = '알 수 없음';
+    try { if (p.exportedAt) when = new Date(p.exportedAt).toLocaleString('ko-KR'); } catch(e){}
+    const msg = '이 백업으로 전체 데이터를 되돌립니다.\n\n'
+      + '백업 시점: ' + when + '\n\n'
+      + '                현재  →  복원 후\n'
+      + 'SALES      : ' + DB.sales.length    + '  →  ' + ns.length + '\n'
+      + 'PURCHASE : ' + DB.purchase.length + '  →  ' + np.length + '\n'
+      + 'STOCK      : ' + DB.stock.length    + '  →  ' + nk.length + '\n\n'
+      + '⚠ 현재 데이터는 이 백업 내용으로 완전히 대체되며,\n'
+      + '   연결된 다른 기기에도 즉시 반영됩니다.\n\n계속할까요?';
+    if (!confirm(msg)) return;
+    DB.sales = ns; DB.purchase = np; DB.stock = nk;
+    if (ni) DB.stockItems = ni;
+    persist();                                    // 로컬 저장 + Firestore 반영
+    renderAll();
+    toast('복원 완료 — SALES ' + ns.length + ' · PURCHASE ' + np.length
+          + ' · STOCK ' + nk.length + ' 건', true);
+  };
+  rd.readAsText(file);
 }
 
 const XF = {                                   // 공통 서식
