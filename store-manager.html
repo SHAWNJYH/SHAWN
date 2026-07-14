@@ -256,6 +256,9 @@
   .mfld .map-x{ border:none; background:transparent; color:var(--text-faint); font-size:13px; font-weight:800; cursor:pointer; padding:0 2px; line-height:1; }
   .mfld .map-x:hover{ color:#c0392b; }
   .efld.mapped{ border-color:var(--mf-color,var(--border)); }
+  .efld.noname .fld-name{ color:var(--text-faint); font-style:italic; }
+  .efld.noname .fld-name em{ font-size:9.5px; font-style:normal; font-weight:800; opacity:.75; }
+  .efld .imx-smp{ font-size:10.5px; font-weight:700; color:var(--text-dim); background:var(--bg-elev-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .ex-empty{ grid-column:1 / -1; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; padding:40px 20px; border:1.5px dashed var(--border); border-radius:14px; }
   .ex-empty b{ color:var(--text-dim); }
@@ -849,8 +852,7 @@
     var fb=window.smFb; if(!fb||!fb.setDoc) return;
     try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { profiles:imxState.profiles, activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
   }
-  function imxSetMap(analyzeKey, excelField){
-    var p=imxActive(); if(!p) return; if(!p.mappings) p.mappings={};
+  function imxSetMap(analyzeKey, excelField){    var p=imxActive(); if(!p) return; if(!p.mappings) p.mappings={};
     if(excelField) p.mappings[analyzeKey]=excelField; else delete p.mappings[analyzeKey];
     imxSaveMatch();
   }
@@ -901,10 +903,12 @@
     html+=p.fields.map(function(ef){
       var users=rev[ef]||[]; var mappedCls=users.length?' mapped':''; var c=users.length?imxColor(users[0]):''; var style=users.length?' style="--mf-color:'+c+'"':'';
       var tags=users.map(function(ak){ var fld=imxField(ak); return '<span class="map-tag" style="background:'+imxColor(ak)+'">'+esc(fld?fld.label:ak)+'</span>'; }).join('');
-      return '<div class="fld efld'+mappedCls+'" data-field="'+esc(ef)+'"'+style+'>'+
+      var noName=/^열 [A-Z]+$/.test(ef);
+      var smp=(p.samples&&p.samples[ef])?('<span class="imx-smp" title="샘플 데이터">'+esc(p.samples[ef])+'</span>'):'';
+      return '<div class="fld efld'+mappedCls+(noName?' noname':'')+'" data-field="'+esc(ef)+'"'+style+'>'+
         '<span class="anchor ef-anchor"></span>'+
-        '<span class="fld-name" title="'+esc(ef)+'">'+esc(ef)+'</span>'+
-        tags+'</div>';
+        '<span class="fld-name" title="'+esc(ef)+(noName?' (헤더 없음)':'')+'">'+esc(ef)+(noName?' <em>이름없음</em>':'')+'</span>'+
+        smp+tags+'</div>';
     }).join('');
     col.innerHTML=html;
     col.querySelectorAll('.efld').forEach(function(row){
@@ -915,7 +919,24 @@
     });
   }
   function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 엑셀 열을 클릭해 연결 (여러 필드가 같은 열 공유 가능)'):''; }
-  function imxRender(){ imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed(); }
+  /* 구버전 호환: 예전 {엑셀열: 필드key} 매핑을 {필드key: 엑셀열} 로 1회 변환 후 저장 */
+  function imxMigrateDir(){
+    if(!imxAnalyzeFields.length) return false;
+    var changed=false;
+    imxState.profiles.forEach(function(p){
+      var mp=p.mappings||{}, out={}, dirty=false;
+      Object.keys(mp).forEach(function(k){
+        var v=mp[k];
+        if(imxField(k)) out[k]=v;
+        else if(imxField(v)){ var fk=String(v).trim().toUpperCase(); if(!out[fk]){ out[fk]=k; dirty=true; } }
+        else dirty=true;   // 어느 쪽도 유효하지 않은 항목은 제거
+      });
+      if(dirty){ p.mappings=out; changed=true; }
+    });
+    if(changed) imxSaveMatch();
+    return changed;
+  }
+  function imxRender(){ imxMigrateDir(); imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed(); }
   function imxCssEsc(s){ return String(s).replace(/["\\]/g,'\\$&'); }
   function imxDraw(){
     var svg=$('imxSvg'), canvas=$('imxCanvas'); if(!svg||!canvas) return; svg.innerHTML='';
@@ -937,6 +958,31 @@
       svg.appendChild(path);
     });
   }
+  // 엑셀 열 이름 규칙 (ITEM ANALYZE 와 반드시 동일해야 함)
+  function imxColLetter(i){ var s=''; i=i+1; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+  function imxColNames(rows){
+    var width=0; rows.forEach(function(r){ if(r&&r.length>width) width=r.length; });
+    var head=rows[0]||[];
+    var hasData=[]; // 헤더가 없어도 아래에 데이터가 있으면 살림
+    for(var c=0;c<width;c++){ var any=false; for(var r=1;r<rows.length;r++){ var v=rows[r]&&rows[r][c]; if(v!=null&&String(v).trim()!==''){ any=true; break; } } hasData[c]=any; }
+    var out=[], seen={};
+    for(var i=0;i<width;i++){
+      var t=(head[i]==null?'':String(head[i])).trim();
+      if(t===''&&!hasData[i]) continue;                    // 완전히 빈 열은 제외
+      var name=(t!=='')?t:('열 '+imxColLetter(i));          // 이름 없는 열 → 열 H 형태
+      if(seen[name]) name=name+' (열 '+imxColLetter(i)+')'; // 중복 헤더 구분
+      seen[name]=1; out.push(name);
+    }
+    return out;
+  }
+  // 이름 → 원본 열 인덱스 (샘플 추출용)
+  function imxColIndex(rows, name, order){
+    var m=String(name).match(/열 ([A-Z]+)\)?$/);
+    if(m){ var s=m[1], n=0; for(var i=0;i<s.length;i++) n=n*26+(s.charCodeAt(i)-64); return n-1; }
+    var head=rows[0]||[];
+    for(var c=0;c<head.length;c++){ if((head[c]==null?'':String(head[c])).trim()===name) return c; }
+    return order;
+  }
   if($('imxUploadBtn')) $('imxUploadBtn').onclick=function(){ if(!imxActive()){ alert('먼저 카테고리를 선택하거나 추가하세요.'); return; } $('imxFile').click(); };
   if($('imxFile')) $('imxFile').onchange=function(e){
     var files=Array.prototype.slice.call(e.target.files||[]); if(!files.length) return;
@@ -947,9 +993,16 @@
       var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
       var ws=wb.Sheets[wb.SheetNames[0]];
       var rows=XLSX.utils.sheet_to_json(ws,{header:1,blankrows:false});
-      var header=(rows[0]||[]).map(function(h){ return (h==null?'':String(h)).trim(); }).filter(function(h){ return h!==''; });
-      if(!header.length){ alert(file.name+' : 헤더(첫 행)를 찾을 수 없습니다.'); }
-      else{ var oldMap=p.mappings||{}, newMap={}; header.forEach(function(f){ if(oldMap[f]) newMap[f]=oldMap[f]; }); p.fields=header; p.mappings=newMap; p.fileName=file.name; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); }
+      var header=imxColNames(rows);
+      if(!header.length){ alert(file.name+' : 열을 찾을 수 없습니다.'); }
+      else{
+        // 각 열의 샘플 값(첫 데이터 행) — 이름 없는 열 구분용
+        var samples={}; header.forEach(function(nm,i){ var idx=imxColIndex(rows,nm,i); for(var r=1;r<rows.length&&r<12;r++){ var v=rows[r]&&rows[r][idx]; if(v!=null&&String(v).trim()!==''){ samples[nm]=String(v).trim().slice(0,40); break; } } });
+        // 매핑 보존: mappings[필드key]=엑셀열 → 살아남은 열만 유지
+        var oldMap=p.mappings||{}, newMap={};
+        Object.keys(oldMap).forEach(function(ak){ if(header.indexOf(oldMap[ak])>=0) newMap[ak]=oldMap[ak]; });
+        p.fields=header; p.samples=samples; p.mappings=newMap; p.fileName=file.name; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw);
+      }
     }catch(err){ alert(file.name+' : 읽기 실패'); } };
     reader.readAsArrayBuffer(file); e.target.value='';
   };

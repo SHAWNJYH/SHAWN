@@ -107,6 +107,7 @@
   /* 결과 */
   .rs-empty{ text-align:center; padding:52px 20px; border:1.5px dashed var(--border-bright); border-radius:16px; background:var(--bg-elev); color:var(--text-dim); }
   .rs-empty .ic{ font-size:32px; } .rs-empty .t{ font-size:15px; font-weight:800; margin-top:10px; } .rs-empty .s{ font-size:13px; margin-top:5px; }
+  .st-warn{ display:inline-block; margin-top:4px; font-size:10.5px; font-weight:800; color:#b06a00; }
   .rs-card{ border:1.5px solid var(--border); border-radius:16px; background:var(--bg-elev); padding:18px; }
   .rs-head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:2px; }
   .rs-name{ font-size:22px; font-weight:800; letter-spacing:-.01em; }         /* DESC 약간 크게 */
@@ -382,10 +383,21 @@
   function dice(a,b){ var A=bigrams(a),B=bigrams(b); if(!A.length||!B.length){ return norm(a)&&norm(a)===norm(b)?1:0; } var m={},hit=0; A.forEach(function(x){m[x]=(m[x]||0)+1;}); B.forEach(function(x){ if(m[x]>0){ hit++; m[x]--; } }); return (2*hit)/(A.length+B.length); }
 
   /* ===== 매핑 자동추정 — STORE MANAGER · ITEM 필드매칭(선 연결) 우선 ===== */
+  /* 구버전 호환: 예전엔 mappings 가 {엑셀열: 필드key} 였음 → {필드key: 엑셀열} 로 정규화 */
+  function fixMapDir(mp){
+    var out={};
+    Object.keys(mp).forEach(function(k){
+      var v=mp[k];
+      if(fieldByKey(k)) out[k]=v;                       // 새 방향(필드key → 열)
+      else if(fieldByKey(v)) { var fk=String(v).trim().toUpperCase(); if(!out[fk]) out[fk]=k; }  // 옛 방향(열 → 필드key)
+    });
+    return out;
+  }
   function guessMap(headers){
     var m={}; var hset={}; headers.forEach(function(h){ hset[norm(h)]=h; });
     // 프로필의 필드→열 매핑 중, 파일 헤더에 있는 것만 채택 (여러 필드가 같은 열 공유 허용)
-    IMX_PROFILES.forEach(function(mp){
+    IMX_PROFILES.forEach(function(mp0){
+      var mp=fixMapDir(mp0);
       Object.keys(mp).forEach(function(fk){ if(m[fk]) return; if(!fieldByKey(fk)) return; var want=norm(mp[fk]); if(hset[want]) m[fk]=hset[want]; });
     });
     // 보조: 열 이름이 필드 키/라벨과 같으면
@@ -475,7 +487,8 @@
     $('stCount').textContent=n+' / '+STORES.length+' 매장 업로드됨';
     $('stGrid').innerHTML=STORES.map(function(s){
       var ds=datasets[s]; var has=!!ds;
-      var meta=has? ('<span class="fn">'+esc(ds.fileName)+'</span><br>'+ds.rowCount+'개 · '+ymd(ds.uploadedAt)) : '업로드된 파일 없음';
+      var legacy=has&&!ds.raw;
+      var meta=has? ('<span class="fn">'+esc(ds.fileName)+'</span><br>'+ds.rowCount+'개 · '+ymd(ds.uploadedAt)+(legacy?'<br><span class="st-warn">⚠ 이전 형식 — 다시 업로드하면 최신 매핑/기능이 적용됩니다</span>':'')) : '업로드된 파일 없음';
       return '<div class="st-card'+(has?' has':'')+'" data-store="'+esc(s)+'">'+
         '<div class="st-drop">↓ 여기에 놓기</div>'+
         '<div class="st-name"><span class="dotk"></span>'+esc(s)+'</div>'+
@@ -500,6 +513,28 @@
   /* ===== 업로드 흐름 ===== */
   var uploadStore=null;
   function startUpload(store){ uploadStore=store; var fi=$('fileInput'); fi.value=''; fi.click(); }
+  /* 엑셀 열 이름 규칙 — STORE MANAGER · ITEM 필드매칭과 반드시 동일 */
+  function colLetter(i){ var s=''; i=i+1; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+  function sheetToRows(aoa){
+    var width=0; aoa.forEach(function(r){ if(r&&r.length>width) width=r.length; });
+    var head=aoa[0]||[], hasData=[];
+    for(var c=0;c<width;c++){ var any=false; for(var r=1;r<aoa.length;r++){ var v=aoa[r]&&aoa[r][c]; if(v!=null&&String(v).trim()!==''){ any=true; break; } } hasData[c]=any; }
+    var headers=[], idxOf=[], seen={};
+    for(var i=0;i<width;i++){
+      var t=(head[i]==null?'':String(head[i])).trim();
+      if(t===''&&!hasData[i]) continue;                     // 완전히 빈 열 제외
+      var name=(t!=='')?t:('열 '+colLetter(i));             // 헤더 없는 열 → 열 H
+      if(seen[name]) name=name+' (열 '+colLetter(i)+')';
+      seen[name]=1; headers.push(name); idxOf.push(i);
+    }
+    var rows=[];
+    for(var r2=1;r2<aoa.length;r2++){
+      var src=aoa[r2]; if(!src) continue; var o={}, any2=false;
+      for(var k=0;k<headers.length;k++){ var v2=src[idxOf[k]]; if(v2==null) v2=''; o[headers[k]]=v2; if(String(v2).trim()!=='') any2=true; }
+      if(any2) rows.push(o);
+    }
+    return { headers:headers, rows:rows };
+  }
   function handleFile(file, store){
     if(!file || !store) return;
     var nm=(file.name||'').toLowerCase();
@@ -510,15 +545,16 @@
       try{
         var wb=XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
         var ws=wb.Sheets[wb.SheetNames[0]];
-        var rows=XLSX.utils.sheet_to_json(ws, {defval:''});
+        var aoa=XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:''});
+        var parsed=sheetToRows(aoa);
+        var headers=parsed.headers, rows=parsed.rows;
         if(!rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
-        var headers=Object.keys(rows[0]);
         // STORE MANAGER · ITEM 필드매칭에서 해둔 매핑을 그대로 적용
         var map=guessMap(headers);
         var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
         if(hasId || hasName){
           pending=null;
-          commitUpload(store, file.name, rows, map, true);   // 모달 없이 바로 업로드
+          commitUpload(store, file.name, rows, map, true, headers);   // 모달 없이 바로 업로드
         } else {
           // 매칭되는 열이 없을 때만 수동 매핑 모달로 폴백
           pending={ store:store, fileName:file.name, headers:headers, rawRows:rows };
@@ -550,9 +586,11 @@
     $('mapOv').classList.add('show');
   }
   function closeMap(){ $('mapOv').classList.remove('show'); pending=null; }
-  async function commitUpload(store, fileName, rawRows, map, auto){
+  async function commitUpload(store, fileName, rawRows, map, auto, headers){
     var rows=normalizeRows(rawRows, map);
-    var ds={ store:store, fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, map:map, rows:rows };
+    // raw(원본 행)+headers 보관 → 필드 기능·선 연결이 바뀌면 재계산
+    var ds={ store:store, fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, map:map, auto:!!auto,
+             headers:headers||Object.keys(rawRows[0]||{}), raw:rawRows, rows:rows };
     try{
       await idbPut(store, ds);
       try{ localStorage.setItem(MAP_LS+store, JSON.stringify(map)); }catch(e){}
@@ -562,12 +600,37 @@
       return true;
     }catch(e){ toast('저장 실패 (IndexedDB)'); return false; }
   }
+  /* 필드 기능(fn)·역할·선 연결 변경 시 저장된 원본으로 전체 재계산 */
+  var _renormT=null, _renormBusy=false;
+  function scheduleRenormalize(){ if(_renormT) clearTimeout(_renormT); _renormT=setTimeout(renormalizeAll, 120); }
+  async function renormalizeAll(){
+    if(_renormBusy) return; _renormBusy=true;
+    var changed=false;
+    try{
+      var keys=Object.keys(datasets);
+      for(var i=0;i<keys.length;i++){
+        var ds=datasets[keys[i]]; if(!ds||!ds.raw||!ds.raw.length) continue;
+        var hdrs=ds.headers||Object.keys(ds.raw[0]||{});
+        var g=guessMap(hdrs), map;
+        if(ds.auto===false){ // 수동 매핑은 유지하되, 비어있는 필드만 자동 매칭으로 보완
+          map={}; FIELDS.forEach(function(f){ var v=(ds.map&&ds.map[f.key])||''; if(v&&hdrs.indexOf(v)<0) v=''; map[f.key]=v||g[f.key]||''; });
+        } else { map=g; }
+        var rows=normalizeRows(ds.raw, map);
+        ds.map=map; ds.rows=rows; ds.rowCount=rows.length; changed=true;
+        try{ await idbPut(ds.store, ds); }catch(e){}
+      }
+    } finally { _renormBusy=false; }
+    if(changed){
+      rebuildIndex(); renderStores();
+      if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else if($('srInput').value.trim()){ doSearch(); } }
+    }
+  }
   async function saveMapping(){
     if(!pending) return;
     var map={}; $('mapRows').querySelectorAll('select').forEach(function(sel){ map[sel.getAttribute('data-k')]=sel.value; });
     var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
     if(!hasId && !hasName){ toast('식별(UPC) 또는 상품명 중 하나는 매핑하세요'); return; }
-    var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false);
+    var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false, pending.headers);
     if(okc) closeMap();
   }
   async function removeStore(store){
@@ -697,6 +760,7 @@
         cfgChecked=true;
         if(Array.isArray(d.fields) && d.fields.length){
           cfgFromCloud=true; setFields(d.fields); rebuildIndex(); renderStores();
+          scheduleRenormalize();   // 기능(fn)/역할 변경을 기존 업로드 데이터에 반영
           if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else renderResultEmpty(); }
           if($('fldOv') && $('fldOv').classList.contains('show')) fldRender();
         } else { cfgFromCloud=false; maybeSeedFields(); }
@@ -707,7 +771,7 @@
   function saveFields(fields){
     var fb=window.iaCfgFb;
     var clean=(fields||[]).map(function(f){ var fn=String(f.fn||'none'); if(FN_LIST.indexOf(fn)<0) fn='none'; return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key)), role:String(f.role||'text'), fn:fn }; });
-    setFields(clean); rebuildIndex(); renderStores();
+    setFields(clean); rebuildIndex(); renderStores(); scheduleRenormalize();
     if(!fb||!fb.setDoc){ toast('저장 실패 (연결 확인)'); return; }
     try{ fb.setDoc(fb.doc(fb.db,CFG_COL,CFG_DOC), { fields:clean, updatedAt:Date.now() }, {merge:true}).then(function(){ var e=$('fldSaved'); if(e){ e.textContent='저장됨'; setTimeout(function(){ e.textContent=''; },1500); } }).catch(function(){ toast('저장 실패 (규칙 확인)'); }); }catch(e){}
   }
@@ -726,8 +790,9 @@
     var fb=window.iaCfgFb; if(!fb||!fb.onSnapshot){ setTimeout(subscribeMatch,400); return; }
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,MATCH_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      var arr=[]; (Array.isArray(d.profiles)?d.profiles:[]).forEach(function(p){ var mp=(p&&p.mappings)||{}; var m={}; Object.keys(mp).forEach(function(ak){ var h=mp[ak]; if(ak&&h) m[String(ak).trim().toUpperCase()]=String(h); }); if(Object.keys(m).length) arr.push(m); });
+      var arr=[]; (Array.isArray(d.profiles)?d.profiles:[]).forEach(function(p){ var mp=(p&&p.mappings)||{}; var m={}; Object.keys(mp).forEach(function(ak){ var h=mp[ak]; if(ak&&h) m[String(ak).trim()]=String(h); }); if(Object.keys(m).length) arr.push(m); });
       IMX_PROFILES=arr;
+      scheduleRenormalize();   // 선 연결 변경을 기존 업로드 데이터에 반영
     }, function(){}); }catch(e){}
   }
   /* 마스터 필드명으로 role 추정(빈 설정일 때 자동 시드용) */
