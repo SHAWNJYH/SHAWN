@@ -59,8 +59,13 @@
 
   /* 매장 업로드 그리드 */
   .st-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(232px,1fr)); gap:12px; }
-  .st-card{ border:1.5px solid var(--border); border-radius:14px; background:var(--bg-elev); padding:14px 15px; display:flex; flex-direction:column; gap:9px; }
+  .st-card{ position:relative; border:1.5px solid var(--border); border-radius:14px; background:var(--bg-elev); padding:14px 15px; display:flex; flex-direction:column; gap:9px; transition:border-color .12s, background .12s, box-shadow .12s; }
   .st-card.has{ border-color:var(--accent-warm); box-shadow:0 6px 20px rgba(201,169,97,.08); }
+  .st-card.dragover{ border-color:var(--accent-warm); border-style:dashed; background:var(--accent-soft); box-shadow:0 0 0 3px var(--accent-soft); }
+  .st-card.dragover *{ pointer-events:none; }
+  .st-card .st-drop{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; border-radius:14px; background:rgba(201,169,97,.14); color:var(--accent-warm); font-size:13px; font-weight:800; letter-spacing:.02em; z-index:5; }
+  .st-card.dragover .st-drop{ display:flex; }
+  .st-drophint{ font-size:10.5px; color:var(--text-faint); font-weight:700; margin-top:1px; }
   .st-name{ font-size:14.5px; font-weight:800; letter-spacing:.03em; display:flex; align-items:center; gap:7px; }
   .st-name .dotk{ width:8px; height:8px; border-radius:50%; background:var(--text-faint); }
   .st-card.has .st-name .dotk{ background:var(--success); }
@@ -447,9 +452,11 @@
     $('stGrid').innerHTML=STORES.map(function(s){
       var ds=datasets[s]; var has=!!ds;
       var meta=has? ('<span class="fn">'+esc(ds.fileName)+'</span><br>'+ds.rowCount+'개 · '+ymd(ds.uploadedAt)) : '업로드된 파일 없음';
-      return '<div class="st-card'+(has?' has':'')+'">'+
+      return '<div class="st-card'+(has?' has':'')+'" data-store="'+esc(s)+'">'+
+        '<div class="st-drop">↓ 여기에 놓기</div>'+
         '<div class="st-name"><span class="dotk"></span>'+esc(s)+'</div>'+
         '<div class="st-meta">'+meta+'</div>'+
+        '<div class="st-drophint">엑셀 파일을 카드로 드래그하거나 버튼을 누르세요</div>'+
         '<div class="st-actions">'+
           '<button class="st-up'+(has?' re':'')+'" data-up="'+esc(s)+'" type="button">'+(has?'다시 업로드':'엑셀 업로드')+'</button>'+
           (has?'<button class="st-rm" data-rm="'+esc(s)+'" type="button">삭제</button>':'')+
@@ -457,13 +464,22 @@
     }).join('');
     $('stGrid').querySelectorAll('[data-up]').forEach(function(b){ b.onclick=function(){ startUpload(b.getAttribute('data-up')); }; });
     $('stGrid').querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ removeStore(b.getAttribute('data-rm')); }; });
+    $('stGrid').querySelectorAll('.st-card').forEach(function(card){
+      var store=card.getAttribute('data-store'); if(!store) return;
+      card.addEventListener('dragenter', function(e){ e.preventDefault(); card.classList.add('dragover'); });
+      card.addEventListener('dragover', function(e){ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; card.classList.add('dragover'); });
+      card.addEventListener('dragleave', function(e){ if(!card.contains(e.relatedTarget)) card.classList.remove('dragover'); });
+      card.addEventListener('drop', function(e){ e.preventDefault(); e.stopPropagation(); card.classList.remove('dragover'); var dt=e.dataTransfer; var f=dt&&dt.files&&dt.files[0]; if(f) handleFile(f, store); else toast('파일을 찾을 수 없습니다'); });
+    });
   }
 
   /* ===== 업로드 흐름 ===== */
   var uploadStore=null;
   function startUpload(store){ uploadStore=store; var fi=$('fileInput'); fi.value=''; fi.click(); }
-  $('fileInput').onchange=function(e){
-    var file=e.target.files&&e.target.files[0]; if(!file||!uploadStore) return;
+  function handleFile(file, store){
+    if(!file || !store) return;
+    var nm=(file.name||'').toLowerCase();
+    if(!/\.(xlsx|xls|csv)$/.test(nm)){ toast('엑셀/CSV 파일만 업로드할 수 있습니다'); return; }
     if(typeof XLSX==='undefined'){ toast('엑셀 라이브러리 로드 실패 — 새로고침'); return; }
     var fr=new FileReader();
     fr.onload=function(ev){
@@ -473,13 +489,17 @@
         var rows=XLSX.utils.sheet_to_json(ws, {defval:''});
         if(!rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
         var headers=Object.keys(rows[0]);
-        pending={ store:uploadStore, fileName:file.name, headers:headers, rawRows:rows };
+        pending={ store:store, fileName:file.name, headers:headers, rawRows:rows };
         openMapModal();
       }catch(err){ toast('엑셀 파싱 실패 — 형식 확인'); }
     };
     fr.onerror=function(){ toast('파일 읽기 실패'); };
     fr.readAsArrayBuffer(file);
-  };
+  }
+  $('fileInput').onchange=function(e){ var file=e.target.files&&e.target.files[0]; handleFile(file, uploadStore); };
+  // 카드 밖에 파일을 놓아도 브라우저가 파일을 열지 않도록 방지
+  window.addEventListener('dragover', function(e){ e.preventDefault(); });
+  window.addEventListener('drop', function(e){ e.preventDefault(); });
 
   /* ===== 매핑 모달 ===== */
   function openMapModal(){
