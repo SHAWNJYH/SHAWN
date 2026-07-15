@@ -35,6 +35,7 @@
   30. 데이터 내보내기 안내문 삭제. 이름·UPC 검색은 현재 선택된 중간 카테고리(cat+sub) 리스트에서만 검색. 카테고리설정을 편집툴바에서 관리자 메뉴로 이동(뷰모드 가능). 히스토리는 작업(addHist 호출)마다 batch를 부여해 같은 날이라도 매번 별도 항목으로 기록(시각 HH:MM 표시·건수 표시), 그룹은 batch 기준(과거 기록은 날짜 기준 폴백).
   31. UPC 열 색상: MSRP·MSRP(%)는 초록(헤더+데이터, upc-c-blue 배경 #dcfce7). SRP·SRP(%)는 헤더+데이터 모두 노란 바탕(#fde047)+붉은 글씨(#dc2626)+볼드. 뷰/편집 헤더·데이터·입력칸 적용.
   32. [디버깅 정리] 도달 불가능한 죽은 코드 제거: pluCfgModal 서브시스템(모달 HTML·openCfgModal/saveCfgModal/closeCfgModal·관련 배선 4곳·#pluCfgModal CSS) — EXPORT 열 설정은 내보내기 메뉴 인라인 체크박스(.em-cfg-col)로 대체됨. 성능: 인라인 체크박스 토글 저장을 scheduleCheckSave(600ms 디바운스)로 변경(즉시 전체쓰기 반복 제거, 최종 결과 동일). 보존(기능 유지): importMarginOn/importMargin(신규 UI는 데이터불러오기 메뉴로 이동했으나 과거 저장값 호환 위해 cfg/블록 유지), srpMarginOn(예약 필드).
+  33. [가져오기 규칙] (1) COST 열이 매칭되지 않으면 MSRP 가격 자동적용 안 함(원본 그대로). (2) SRP는 COST가 있어도 자동적용 대상이 아님 — 엑셀 값만 그대로 반영(SRP는 데이터변환의 SALES/MARGIN 계산 버튼 전용). (3) 데이터불러오기 메뉴에 [💲 MSRP 가격 자동적용] 토글 버튼 추가 — MARGIN(icpMgSw) 스위치가 OFF면 "MARGIN 적용을 해주세요" 안내 팝업 후 차단, MARGIN을 끄면 자동적용도 자동 OFF. applyMargin = 자동적용 ON && MARGIN ON. (4) 엑셀 헤더 ↔ 매니저 필드 라벨이 매칭되는 열만 가져옴 — 미매칭 열은 새 열 생성 없이 무시(토스트 안내), 헤더가 없으면 위치 추정 없이 중단. (5) MSRP/SRP에 이미 가격이 있으면 영문 팝업(Existing Price Found / Apply·Cancel) — Apply=덮어쓰기, Cancel=기존 가격 유지하고 나머지 필드만 가져옴. askMarginOverwrite(3버튼)는 askPriceUpdate(2버튼·영문)로 대체.
   14. 신제품/변경상품 이력은 날짜별로 다시 중간 카테고리별(상위 › 중간)로 나눠 표시한다. 각 그룹의 EXPORT·삭제는 해당 카테고리 그룹에만 적용된다.
   13. 데이터 내보내기에서 카테고리 '전체'를 고르면 그 상위 카테고리의 중간 카테고리별로 시트(탭)를 나눠 한 파일로 저장한다. 신상품/가격변경 LIST 선택 EXPORT는 관리자 팝업의 '데이터 내보내기' 메뉴에 있다.
 ================================================================================
@@ -279,6 +280,7 @@
   #icpOverlay .icp-lbl { margin-top:0; }
   #icpOverlay .icp-file { margin-top:0; }
   #icpOverlay .icp-opt { margin-top:0; padding-top:10px; }
+  #icpOverlay .icp-opt.icp-opt-sub { padding-top:6px; }
   .em-modes .em-go { flex:0 0 auto; }
   .em-sel { flex:1 1 160px; min-width:0; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:13px; background:#fff; color:var(--text); }
   .em-go { text-align:left; }
@@ -375,7 +377,8 @@
   .page-back.topbar-mini { padding:6px 9px; font-size:12px; gap:4px; border-radius:8px; border-width:1px; margin-left:1mm; }
   /* 메인 액션 버튼 동일 크기 (데이터내보내기 기준 · 인쇄 · 돌아가기) */
   .plu-tool-btn.mainact { min-width:160px; text-align:center; box-sizing:border-box; }
-  .page-back.mainact { min-width:160px; padding:8px 12px; font-size:13px; box-sizing:border-box; text-align:center; justify-content:center; }
+  /* 상단 이동 버튼(PLU 매니저·UPC OCR·돌아가기): 아이콘 없이 텍스트 폭에 맞춘 컴팩트 사이즈 */
+  .page-back.mainact { min-width:0; padding:6px 11px; font-size:12px; box-sizing:border-box; text-align:center; justify-content:center; }
   /* 관리자 팝업 */
   .adm-body { display:flex; flex-direction:column; gap:10px; padding:16px 18px 18px; }
   .adm-btn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:10px; padding:13px 14px; font-family:var(--mono); font-size:14px; font-weight:700; cursor:pointer; text-align:left; }
@@ -688,6 +691,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   .icp-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
   .icp-ok { background:#1e40af !important; border-color:#1e40af !important; color:#fff !important; }
   .icp-opt { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+  .icp-opt.icp-opt-sub { border-top:none; padding-top:6px; margin-top:0; }
+  .icp-auto { font-weight:800 !important; }
+  .icp-auto.on { background:#1e7a46 !important; border-color:#1e7a46 !important; color:#fff !important; }
+  .icp-note { font-size:11px; color:var(--text-dim); line-height:1.5; width:100%; margin-top:4px; }
   .icp-file { display:flex; align-items:center; gap:10px; margin-top:10px; }
   .icp-fname { font-size:12px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .icp-hint { font-size:11px; color:var(--text-dim); line-height:1.5; }
@@ -757,9 +764,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   </div>
   <input type="file" id="upcRestoreFile" accept="application/json,.json" style="display:none;">
   <input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none;">
-  <button class="page-back topbar-mini mainact goblue" id="pluGoOther">🗂️ PLU 매니저</button>
-  <button class="page-back topbar-mini mainact goblue" id="pluGoOcr">🔄 UPC OCR</button>
-  <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOther">PLU 매니저</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOcr">UPC OCR</button>
+  <button class="page-back topbar-mini mainact" id="pluBackBtn">돌아가기</button>
 </div>
 <div class="egmm-screen">
   <div class="egmm-sub-screen">
@@ -1751,7 +1758,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       '</div>';
     }
     return '<div class="plu-tools">'+
-        '<button class="plu-tool-btn mainact" id="pluPrintBtn">🖨 인쇄</button>'+
+        '<button class="plu-tool-btn" id="pluPrintBtn">🖨 인쇄</button>'+
         '<button class="plu-tool-btn mainact" id="pluQuickExp">⬆ 데이터 내보내기</button>'+
         '<button class="plu-tool-btn mainact ni-btn'+((typeof __ocrHasData!=='undefined'&&__ocrHasData)?' ni-blink':'')+'" id="niBtn" title="UPC OCR 신규 아이템 가져오기">🆕 NEW ITEM</button>'+
         '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
@@ -1762,8 +1769,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button>'+
       '<button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button>'+
-      '<button class="plu-hist-btn admin-icon" id="pluAdminBtn" title="관리자 기능 — 편집·신제품/변경상품 보기·데이터불러오기·매장관리·백업·복원·FB내보내기">👤</button>'+
       '<span class="plu-count" id="pluCount"></span>'+
+      '<button class="plu-hist-btn admin-icon" id="pluAdminBtn" title="관리자 기능 — 편집·신제품/변경상품 보기·데이터불러오기·매장관리·백업·복원·FB내보내기">👤</button>'+
     '</div>';
   }
   // 처음/마지막: 테이블 래퍼를 맨 위/맨 아래로 스크롤 (PLU 매니저와 동일)
@@ -2811,29 +2818,34 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===cat){ pluBig=i; var subs=PLU_TABS[i].subs||[]; var sj=subs.indexOf(sub); pluSub=(sj>=0?sj:0); pluCatFilter=''; return; } }
   }
   // 가져올 카테고리 선택 팝업 → Promise<{cat,sub}|null>
-  // 불러오기 평균마진 — 이미 MSRP 가격이 있을 때 확인 팝업 → Promise<'cancel'|'asis'|'apply'>
-  function askMarginOverwrite(){
+  // [조건5] MSRP/SRP에 이미 가격이 있을 때 — 영문 확인 팝업 → Promise<'apply'|'cancel'>
+  //  · Apply  = 평균마진으로 계산한 값으로 MSRP를 덮어씀
+  //  · Cancel = 값이 이미 있는 MSRP/SRP는 엑셀 원본 그대로 유지 (나머지 필드는 정상 가져옴)
+  function askPriceUpdate(info){
     return new Promise(function(resolve){
-      var old=$('amoOverlay'); if(old) old.remove();
+      var old=$('pupOverlay'); if(old) old.remove();
+      var lines=[];
+      if(info && info.msrp) lines.push('MSRP&nbsp;&nbsp;<b>'+info.msrp+'</b> item(s)');
+      if(info && info.srp)  lines.push('SRP&nbsp;&nbsp;&nbsp;&nbsp;<b>'+info.srp+'</b> item(s)');
       var wrap=document.createElement('div');
-      wrap.innerHTML='<div class="pcm-overlay" id="amoOverlay"><div class="pcm-modal" style="max-width:380px;">'+
-        '<div class="pcm-head">⚠ 가격 확인<button class="pcm-x" id="amoX" type="button">✕</button></div>'+
+      wrap.innerHTML='<div class="pcm-overlay" id="pupOverlay"><div class="pcm-modal" style="max-width:400px;">'+
+        '<div class="pcm-head">⚠ Existing Price Found<button class="pcm-x" id="pupX" type="button">✕</button></div>'+
         '<div class="pcm-body" style="padding:18px;">'+
-          '<div style="margin-bottom:16px;line-height:1.6;font-size:14px;">이미 가격이 있습니다.<br>평균마진으로 계산하여 가져올까요?</div>'+
-          '<div style="display:flex;flex-direction:column;gap:8px;">'+
-            '<button class="plu-tool-btn icp-ok" id="amoApply" type="button">평균마진 적용 후 가져오기</button>'+
-            '<button class="plu-tool-btn" id="amoAsis" type="button">원본 그대로 가져오기</button>'+
-            '<button class="plu-tool-btn" id="amoCancel" type="button">취소</button>'+
+          '<div style="margin-bottom:12px;line-height:1.6;font-size:14px;">Some items already have a price in <b>MSRP</b> or <b>SRP</b>.<br>Do you want to update these prices?</div>'+
+          (lines.length?('<div style="background:#f6f7f9;border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.7;margin-bottom:14px;">'+lines.join('<br>')+'</div>'):'')+
+          '<div style="font-size:11px;color:#8a8a90;line-height:1.5;margin-bottom:14px;">Apply = overwrite the existing prices.<br>Cancel = keep the existing prices (other fields are still imported).</div>'+
+          '<div style="display:flex;gap:8px;">'+
+            '<button class="plu-tool-btn icp-ok" id="pupApply" type="button" style="flex:1;">Apply</button>'+
+            '<button class="plu-tool-btn" id="pupCancel" type="button" style="flex:1;">Cancel</button>'+
           '</div>'+
         '</div>'+
       '</div></div>';
       document.body.appendChild(wrap.firstChild);
-      var done=false; var close=function(v){ if(done) return; done=true; var o=$('amoOverlay'); if(o) o.remove(); resolve(v); };
-      $('amoX').onclick=function(){ close('cancel'); };
-      $('amoCancel').onclick=function(){ close('cancel'); };
-      $('amoApply').onclick=function(){ close('apply'); };
-      $('amoAsis').onclick=function(){ close('asis'); };
-      $('amoOverlay').onclick=function(e){ if(e.target&&e.target.id==='amoOverlay') close('cancel'); };
+      var done=false; var close=function(v){ if(done) return; done=true; var o=$('pupOverlay'); if(o) o.remove(); resolve(v); };
+      $('pupX').onclick=function(){ close('cancel'); };
+      $('pupCancel').onclick=function(){ close('cancel'); };
+      $('pupApply').onclick=function(){ close('apply'); };
+      $('pupOverlay').onclick=function(e){ if(e.target&&e.target.id==='pupOverlay') close('cancel'); };
     });
   }
   function pickImportCategory(){
@@ -2852,9 +2864,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
               '<label class="icp-lbl">중간 카테고리</label>'+
               '<select class="icp-sel" id="icpSub"></select>'+
               '<div class="icp-opt">'+
-                '<label class="dcv-switch" title="ON: 평균마진으로 MSRP 계산해 가져오기 / OFF: 원본 그대로"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
-                '<span class="icp-lbl" style="margin:0;">불러오기 평균마진</span>'+
+                '<label class="dcv-switch" title="MARGIN — ON: 평균마진(%) 사용 / OFF: 미사용"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
+                '<span class="icp-lbl" style="margin:0;">MARGIN (불러오기 평균마진)</span>'+
                 '<input type="number" class="dcv-num" id="icpMargin" min="0" max="99" step="1" value="40" disabled> <span class="icp-lbl" style="margin:0;">%</span>'+
+              '</div>'+
+              '<div class="icp-opt icp-opt-sub">'+
+                '<button class="plu-tool-btn icp-auto" id="icpAutoBtn" type="button" title="ON: COST에 평균마진을 적용해 MSRP를 채워서 가져옵니다">💲 MSRP 가격 자동적용 : OFF</button>'+
+                '<div class="icp-note">· COST 열이 없으면 MSRP 가격은 적용되지 않습니다.<br>· SRP는 자동적용 대상이 아닙니다 (엑셀 값만 그대로 반영).</div>'+
               '</div>'+
             '</div>'+
           '</div>'+
@@ -2876,14 +2892,29 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var fillSub=function(){ var ti=parseInt($('icpTop').value,10)||0; var subs=PLU_TABS[ti]?(PLU_TABS[ti].subs||[]):[]; $('icpSub').innerHTML=subs.length?subs.map(function(s,j){ return '<option value="'+j+'"'+((ti===pluBig&&j===pluSub)?' selected':'')+'>'+escapeHtml(s)+'</option>'; }).join(''):'<option value="-1">(중간 카테고리 없음)</option>'; };
       fillSub();
       $('icpTop').onchange=fillSub;
-      $('icpMgSw').onchange=function(){ $('icpMargin').disabled=!$('icpMgSw').checked; };
+      // [조건3] MSRP 가격 자동적용 버튼 — MARGIN 스위치가 OFF면 안내 팝업 후 차단
+      var autoOn=false;
+      var syncAuto=function(){ var b=$('icpAutoBtn'); if(!b) return; b.textContent='💲 MSRP 가격 자동적용 : '+(autoOn?'ON':'OFF'); b.classList.toggle('on', autoOn); };
+      var MARGIN_OFF_MSG='MARGIN 적용을 해주세요.\n\n[MARGIN (불러오기 평균마진)] 스위치를 ON으로 켜고\n마진(%)을 입력한 뒤 다시 시도하세요.';
+      $('icpMgSw').onchange=function(){ $('icpMargin').disabled=!$('icpMgSw').checked; if(!$('icpMgSw').checked && autoOn){ autoOn=false; syncAuto(); } };
+      $('icpAutoBtn').onclick=async function(){
+        if(!$('icpMgSw').checked){ await uiAlert(MARGIN_OFF_MSG); return; }
+        autoOn=!autoOn; syncAuto();
+      };
+      syncAuto();
       $('icpPick').onclick=function(){ $('icpFile').click(); };
       $('icpFile').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f){ picked=f; $('icpFname').textContent=f.name; $('icpOk').disabled=false; } };
       var close=function(val){ if(done) return; done=true; var o=$('icpOverlay'); if(o) o.remove(); resolve(val); };
       $('icpClose').onclick=function(){ close(null); };
       $('icpBack').onclick=function(){ close(null); openAdminModal(); };
       $('icpOverlay').onclick=function(e){ if(e.target&&e.target.id==='icpOverlay') close(null); };
-      $('icpOk').onclick=function(){ if(!picked) return; var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; var subs=t.subs||[]; var sj=parseInt($('icpSub').value,10); var sub=(sj>=0 && subs[sj]!=null)?subs[sj]:''; var am=$('icpMgSw').checked; var mv=Number($('icpMargin').value); if(!isFinite(mv)||mv<0)mv=0; if(mv>99)mv=99; close({cat:t.label, sub:sub, applyMargin:am, margin:mv, file:picked}); };
+      $('icpOk').onclick=async function(){
+        if(!picked) return;
+        if(autoOn && !$('icpMgSw').checked){ await uiAlert(MARGIN_OFF_MSG); return; }
+        var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; var subs=t.subs||[]; var sj=parseInt($('icpSub').value,10); var sub=(sj>=0 && subs[sj]!=null)?subs[sj]:'';
+        var mv=Number($('icpMargin').value); if(!isFinite(mv)||mv<0)mv=0; if(mv>99)mv=99;
+        close({cat:t.label, sub:sub, applyMargin:(autoOn && $('icpMgSw').checked), margin:mv, file:picked});
+      };
     });
   }
   // 필드(열) 설정 팝업 — 이름 변경 + 표시(숨김 토글) + 삭제. 헤더의 필드 이름 클릭으로 열림
@@ -3537,17 +3568,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         BASE.forEach(function(b){ labelMap[nm(b.label)]={key:b.key, base:true}; });
         (layoutByCat[cat]||[]).forEach(function(c){ labelMap[nm(c.label)]={key:c.key, base:isBase(c.key)}; });
         var hasHeader = header.some(function(h){ var n=nm(h); return !!n && (!!labelMap[n] || /plu/.test(n)); });
-        var cols=[];
-        if(hasHeader){
-          header.forEach(function(h,ci){ var n=nm(h); if(!n) return; var m=labelMap[n];
-            if(m){ cols.push({key:m.key,label:String(h).trim(),base:m.base,ci:ci,isNew:false}); }
-            else { var k=String(h).trim().toUpperCase(); cols.push({key:k,label:k,base:false,ci:ci,isNew:true}); } });
-        } else {
-          BASE.forEach(function(b,bi){ cols.push({key:b.key,label:b.label,base:true,ci:bi,isNew:false}); });
-        }
-        var news=cols.filter(function(c){return c.isNew;});
-        if(news.length){ if(!(await uiConfirm('엑셀에 기존에 없던 열이 있습니다: '+news.map(function(c){return c.label;}).join(', ')+'\n새 열로 만들까요?\n[확인=새 열 생성 / 취소=이 열들은 가져오지 않음]'))){ cols=cols.filter(function(c){return !c.isNew;}); } }
-        if(!cols.length){ showToast('가져올 열이 없습니다','error'); return; }
+        // [조건4] 엑셀 헤더 ↔ 매니저 필드 라벨이 매칭되는 필드만 가져온다. 헤더가 없으면 위치(순서) 추정 없이 중단.
+        if(!hasHeader){ showToast('엑셀 첫 행에 필드명(헤더)이 없습니다 — 매칭되는 필드가 있어야 가져올 수 있습니다','error'); return; }
+        var cols=[], __skipped=[];
+        header.forEach(function(h,ci){ var n=nm(h); if(!n) return; var m=labelMap[n];
+          if(m){ cols.push({key:m.key,label:String(h).trim(),base:m.base,ci:ci,isNew:false}); }
+          else { __skipped.push(String(h).trim()); } });   // 매칭 안 된 엑셀 열은 가져오지 않음
+        if(!cols.length){ showToast('매칭되는 필드가 없습니다','error'); return; }
         // [필수] UPC(O) 열 — 신규/중복은 오직 UPC(O)로만 검증
         if(!cols.some(function(c){ return isUpcOCol(c); })){ showToast('Invalid data — a "UPC(O)" column is required.','error'); return; }
         var start = hasHeader?1:0;
@@ -3558,20 +3585,30 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } });
           rows.push(row); }
         if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
-        // [불러오기 평균마진] 스위치 ON이면 COST에 마진 적용해 MSRP 채워 가져오기
+        // [MSRP 가격 자동적용] ON이면 COST에 마진 적용해 MSRP 채워 가져오기
+        // [조건1] COST 열이 없으면 MSRP 가격 적용 X · [조건2] SRP는 COST가 있어도 자동적용 X (엑셀 값 그대로)
         if(__pick.applyMargin){
-          var eaC=null, spC=null;
-          cols.forEach(function(c){ if(isEaPriceCol(c)) eaC=c; if(isSalesPriceCol(c)) spC=c; });
-          if(!eaC){ showToast('COST 열이 없어 평균마진을 적용할 수 없습니다 — 원본 그대로 가져옵니다','error'); }
-          else if(!spC){ showToast('MSRP 열이 없어 평균마진을 적용할 수 없습니다 — 원본 그대로 가져옵니다','error'); }
+          var eaC=null, spC=null, srpC=null;
+          cols.forEach(function(c){ if(isEaPriceCol(c)) eaC=c; if(isSalesPriceCol(c)) spC=c; if(isSrpCol(c)) srpC=c; });
+          if(!eaC){ showToast('COST 열이 없어 MSRP 가격 자동적용을 건너뜁니다 — 원본 그대로 가져옵니다','error'); }
+          else if(!spC){ showToast('MSRP 열이 없어 가격 자동적용을 건너뜁니다 — 원본 그대로 가져옵니다','error'); }
           else {
-            var anyMsrp = rows.some(function(r){ return String(getVal(r, spC.key)||'').trim()!==''; });
-            var mode='apply';
-            if(anyMsrp){ mode = await askMarginOverwrite(); if(mode==='cancel') return; }
-            if(mode==='apply'){
-              rows.forEach(function(r){ var p=priceFromMargin(getVal(r, eaC.key), __pick.margin, []); if(p!==''){ setValOn(r, spC.key, p); } });
-            }
-            // mode==='asis' → 원본 그대로 (아무것도 안 함)
+            // [조건5] MSRP / SRP에 이미 가격이 있으면 영문 확인 팝업 (Apply=덮어쓰기 / Cancel=기존 가격 유지)
+            var __hitMsrp=0, __hitSrp=0;
+            rows.forEach(function(r){
+              if(String(getVal(r, spC.key)||'').trim()!=='') __hitMsrp++;
+              if(srpC && String(getVal(r, srpC.key)||'').trim()!=='') __hitSrp++;
+            });
+            var updatePrice=true;
+            if(__hitMsrp||__hitSrp){ updatePrice = (await askPriceUpdate({msrp:__hitMsrp, srp:__hitSrp}))==='apply'; }
+            var nAuto=0, nKept=0;
+            rows.forEach(function(r){
+              var had=String(getVal(r, spC.key)||'').trim()!=='';
+              if(!updatePrice && had){ nKept++; return; }          // 기존 가격 유지
+              var p=priceFromMargin(getVal(r, eaC.key), __pick.margin, []);   // COST 없으면 '' → 적용 안 함
+              if(p!==''){ setValOn(r, spC.key, p); nAuto++; }
+            });
+            showToast('MSRP 자동적용 '+nAuto+'건 (마진 '+__pick.margin+'%)'+(nKept?(' · 기존 가격 유지 '+nKept+'건'):''),'success');
           }
         }
         // 가져온 열 + 현재 레이아웃 병합
@@ -3590,7 +3627,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(!newRows.length && !dupRows.length){ showToast('가져올 데이터가 없습니다','error'); return; }
         if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; }
         renderTabs();
-        showToast('신규 '+newRows.length+'건 · 중복 '+dupRows.length+'건 — 각 리스트에서 확인 후 업데이트하세요','success');
+        showToast('신규 '+newRows.length+'건 · 중복 '+dupRows.length+'건'+(__skipped.length?(' · 매칭 안 된 열 '+__skipped.length+'개 무시'):'')+' — 각 리스트에서 확인 후 업데이트하세요','success');
+        if(__skipped.length) setTimeout(function(){ showToast('가져오지 않은 엑셀 열: '+__skipped.join(', '),'error'); }, 2700);
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
     reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
