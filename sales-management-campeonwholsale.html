@@ -112,7 +112,7 @@
   /* ── Dashboard layout ───────────────────── */
   .dash-top { display: flex; gap: 14px; margin-bottom: 14px; align-items: stretch; }
   .dash-top .monthly { flex: 1 1 auto; min-width: 0; }
-  .dash-top .stockbox { width: 560px; flex: 0 0 auto; display: flex; flex-direction: column; }
+  .dash-top .stockbox { width: 640px; flex: 0 0 auto; display: flex; flex-direction: column; }
   .stock-scroll { overflow-y: auto; overflow-x: auto; flex: 1; max-height: 434px; }
   .quick { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
   .quick .spacer { flex: 1; }
@@ -287,7 +287,7 @@
     .search-body .btn-save, .search-body .btn-clear { padding: 14px 0; font-size: 16px; min-height: 48px; }
     .search-body .date-range .dr-col input[type="date"] { padding: 12px 10px; font-size: 15px; min-height: 46px; }
     header { zoom: 0.8; }
-    .dash-top .stockbox { width: 480px; }
+    .dash-top .stockbox { width: 540px; }
     .entry-left, .entry-form { width: 360px; }
   }
 
@@ -406,13 +406,13 @@
       </div>
 
       <div class="card stockbox">
-        <h2>Meat Stock <span class="sub">Box · Lbs · Last cost · 30-day avg</span></h2>
+        <h2>Meat Stock <span class="sub">Box · Lbs · Latest cost/date · 30-day avg</span></h2>
         <div class="stock-scroll">
           <table id="tblStock">
             <thead>
               <tr>
                 <th class="lbl" style="width:150px">Item#</th>
-                <th>Box</th><th>Lbs</th><th>Lst Cost</th><th>Mo-cost</th>
+                <th>Box</th><th>Lbs</th><th>Latest Cost</th><th>Latest Date</th><th>Mon-Avg-cost</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1321,10 +1321,9 @@ function computeDashboard(){
   T.lgp=T.ls-T.lp; T.lpc=(T.ls===0?null:T.lgp/T.ls);
   T.cgp=T.cs-T.cp; T.cpc=(T.cs===0?null:T.cgp/T.cs);
 
-  /* Weekly (rows 17–20) */
+  /* Weekly (v2.0: rows 17–22 — 4주 비교로 확장) */
   const wd = (t.getDay()+6)%7;                                       // WEEKDAY(TODAY(),2)-1
-  const monCur = addDays(t,-wd);                                     // A18 = 이번 주 월요일
-  const monPrev = addDays(monCur,-7);                                // A17 = A18-7
+  const monCur = addDays(t,-wd);                                     // A20 = 이번 주 월요일
   function weekRow(mon){
     const cells=[]; let ts=0, tp=0;
     for (let i=0;i<6;i++){
@@ -1334,38 +1333,48 @@ function computeDashboard(){
     }
     return {date: iso(mon), cells, ts, tp, gp:ts-tp, pc:(ts===0?null:(ts-tp)/ts)};
   }
-  const w1=weekRow(monPrev), w2=weekRow(monCur);
+  /* A17=A18-7, A18=A19-7, A19=A20-7, A20=이번주 월요일 → 4주 (과거→현재) */
+  const weeks = [ weekRow(addDays(monCur,-21)), weekRow(addDays(monCur,-14)),
+                  weekRow(addDays(monCur,-7)),  weekRow(monCur) ];
+  /* Diff: v2.0 = 최신주(B20) 대비 직전주(B19) → weeks[3] vs weeks[2] */
+  const wPrev = weeks[2], wCur = weeks[3];
   const dAmt=[], dPct=[];
   for (let i=0;i<6;i++) for (let j=0;j<2;j++){
-    const a=w1.cells[i][j], b=w2.cells[i][j];
+    const a=wPrev.cells[i][j], b=wCur.cells[i][j];
     dAmt.push(b-a); dPct.push(a===0?null:(b-a)/a);
   }
   const dTot = {
-    amt:[w2.ts-w1.ts, w2.tp-w1.tp, w2.gp-w1.gp],
-    pct:[w1.ts===0?null:(w2.ts-w1.ts)/w1.ts, w1.tp===0?null:(w2.tp-w1.tp)/w1.tp, w1.gp===0?null:(w2.gp-w1.gp)/w1.gp]
+    amt:[wCur.ts-wPrev.ts, wCur.tp-wPrev.tp, wCur.gp-wPrev.gp],
+    pct:[wPrev.ts===0?null:(wCur.ts-wPrev.ts)/wPrev.ts, wPrev.tp===0?null:(wCur.tp-wPrev.tp)/wPrev.tp, wPrev.gp===0?null:(wCur.gp-wPrev.gp)/wPrev.gp]
   };
 
-  /* Meat Stock (rows 24–36) */
+  /* Meat Stock (v2.0: rows 26–38)
+     - Box/Lbs : 최신 입고일 것만 집계  =SUMIFS(qty, item, date=MAXIFS(date))   (v1은 전체 기간 합산 → 과다 계상)
+     - Latest Cost : 최신일 첫 건의 단가 하나만  (v2 LET+XLOOKUP 의미 — v1처럼 합산하지 않음)
+     - Latest Date : 신규 열 — 최신 입고일 표시 (엑셀 v2의 2-인수 IF 버그를 의도대로 수정 구현)
+     - Mon-Avg-cost: 최근 30일 AVERAGEIFS (변경 없음)                                    */
   const from30 = iso(addDays(t,-30)), toDay = iso(t);
   const S=[];
   for (let i=0;i<13;i++){
     const code = DB.stockItems[i];
-    let row = {code, box:null, lbs:null, lst:null, moc:null};
+    let row = {code, box:null, lbs:null, lst:null, ldate:null, moc:null};
     if (code && code.trim().length){
       const c = code.trim().toLowerCase();
       const entries = DB.stock.filter(r => String(r.item).trim().toLowerCase()===c);
-      row.box = entries.reduce((a,r)=>a+(r.qty||0),0);              // SUMIFS(stock!C)
-      row.lbs = entries.reduce((a,r)=>a+(r.weight||0),0);           // SUMIFS(stock!D)
-      if (entries.length){                                          // SUMIFS(cost, date=MAXIFS(date))
-        const mx = entries.reduce((a,r)=>r.date>a?r.date:a, entries[0].date);
-        row.lst = entries.filter(r=>r.date===mx).reduce((a,r)=>a+(r.cost||0),0);
-      } else row.lst = null;
+      if (entries.length){
+        const mx = entries.reduce((a,r)=>r.date>a?r.date:a, entries[0].date);   // MAXIFS(date)
+        const latest = entries.filter(r=>r.date===mx);
+        row.box = latest.reduce((a,r)=>a+(r.qty||0),0);              // SUMIFS(qty,  date=최신일)
+        row.lbs = latest.reduce((a,r)=>a+(r.weight||0),0);           // SUMIFS(wt,   date=최신일)
+        row.lst = (latest[0].cost ?? null);                          // XLOOKUP: 최신일 첫 건 단가
+        row.ldate = mx;                                              // Latest Date (신규)
+      } else { row.box = 0; row.lbs = 0; }
       const mo = entries.filter(r=>r.date>=from30 && r.date<=toDay); // AVERAGEIFS(cost, last 30 days)
       row.moc = mo.length ? mo.reduce((a,r)=>a+(r.cost||0),0)/mo.length : null;
     }
     S.push(row);
   }
-  return {t, curM, lastM, M, T, w1, w2, dAmt, dPct, dTot, S};
+  return {t, curM, lastM, M, T, weeks, dAmt, dPct, dTot, S};
 }
 
 function renderDashboard(){
@@ -1386,7 +1395,7 @@ function renderDashboard(){
     numCell(D.T.cs,2)+numCell(D.T.cp,2)+numCell(D.T.cgp,2)+pctCell(D.T.cpc===null?'':D.T.cpc)+'</tr>';
   document.querySelector('#tblMonthly tbody').innerHTML = html;
 
-  /* Weekly */
+  /* Weekly (v2.0: 4주) */
   function weekTr(w){
     let r='<tr><td class="lbl">'+w.date+'</td>';
     for (const [s,p] of w.cells) r += numCell(s,2)+numCell(p,2);
@@ -1399,14 +1408,16 @@ function renderDashboard(){
   d1 += '<td></td></tr>';
   for (const v of D.dTot.pct) d2 += pctCell(v===null?'':v);
   d2 += '<td></td></tr>';
-  document.querySelector('#tblWeekly tbody').innerHTML = weekTr(D.w1)+weekTr(D.w2)+d1+d2;
+  document.querySelector('#tblWeekly tbody').innerHTML = D.weeks.map(weekTr).join('')+d1+d2;
 
-  /* Meat Stock */
+  /* Meat Stock (v2.0: Latest Date 열 추가) */
   let sh='';
   D.S.forEach((r,i)=>{
     const cells = (r.code && r.code.trim().length)
-      ? numCell(r.box,0)+numCell(r.lbs,1)+numCell(r.lst===null?'':r.lst,2)+numCell(r.moc===null?'':r.moc,2)
-      : '<td></td><td></td><td></td><td></td>';
+      ? numCell(r.box,0)+numCell(r.lbs,1)+numCell(r.lst===null?'':r.lst,2)
+        +'<td>'+(r.ldate?fmtMDY4(r.ldate):'')+'</td>'
+        +numCell(r.moc===null?'':r.moc,2)
+      : '<td></td><td></td><td></td><td></td><td></td>';
     sh += '<tr><td class="lbl" style="padding:2px 6px"><input class="itm-input" data-idx="'+i+'" value="'+esc(r.code)+'" placeholder="item#"></td>'+cells+'</tr>';
   });
   document.querySelector('#tblStock tbody').innerHTML = sh;
@@ -1765,9 +1776,9 @@ async function exportDashboardExcel(){
   C(tr,6,D.T.cs,{fmt:ACCT,b:1,fill:'FFF8FAFC'}); C(tr,7,D.T.cp,{fmt:ACCT,b:1,fill:'FFF8FAFC'});
   C(tr,8,D.T.cgp,{fmt:ACCT,b:1,fill:'FFF8FAFC'}); pcell(tr,9,D.T.cpc,{b:1,fill:'FFF8FAFC'});
 
-  /* Meat Stock (모니터 화면처럼 우측 배치) */
+  /* Meat Stock (모니터 화면처럼 우측 배치) — v2.0: Latest Date 열 포함 6열 */
   C(3,11,'Meat Stock',{b:1,h:'left',nob:1});
-  ['Item#','Box','Lbs','Lst Cost','Mo-cost'].forEach((h,i)=>C(4,11+i,h,{...TH, h:(i===0?'left':'center')}));
+  ['Item#','Box','Lbs','Latest Cost','Latest Date','Mon-Avg-cost'].forEach((h,i)=>C(4,11+i,h,{...TH, h:(i===0?'left':'center')}));
   D.S.forEach((r,i)=>{
     const rw = 5+i;
     const has = r.code && r.code.trim().length;
@@ -1775,10 +1786,11 @@ async function exportDashboardExcel(){
     C(rw,12, has?r.box:null, {fmt:ACC0});
     C(rw,13, has?r.lbs:null, {fmt:ACC1});
     C(rw,14, has&&r.lst!==null?r.lst:null, {fmt:ACCT});
-    C(rw,15, has&&r.moc!==null?r.moc:null, {fmt:ACCT});
+    C(rw,15, has&&r.ldate?fmtMDY4(r.ldate):null, {h:'center'});
+    C(rw,16, has&&r.moc!==null?r.moc:null, {fmt:ACCT});
   });
 
-  /* Compare with the previous week */
+  /* Compare with the previous week — v2.0: 4주 */
   C(19,1,'Compare with the previous week',{b:1,h:'left',nob:1});
   ws.mergeCells(20,1,21,1); C(20,1,'Week',TH);
   ['Mon','Tue','Wed','Thu','Fri','Sat'].forEach((d,i)=>{
@@ -1787,20 +1799,21 @@ async function exportDashboardExcel(){
   });
   ws.mergeCells(20,14,20,17); C(20,14,'Total',TOT);
   ['Sales','Purchase','GP($)','GP(%)'].forEach((h,i)=>C(21,14+i,h,TOT));
-  [D.w1, D.w2].forEach((w,wi)=>{
+  D.weeks.forEach((w,wi)=>{
     const rw = 22+wi;
     C(rw,1,w.date,LBL);
     w.cells.forEach(([s,p],i)=>{ C(rw,2+i*2,s,{fmt:ACCT}); C(rw,3+i*2,p,{fmt:ACCT}); });
     C(rw,14,w.ts,{fmt:ACCT}); C(rw,15,w.tp,{fmt:ACCT}); C(rw,16,w.gp,{fmt:ACCT}); pcell(rw,17,w.pc);
   });
-  C(24,1,'Diff($)',LBL);
-  D.dAmt.forEach((v,i)=>C(24,2+i,v,{fmt:ACCT}));
-  D.dTot.amt.forEach((v,i)=>C(24,14+i,v,{fmt:ACCT}));
-  C(24,17,null,{});
-  C(25,1,'Diff(%)',LBL);
-  D.dPct.forEach((v,i)=>pcell(25,2+i,v));
-  D.dTot.pct.forEach((v,i)=>pcell(25,14+i,v));
-  C(25,17,null,{});
+  const dr = 22 + D.weeks.length;                 // Diff($) 행 = 26
+  C(dr,1,'Diff($)',LBL);
+  D.dAmt.forEach((v,i)=>C(dr,2+i,v,{fmt:ACCT}));
+  D.dTot.amt.forEach((v,i)=>C(dr,14+i,v,{fmt:ACCT}));
+  C(dr,17,null,{});
+  C(dr+1,1,'Diff(%)',LBL);
+  D.dPct.forEach((v,i)=>pcell(dr+1,2+i,v));
+  D.dTot.pct.forEach((v,i)=>pcell(dr+1,14+i,v));
+  C(dr+1,17,null,{});
 
   saveBlob(await wb.xlsx.writeBuffer(), 'DASHBOARD_'+stamp()+'.xlsx');
   toast('EXCEL EXPORT DONE', true);
