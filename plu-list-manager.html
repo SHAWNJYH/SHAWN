@@ -2224,7 +2224,23 @@
     return false;
   }
   function __chkOn(raw){ if(raw===true) return true; if(raw===false||raw==null) return false; var s2=String(raw).trim().toUpperCase(); return s2!=='' && s2!=='0' && s2!=='FALSE' && s2!=='X'; }
-  function exportCell(r,col){ var raw=exportVal(r,col); if(__isCheckColX(col)) return __chkOn(raw)?'1':'0'; if(col&&col.fmt==='price'){ var p=fmtPrice(raw); return p; } var nk=tareNormKey(col&&col.key); if(nk==='TARE'||nk==='TARE(LB)'||nk==='TARE(G)'){ var s=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); return s; } return round2Disp(raw==null?'':raw); }
+  // [소수점] EXPORT 반올림 — STORE MANAGER 필드 소수점 설정(dec) 자릿수
+  function expRound(n, d){ var p=Math.pow(10, d); return Math.round((n+Number.EPSILON)*p)/p; }
+  function exportCell(r,col){
+    var raw=exportVal(r,col);
+    if(__isCheckColX(col)) return __chkOn(raw)?'1':'0';
+    var __d=decOfKey(col&&col.key);                    // 미설정(null)이면 기존 동작 그대로
+    if(col&&col.fmt==='price'){ return fmtPrice(raw, __d); }
+    var nk=tareNormKey(col&&col.key);
+    if(nk==='TARE'||nk==='TARE(LB)'||nk==='TARE(G)'){
+      var s=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim();
+      if(__d!=null && s!==''){ var tn=parseFloat(s); if(!isNaN(tn)) return expRound(tn,__d).toFixed(__d); }
+      return s;
+    }
+    // 마진(%)·숫자·가격(카테고리 EXPORT 등 fmt 미지정) — 소수점이 명시 설정된 필드만 적용
+    if(__d!=null && raw!=null){ var s2=String(raw).trim(); if(s2!==''){ var pct=/%\s*$/.test(s2); var n2=parseFloat(s2.replace(/[%,\s]/g,'')); if(!isNaN(n2)){ var fx=expRound(n2,__d).toFixed(__d); return pct?(fx+'%'):fx; } } }
+    return round2Disp(raw==null?'':raw);
+  }
   // 내보내기 본문 생성 (header 제외):
   //  · ITEM CODE 1개 이하 → 화면에 보이는 대로 한 행
   //  · ITEM CODE 2개 이상 → 마지막 코드만 본 행에 두고, 나머지(마지막 제외)는 PLU+코드만 채운 행으로 맨 아래에 쭉 모음

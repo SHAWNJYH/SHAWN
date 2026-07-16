@@ -3319,12 +3319,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return false;
   }
   function __chkOn(raw){ if(raw===true) return true; if(raw===false||raw==null) return false; var s2=String(raw).trim().toUpperCase(); return s2!=='' && s2!=='0' && s2!=='FALSE' && s2!=='X'; }
+  // [소수점] EXPORT 반올림 — STORE MANAGER 필드 소수점 설정(dec) 자릿수. 기존 2자리 로직과 동일한 EPSILON 보정 사용
+  function expRound(n, d){ var p=Math.pow(10, d); return Math.round((n+Number.EPSILON)*p)/p; }
   function exportCell(r,col){ var raw=exportVal(r,col);
     if(__isCheckColX(col)) return __chkOn(raw)?1:0;   // 체크 필드 = 숫자 1 / 0 (문자 아님)
+    var __d=decOfKey(col&&col.key);                    // STORE MANAGER 소수점 설정 (미설정 null → 기존 동작)
     var __tk=String((col&&col.key)||'').toUpperCase().replace(/\s+/g,'');   // TARE 계열: 'LB'/'G' 단위 제거하고 숫자만 출력
-    if(__tk==='TARE'||__tk==='TARE(LB)'||__tk==='TARE(G)'){ return String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); }
+    if(__tk==='TARE'||__tk==='TARE(LB)'||__tk==='TARE(G)'){
+      var __ts=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim();
+      if(__d!=null && __ts!==''){ var __tn=parseFloat(__ts); if(!isNaN(__tn)) return expRound(__tn,__d).toFixed(__d); }
+      return __ts;
+    }
     if(__isPosDescCol(col) && String(raw==null?'':raw).trim()===''){ var __pv=posDescGen(r); if(__pv!=='') return __pv; }   // 저장값 없으면 규칙대로 생성
-    if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
+    if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return expRound(n, (__d!=null?__d:2)); } }
+    // 마진(%)·숫자 등: 소수점이 명시 설정된 필드만 적용 (미설정이면 기존 그대로)
+    if(__d!=null && raw!=null){ var __s=String(raw).trim(); if(__s!==''){ var __pct=/%\s*$/.test(__s); var __n2=parseFloat(__s.replace(/[%,\s]/g,'')); if(!isNaN(__n2)){ var __fx=expRound(__n2,__d).toFixed(__d); return __pct?(__fx+'%'):Number(__fx); } } }
+    return raw==null?'':raw; }
   // xlsx 시트 스타일 적용
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
@@ -3350,11 +3360,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var rr=[]; for(var i=0;i<nrows;i++) rr.push({hpt:18.75}); ws['!rows']=rr;
   }
   // 데이터 내보내기 서식: EA PRICE·SALES PRICE = ACCOUNTING, 그 외 전부 = TEXT(@)
+  // [소수점] 회계 서식 자릿수 — 기본 2자리, STORE MANAGER 설정이 있으면 그 자릿수
+  function acctFmt(d){ d=(typeof d==='number'&&d>=0&&d<=6)?d:2; var z=(d>0?('.'+new Array(d+1).join('0')):''); return '_("$"* #,##0'+z+'_);_("$"* \\(#,##0'+z+'\\);_("$"* "-"??_);_(@_)'; }
   function applyExportFormats(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
-    var ACCT='_("$"* #,##0.00_);_("$"* \\(#,##0.00\\);_("$"* "-"??_);_(@_)';
     for(var c=0;c<cols.length;c++){
       var col=cols[c];
+      var ACCT=acctFmt(decOfKey(col&&col.key));
       var isAcct=((typeof isEaPriceCol==='function')&&isEaPriceCol(col))||((typeof isSalesPriceCol==='function')&&isSalesPriceCol(col));
       var isChk=((typeof __isCheckColX==='function')&&__isCheckColX(col));
       for(var r=1;r<nrows;r++){
