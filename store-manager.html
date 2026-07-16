@@ -94,7 +94,7 @@
   .au-row{ display:grid; grid-template-columns:1fr 220px 90px 190px 120px 130px 44px; gap:10px; align-items:center; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:12px; padding:10px 12px; }
   .au-row .au-scope{ justify-self:start; }
   .au-divider{ border-top:1px dashed var(--border); margin:24px 0 18px; }
-  /* ITEM 필드 매칭 */
+  /* IMPORT 설정 */
   .im-head{ display:grid; grid-template-columns:44px 1fr 170px 2fr 60px; gap:10px; padding:0 12px 8px; font-size:12px; font-weight:800; color:var(--text-dim); }
   .im-row{ display:grid; grid-template-columns:44px 1fr 170px 2fr 60px; gap:10px; align-items:center; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; }
   .im-row.role-upc{ border-color:var(--accent-warm); }
@@ -355,7 +355,7 @@
     <button class="sm-tab active" id="smTabAuth" type="button">아이디/패스워드 관리</button>
     <button class="sm-tab" id="smTabFields" type="button">필드 관리</button>
     <button class="sm-tab" id="smTabExport" type="button">EXPORT 설정</button>
-    <button class="sm-tab" id="smTabItemMatch" type="button">ITEM 필드 매칭</button>
+    <button class="sm-tab" id="smTabItemMatch" type="button">IMPORT 설정</button>
     <button class="sm-tab" id="smTabHtml" type="button">HTML 관리</button>
   </div>
   <div class="sm-body">
@@ -454,7 +454,7 @@
       </div>
     </div>
 
-    <!-- ITEM 필드 매칭: EXPORT 설정처럼 선으로 연결 (엑셀 열 → ITEM ANALYZE 필드) -->
+    <!-- IMPORT 설정: EXPORT 설정처럼 선으로 연결 (IMPORT 필드 → ITEM ANALYZE 필드) -->
     <div class="sm-panel" id="smPanelItemMatch">
       <div class="ex-toolbar">
         <div class="ex-tb-group">
@@ -479,8 +479,9 @@
       </div>
       <div class="st-hint" style="padding:0 22px 16px; margin:0;">
         왼쪽 <b>ITEM ANALYZE 필드</b>(ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 선택 · 필드관리 마스터 필드만)를 클릭해 선택한 뒤,
-        오른쪽 <b>엑셀 열</b>을 클릭하면 선으로 연결됩니다(필드 왼쪽의 선택 상자로도 지정 가능). 여러 필드가 <b>같은 엑셀 열</b>을 공유할 수 있어
-        KOR DESC·ENG DESC 처럼 한 열을 나눠 쓰는 경우에도 대응합니다. 여기서 연결한 매칭으로 ITEM ANALYZE 엑셀 업로드 시 데이터가 자동 매핑됩니다.
+        오른쪽 <b>IMPORT 필드</b>(업로드한 엑셀의 열)를 클릭하면 선으로 연결됩니다(필드 왼쪽의 선택 상자로도 지정 가능). 화살표는 데이터가 들어오는 방향
+        (<b>IMPORT 필드 → ITEM ANALYZE 필드</b>)을 가리킵니다. 여러 필드가 <b>같은 IMPORT 필드</b>를 공유할 수 있어 KOR DESC·ENG DESC 처럼
+        한 열을 나눠 쓰는 경우에도 대응합니다. 여기서 연결한 매칭으로 ITEM ANALYZE 엑셀 업로드 시 데이터가 자동 매핑됩니다.
       </div>
     </div>
 
@@ -499,7 +500,7 @@
       </div>
     </div>
   </div>
-  <div class="sm-hint" id="smHint">아이디/패스워드 관리(계정 · 매장) · 필드 관리(공통 마스터) · EXPORT 설정(관리필드→엑셀필드 연결) · ITEM 필드 매칭(엑셀 열→ITEM ANALYZE 필드 선 연결). 모든 탭은 같은 Firebase를 공유합니다.</div>
+  <div class="sm-hint" id="smHint">아이디/패스워드 관리(계정 · 매장) · 필드 관리(공통 마스터) · EXPORT 설정(관리필드→EXPORT필드 연결 · 중복 연결 가능) · IMPORT 설정(IMPORT 필드→ITEM ANALYZE 필드 선 연결). 모든 탭은 같은 Firebase를 공유합니다.</div>
 
   <!-- 소스 미리보기 모달 -->
   <div class="ex-modal-bg" id="exPrevBg">
@@ -813,10 +814,10 @@
   if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
   if($('smTabHtml')) $('smTabHtml').onclick = function(){ activate('html'); };
 
-  /* ===== ITEM 필드 매칭 — EXPORT 설정과 동일한 "선 연결" 방식 =====
+  /* ===== IMPORT 설정 — EXPORT 설정과 동일한 "선 연결" 방식 =====
      왼쪽: ITEM ANALYZE 필드(app-config/item-analyze-fields · 필드관리 마스터 중 선별 · ITEM ANALYZE 앱에서 관리)
-     오른쪽: 카테고리별 업로드 엑셀의 열
-     연결: mappings[엑셀열] = ITEM ANALYZE 필드 key → app-config/item-analyze-match 저장
+     오른쪽: IMPORT 필드 = 카테고리별 업로드 엑셀의 열
+     연결: mappings[ITEM ANALYZE 필드 key] = IMPORT 필드(엑셀열) → app-config/item-analyze-match 저장
      ITEM ANALYZE 는 이 매칭으로 업로드 데이터를 자동 매핑한다. */
   var IMX_FIELDS_DOC='item-analyze-fields', IMX_MATCH_DOC='item-analyze-match';
   var imxState={ profiles:[], activeId:'', armed:null, _fsub:false };
@@ -864,7 +865,7 @@
     if(!imxState.profiles.length){ sel.innerHTML='<option value="">— 카테고리 —</option>'; return; }
     sel.innerHTML=imxState.profiles.map(function(p){ var mark=(p.fields&&p.fields.length)?(' · '+(p.fileName||'파일')):' (파일 없음)'; return '<option value="'+p.id+'"'+(p.id===imxState.activeId?' selected':'')+'>'+esc(p.name+mark)+'</option>'; }).join('');
   }
-  // 왼쪽: ITEM ANALYZE 필드. mappings[필드key]=엑셀열. 여러 필드가 같은 엑셀 열을 공유 가능(KOR/ENG 분리).
+  // 왼쪽: ITEM ANALYZE 필드. mappings[필드key]=IMPORT 필드. 여러 필드가 같은 IMPORT 필드를 공유 가능(KOR/ENG 분리).
   function imxRenderAnalyzeCol(){
     var col=$('imxAnalyzeCol'); if(!col) return;
     if(!imxAnalyzeFields.length){ col.innerHTML='<div class="ex-empty">ITEM ANALYZE 필드가 없습니다.<br>ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 필드관리 마스터 필드를 선택하세요.</div>'; return; }
@@ -893,14 +894,14 @@
       var x=row.querySelector('.map-x'); if(x){ x.addEventListener('click', function(){ imxSetMap(key,''); imxRender(); requestAnimationFrame(imxDraw); }); }
     });
   }
-  // 오른쪽: 엑셀 열. 어떤 필드들이 이 열을 사용하는지 표시. 필드 arm 후 클릭하면 연결.
+  // 오른쪽: IMPORT 필드(엑셀 열). 어떤 필드들이 이 열을 사용하는지 표시. 필드 arm 후 클릭하면 연결.
   function imxRenderExcelCol(){
     var col=$('imxExcelCol'); if(!col) return;
     var p=imxActive();
     if(!p){ col.innerHTML='<div class="ex-empty">카테고리가 없습니다.<br>상단 <b>＋ 카테고리</b>로 추가하세요.</div>'; return; }
     if(!p.fields||!p.fields.length){ col.innerHTML='<div class="ex-empty"><b>'+esc(p.name)+'</b> 카테고리에 업로드된 엑셀이 없습니다.<br>상단 <b>📄 엑셀 업로드</b>로 이 카테고리의 샘플 엑셀을 올리세요.<br>(엑셀 첫 행이 열 목록이 됩니다)</div>'; return; }
     var rev={}; if(p.mappings){ Object.keys(p.mappings).forEach(function(ak){ var ef=p.mappings[ak]; if(!imxField(ak)) return; if(!rev[ef]) rev[ef]=[]; rev[ef].push(ak); }); }
-    var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">엑셀 열 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
+    var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">IMPORT 필드 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
     html+=p.fields.map(function(ef){
       var users=rev[ef]||[]; var mappedCls=users.length?' mapped':''; var c=users.length?imxColor(users[0]):''; var style=users.length?' style="--mf-color:'+c+'"':'';
       var tags=users.map(function(ak){ var fld=imxField(ak); return '<span class="map-tag" style="background:'+imxColor(ak)+'">'+esc(fld?fld.label:ak)+'</span>'; }).join('');
@@ -919,7 +920,7 @@
       var a=row.querySelector('.anchor'); if(a) a.addEventListener('click', connect);
     });
   }
-  function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 엑셀 열을 클릭해 연결 (여러 필드가 같은 열 공유 가능)'):''; }
+  function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 IMPORT 필드를 클릭해 연결 (여러 필드가 같은 IMPORT 필드 공유 가능)'):''; }
   /* 구버전 호환: 예전 {엑셀열: 필드key} 매핑을 {필드key: 엑셀열} 로 1회 변환 후 저장 */
   function imxMigrateDir(){
     if(!imxAnalyzeFields.length) return false;
@@ -949,17 +950,20 @@
       var eEl=$('imxExcelCol').querySelector('.efld[data-field="'+imxCssEsc(ef)+'"] .anchor');
       if(!mEl||!eEl) return;
       var mr=mEl.getBoundingClientRect(), er=eEl.getBoundingClientRect();
-      var x1=mr.left+mr.width/2-crect.left, y1=mr.top+mr.height/2-crect.top;
-      var x2=er.left+er.width/2-crect.left, y2=er.top+er.height/2-crect.top;
+      // 데이터 흐름: IMPORT 필드(오른쪽·엑셀) → ITEM ANALYZE 필드(왼쪽). 오른쪽에서 시작해 왼쪽 끝에 화살표.
+      var x1=er.left+er.width/2-crect.left, y1=er.top+er.height/2-crect.top;   // 시작 = IMPORT 필드
+      var x2=mr.left+mr.width/2-crect.left, y2=mr.top+mr.height/2-crect.top;   // 끝   = ANALYZE 필드
       var dx=Math.max(40,Math.abs(x2-x1)*0.5);
+      var color=imxColor(ak);
       var path=document.createElementNS('http://www.w3.org/2000/svg','path');
-      path.setAttribute('d','M '+x1+' '+y1+' C '+(x1+dx)+' '+y1+', '+(x2-dx)+' '+y2+', '+x2+' '+y2);
-      path.setAttribute('fill','none'); path.setAttribute('stroke',imxColor(ak)); path.setAttribute('stroke-width','2.4'); path.setAttribute('opacity','0.9');
+      path.setAttribute('d','M '+x1+' '+y1+' C '+(x1-dx)+' '+y1+', '+(x2+dx)+' '+y2+', '+x2+' '+y2);
+      path.setAttribute('fill','none'); path.setAttribute('stroke',color); path.setAttribute('stroke-width','2.4'); path.setAttribute('opacity','0.9');
+      path.setAttribute('marker-end', arrowMarker(svg, color));
       path.addEventListener('click', function(){ if(confirm('이 연결을 해제할까요?')){ imxSetMap(ak,''); imxRender(); requestAnimationFrame(imxDraw); } });
       svg.appendChild(path);
     });
   }
-  // 엑셀 열 이름 규칙 (ITEM ANALYZE 와 반드시 동일해야 함)
+  // IMPORT 필드 이름 규칙 (ITEM ANALYZE 와 반드시 동일해야 함)
   function imxColLetter(i){ var s=''; i=i+1; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
   function imxColNames(rows){
     var width=0; rows.forEach(function(r){ if(r&&r.length>width) width=r.length; });
@@ -1033,7 +1037,7 @@
     'plu-list-store.html': 'PLU 리스트 매장 뷰어. 매장 로그인으로 열람하는 소비용 화면.',
     'upc-list-store.html': 'UPC 리스트 매장 뷰어. 매장 로그인으로 열람하는 소비용 화면.',
     'upc-list-convert-ocr.html': 'UPC LIST CONVERT(OCR). PDF/이미지에서 상품 정보를 추출·정리, EXCEL EXPORT 시 EXPORT 카테고리(HANA 등) 매핑 출력 지원.',
-    'store-manager.html': 'STORE MANAGER. 매장 PIN·매장 목록, 필드 관리(마스터), 카테고리 필드 설정 팝업, EXPORT 설정(카테고리·화살표 매핑), HTML 관리 탭.',
+    'store-manager.html': 'STORE MANAGER. 매장 PIN·매장 목록, 필드 관리(마스터), 카테고리 필드 설정 팝업, EXPORT 설정(카테고리·화살표 매핑·중복 연결), IMPORT 설정(엑셀→ITEM ANALYZE 매칭), HTML 관리 탭.',
     'advertising.html': '광고상품 관리. ITEM MASTER(ITEMCODE↔UPC 누적·중복 정리 좌우분할 팝업), 주간 광고 등록·조회.',
     'egmm-calendar.html': 'EGMM 캘린더. egmm-calendar 컬렉션 기반 일정 관리 화면.',
     'ishidascale-data.html': 'Ishida 저울 PLU 데이터 매니저. 가상 스크롤·카테고리 서브탭·스테이징 편집·XLSX 내보내기.',
@@ -1447,12 +1451,11 @@
   $('exClearBtn').onclick = function(){ var p=activeProfile(); if(!p) return; if(!confirm('현재 연결도("'+p.name+'")의 모든 연결을 초기화할까요?')) return; p.mappings={}; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
   $('exDeleteBtn').onclick = function(){ var p=activeProfile(); if(!p) return; if(!confirm('프로필 "'+p.name+'" 을(를) 삭제할까요?')) return; state.profiles=state.profiles.filter(function(x){return x.id!==p.id;}); state.activeId=(state.profiles[0]&&state.profiles[0].id)||''; saveConfig(); renderExport(); requestAnimationFrame(drawLines); };
 
-  /* ---- 매핑 조작 (단독 연결: 한 관리필드는 한 EXPORT 필드에만) ---- */
+  /* ---- 매핑 조작 (중복 연결 허용: 한 관리필드를 여러 EXPORT 필드로 보낼 수 있음) ---- */
   function setMap(exportField, managerField){
     var p = activeProfile(); if(!p) return;
     if(managerField){
-      // 같은 관리필드가 다른 EXPORT 필드에 이미 연결돼 있으면 해제(중복 금지)
-      Object.keys(p.mappings).forEach(function(ef){ if(ef!==exportField && p.mappings[ef]===managerField) delete p.mappings[ef]; });
+      // mappings는 EXPORT필드 기준이라 같은 관리필드를 여러 EXPORT필드에 중복 연결할 수 있다.
       p.mappings[exportField] = managerField;
     }
     else { delete p.mappings[exportField]; }
@@ -1547,15 +1550,17 @@
   function renderManagerCol(){
     var col = $('exMgrCol');
     var p = activeProfile();
-    var used = {};
-    if(p){ Object.keys(p.mappings).forEach(function(ef){ var mf=p.mappings[ef]; if(state.managerFields.indexOf(mf)>=0) used[mf]=ef; }); }
+    var used = {};   // 관리필드 → [연결된 EXPORT 필드…] (중복 연결 허용)
+    if(p){ Object.keys(p.mappings).forEach(function(ef){ var mf=p.mappings[ef]; if(state.managerFields.indexOf(mf)>=0){ (used[mf]=used[mf]||[]).push(ef); } }); }
     var srcNote = state.masterFromCloud ? 'MANAGER · 필드관리(마스터)' : 'MANAGER · 기본값(마스터 미연결)';
     var html = '<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">관리 필드</span><span class="ex-col-sub">'+srcNote+'</span></div>';
     html += state.managerFields.map(function(f,i){
       var c = mfColor(f);
       var armed = state.armed===f ? ' armed' : '';
-      var linked = used[f] ? ' linked' : '';
-      var mark = used[f] ? '<span class="mf-linked" title="'+esc(used[f])+'에 연결됨">✓</span>' : '';
+      var list = used[f] || [];
+      var linked = list.length ? ' linked' : '';
+      // 중복 연결이면 ✓ 대신 연결 개수를 표시
+      var mark = list.length ? ('<span class="mf-linked" title="'+esc(list.join(', '))+'에 연결됨">'+(list.length>1?('✓'+list.length):'✓')+'</span>') : '';
       return '<div class="fld mfld'+armed+linked+'" data-field="'+esc(f)+'" style="--mf-color:'+c+'">'+
                '<span class="swatch" style="background:'+c+'"></span>'+
                '<span class="fld-name">'+esc(mfLabel(f))+'</span>'+
@@ -1610,7 +1615,7 @@
   }
 
   function renderArmedNote(){
-    $('exArmedNote').textContent = state.armed ? ('"'+state.armed+'" 선택됨 → 오른쪽 필드를 클릭해 연결') : '';
+    $('exArmedNote').textContent = state.armed ? ('"'+state.armed+'" 선택됨 → 오른쪽 필드를 클릭해 연결 (여러 EXPORT 필드에 중복 연결 가능)') : '';
   }
 
   // 끊긴 매핑(마스터에 없는 관리필드) 목록
@@ -1639,6 +1644,26 @@
   }
 
   /* ---- 연결선(SVG) ---- */
+  /* 화살표 마커: 선 색상별로 <defs><marker> 를 만들어 재사용 (marker는 stroke 색을 상속하지 않음) */
+  function arrowMarker(svg, color){
+    var id = 'ar_'+String(color).replace(/[^a-zA-Z0-9]/g,'');
+    var defs = svg.querySelector('defs');
+    if(!defs){ defs = document.createElementNS('http://www.w3.org/2000/svg','defs'); svg.appendChild(defs); }
+    if(!defs.querySelector('#'+id)){
+      var m = document.createElementNS('http://www.w3.org/2000/svg','marker');
+      m.setAttribute('id', id);
+      m.setAttribute('viewBox','0 0 10 10');
+      m.setAttribute('refX','9'); m.setAttribute('refY','5');
+      m.setAttribute('markerWidth','5'); m.setAttribute('markerHeight','5');
+      m.setAttribute('orient','auto-start-reverse');   // 선의 진행 방향을 따라 자동 회전
+      var tip = document.createElementNS('http://www.w3.org/2000/svg','path');
+      tip.setAttribute('d','M 0 0 L 10 5 L 0 10 z');
+      tip.setAttribute('fill', color);
+      m.appendChild(tip); defs.appendChild(m);
+    }
+    return 'url(#'+id+')';
+  }
+
   function drawLines(){
     var svg = $('exSvg'), canvas = $('exCanvas');
     if(!svg || !canvas) return;
@@ -1653,16 +1678,19 @@
       var eEl = $('exExpCol').querySelector('.efld[data-field="'+cssEsc(exportField)+'"] .anchor');
       if(!mEl || !eEl) return;
       var mr = mEl.getBoundingClientRect(), er = eEl.getBoundingClientRect();
+      // 데이터 흐름: 관리 필드 → EXPORT 필드 (왼쪽에서 시작해 오른쪽 끝에 화살표)
       var x1 = mr.left + mr.width/2 - crect.left, y1 = mr.top + mr.height/2 - crect.top;
       var x2 = er.left + er.width/2 - crect.left, y2 = er.top + er.height/2 - crect.top;
       var dx = Math.max(40, Math.abs(x2-x1)*0.5);
       var d = 'M '+x1+' '+y1+' C '+(x1+dx)+' '+y1+', '+(x2-dx)+' '+y2+', '+x2+' '+y2;
+      var color = mfColor(mf);
       var path = document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d', d);
       path.setAttribute('fill','none');
-      path.setAttribute('stroke', mfColor(mf));
+      path.setAttribute('stroke', color);
       path.setAttribute('stroke-width','2.4');
       path.setAttribute('opacity','0.9');
+      path.setAttribute('marker-end', arrowMarker(svg, color));
       path.addEventListener('click', function(){ if(confirm('이 연결을 해제할까요? ('+mf+' → '+exportField+')')){ setMap(exportField,''); renderExport(); requestAnimationFrame(drawLines); } });
       svg.appendChild(path);
     });
