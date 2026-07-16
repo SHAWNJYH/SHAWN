@@ -128,17 +128,18 @@
   .fm-hint{ font-size:12px; color:var(--text-faint); font-weight:600; margin-bottom:12px; }
   .fm-list{ display:flex; flex-direction:column; gap:0; align-content:start; }
   /* 행(라인): 메모박스 1 + 필드칸 6 고정 그리드 — 칸이 비어도 밀리지 않음. 행 사이 구분선 */
-  .fm-lane{ display:grid; grid-template-columns:repeat(7, minmax(150px, 1fr)); gap:6px; padding:8px 0; border-bottom:1.5px dashed var(--border); align-items:stretch; }
+  .fm-lane{ display:grid; grid-template-columns:minmax(52px, .34fr) repeat(8, minmax(118px, 1fr)); gap:6px; padding:8px 0; border-bottom:1.5px dashed var(--border); align-items:stretch; }  /* 설명박스(필드의 1/3폭) + 필드칸 8개 */
   .fm-lane:last-child{ border-bottom:none; }
-  .fm-lnote{ box-sizing:border-box; border:1.5px dashed #cbb98a; background:#fffdf4; border-radius:8px; padding:5px 8px; font-family:var(--mono); font-size:11px; font-weight:700; color:#8a6d2b; min-height:70px; }
+  .fm-lnote{ box-sizing:border-box; border:1.5px dashed #cbb98a; background:#fffdf4; border-radius:8px; padding:4px 5px; font-family:var(--mono); font-size:10px; font-weight:700; color:#8a6d2b; min-height:70px; min-width:0; }
   .fm-lnote:focus{ outline:none; border-style:solid; border-color:var(--accent-warm); }
   .fm-lnote::placeholder{ color:#cbb98a; font-weight:600; }
   .fm-slot-empty{ border:1.5px dashed #e3e3de; border-radius:8px; min-height:70px; background:repeating-linear-gradient(45deg, #fafaf8 0 8px, #f4f4f0 8px 16px); }
   .fm-slot-empty.drag-over{ border-color:var(--accent-warm); background:#fff8e8; box-shadow:0 0 0 3px rgba(201,169,97,.25); }
   /* 채우기 토글 버튼 */
-  .fm-fill{ width:22px; height:20px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-faint); border-radius:5px; font-size:12px; font-weight:900; cursor:pointer; padding:0; flex:0 0 auto; line-height:1; }
-  .fm-fill.on{ background:#2a6b3a; border-color:#2a6b3a; color:#fff; }
-  .fm-fill:hover{ border-color:var(--accent-warm); }
+  .fm-fill{ width:22px; height:20px; border:1.5px dashed #c8c8c2; background:#fff; color:#b9b9b2; border-radius:5px; font-size:12px; font-weight:900; cursor:pointer; padding:0; flex:0 0 auto; line-height:1; }
+  .fm-fill.on{ border:1.5px solid #1e7a3c; background:#1e7a3c; color:#fff; box-shadow:0 0 0 2px rgba(30,122,60,.35); }
+  .fm-fill:hover{ border-color:var(--accent-warm); color:var(--text-dim); }
+  .fm-fill.on:hover{ border-color:#166030; background:#166030; color:#fff; }
   .fm-row.grp-msrp .fm-fill,.fm-row.grp-srp .fm-fill{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
   .fm-row.grp-msrp .fm-fill.on,.fm-row.grp-srp .fm-fill.on{ background:#2a6b3a; border-color:#2a6b3a; }
   .fm-row{ display:flex; flex-direction:column; gap:3px; background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:5px 6px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
@@ -1260,7 +1261,7 @@
      · 행 맨 앞: 그 행을 설명하는 메모 박스(fmLineNotes[line]) — 필드 박스와 동일 크기.
      · 드래그: 빈 칸에 놓으면 이동, 다른 필드 위에 놓으면 서로 자리 교환.
      · [⤓] 채우기 토글: ON인 필드만 UPC/PLU 매니저 편집모드에서 '전체 채우기' 기능이 뜬다. */
-  var FM_SLOTS=6;                 // 한 행의 필드 칸 수 (메모 박스 제외)
+  var FM_SLOTS=8;                 // 한 행의 필드 칸 수 (메모 박스 제외)
   var fmLineNotes=[];             // 행별 설명 메모 (upc-config/main.fieldLineNotes)
   function fmAutoPlace(){
     // line/slot 없는(=-1) 필드를 빈 칸에 순서대로 배치 (기존 배치는 유지)
@@ -1279,7 +1280,7 @@
     var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
     return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'"'+(m.boxc?(' style="background:'+m.boxc+'"'):'')+'>'+
       '<div class="fm-l1">'+
-        '<button class="fm-fill'+(m.fill?' on':'')+'" type="button" title="필드 채우기 '+(m.fill?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다 (저장 후 적용)">⤓</button>'+
+        '<button class="fm-fill'+(m.fill?' on':'')+'" type="button" title="필드 채우기 '+(m.fill?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다 (저장 후 적용)">'+(m.fill?'✓':'⤓')+'</button>'+
         (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
         '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결 (숨김/표시): '+slText(m)+'">🏬</button>'+
         '<select class="fm-rtype" title="필드 종류">'+mfTypeOptionsShort(m.type)+'</select>'+
@@ -1314,7 +1315,7 @@
       var html='';
       for(var L=0; L<lines; L++){
         html+='<div class="fm-lane" data-line="'+L+'">';
-        html+='<input class="fm-lnote" data-line="'+L+'" maxlength="60" placeholder="✎ 이 줄 설명" title="이 줄에 있는 필드들에 대한 설명 메모" value="'+esc(fmLineNotes[L]||'')+'" autocomplete="off">';
+        html+='<input class="fm-lnote" data-line="'+L+'" maxlength="60" placeholder="✎ 설명" title="이 줄에 있는 필드들에 대한 설명 메모" value="'+esc(fmLineNotes[L]||'')+'" autocomplete="off">';
         for(var S=0; S<FM_SLOTS; S++){
           var idx=at[L+':'+S];
           if(idx!=null){ html+=fmChipHTML(fmWork[idx], idx); }
