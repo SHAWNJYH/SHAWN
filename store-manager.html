@@ -428,7 +428,7 @@
         <div class="ex-tb-group"><span class="fm-uni-label">필드 관리 · UPC+PLU 통합</span></div>
         <div class="ex-tb-group">
           <input class="fm-newname" id="fmNewName" placeholder="새 필드 이름 (예: UPC(C))" maxlength="40" autocomplete="off">
-          <select class="ex-sel" id="fmNewType"><option value="text">텍스트</option><option value="price">가격 ($)</option><option value="margin">마진 (%)</option><option value="number">숫자 (123)</option><option value="checkbox">체크박스</option><option value="image">이미지</option></select>
+          <select class="ex-sel" id="fmNewType"><option value="text">TEXT</option><option value="price">PRICE ($)</option><option value="margin">MARGIN (%)</option><option value="number">NUMBER (123)</option><option value="checkbox">CHECKBOX</option><option value="image">IMAGE</option></select>
           <button class="ex-btn warm" id="fmAdd" type="button">＋ 추가</button>
         </div>
         <span class="ex-spacer"></span>
@@ -445,7 +445,7 @@
           <span class="fm-lg"><b>🏬</b> 매장·카테고리 연결(숨김/표시)</span>
           <span class="fm-lg"><b>⤓/✓</b> 전체적용 — UPC·PLU 편집모드 채우기 ON/OFF</span>
           <span class="fm-lg"><b>[2]</b> 소수점 자릿수 ($·%·숫자 전용)</span>
-          <span class="fm-lg"><b>텍스트▾</b> 필드 종류 ($ % 123 ☑ 🖼)</span>
+          <span class="fm-lg"><b>TEXT▾</b> 필드 종류 (TEXT · PRICE · MARGIN · NUMBER · CHECK · IMAGE)</span>
           <span class="fm-lg"><b>LEN</b> 표시 글자수</span>
           <span class="fm-lg"><b>L C R</b> 정렬</span>
           <span class="fm-lg"><b>A</b> 글씨색</span>
@@ -1186,9 +1186,9 @@
   var state = { profiles: [], activeId: '', managerFields: DEFAULT_MANAGER_FIELDS.slice(), masterRaw: [], masterFromCloud: false, armed: null };
 
   function mfKind(t){ t=String(t||''); return (t==='price'||t==='margin'||t==='number'||t==='checkbox'||t==='image')?t:'text'; }
-  function mfTypeOptionsHTML(sel){ var o=[['text','텍스트'],['price','가격 ($)'],['margin','마진 (%)'],['number','숫자 (123)'],['checkbox','체크박스'],['image','이미지']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
+  function mfTypeOptionsHTML(sel){ var o=[['text','TEXT'],['price','PRICE ($)'],['margin','MARGIN (%)'],['number','NUMBER (123)'],['checkbox','CHECKBOX'],['image','IMAGE']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
   function mfFlag(t){ return t==='price'?'$':(t==='margin'?'%':(t==='number'?'#':(t==='checkbox'?'☑':(t==='image'?'🖼':'')))); }
-  function mfTypeOptionsShort(sel){ var o=[['text','텍스트'],['price','$'],['margin','%'],['number','123'],['checkbox','☑'],['image','🖼']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
+  function mfTypeOptionsShort(sel){ var o=[['text','TEXT'],['price','PRICE'],['margin','MARGIN'],['number','NUMBER'],['checkbox','CHECK'],['image','IMAGE']]; return o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===sel?' selected':'')+'>'+x[1]+'</option>'; }).join(''); }
 
   /* ---- 마스터 필드 로드/실시간 구독 (upc-config/main.masterFields) ---- */
   var __smDeleted={};  // 삭제된 필드 키(숨김 전파용)
