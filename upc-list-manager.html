@@ -273,12 +273,24 @@
   #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
   #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
   /* [팝업 무스크롤] 팝업 본문은 고정, 카테고리/필드 목록만 내부 스크롤 (PLU와 동일 규칙) */
-  #pluExportMenuOv .pcm-body:not(.em-list-view) { overflow:hidden; display:flex; flex-direction:column; }
+  /* [무스크롤] 홈 화면은 컴팩트 고정(카테고리·필드 선택은 별도 팝업) — 본문 스크롤 없음 */
+  #pluExportMenuOv .pcm-body:not(.em-list-view) { overflow:hidden; }
   #pluExportMenuOv .pcm-body.em-list-view { overflow:auto; }
-  /* 홈 그리드(카테고리|필드)가 남는 높이를 전부 차지하고, 목록은 그 안에서만 스크롤 → 팝업 본문은 절대 안 잘리고 스크롤도 없음 */
-  #pluExportMenuOv .pcm-body:not(.em-list-view) > div:first-child { flex:1 1 auto; min-height:120px; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) > div:first-child > .em-sec { min-height:0; height:100%; box-sizing:border-box; }
-  #pluExportMenuOv .em-cat-wrap, #pluExportMenuOv .em-cfg-list { flex:1 1 auto; min-height:0; overflow:auto; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-sec { padding:8px 22px; gap:6px; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-box { padding:8px 12px; gap:5px; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-foot { padding:10px 22px; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-pick-btn { padding:8px 12px; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-modes .em-allbtn { padding:6px 12px !important; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-sel-sum { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) #emCatSel { padding:6px 10px !important; }
+  .em-pick-btn { flex:1; font-size:13px; font-weight:800; padding:12px 14px; border-radius:12px; }
+  .em-pick-btn b { color:#b8730f; font-size:14px; }
+  .em-sel-sum { font-size:11px; color:#9a9aa0; line-height:1.6; min-height:16px; }
+  /* 선택 팝업 — 깔끔 정렬, 목록만 내부 스크롤 */
+  #emPickOv .pcm-modal { max-width:640px; border-radius:18px; }
+  #emPickOv .pcm-body { padding:14px 18px; background:#fbfaf7; overflow:auto; max-height:calc(86vh - 130px); }
+  #emPickOv .em-pick-wrap { max-height:none; overflow:visible; }
+  #emPickOv .em-foot { border-top:1px solid #efeee9; }
   #icpOverlay .pcm-modal { max-width:480px; border-radius:18px; }
   #icpOverlay .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
   #icpOverlay .pcm-head .pcm-x { color:#fff; opacity:.75; }
@@ -3309,6 +3321,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function __chkOn(raw){ if(raw===true) return true; if(raw===false||raw==null) return false; var s2=String(raw).trim().toUpperCase(); return s2!=='' && s2!=='0' && s2!=='FALSE' && s2!=='X'; }
   function exportCell(r,col){ var raw=exportVal(r,col);
     if(__isCheckColX(col)) return __chkOn(raw)?1:0;   // 체크 필드 = 숫자 1 / 0 (문자 아님)
+    var __tk=String((col&&col.key)||'').toUpperCase().replace(/\s+/g,'');   // TARE 계열: 'LB'/'G' 단위 제거하고 숫자만 출력
+    if(__tk==='TARE'||__tk==='TARE(LB)'||__tk==='TARE(G)'){ return String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim(); }
     if(__isPosDescCol(col) && String(raw==null?'':raw).trim()===''){ var __pv=posDescGen(r); if(__pv!=='') return __pv; }   // 저장값 없으면 규칙대로 생성
     if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
   // xlsx 시트 스타일 적용
@@ -3397,17 +3411,60 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     document.body.appendChild(wrap.firstChild);
     // 모달/팝업 닫기
     var close=function(){ var o=$(ov); if(o) o.remove(); };
+    // ── 선택 상태 (메뉴 세션 동안 유지) ──
+    var selCats={};   // 'ti:si' → {big,sub}
+    function selList(){ return Object.keys(selCats).map(function(k){ return selCats[k]; }); }
+    function refreshSel(){
+      var c=$('emCatCnt'); if(c) c.textContent=String(Object.keys(selCats).length);
+      var sum=$('emCatSum'); if(sum){ var L=selList(); sum.textContent=L.length?(L.slice(0,4).map(function(x){ return x.big+' › '+x.sub; }).join('  ·  ')+(L.length>4?('  외 '+(L.length-4)+'개'):'')):'선택된 카테고리가 없습니다 — [📂 카테고리 선택]에서 체크하세요'; }
+      var f=$('emFldCnt'); if(f){ var lay=layoutByCat[curCat()]||[]; f.textContent=String(lay.filter(function(cc){ return cc.exp; }).length); }
+    }
+    function closePick(){ var o=$('emPickOv'); if(o) o.remove(); refreshSel(); }
+    function pickShell(title, inner){
+      var old=$('emPickOv'); if(old) old.remove();
+      var w=document.createElement('div');
+      w.innerHTML='<div class="pcm-overlay" id="emPickOv" style="z-index:10050;"><div class="pcm-modal">'+
+        '<div class="pcm-head">'+title+'<button class="pcm-x" id="emPickX" type="button">✕</button></div>'+
+        '<div class="pcm-body" id="emPickBody">'+inner+'</div>'+
+        '<div class="em-foot"><button class="em-export-cta" id="emPickOk" type="button">✓ 확인</button></div>'+
+      '</div></div>';
+      document.body.appendChild(w.firstChild);
+      $('emPickX').onclick=closePick; $('emPickOk').onclick=closePick;
+      $('emPickOv').onclick=function(e){ if(e.target&&e.target.id==='emPickOv') closePick(); };
+    }
+    // 카테고리 선택 팝업 — 상위 카테고리별 그룹으로 깔끔 정렬
+    function openCatPick(){
+      var html=PLU_TABS.map(function(t,ti){
+        var subs=t.subs||[];
+        var items=subs.map(function(sb,si){ var on=!!selCats[ti+':'+si]; return '<label class="em-cfg-item"><input type="checkbox" class="em-cat-col" data-ti="'+ti+'" data-si="'+si+'"'+(on?' checked':'')+'> <span>'+escapeHtml(sb)+'</span></label>'; }).join('');
+        return '<div class="em-cat-grp"><div class="em-cat-big">'+escapeHtml(t.label)+'</div><div class="em-cat-subs">'+items+'</div></div>';
+      }).join('');
+      pickShell('📂 카테고리 선택 <button class="em-allbtn" id="emCatAll" type="button" style="margin-left:10px;">전체 선택</button>',
+        '<div class="em-cat-wrap em-pick-wrap">'+html+'</div>');
+      function sync(ch){ var k=ch.getAttribute('data-ti')+':'+ch.getAttribute('data-si'); var ti=parseInt(ch.getAttribute('data-ti'),10), si=parseInt(ch.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(ch.checked && t && t.subs && t.subs[si]!=null){ selCats[k]={big:t.label, sub:t.subs[si]}; } else { delete selCats[k]; } refreshSel(); }
+      document.querySelectorAll('#emPickOv .em-cat-col').forEach(function(ch){ ch.onchange=function(){ sync(ch); }; });
+      var all=$('emCatAll'); if(all) all.onclick=function(){ var cs=document.querySelectorAll('#emPickOv .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; sync(c); }); all.textContent=allOn?'전체 선택':'전체 해제'; };
+    }
+    // 내보내기 필드 팝업 — 현재 카테고리 필드, 기존과 동일하게 즉시 저장
+    function openFldPick(){
+      var cfgLay=(layoutByCat[curCat()]||[]);
+      var rows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">필드가 없습니다.</div>';
+      pickShell('📋 내보내기 필드 <small style="font-weight:600;color:#9a9aa0;margin-left:6px;">'+escapeHtml(curCat())+'</small> <button class="em-allbtn" id="emFldAll" type="button" style="margin-left:10px;">전체 선택</button>',
+        '<div class="em-cfg-list em-pick-wrap">'+rows+'</div>');
+      document.querySelectorAll('#emPickOv .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); refreshSel(); }; });
+      var all=$('emFldAll'); if(all) all.onclick=function(){ var cs=document.querySelectorAll('#emPickOv .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); all.textContent=allOn?'전체 선택':'전체 해제'; };
+    }
     // 홈 화면 HTML
     function homeHTML(){
-      var catSec='<div class="em-sec">'+
-          '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="em-allbtn" id="emCatAll" type="button">전체 선택</button></div>'+
-          '<div class="em-cat-wrap">'+catHtml+'</div>'+
-        '</div>';
-      var cfgLay=(layoutByCat[curCat()]||[]);
-      var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">열이 없습니다.</div>';
-      var cfgSec='<div class="em-sec">'+
-          '<div class="em-row-between"><div class="em-tt">내보내기 필드</div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
-          '<div class="em-cfg-list">'+cfgRows+'</div>'+
+      var selSec='<div class="em-sec">'+
+          '<div class="em-tt">내보내기 대상</div>'+
+          '<div class="em-box">'+
+            '<div class="em-row" style="gap:10px;">'+
+              '<button class="em-allbtn em-pick-btn" id="emPickCats" type="button">📂 카테고리 선택 <b id="emCatCnt">0</b>개</button>'+
+              '<button class="em-allbtn em-pick-btn" id="emPickFlds" type="button">📋 내보내기 필드 <b id="emFldCnt">0</b>개</button>'+
+            '</div>'+
+            '<div class="em-sel-sum" id="emCatSum"></div>'+
+          '</div>'+
         '</div>';
       var catExpSec = startList ? ('<div class="em-sec">'+
           '<div class="em-tt">EXPORT 카테고리 형식으로 내보내기 (HANA 등)</div>'+
@@ -3429,7 +3486,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '</div></div>'+
         '</div>') : '';
       var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+(startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
-      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:0;overflow:hidden;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
+      return selSec+catExpSec+listSec+foot;
     }
     // 리스트 화면 HTML
     var emEntryMap={};
@@ -3448,10 +3505,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     // 홈 화면 이벤트 연결
     function bindHome(){
       var ab=$('emAdminBack'); if(ab) ab.onclick=function(){ close(); openAdminModal(); };
-      document.querySelectorAll('#'+ov+' .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); }; });
-      var catAll=$('emCatAll'); if(catAll) catAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; }); catAll.textContent=allOn?'전체 선택':'전체 해제'; };
-      var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
-      var de=$('emDoExp'); if(de) de.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); exportSelectedCats(list); };
+      var pc=$('emPickCats'); if(pc) pc.onclick=openCatPick;
+      var pf=$('emPickFlds'); if(pf) pf.onclick=openFldPick;
+      refreshSel();
+      var de=$('emDoExp'); if(de) de.onclick=function(){ exportSelectedCats(selList()); };
       document.querySelectorAll('#'+ov+' .em-go').forEach(function(b){ b.onclick=function(){ showList(b.getAttribute('data-mode')); }; });
       // EXPORT 카테고리(HANA 등) 형식으로 현재 데이터 내보내기
       var goBtn=$('emCatExp');
@@ -3462,7 +3519,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           sel.innerHTML=cats.map(function(pf){ var has=(pf.fields&&pf.fields.length); return '<option value="'+escapeHtml(pf.id)+'">'+escapeHtml(pf.name+(has?(' · '+(pf.fileName||'파일')):' (파일 없음)'))+'</option>'; }).join('');
         });
         goBtn.onclick=function(){
-          var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); });
+          var list=selList();
           if(!list.length){ showToast('위 카테고리 선택에서 내보낼 목록을 체크하세요','error'); return; }
           var sel=$('emCatSel'); var catId=sel?sel.value:'';
           var cat=(__expCats||[]).filter(function(pf){ return pf.id===catId; })[0];
