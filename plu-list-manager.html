@@ -2330,6 +2330,63 @@
     fname=fname.replace(/[\\\/\?\*\[\]:]/g,'_');
     XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname+' ('+made+'개 시트)','success');
   }
+  // ===== EXPORT 카테고리(HANA 등) — STORE MANAGER EXPORT 설정 공유 (UPC 매니저와 동일 로직) =====
+  var __expCats=null;
+  async function loadExpCats(){
+    try{
+      var F=fns(), D=db();
+      if(F && F.getDoc && D){
+        var snap=await F.getDoc(F.doc(D,'app-config','export-config'));
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+        if(d && Array.isArray(d.profiles) && d.profiles.length){ __expCats=d.profiles; return __expCats; }
+      }
+    }catch(e){}
+    try{ var raw=localStorage.getItem('theShawn_exportConfig_v1'); if(raw){ var c=JSON.parse(raw); if(c && Array.isArray(c.profiles)){ __expCats=c.profiles; return __expCats; } } }catch(e){}
+    __expCats=[]; return __expCats;
+  }
+  // 형식명(HANA/HANARO/ISHIDA/CAS)으로 EXPORT 카테고리 프로필 찾기 — 이름 대문자 기준, 정확일치 우선 → 포함 매칭
+  function findExpCatByName(fmt){
+    var F=String(fmt||'').trim().toUpperCase(); if(!F) return null;
+    var cats=__expCats||[]; var hit=null;
+    for(var i=0;i<cats.length;i++){ var nm=String(cats[i].name||'').trim().toUpperCase(); if(nm===F){ hit=cats[i]; break; } }
+    if(!hit){ for(var j=0;j<cats.length;j++){ var nm2=String(cats[j].name||'').trim().toUpperCase(); if(nm2.indexOf(F)>=0){ hit=cats[j]; break; } } }
+    return hit;
+  }
+  // 체크한 카테고리 목록을 EXPORT 카테고리(HANA 등) 매핑으로 출력
+  function exportDataWithCategory(list, cat){
+    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
+    var maps=cat.mappings||{};
+    var aoa=[cat.fields.slice()];
+    var total=0;
+    list.forEach(function(it){
+      var rows=(rowsFor(it.big)||[]).filter(function(r){ return rowSub(it.big, r)===it.sub; }).sort(byPluAsc);
+      rows.forEach(function(row){
+        aoa.push(cat.fields.map(function(ef){
+          var mf=maps[ef];
+          // 매핑이 없으면 엑셀 헤더명과 같은 이름의 필드로 폴백
+          return exportCell(row, { key:(mf||ef), label:ef, type:'text' });
+        }));
+        total++;
+      });
+    });
+    if(total===0){ showToast('내보낼 데이터가 없습니다','error'); return; }
+    var ws=XLSX.utils.aoa_to_sheet(aoa);
+    var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(cat.name).substring(0,31)||'EXPORT');
+    var d2=new Date(), ymd=String(d2.getFullYear()).slice(-2)+('0'+(d2.getMonth()+1)).slice(-2)+('0'+d2.getDate()).slice(-2);
+    var base=(cat.fileName||'').replace(/\.(xlsx|xls|csv)$/i,'') || cat.name;
+    XLSX.writeFile(wb, base+'('+ymd+').xlsx');
+    showToast(cat.name+' 형식으로 '+total+'건 내보냈습니다','success');
+  }
+  // 체크한 카테고리 목록을 지정 형식(HANA/HANARO/ISHIDA/CAS)으로 내보내기
+  function exportByFormat(list, fmt){
+    if(!list.length){ showToast('카테고리 선택에서 내보낼 목록을 체크하세요','error'); return; }
+    loadExpCats().then(function(){
+      var cat=findExpCatByName(fmt);
+      if(!cat){ showToast('['+fmt+'] EXPORT 카테고리가 없습니다 — STORE MANAGER > EXPORT 설정에서 \''+fmt+'\' 이름으로 만들어 주세요','error'); return; }
+      if(!cat.fields || !cat.fields.length){ showToast(cat.name+' 카테고리에 업로드된 엑셀 파일이 없습니다. STORE MANAGER > EXPORT 설정에서 엑셀 파일을 업로드하세요.','error'); return; }
+      exportDataWithCategory(list, cat);
+    });
+  }
   function openExportMenu(){
     var ov='pluExportMenuOv'; var old=$(ov); if(old) old.remove();
     var catHtml=PLU_TABS.map(function(t,ti){
@@ -2348,6 +2405,18 @@
     function homeHTML(){
       var cfgLay=(layoutByCat[curCat()]||[]);
       var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">필드가 없습니다.</div>';
+      var fmtSec='<div class="em-list-sec">'+
+          '<div class="em-tt">형식별 내보내기 (HANA · HANARO · ISHIDA · CAS)</div>'+
+          '<div class="em-box">'+
+            '<div class="em-row em-modes">'+
+              '<button class="em-allbtn em-fmt" data-fmt="HANA" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANA)</button>'+
+              '<button class="em-allbtn em-fmt" data-fmt="HANARO" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(HANARO)</button>'+
+              '<button class="em-allbtn em-fmt" data-fmt="ISHIDA" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(ISHIDA)</button>'+
+              '<button class="em-allbtn em-fmt" data-fmt="CAS" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(CAS)</button>'+
+            '</div>'+
+            '<div style="font-size:11px;color:#9a9aa0;margin-top:6px;">왼쪽 <b>카테고리 선택</b>에서 체크한 목록을, STORE MANAGER > EXPORT 설정에 <b>같은 이름</b>으로 만든 카테고리의 엑셀 형식(연결 매핑)으로 출력합니다.</div>'+
+          '</div>'+
+        '</div>';
       var listSec='<div class="em-list-sec">'+
           '<div class="em-tt">신상품 / 가격변경 LIST 선택 EXPORT</div>'+
           '<div class="em-box"><div class="em-row em-modes">'+
@@ -2362,6 +2431,7 @@
           '<div class="em-col">'+
             '<div class="em-row-between"><div class="em-tt">내보내기 필드</div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
             '<div class="em-cfg-list">'+cfgRows+'</div>'+
+            fmtSec+
             listSec+
           '</div>'+
         '</div>';
@@ -2389,6 +2459,13 @@
       var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
       var de=$('emDoExp'); if(de) de.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); var fkeys=[]; document.querySelectorAll('#'+ov+' .em-cfg-col:checked').forEach(function(c){ fkeys.push(c.getAttribute('data-key')); }); exportSelectedCats(list, fkeys); };
       document.querySelectorAll('#'+ov+' .em-go').forEach(function(b){ b.onclick=function(){ showList(); }; });
+      // 형식별(HANA/HANARO/ISHIDA/CAS) 빠른 내보내기
+      document.querySelectorAll('#'+ov+' .em-fmt').forEach(function(b){
+        b.onclick=function(){
+          var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); });
+          exportByFormat(list, b.getAttribute('data-fmt'));
+        };
+      });
     }
     function bindList(){
       var bk=$('emBack2'); if(bk) bk.onclick=showHome;
