@@ -878,7 +878,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
-  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; }
+  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; var __fl={}; var __FL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var on=(f.fill!=null)?!!f.fill:!!__FL_LEGACY[K]; if(on) __fl[K]=1; }); window.__MFFILL=__fl; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue;
         var __k=String(__c.key||'').trim().toUpperCase();
         var ms=__MFSTY[__k];
@@ -3063,9 +3063,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input')) return;
         var key=String(t.getAttribute('data-key')||'').trim().toUpperCase();
         var mc=(window.__MFCAT||{})[key];
-        // 반복값 필드: 기존 값 목록에서 골라 일괄 적용
-        var __FILL_PICK={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
-        if(!mc && __FILL_PICK[key]){
+        // [필드 채우기] STORE MANAGER 필드관리의 [⤓] 토글이 ON인 필드만 채우기 기능 표시
+        //  (마스터 미로드 시 레거시 7개 필드로 폴백 — 기존 __FILL_PICK와 동일)
+        var __FL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
+        var __fillOn=!!((window.__MFFILL||__FL_LEGACY)[key]);
+        if(!mc && __fillOn){
           var old2=document.getElementById('mfCatPick'); if(old2) old2.parentNode.removeChild(old2);
           var oldF2=document.getElementById('mfFillBtn'); if(oldF2) oldF2.parentNode.removeChild(oldF2);
           // 현재 리스트에서 이 필드의 고유 값 수집
@@ -3113,27 +3115,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           return;
         }
         if(!mc){
-          // 일반 필드: 입력값을 필드 전체에 채우는 버튼
+          // [필드 채우기] 토글 OFF 필드 — 채우기 UI 표시 안 함 (ON 필드는 위의 값 선택 팝업이 '현재 입력값 채우기'까지 포함)
           var oldF=document.getElementById('mfFillBtn'); if(oldF) oldF.parentNode.removeChild(oldF);
-          var fb=document.createElement('button'); fb.id='mfFillBtn'; fb.type='button'; fb.textContent='⤓ 전체 채우기';
-          fb.style.cssText='position:fixed;z-index:9500;background:#c9a961;color:#fff;border:0;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);';
-          var fr=t.getBoundingClientRect();
-          fb.style.left=Math.min(fr.left, window.innerWidth-110)+'px';
-          fb.style.top=(fr.bottom+4)+'px';
-          document.body.appendChild(fb);
-          fb.onmousedown=function(ev){
-            ev.preventDefault();
-            var val=t.value;
-            var kk=t.getAttribute('data-key'); var bb=t.getAttribute('data-base')==='1';
-            if(!confirm('현재 입력값 "'+val+'" 을(를) '+kk+' 필드 전체('+((work||[]).length)+'행)에 채울까요?')) return;
-            (work||[]).forEach(function(row){ if(!row) return; if(bb){ row[fieldOf(kk)]=val; } else { if(!row.extra) row.extra={}; row.extra[kk]=val; } });
-            var ins=tb.querySelectorAll('input.plu-edit-input[data-key="'+kk.replace(/"/g,'\\"')+'"]');
-            for(var i2=0;i2<ins.length;i2++){ ins[i2].value=val; }
-            markDirty();
-            if(fb.parentNode) fb.parentNode.removeChild(fb);
-          };
-          function rmF(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }
-          t.addEventListener('blur', function(){ setTimeout(rmF, 180); }, { once:true });
           return;
         }
         var old=document.getElementById('mfCatPick'); if(old) old.parentNode.removeChild(old);

@@ -126,7 +126,21 @@
   .fm-saved{ font-size:12px; font-weight:800; color:#2a8a4a; }
   .fm-wrap{ flex:1 1 auto; min-height:0; overflow:auto; padding:14px 22px 22px; }
   .fm-hint{ font-size:12px; color:var(--text-faint); font-weight:600; margin-bottom:12px; }
-  .fm-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:6px; align-content:start; }
+  .fm-list{ display:flex; flex-direction:column; gap:0; align-content:start; }
+  /* 행(라인): 메모박스 1 + 필드칸 6 고정 그리드 — 칸이 비어도 밀리지 않음. 행 사이 구분선 */
+  .fm-lane{ display:grid; grid-template-columns:repeat(7, minmax(150px, 1fr)); gap:6px; padding:8px 0; border-bottom:1.5px dashed var(--border); align-items:stretch; }
+  .fm-lane:last-child{ border-bottom:none; }
+  .fm-lnote{ box-sizing:border-box; border:1.5px dashed #cbb98a; background:#fffdf4; border-radius:8px; padding:5px 8px; font-family:var(--mono); font-size:11px; font-weight:700; color:#8a6d2b; min-height:70px; }
+  .fm-lnote:focus{ outline:none; border-style:solid; border-color:var(--accent-warm); }
+  .fm-lnote::placeholder{ color:#cbb98a; font-weight:600; }
+  .fm-slot-empty{ border:1.5px dashed #e3e3de; border-radius:8px; min-height:70px; background:repeating-linear-gradient(45deg, #fafaf8 0 8px, #f4f4f0 8px 16px); }
+  .fm-slot-empty.drag-over{ border-color:var(--accent-warm); background:#fff8e8; box-shadow:0 0 0 3px rgba(201,169,97,.25); }
+  /* 채우기 토글 버튼 */
+  .fm-fill{ width:22px; height:20px; border:1px solid var(--border); background:var(--bg-elev-2); color:var(--text-faint); border-radius:5px; font-size:12px; font-weight:900; cursor:pointer; padding:0; flex:0 0 auto; line-height:1; }
+  .fm-fill.on{ background:#2a6b3a; border-color:#2a6b3a; color:#fff; }
+  .fm-fill:hover{ border-color:var(--accent-warm); }
+  .fm-row.grp-msrp .fm-fill,.fm-row.grp-srp .fm-fill{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
+  .fm-row.grp-msrp .fm-fill.on,.fm-row.grp-srp .fm-fill.on{ background:#2a6b3a; border-color:#2a6b3a; }
   .fm-row{ display:flex; flex-direction:column; gap:3px; background:#fff; border:1.5px solid var(--border); border-radius:8px; padding:5px 6px; cursor:grab; transition:border-color .12s, box-shadow .12s, opacity .12s; }
   .fm-row:active{ cursor:grabbing; }
   .fm-row.dragging{ opacity:.45; }
@@ -185,7 +199,7 @@
   .fm-row .fm-del{ border:none; background:transparent; color:var(--text-faint); font-size:12px; font-weight:800; cursor:pointer; padding:0 1px; line-height:1; flex:0 0 auto; }
   .fm-userlock{ border:none; background:transparent; font-size:12px; cursor:pointer; padding:0 1px; line-height:1; flex:0 0 auto; }
   .fm-lock{ font-size:11px; flex:0 0 auto; }
-  .fm-apply{ flex:1 1 0; min-width:28px; height:20px; border:1px solid var(--accent-warm); background:var(--accent-warm); color:#fff; border-radius:6px; font-size:11px; font-weight:800; cursor:pointer; padding:0 4px; }
+  .fm-apply{ flex:0 0 auto; width:22px; min-width:22px; height:20px; border:1px solid var(--accent-warm); background:var(--accent-warm); color:#fff; border-radius:6px; font-size:12px; font-weight:900; cursor:pointer; padding:0; line-height:1; margin-left:auto; }
   .fm-sw-box{ flex:1 1 0; width:auto; min-width:24px; height:20px; }
   .fm-l3 .fm-reset{ margin-left:0; }
   .fm-apply:hover{ filter:brightness(1.06); }
@@ -326,7 +340,7 @@
   .fm-row.grp-msrp .fm-ty,.fm-row.grp-srp .fm-ty{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
   .fm-row.grp-msrp .fm-ty.on,.fm-row.grp-srp .fm-ty.on{ background:var(--accent-warm); color:#3a2e12; }
   .fm-l1 .fm-storelink{ width:auto; flex:0 0 auto; padding:3px 8px; }
-  .fm-l2 .fm-name{ flex:1 1 auto; min-width:80px; }
+  .fm-l2 .fm-name{ flex:1 1 auto; min-width:0; }   /* [겹침 수정] min-width:80px가 grid 트랙을 넘어 LEN 칸과 겹치던 오류 */
   .fm-l2 .fm-trunc-in{ width:100%; font-size:10px; padding:0 2px; flex:0 0 auto; }
   .fm-l2 .fm-key{ flex:0 0 auto; }
   .fm-ord{ min-width:18px; text-align:center; }
@@ -1165,7 +1179,7 @@
   function applyMaster(fields){
     if(!Array.isArray(fields) || !fields.length) return false;
     var seen={}, names=[], raw=[];
-    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); (function(){ var __r={key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),boxc:(m.boxc||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}; if(m.catOf){ __r.catOf=String(m.catOf); __r.catValues=Array.isArray(m.catValues)?m.catValues:[]; } raw.push(__r); })(); });
+    fields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; names.push(k); (function(){ var __r={key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),boxc:(m.boxc||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat),fill:fmFillOf(m,k),line:fmLineOf(m),slot:fmSlotOf(m)}; if(m.catOf){ __r.catOf=String(m.catOf); __r.catValues=Array.isArray(m.catValues)?m.catValues:[]; } raw.push(__r); })(); });
     if(!names.length) return false;
     state.managerFields = names;
     state.masterRaw = raw;
@@ -1174,7 +1188,12 @@
     fmRebuild();
     return true;
   }
-  function fmNormRow(m){ var __o={key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',boxc:m.boxc||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}; if(m.catOf){ __o.catOf=String(m.catOf); __o.catValues=Array.isArray(m.catValues)?m.catValues:[]; } return __o; }
+  /* [채우기] UPC 매니저 __FILL_PICK 하드코딩과 동일한 레거시 목록 — fill 속성이 없는 옛 데이터는 이 7개가 '이미 적용'으로 간주(미리 체크) */
+  var FM_FILL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
+  function fmFillOf(m,k){ return (m&&m.fill!=null) ? !!m.fill : !!FM_FILL_LEGACY[String(k||'').toUpperCase()]; }
+  function fmLineOf(m){ return (m&&typeof m.line==='number'&&m.line>=0)?Math.floor(m.line):-1; }
+  function fmSlotOf(m){ return (m&&typeof m.slot==='number'&&m.slot>=0)?Math.floor(m.slot):-1; }
+  function fmNormRow(m){ var __o={key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',boxc:m.boxc||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat),fill:fmFillOf(m,m.key),line:fmLineOf(m),slot:fmSlotOf(m)}; if(m.catOf){ __o.catOf=String(m.catOf); __o.catValues=Array.isArray(m.catValues)?m.catValues:[]; } return __o; }
   function fmMergedRaw(){ var out=[],seen={}; function add(arr){ (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; out.push(m); }); } add(state.masterRaw); add(__pluMasterRaw); return out; }
   function fmRebuild(){ if($('smPanelFields').classList.contains('active') && !fmDirty){ fmWork=fmMergedRaw().map(fmNormRow); fmRender(); } }
   function subscribeMaster(){
@@ -1184,6 +1203,7 @@
       var d = (snap && snap.exists && snap.exists()) ? (snap.data()||{}) : null;
       if(d && Array.isArray(d.deletedFields)){ __smDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __smDeleted[K]=(o&&typeof o==='object')?{key:K,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
       if(d && Array.isArray(d.tabs)){ __slCatsUPC=__flatCats(d.tabs); }
+      if(d && Array.isArray(d.fieldLineNotes)){ fmLineNotes=d.fieldLineNotes.map(function(x){return String(x==null?'':x);}); if($('smPanelFields').classList.contains('active') && !fmDirty) fmRender(); }
       if(d && applyMaster(d.masterFields)){
         if($('smPanelExport').classList.contains('active')){ renderExport(); requestAnimationFrame(drawLines); }
       }
@@ -1199,7 +1219,7 @@
     function handle(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
       if(d && Array.isArray(d.deletedFields)){ __pluDeleted={}; d.deletedFields.forEach(function(o){ var key=(o&&typeof o==='object')?o.key:o; if(key!=null){ var K=String(key).trim().toUpperCase(); if(K) __pluDeleted[K]=(o&&typeof o==='object')?{key:o.key,label:(o.label!=null?o.label:K),type:o.type||'text',align:o.align||'',trunc:o.trunc||0,fg:o.fg||'',bg:o.bg||'',bold:!!o.bold}:{key:K,label:K,type:'text'}; } }); }
-      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; (function(){ var __r={key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),boxc:(m.boxc||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}; if(m.catOf){ __r.catOf=String(m.catOf); __r.catValues=Array.isArray(m.catValues)?m.catValues:[]; } raw.push(__r); })(); }); }
+      var raw=[]; if(d && Array.isArray(d.masterFields)){ var seen={}; d.masterFields.forEach(function(m){ if(!m) return; var k=String(m.key!=null?m.key:m).trim().toUpperCase(); if(!k||seen[k]) return; seen[k]=1; (function(){ var __r={key:k,label:(m.label!=null?String(m.label):k),type:mfKind(m.type),align:(m.align||''),trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0),bg:(m.bg||''),fg:(m.fg||''),boxc:(m.boxc||''),bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat),fill:fmFillOf(m,k),line:fmLineOf(m),slot:fmSlotOf(m)}; if(m.catOf){ __r.catOf=String(m.catOf); __r.catValues=Array.isArray(m.catValues)?m.catValues:[]; } raw.push(__r); })(); }); }
       if(d && Array.isArray(d.tabs)){ __slCatsPLU=__flatCats(d.tabs); }
       __pluMasterRaw=raw;
       fmRebuild();
@@ -1234,46 +1254,90 @@
   function markPalSel(){ var b=document.getElementById('fmPalBody'); if(!b) return; var v=(__pal.val||''); var nm=b.querySelectorAll('.pal-sw'); for(var j=0;j<nm.length;j++){ nm[j].classList.toggle('sel',(nm[j].getAttribute('data-c')||'')===v); } }
   function wirePalette(){ if(__palWired) return; __palWired=true; var b=document.getElementById('fmPalBody'); if(b) b.addEventListener('click', function(e){ var sw=e.target&&e.target.closest?e.target.closest('.pal-sw'):null; if(!sw) return; __pal.val=sw.getAttribute('data-c')||''; markPalSel(); }); var ok=document.getElementById('fmPalOk'); if(ok) ok.onclick=function(){ if(__pal.i>=0&&fmWork[__pal.i]){ fmWork[__pal.i][__pal.which]=__pal.val||''; fmDirty=true; fmRender(); } var ov=document.getElementById('fmPalOv'); if(ov) ov.classList.remove('show'); }; var cc=document.getElementById('fmPalCancel'); if(cc) cc.onclick=function(){ var ov=document.getElementById('fmPalOv'); if(ov) ov.classList.remove('show'); }; var ov=document.getElementById('fmPalOv'); if(ov) ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); }); }
   function openPalette(i, which){ wirePalette(); if(!fmWork[i]) return; __pal={i:i, which:which, val:(fmWork[i][which]||'')}; var t=document.getElementById('fmPalTitle'); if(t) t.textContent=(which==='fg'?'글씨색':(which==='boxc'?'박스색':'바탕색'))+' 선택 — '+palEsc(fmWork[i].key); var html='<div class="pal-special">'; html+='<button class="pal-sw pal-trans" data-c="" title="투명/기본">투명</button>'; html+='<button class="pal-sw" data-c="#ffffff" style="background:#ffffff" title="하양"></button>'; html+='<button class="pal-sw" data-c="#000000" style="background:#000000" title="검정"></button>'; html+='</div>'; html+='<div class="pal-grid">'; for(var r=0;r<PAL_COLORS.length;r++){ html+='<div class="pal-rowlabel">'+PAL_COLORS[r][0]+'</div>'; for(var s=0;s<PAL_COLORS[r][1].length;s++){ var c=PAL_COLORS[r][1][s]; html+='<button class="pal-sw" data-c="'+c+'" style="background:'+c+'" title="'+PAL_COLORS[r][0]+' '+PAL_SHADE[s]+'"></button>'; } } html+='</div>'; var bd=document.getElementById('fmPalBody'); if(bd) bd.innerHTML=html; markPalSel(); var ov=document.getElementById('fmPalOv'); if(ov) ov.classList.add('show'); }
-  function markCnt(){ var c=$('fmCount'); if(c) c.textContent=(fmWork?fmWork.length:0)+'개'+(fmDirty?' · 미저장':''); }
+  /* markCnt는 fmRender 아래에 정의 (카테고리 숨김 필드 제외 카운트) */
+  /* ===== 필드 관리 — 라인(행) 기반 자유 배치 =====
+     · 각 필드는 line(행)·slot(칸) 좌표를 가짐. 칸이 비어 있어도 다른 필드가 밀리지 않는다(고정 슬롯).
+     · 행 맨 앞: 그 행을 설명하는 메모 박스(fmLineNotes[line]) — 필드 박스와 동일 크기.
+     · 드래그: 빈 칸에 놓으면 이동, 다른 필드 위에 놓으면 서로 자리 교환.
+     · [⤓] 채우기 토글: ON인 필드만 UPC/PLU 매니저 편집모드에서 '전체 채우기' 기능이 뜬다. */
+  var FM_SLOTS=6;                 // 한 행의 필드 칸 수 (메모 박스 제외)
+  var fmLineNotes=[];             // 행별 설명 메모 (upc-config/main.fieldLineNotes)
+  function fmAutoPlace(){
+    // line/slot 없는(=-1) 필드를 빈 칸에 순서대로 배치 (기존 배치는 유지)
+    if(!fmWork) return;
+    var occ={};
+    fmWork.forEach(function(m){ if(m.catOf) return; if(m.line>=0&&m.slot>=0&&m.slot<FM_SLOTS){ var kk=m.line+':'+m.slot; if(occ[kk]){ m.line=-1; m.slot=-1; } else occ[kk]=1; } else { m.line=-1; m.slot=-1; } });
+    var L=0,S=0;
+    function next(){ while(occ[L+':'+S]){ S++; if(S>=FM_SLOTS){ S=0; L++; } } }
+    fmWork.forEach(function(m){ if(m.catOf||m.line>=0) return; next(); m.line=L; m.slot=S; occ[L+':'+S]=1; });
+  }
+  function fmMaxLine(){ var mx=-1; (fmWork||[]).forEach(function(m){ if(!m.catOf&&m.line>mx) mx=m.line; }); return mx; }
+  function fmChipHTML(m,i){
+    var fl=mfFlag(m.type);
+    var k=String(m.key||'').toUpperCase();
+    var grp=(k==='MSRP'||k==='MSRP(%)')?' grp-msrp':((k==='SRP'||k==='SRP(%)')?' grp-srp':'');
+    var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
+    return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'"'+(m.boxc?(' style="background:'+m.boxc+'"'):'')+'>'+
+      '<div class="fm-l1">'+
+        '<button class="fm-fill'+(m.fill?' on':'')+'" type="button" title="필드 채우기 '+(m.fill?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다 (저장 후 적용)">⤓</button>'+
+        (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
+        '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결 (숨김/표시): '+slText(m)+'">🏬</button>'+
+        '<select class="fm-rtype" title="필드 종류">'+mfTypeOptionsShort(m.type)+'</select>'+
+      '</div>'+
+      '<div class="fm-l2">'+
+        '<input class="fm-name"'+((m.locked||fmLock()[k])?' readonly':'')+' style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="이름" title="'+esc(m.key)+'" autocomplete="off">'+
+        '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="LEN" title="표시 글자수 (비우면 전체)">'+
+        '<span class="fm-align" title="정렬">'+
+          '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button">L</button>'+
+          '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button">C</button>'+
+          '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button">R</button>'+
+        '</span>'+
+      '</div>'+
+      '<div class="fm-l3">'+
+        '<button class="fm-sw fm-sw-fg" data-pick="fg" type="button" title="글씨색"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</button>'+
+        '<button class="fm-sw fm-sw-bg" data-pick="bg" type="button" title="바탕색"'+(m.bg?(' style="background:'+m.bg+';color:#fff"'):'')+'>▦</button>'+
+        '<button class="fm-b fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
+        '<button class="fm-reset" type="button" title="초기화">⟲</button>'+
+        '<button class="fm-sw fm-sw-box" data-pick="boxc" type="button" title="박스 색상"'+(m.boxc?(' style="background:'+m.boxc+'"'):'')+'></button>'+
+        '<button class="fm-apply" type="button" title="이 설정을 UPC·PLU 양쪽에 즉시 적용">✓</button>'+
+      '</div>'+
+    '</div>';
+  }
   function fmRender(){
     var box=$('fmList'); if(!box||!fmWork) return;
     if(!fmWork.length){ box.innerHTML='<div class="fm-empty">아직 필드가 없습니다. 위에서 추가하세요.</div>'; }
     else {
-      box.innerHTML = fmWork.map(function(m,i){
-        if(m.catOf){ return '<div class="fm-row" data-i="'+i+'" style="display:none;"></div>'; }  // 카테고리 필드는 팝업에서만 표시
-        var fl=mfFlag(m.type);
-        var k=String(m.key||'').toUpperCase();
-        var grp = (k==='MSRP'||k==='MSRP(%)') ? ' grp-msrp' : ((k==='SRP'||k==='SRP(%)') ? ' grp-srp' : '');
-        var prev=''; if(m.fg)prev+='color:'+m.fg+';'; if(m.bg)prev+='background:'+m.bg+';'; if(m.bold)prev+='font-weight:800;';
-        return '<div class="fm-row'+grp+'" draggable="true" data-i="'+i+'"'+(m.boxc?(' style="background:'+m.boxc+'"'):'')+'>'+
-          '<div class="fm-l1">'+
-            '<span class="fm-ord">'+(i+1)+'</span>'+
-            (fmLock()[k]?'<span class="fm-lock" title="기능 필드 — 이름만 변경 가능 (삭제·키 변경 불가)">🔒</span>':('<button class="fm-userlock" type="button" title="'+(m.locked?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금')+'">'+(m.locked?'🔒':'🔓')+'</button>'+(m.locked?'':'<button class="fm-del" type="button" title="삭제">✕</button>')))+
-            '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결 (숨김/표시): '+slText(m)+'">🏬</button>'+
-            '<select class="fm-rtype" title="필드 종류">'+mfTypeOptionsShort(m.type)+'</select>'+
-          '</div>'+
-          '<div class="fm-l2">'+
-            '<input class="fm-name"'+((m.locked||fmLock()[k])?' readonly':'')+' style="'+prev+'" value="'+esc(m.label!=null?m.label:m.key)+'" maxlength="40" placeholder="이름" title="'+esc(m.key)+'" autocomplete="off">'+
-            '<input type="number" class="fm-trunc-in" min="0" max="200" value="'+(m.trunc>0?m.trunc:'')+'" placeholder="LEN" title="표시 글자수 (비우면 전체)">'+
-            '<span class="fm-align" title="정렬">'+
-              '<button class="fm-al'+(m.align==='left'?' on':'')+'" data-al="left" type="button">L</button>'+
-              '<button class="fm-al'+(m.align==='center'?' on':'')+'" data-al="center" type="button">C</button>'+
-              '<button class="fm-al'+(m.align==='right'?' on':'')+'" data-al="right" type="button">R</button>'+
-            '</span>'+
-          '</div>'+
-          '<div class="fm-l3">'+
-            '<button class="fm-sw fm-sw-fg" data-pick="fg" type="button" title="글씨색"'+(m.fg?(' style="color:'+m.fg+'"'):'')+'>A</button>'+
-            '<button class="fm-sw fm-sw-bg" data-pick="bg" type="button" title="바탕색"'+(m.bg?(' style="background:'+m.bg+';color:#fff"'):'')+'>▦</button>'+
-            '<button class="fm-b fm-bold'+(m.bold?' on':'')+'" type="button" title="굵게">B</button>'+
-            '<button class="fm-reset" type="button" title="초기화">⟲</button>'+
-            '<button class="fm-sw fm-sw-box" data-pick="boxc" type="button" title="박스 색상"'+(m.boxc?(' style="background:'+m.boxc+'"'):'')+'></button>'+
-            '<button class="fm-apply" type="button" title="이 설정을 UPC·PLU 양쪽에 즉시 적용">적용</button>'+
-          '</div>'+
-        '</div>';
-      }).join('');
+      fmAutoPlace();
+      // 좌표 → 필드 인덱스 맵
+      var at={}; fmWork.forEach(function(m,i){ if(!m.catOf) at[m.line+':'+m.slot]=i; });
+      var lines=fmMaxLine()+2;   // 맨 아래 빈 행 1개 추가 (새 행으로 이동 가능)
+      var html='';
+      for(var L=0; L<lines; L++){
+        html+='<div class="fm-lane" data-line="'+L+'">';
+        html+='<input class="fm-lnote" data-line="'+L+'" maxlength="60" placeholder="✎ 이 줄 설명" title="이 줄에 있는 필드들에 대한 설명 메모" value="'+esc(fmLineNotes[L]||'')+'" autocomplete="off">';
+        for(var S=0; S<FM_SLOTS; S++){
+          var idx=at[L+':'+S];
+          if(idx!=null){ html+=fmChipHTML(fmWork[idx], idx); }
+          else { html+='<div class="fm-slot-empty" data-line="'+L+'" data-slot="'+S+'"></div>'; }
+        }
+        html+='</div>';
+      }
+      box.innerHTML=html;
+      // ── 행 메모 입력 ──
+      box.querySelectorAll('.fm-lnote').forEach(function(inp){
+        inp.addEventListener('input', function(){ var L=parseInt(inp.getAttribute('data-line'),10); while(fmLineNotes.length<=L) fmLineNotes.push(''); fmLineNotes[L]=inp.value; fmDirty=true; markCnt(); });
+      });
+      // ── 빈 칸: 드롭 = 이동 ──
+      box.querySelectorAll('.fm-slot-empty').forEach(function(sl){
+        sl.addEventListener('dragover', function(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} if(__fmDrag>=0) sl.classList.add('drag-over'); });
+        sl.addEventListener('dragleave', function(){ sl.classList.remove('drag-over'); });
+        sl.addEventListener('drop', function(e){ e.preventDefault(); sl.classList.remove('drag-over'); var from=__fmDrag; if(from<0){ var dt=e.dataTransfer&&e.dataTransfer.getData('text/plain'); from=dt?parseInt(dt,10):-1; } if(from<0||!fmWork[from]) return; fmPlace(from, parseInt(sl.getAttribute('data-line'),10), parseInt(sl.getAttribute('data-slot'),10)); });
+      });
+      // ── 필드 칩 배선 ──
       box.querySelectorAll('.fm-row').forEach(function(row){
         var i=parseInt(row.getAttribute('data-i'),10);
-        if(!row.querySelector('.fm-name')) return;  // 숨김(카테고리) 필드 행
+        if(!row.querySelector('.fm-name')) return;
+        var fillB=row.querySelector('.fm-fill'); if(fillB) fillB.onclick=function(){ fmWork[i].fill=!fmWork[i].fill; fmDirty=true; fmRender(); };
         row.querySelector('.fm-name').addEventListener('input', function(){ var __s=this.selectionStart,__e=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(__s,__e);}catch(_){} fmWork[i].label=this.value; fmDirty=true; });
         var __rt=row.querySelector('.fm-rtype'); if(__rt) __rt.addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
         var __ul=row.querySelector('.fm-userlock'); if(__ul){ __ul.onclick=function(){ fmWork[i].locked=!fmWork[i].locked; fmDirty=true; fmRender(); }; }
@@ -1286,32 +1350,42 @@
         row.querySelectorAll('.fm-al').forEach(function(btn){ btn.onclick=function(){ var a=btn.getAttribute('data-al'); fmWork[i].align=(fmWork[i].align===a?'':a); fmDirty=true; fmRender(); }; });
         var trIn=row.querySelector('.fm-trunc-in'); if(trIn) trIn.addEventListener('change', function(){ var n=parseInt(this.value,10); fmWork[i].trunc=(n>0?n:0); fmDirty=true; markCnt(); });
         row.addEventListener('dragstart', function(e){ var t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='SELECT'||t.tagName==='OPTION')){ e.preventDefault(); return; } __fmDrag=i; row.classList.add('dragging'); try{ e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', String(i)); }catch(err){} });
-        row.addEventListener('dragend', function(){ __fmDrag=-1; box.querySelectorAll('.fm-row').forEach(function(r){ r.classList.remove('dragging'); r.classList.remove('drag-over'); }); });
+        row.addEventListener('dragend', function(){ __fmDrag=-1; box.querySelectorAll('.fm-row,.fm-slot-empty').forEach(function(r){ r.classList.remove('dragging'); r.classList.remove('drag-over'); }); });
         row.addEventListener('dragover', function(e){ e.preventDefault(); try{ e.dataTransfer.dropEffect='move'; }catch(err){} if(__fmDrag>=0 && i!==__fmDrag) row.classList.add('drag-over'); });
         row.addEventListener('dragleave', function(){ row.classList.remove('drag-over'); });
-        row.addEventListener('drop', function(e){ e.preventDefault(); row.classList.remove('drag-over'); var from=__fmDrag; if(from<0){ var dt=e.dataTransfer&&e.dataTransfer.getData('text/plain'); from=dt?parseInt(dt,10):-1; } fmMove(from,i); });
+        row.addEventListener('drop', function(e){ e.preventDefault(); row.classList.remove('drag-over'); var from=__fmDrag; if(from<0){ var dt=e.dataTransfer&&e.dataTransfer.getData('text/plain'); from=dt?parseInt(dt,10):-1; } fmSwap(from,i); });
       });
     }
-    var c=$('fmCount'); if(c) c.textContent=(fmWork?fmWork.length:0)+'개'+(fmDirty?' · 미저장':'');
+    markCnt();
   }
-  function fmMove(from,to){ if(from===to||from<0||to<0||from>=fmWork.length||to>=fmWork.length) return; var it=fmWork.splice(from,1)[0]; fmWork.splice(to,0,it); fmDirty=true; fmRender(); }
+  function markCnt(){ var c=$('fmCount'); if(c) c.textContent=(fmWork?fmWork.filter(function(m){return !m.catOf;}).length:0)+'개'+(fmDirty?' · 미저장':''); }
+  // 빈 칸으로 이동
+  function fmPlace(from, line, slot){ if(from<0||!fmWork[from]||!(line>=0)||!(slot>=0)||slot>=FM_SLOTS) return; fmWork[from].line=line; fmWork[from].slot=slot; fmDirty=true; fmRender(); }
+  // 두 필드 자리 교환 (칸 밀림 없음)
+  function fmSwap(from,to){ if(from===to||from<0||to<0||!fmWork[from]||!fmWork[to]) return; var a=fmWork[from], b=fmWork[to]; var L=a.line,S=a.slot; a.line=b.line; a.slot=b.slot; b.line=L; b.slot=S; fmDirty=true; fmRender(); }
   function fmAddNew(){
     var nn=$('fmNewName'), tt=$('fmNewType'); if(!nn||!fmWork) return;
     var name=(nn.value||'').trim().toUpperCase(); if(!name){ try{nn.focus();}catch(e){} return; }
     if(fmWork.some(function(m){return m.key===name;})){ alert('이미 있는 필드입니다'); nn.select(); return; }
     delete fmCurDeleted()[name]; fmWork.push({key:name, label:name, type:(tt?tt.value:'text'), align:'', trunc:0, bg:'', fg:'', boxc:'', bold:false, stores:'all'}); nn.value=''; fmDirty=true; fmRender(); try{nn.focus();}catch(e){}
   }
-  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; var __o={key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), boxc:(m.boxc||''), bold:!!m.bold, locked:!!m.locked, stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat)}; if(m.catOf){ __o.catOf=String(m.catOf); __o.catValues=Array.isArray(m.catValues)?m.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};}):[]; } out.push(__o); }); return out; }
+  function fmNorm(arr){ var seen={}, out=[]; (arr||[]).forEach(function(m){ if(!m||m.key==null)return; var k=String(m.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; var __o={key:k, label:(m.label!=null?String(m.label):k), type:mfKind(m.type), align:(m.align||''), trunc:((typeof m.trunc==='number'&&m.trunc>0)?m.trunc:0), bg:(m.bg||''), fg:(m.fg||''), boxc:(m.boxc||''), bold:!!m.bold, locked:!!m.locked, stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat),fill:fmFillOf(m,k),line:fmLineOf(m),slot:fmSlotOf(m)}; if(m.catOf){ __o.catOf=String(m.catOf); __o.catValues=Array.isArray(m.catValues)?m.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};}):[]; } out.push(__o); }); return out; }
   async function fmSave(){
     if(!window.smFb || !window.smFb.setDoc){ alert('Firebase 연결을 확인하세요'); return; }
     var btn=$('fmSave'), old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
     try{
-      var data = fmNorm(fmWork);
+      // 배치(행·칸) 순서대로 정렬해 저장 — 다른 앱의 필드 목록 순서가 화면 배치와 일치하도록
+      var __vis=fmWork.filter(function(m){return !m.catOf;}).sort(function(a,b){ return (a.line-b.line)||(a.slot-b.slot); });
+      var __cat=fmWork.filter(function(m){return !!m.catOf;});
+      var data = fmNorm(__vis.concat(__cat));
+      // 행 메모: 내용이 있는 마지막 행까지만 저장
+      var __notes=(fmLineNotes||[]).map(function(x){return String(x==null?'':x);});
+      while(__notes.length && __notes[__notes.length-1]==='') __notes.pop();
       var __curK={}; data.forEach(function(m){ __curK[m.key]=1; });
       var __delMap=fmCurDeleted();
       var __delDefs=Object.keys(__delMap).filter(function(k){ return !__curK[k]; }).map(function(k){ return __delMap[k]; });
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
-      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'plu-config','main'), { masterFields:data, deletedFields:__delDefs, updatedAt:Date.now() }, { merge:true });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'upc-config','main'), { masterFields:data, deletedFields:__delDefs, fieldLineNotes:__notes, updatedAt:Date.now() }, { merge:true });
+      await window.smFb.setDoc(window.smFb.doc(window.smFb.db,'plu-config','main'), { masterFields:data, deletedFields:__delDefs, fieldLineNotes:__notes, updatedAt:Date.now() }, { merge:true });
       fmDirty=false;
       __pluMasterRaw=data.map(fmNormRow); applyMaster(data);
       fmRender(); fmSetSaved('저장됨 · '+data.length+'개 (UPC+PLU)');

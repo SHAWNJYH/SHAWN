@@ -477,6 +477,9 @@
   .dcv-ends { display:inline-flex; gap:6px; flex-wrap:wrap; }
   .dcv-srp-ends { display:flex; flex-direction:column; gap:6px; }
   .dcv-endrow { display:flex; gap:6px; flex-wrap:wrap; }
+  .dcv-tare-quick { display:inline-flex; gap:6px; flex-wrap:wrap; }
+  /* 한글이 없는 라벨(예: ⚖ TARE(LB))은 line box가 3px 낮아 행 정렬이 어긋남 → 액션 버튼 높이 고정 */
+  .dcv-line > .plu-tool-btn { min-height:36px; }
   .dcv-title { font-family:var(--serif); font-size:17px; font-weight:700; color:#1e7a46; margin:4px 0 -4px; }
   .dcv-manual { font-size:12px; color:#555; line-height:1.7; gap:2px !important; }
   .dcv-manual b { color:#1f2937; }
@@ -714,7 +717,7 @@
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
-  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; }
+  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; var __fl={}; var __FL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var on=(f.fill!=null)?!!f.fill:!!__FL_LEGACY[K]; if(on) __fl[K]=1; }); window.__MFFILL=__fl; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue;
         var __k=String(__c.key||'').trim().toUpperCase();
         var ms=__MFSTY[__k];
@@ -780,6 +783,21 @@
   function isMarginCol(c){ var k=String((c&&c.key)||''), l=String((c&&c.label)||''); return /margin/i.test(k)||/margin/i.test(l)||/msrp\s*\(\s*%\s*\)/i.test(k)||/msrp\s*\(\s*%\s*\)/i.test(l); }
   function isSrpCol(c){ var s=String((c&&(c.key||c.label))||''); return /^\s*srp\s*$/i.test(s); }
   function isSrpMarginCol(c){ var k=String((c&&c.key)||''), l=String((c&&c.label)||''); return /^\s*srp\s*\(\s*%\s*\)\s*$/i.test(k)||/^\s*srp\s*\(\s*%\s*\)\s*$/i.test(l); }
+  // ── TARE 계열 열 판별 (tareNormKey: 대문자화 + 공백제거 → 'TARE (LB)' 도 매칭) ──
+  function isTareCol(c){ return tareNormKey((c&&(c.key||c.label))||'')==='TARE'; }
+  function isTareLbCol(c){ return tareNormKey((c&&(c.key||c.label))||'')==='TARE(LB)'; }
+  function isTareGCol(c){ return tareNormKey((c&&(c.key||c.label))||'')==='TARE(G)'; }
+  // 소수점 2자리 반올림 — 3자리부터 올림/버림. 부동소수점 오차 보정(1.005→1.01, 2.345→2.35).
+  function tareRound2(n){ if(!isFinite(n)) return NaN; return Math.round(Number((n*100).toPrecision(12)))/100; }
+  // TARE(LB)/TARE(G) 원본값 + 추가% → TARE 값 문자열. 값이 없으면 '' 반환(건너뜀).
+  function tareFromSource(srcVal, pct){
+    var v=parseFloat(String(srcVal==null?'':srcVal).replace(/[^0-9.\-]/g,''));
+    if(isNaN(v)) return '';
+    var p=Number(pct); if(!isFinite(p)) p=0;
+    var r=tareRound2(v*(1+p/100));
+    if(!isFinite(r)) return '';
+    return r.toFixed(2);
+  }
   function isUpcOCol(c){ return /upc\s*\(\s*o\s*\)/i.test(String((c&&(c.key||c.label))||'')); }
   function isUpcCCol(c){ return /upc\s*\(\s*c\s*\)/i.test(String((c&&(c.key||c.label))||'')); }
   function isPriceCol(c){ var s=String((c&&(c.key||c.label))||''); return /price/i.test(s) || isEaPriceCol(c) || isSalesPriceCol(c) || isSrpCol(c); }
@@ -1547,10 +1565,10 @@
   // ===== 데이터 변환 (UPC 패턴 이식) — COST/MSRP/SRP/MARGIN 마진계산·끝자리 보정 =====
   function getDisp(r,c){ return getVal(r, (c&&c.key)||''); }
   function subCfgKey(cat,sub){ return String(cat||'')+'||'+String(sub||''); }
-  function getSalesCfg(cat,sub){ var c=salesCfgMap[subCfgKey(cat,sub)]||{}; return { salesOn:!!c.salesOn, margin:(isFinite(Number(c.margin))?Number(c.margin):40), endings:(Array.isArray(c.endings)?c.endings.slice():[]), srpSalesOn:!!c.srpSalesOn, srpMarginOn:!!c.srpMarginOn, srpMargin:(isFinite(Number(c.srpMargin))?Number(c.srpMargin):40), srpEndings:(Array.isArray(c.srpEndings)?c.srpEndings.slice():[]), importMarginOn:!!c.importMarginOn, importMargin:(isFinite(Number(c.importMargin))?Number(c.importMargin):40) }; }
-  function setSalesCfg(cat,sub,patch){ var cur=getSalesCfg(cat,sub); var nc={salesOn:cur.salesOn,margin:cur.margin,endings:cur.endings,srpSalesOn:cur.srpSalesOn,srpMarginOn:cur.srpMarginOn,srpMargin:cur.srpMargin,srpEndings:cur.srpEndings,importMarginOn:cur.importMarginOn,importMargin:cur.importMargin}; for(var p in patch){ nc[p]=patch[p]; } salesCfgMap[subCfgKey(cat,sub)]=nc; saveSalesCfg(); }
+  function getSalesCfg(cat,sub){ var c=salesCfgMap[subCfgKey(cat,sub)]||{}; return { salesOn:!!c.salesOn, margin:(isFinite(Number(c.margin))?Number(c.margin):40), endings:(Array.isArray(c.endings)?c.endings.slice():[]), srpSalesOn:!!c.srpSalesOn, srpMarginOn:!!c.srpMarginOn, srpMargin:(isFinite(Number(c.srpMargin))?Number(c.srpMargin):40), srpEndings:(Array.isArray(c.srpEndings)?c.srpEndings.slice():[]), importMarginOn:!!c.importMarginOn, importMargin:(isFinite(Number(c.importMargin))?Number(c.importMargin):40), tarePct:(isFinite(Number(c.tarePct))?Number(c.tarePct):0) }; }
+  function setSalesCfg(cat,sub,patch){ var cur=getSalesCfg(cat,sub); var nc={salesOn:cur.salesOn,margin:cur.margin,endings:cur.endings,srpSalesOn:cur.srpSalesOn,srpMarginOn:cur.srpMarginOn,srpMargin:cur.srpMargin,srpEndings:cur.srpEndings,importMarginOn:cur.importMarginOn,importMargin:cur.importMargin,tarePct:cur.tarePct}; for(var p in patch){ nc[p]=patch[p]; } salesCfgMap[subCfgKey(cat,sub)]=nc; saveSalesCfg(); }
   async function saveSalesCfg(){ try{ if(fns()&&fns().setDoc) await fns().setDoc(fns().doc(db(), CFG_COL, CFG_DOC), {salesCfg:salesCfgMap, updatedAt:Date.now()}, {merge:true}); }catch(e){} }
-  var __calcUndo={ msrp:null, srp:null };
+  var __calcUndo={ msrp:null, srp:null, tare:null };
   function snapCalc(side, cols){ if(!work) return; cols=cols.filter(Boolean); __calcUndo[side]={ cols:cols, rows: work.map(function(r){ return cols.map(function(c){ return getCellVal(r,c); }); }) }; }
   function restoreCalc(side, label){
     if(!editMode||!work){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
@@ -1611,6 +1629,31 @@
       markDirty(); renderContent();
       showToast('MSRP 끝자리 '+n+'건 변경'+(__cfg.endings.length?' (.'+__cfg.endings.map(function(e){return ('0'+e).slice(-2);}).join('/.')+')':' (.09~.99 중 가장 가까운)'),'success');
     }
+  }
+  /* ── TARE 계산 ──
+     TARE(LB) 또는 TARE(G) 원본값에 [추가 %]를 더해 TARE 필드를 채운다.
+     · unit='lb' → TARE(LB) 기준, unit='g' → TARE(G) 기준
+     · 값 = 원본 × (1 + 추가%/100), 소수점 2자리 반올림
+     · 원본이 비어있거나 숫자가 아니면 그 행은 건너뛴다(기존 TARE 값 보존) */
+  function recalcAllTare(unit){
+    if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
+    var tare=findColBy(isTareCol);
+    if(!tare){ showToast('TARE 열을 찾을 수 없습니다','error'); return; }
+    var isG=(unit==='g');
+    var src=findColBy(isG?isTareGCol:isTareLbCol);
+    var nm=isG?'TARE(G)':'TARE(LB)';
+    if(!src){ showToast(nm+' 열을 찾을 수 없습니다','error'); return; }
+    var pct=getSalesCfg(curCat(),curSub()).tarePct;
+    snapCalc('tare', [tare]);
+    var n=0, skip=0;
+    (work||[]).forEach(function(row){
+      var v=tareFromSource(getCellVal(row, src), pct);
+      if(v===''){ skip++; return; }
+      setCellVal(row, tare, v+(isG?' G':' LB'));
+      n++;
+    });
+    markDirty(); renderContent();
+    showToast('TARE '+n+'건 채움 ('+nm+' 기준'+(pct?(' · 추가 '+pct+'%'):'')+')'+(skip?(' · 원본 없음 '+skip+'건 건너뜀'):''),'success');
   }
   function recalcAllMargin(){
     if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
@@ -1681,6 +1724,9 @@
     var endsBtns=endRow(ALLE.slice(0,5),'dcv-msrp-end')+endRow(ALLE.slice(5),'dcv-msrp-end');
     var SRPE=[9,19,29,39,49,59,69,79,89,99];
     var srpEndsBtns=endRow(SRPE.slice(0,5),'dcv-srp-end')+endRow(SRPE.slice(5),'dcv-srp-end');
+    // TARE 추가% 프리셋 (입력칸에 직접 타이핑도 가능)
+    var TAREP=[0,1,2,3,5];
+    var tareQuickBtns='<div class="dcv-endrow">'+TAREP.map(function(v){ return '<button class="dcv-end dcv-tare-p" data-v="'+v+'" type="button">'+v+'%</button>'; }).join('')+'</div>';
     var wrap=document.createElement('div');
     wrap.innerHTML='<div class="pcm-overlay" id="dcvOverlay"><div class="pcm-modal" style="max-width:600px;">'+
       '<div class="pcm-head">🔧 데이터 변환 <small style="font-weight:600;color:#9a9aa0;margin-left:6px;">'+escapeHtml(cat)+' › '+escapeHtml(sub)+'</small><button class="pcm-x" id="dcvClose" type="button">✕</button></div>'+
@@ -1716,6 +1762,19 @@
             '<span class="dcv-srp-ends">'+srpEndsBtns+'</span>'+
           '</div>'+
         '</div>'+
+        '<div class="dcv-title">TARE(용기 무게)</div>'+
+        '<div class="dcv-group">'+
+          '<div class="dcv-line">'+
+            '<button class="plu-tool-btn" id="dcvTareLbBtn" type="button" title="TARE(LB) 값에 추가 %를 더해 TARE 필드를 채웁니다">⚖ TARE(LB)</button>'+
+            '<button class="plu-tool-btn" id="dcvTareGBtn" type="button" title="TARE(G) 값에 추가 %를 더해 TARE 필드를 채웁니다">⚖ TARE(G)</button>'+
+            '<button class="plu-tool-btn dcv-restore" id="dcvTareRestore" type="button" title="TARE 계산을 직전 상태로 복원">↩ 복원</button>'+
+          '</div>'+
+          '<div class="dcv-line dcv-indent">'+
+            '<span class="dcv-lbl">추가</span>'+
+            '<input type="number" class="dcv-num" id="dcvTarePct" min="0" max="99" step="0.1"> <span class="dcv-lbl">%</span>'+
+            '<span class="dcv-tare-quick">'+tareQuickBtns+'</span>'+
+          '</div>'+
+        '</div>'+
         '<div class="dcv-title">📖 설명서</div>'+
         '<div class="dcv-group dcv-manual">'+
           '<div><b>SALES 계산</b> : COST / MARGIN 기준으로 계산</div>'+
@@ -1724,6 +1783,9 @@
           '<div><b>평균 마진 버튼(스위치)</b> : ON 상태 + 평균 마진 입력 시, MSRP(SRP)를 마진 대비 가격으로 변경</div>'+
           '<div class="sub">↳ 끝자리 금액이 선택되어 있을 경우 해당 끝자리로 가격이 변경(마진 비율도 변경)</div>'+
           '<div><b>끝자리 0.x9 버튼</b> : 모든 금액의 끝자리를 0.x9로 변경 (예: 2.38 → 2.39, 1.00 → 0.99)</div>'+
+          '<div><b>TARE(LB) / TARE(G) 버튼</b> : 해당 열의 값을 TARE 필드로 채움 (LB 누르면 LB 값, G 누르면 G 값)</div>'+
+          '<div class="sub">↳ 추가 %를 넣으면 그만큼 늘려서 채움 (예: 1.50 LB + 2% → 1.53 LB / 680 G + 3% → 700.40 G)</div>'+
+          '<div class="sub">↳ 소수점 2자리까지, 3자리부터 반올림. 원본 값이 비어 있으면 그 행은 건너뜀</div>'+
         '</div>'+
       '</div>'+
     '</div></div>';
@@ -1746,6 +1808,12 @@
         var v=parseInt(b.getAttribute('data-v'),10);
         if(cfg.srpEndings.indexOf(v)>=0) b.classList.add('on'); else b.classList.remove('on');
       });
+      // TARE: 추가 % 입력값 + 프리셋 하이라이트 동기화
+      $('dcvTarePct').value=cfg.tarePct;
+      Array.prototype.forEach.call($('dcvOverlay').querySelectorAll('.dcv-tare-p'), function(b){
+        var v=Number(b.getAttribute('data-v'));
+        if(Number(cfg.tarePct)===v) b.classList.add('on'); else b.classList.remove('on');
+      });
     }
     refresh();
     $('dcvUpcBtn').onclick=function(){ recalcAllUpc(); };
@@ -1767,6 +1835,15 @@
     Array.prototype.forEach.call($('dcvOverlay').querySelectorAll('.dcv-srp-end'), function(b){
       b.onclick=function(){ var v=parseInt(b.getAttribute('data-v'),10); var cfg=getSalesCfg(cat,sub); var arr=cfg.srpEndings.slice(); var i=arr.indexOf(v); if(i>=0) arr.splice(i,1); else arr.push(v); setSalesCfg(cat,sub,{srpEndings:arr}); refresh(); };
     });
+    // ── TARE ──
+    function setTarePct(v){ if(!isFinite(v)||v<0) v=0; if(v>99) v=99; setSalesCfg(cat,sub,{tarePct:v}); refresh(); }
+    $('dcvTarePct').onchange=function(){ setTarePct(Number($('dcvTarePct').value)); };
+    Array.prototype.forEach.call($('dcvOverlay').querySelectorAll('.dcv-tare-p'), function(b){
+      b.onclick=function(){ setTarePct(Number(b.getAttribute('data-v'))); };
+    });
+    $('dcvTareLbBtn').onclick=function(){ recalcAllTare('lb'); };
+    $('dcvTareGBtn').onclick=function(){ recalcAllTare('g'); };
+    $('dcvTareRestore').onclick=function(){ restoreCalc('tare','TARE'); };
   }
   function openCfgModal(){ if(!editMode) return; var box=$('pluCfgCols'); var lay=workLayout||[]; if(box){ box.innerHTML=lay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="plu-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join(''); } var allb=$('pluCfgAll'); if(allb) allb.onclick=function(){ var cs=$('pluCfgCols').querySelectorAll('.plu-cfg-col'); var allOn=Array.prototype.every.call(cs,function(ch){return ch.checked;}); Array.prototype.forEach.call(cs,function(ch){ ch.checked=!allOn; }); allb.textContent=allOn?'전체 선택':'전체 해제'; }; var ov=$('pluCfgModal'); if(ov) ov.classList.add('show'); }
   function closeCfgModal(){ var ov=$('pluCfgModal'); if(ov) ov.classList.remove('show'); }
@@ -1960,11 +2037,61 @@
     }
     var tb=$('pluTbody');
     if(tb){
-      // 카테고리 필드(숫자 목록) 선택 드롭다운
+      // 카테고리 필드(숫자 목록) 선택 드롭다운 + [필드 채우기] 값 선택 팝업 (UPC 매니저와 동일)
       tb.addEventListener('focusin', function(e){
         var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input')) return;
         var key=String(t.getAttribute('data-key')||'').trim().toUpperCase();
-        var mc=(window.__MFCAT||{})[key]; if(!mc) return;
+        var mc=(window.__MFCAT||{})[key];
+        // [필드 채우기] STORE MANAGER 필드관리의 [⤓] 토글이 ON인 필드만 표시 (마스터 미로드 시 레거시 목록 폴백)
+        var __FL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
+        var __fillOn=!!((window.__MFFILL||__FL_LEGACY)[key]);
+        if(!mc && __fillOn){
+          var old2=document.getElementById('mfCatPick'); if(old2) old2.parentNode.removeChild(old2);
+          // 현재 리스트에서 이 필드의 고유 값 수집
+          var seen={}, vals=[];
+          (work||[]).forEach(function(row){ if(!row) return;
+            var v=''; var bb=t.getAttribute('data-base')==='1';
+            if(bb){ v=row[fieldOf(key)]; } else if(row.extra){ for(var k in row.extra){ if(String(k).trim().toUpperCase()===key){ v=row.extra[k]; break; } } }
+            v=(v==null?'':String(v)).trim(); if(v && !seen[v]){ seen[v]=1; vals.push(v); }
+          });
+          vals.sort(); if(vals.length>40) vals=vals.slice(0,40);
+          var pick2=document.createElement('div'); pick2.id='mfCatPick';
+          pick2.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:190px;max-height:260px;overflow:auto;';
+          pick2.innerHTML='<div style="font-size:10px;color:#9a9aa0;padding:2px 6px 6px;">'+key+' — 값 선택 후 일괄 적용</div>'
+            +'<div class="mfc-opt" data-mode="cur" style="padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;color:#b8730f;font-weight:700;">✏ 현재 입력값으로 전체 채우기</div>'
+            +(vals.length?vals.map(function(v){ return '<div class="mfc-opt" data-n="'+v.replace(/"/g,'&quot;')+'" style="padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;">'+v+'</div>'; }).join(''):'<div style="padding:6px 8px;font-size:11px;color:#9a9aa0;">기존 값 없음 — 직접 입력 후 위 항목 사용</div>');
+          var r2=t.getBoundingClientRect();
+          pick2.style.left=Math.min(r2.left, window.innerWidth-230)+'px';
+          pick2.style.top=(r2.bottom+4)+'px';
+          document.body.appendChild(pick2);
+          Array.prototype.forEach.call(pick2.querySelectorAll('.mfc-opt'), function(op){
+            op.onmouseenter=function(){ op.style.background='#f4efe2'; };
+            op.onmouseleave=function(){ op.style.background=''; };
+            op.onmousedown=function(ev){
+              ev.preventDefault();
+              var n=(op.getAttribute('data-mode')==='cur') ? t.value : op.getAttribute('data-n');
+              if(op.getAttribute('data-mode')==='cur' && String(n).trim()===''){ showToast('먼저 입력칸에 값을 입력하세요','error'); return; }
+              var idx2=parseInt(t.getAttribute('data-idx'),10);
+              var bb2=t.getAttribute('data-base')==='1';
+              if(confirm('현재 필드('+key+') 전체를 "'+n+'"(으)로 변경할까요?\n[확인]=전체 변경 · [취소]=이 행만')){
+                (work||[]).forEach(function(row){ if(!row) return; if(bb2){ row[fieldOf(key)]=n; } else { if(!row.extra) row.extra={}; row.extra[key]=n; } });
+                var ins2=tb.querySelectorAll('input.plu-edit-input[data-key="'+key.replace(/"/g,'\\"')+'"]');
+                for(var i3=0;i3<ins2.length;i3++){ ins2[i3].value=n; }
+              } else {
+                if(work&&work[idx2]){ if(bb2){ work[idx2][fieldOf(key)]=n; } else { if(!work[idx2].extra) work[idx2].extra={}; work[idx2].extra[key]=n; } }
+                t.value=n;
+              }
+              markDirty();
+              if(pick2.parentNode) pick2.parentNode.removeChild(pick2);
+            };
+          });
+          function closeP2(){ if(pick2.parentNode) pick2.parentNode.removeChild(pick2); document.removeEventListener('mousedown', outP2, true); }
+          function outP2(ev){ if(!pick2.contains(ev.target) && ev.target!==t) closeP2(); }
+          setTimeout(function(){ document.addEventListener('mousedown', outP2, true); },0);
+          t.addEventListener('blur', function(){ setTimeout(function(){ var ae=document.activeElement; if(!pick2.contains(ae)) closeP2(); }, 150); }, { once:true });
+          return;
+        }
+        if(!mc) return;
         var old=document.getElementById('mfCatPick'); if(old) old.parentNode.removeChild(old);
         var pick=document.createElement('div'); pick.id='mfCatPick';
         pick.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:180px;max-height:240px;overflow:auto;';
