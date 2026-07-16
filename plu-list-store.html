@@ -845,7 +845,7 @@
       }
       if(isMyShortField(c) && c.type!=='check' && c.type!=='rcheck'){
         var __ov=ovg(c); var __base=String(getVal(r,c.key)||''); var __raw=(__ov!=null&&__ov!=='')?String(__ov):__base;
-        var __disp0=unlocked?__raw:((c.fmt==='price')?fmtPrice(__raw, decOf(c)):dispDec(__raw, c));
+        var __disp0=unlocked?__raw:((c.fmt==='price')?fmtPrice(__raw, decOf(c)):dispDec(__raw, c, r));
         var __sh=__disp0.length>limit?(escapeHtml(__disp0.slice(0,limit))+'…'):escapeHtml(__disp0);
         if(unlocked){ return '<td class="stl-cell stl-etext'+acl+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'"'+(__disp0.length>limit?(' title="'+escapeHtml(__disp0)+'"'):'')+'>'+(__sh||'<span class="stl-ph">＋</span>')+'</td>'; }
         return '<td class="stl-cell'+acl+'"'+colorStyle(c)+(__disp0.length>limit?(' title="'+escapeHtml(__disp0)+'"'):'')+'>'+__sh+'</td>';
@@ -855,7 +855,7 @@
       if(isItemCodeCol(c)){ var codesD=itemCodesOf(r); if(codesD.length>1){ var repD=codesD[0]; var svD=repD.length>limit?(escapeHtml(repD.slice(0,limit))+'…'):escapeHtml(repD); var dataC=escapeHtml(codesD.join('\n')); return '<td class="'+clsFor(c.key)+acl+' plu-c-ic"'+colorStyle(c)+'><span class="plu-ic-cell" data-codes="'+dataC+'">'+svD+'<span class="plu-ic-badge">+'+(codesD.length-1)+'</span></span></td>'; } }
       var fv=String(getVal(r,c.key)||'');
       if(c.fmt==='price'){ fv=fmtPrice(fv, decOf(c)); }
-      else fv=dispDec(fv, c);
+      else fv=dispDec(fv, c, r);
       var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv);
       return '<td class="'+clsFor(c.key)+acl+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>';
     }).join('');
@@ -953,6 +953,7 @@
   }
 
   function renderContent(){
+    __tareMaj=null;   // TARE 단위 다수결 캐시 무효화 (카테고리·데이터 변경 반영)
     if(pluSearchTerm.trim()){ renderSearch(pluSearchTerm.trim()); return; }
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
@@ -1189,19 +1190,53 @@
   function exportVal(r,col){ if(!r) return ''; if(String(col.key==null?'':col.key).toLowerCase()==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } return ''; }
   // [소수점] EXPORT 반올림 — STORE MANAGER 필드 소수점 설정(dec) 자릿수
   function expRound(n, d){ var p=Math.pow(10, d); return Math.round((n+Number.EPSILON)*p)/p; }
+  /* [TARE 단위] 표시 단위 판정 — TARE 열은 값에 단위가 붙은 행(TARE 계산 버튼)과 안 붙은 행(엑셀 불러오기·직접 입력)이 섞여 있어 통일이 필요.
+       1) 값에 LB/G가 있으면 그대로
+       2) TARE(LB)/TARE(G) 열은 열 이름이 곧 단위
+       3) TARE 열의 단위 없는 값 → 같은 행의 TARE(LB)/TARE(G)와 비율 비교로 판정
+          (TARE = 원본 × (1+추가%/100), 추가%는 0~99라 비율 1.0~2.0. LB와 G는 약 453배 차이라 한쪽만 이 범위에 들어옴)
+       4) 판정 불가 → 같은 열에서 많이 쓰인 단위 (없으면 LB) */
+  var __tareMaj=null;
+  function tareMajUnit(){
+    if(__tareMaj) return __tareMaj;
+    var lb=0, g=0;
+    try{
+      var rows=rowsFor(curCat())||[];
+      for(var i=0;i<rows.length;i++){
+        var m=String(getVal(rows[i],'TARE')||'').match(/(LB|G)\s*$/i);
+        if(!m) continue;
+        if(m[1].toUpperCase()==='LB') lb++; else g++;
+      }
+    }catch(e){}
+    __tareMaj=(g>lb)?'G':'LB';
+    return __tareMaj;
+  }
+  function tareUnitOf(row, col, raw){
+    var s=String(raw==null?'':raw);
+    var m=s.match(/(LB|G)\s*$/i); if(m) return m[1].toUpperCase();
+    var tk=String((col&&col.key)||'').toUpperCase().replace(/\s+/g,'');
+    if(tk==='TARE(LB)') return 'LB';
+    if(tk==='TARE(G)') return 'G';
+    var v=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(v)||v<=0) return tareMajUnit();
+    function num(k){ var x=parseFloat(String(getVal(row,k)||'').replace(/[^0-9.\-]/g,'')); return isNaN(x)?null:x; }
+    var lb=num('TARE(LB)'), g=num('TARE(G)');
+    if(lb!=null && lb>0){ var rl=v/lb; if(rl>=0.98 && rl<=2.05) return 'LB'; }
+    if(g!=null && g>0){ var rg=v/g; if(rg>=0.98 && rg<=2.05) return 'G'; }
+    return tareMajUnit();
+  }
   /* [소수점] 화면 표시 값 — 설정 자릿수 우선, 미설정이면 기존 2자리 반올림(round2Disp)과 동일.
      TARE 계열은 "1.53 LB"처럼 단위가 붙어 있어 round2Disp가 그냥 통과시키므로 숫자만 반올림하고 단위는 유지한다. */
-  function dispDec(v, col){
+  function dispDec(v, col, row){
     var s=String(v==null?'':v);
     var d=decOf(col);
     var tk=String((col&&col.key)||'').toUpperCase().replace(/\s+/g,'');
     if(tk==='TARE'||tk==='TARE(LB)'||tk==='TARE(G)'){
       var m=s.match(/^\s*([+-]?[0-9]*\.?[0-9]+)\s*(LB|G)?\s*$/i);
-      if(!m) return s;
+      if(!m) return s;                                   // 숫자 형태가 아니면 원본 유지
       var tn=parseFloat(m[1]); if(isNaN(tn)) return s;
-      var unit=m[2]?(' '+m[2].toUpperCase()):'';
+      var unit=' '+tareUnitOf(row, col, s);              // 단위 없는 값도 판정해서 항상 표시
       if(d!=null) return expRound(tn,d).toFixed(d)+unit;
-      if(m[1].indexOf('.')<0) return s;                 // 정수는 그대로 (round2Disp와 동일 규칙)
+      if(m[1].indexOf('.')<0) return m[1]+unit;          // 정수는 자릿수 그대로 (round2Disp와 동일 규칙)
       return expRound(tn,2).toFixed(2)+unit;
     }
     if(d!=null){

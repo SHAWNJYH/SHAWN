@@ -768,6 +768,9 @@
   function gToLb(gStr){ var g=parseFloat(String(gStr==null?'':gStr).replace(/[^0-9.\-]/g,'')); if(isNaN(g)) return null; return Math.round(g/LB_TO_G*1000)/1000; }
   function normalizeTareRow(r, gFirst){
     if(!r) return; var ex=r.extra||(r.extra={});
+    // TARE(단독): 불러온 값에 단위가 없으면 판정해서 붙임 (TARE 계산 버튼으로 채운 행과 표기 통일)
+    for(var __k in ex){ if(tareNormKey(__k)==='TARE'){ var __v=String(ex[__k]==null?'':ex[__k]).trim();
+      if(__v!=='' && !/(LB|G)\s*$/i.test(__v) && /^[+-]?[0-9]*\.?[0-9]+$/.test(__v)){ ex[__k]=__v+' '+tareUnitOf(r,{key:__k},__v); } break; } }
     var lbNum=String(ex['TARE(LB)']==null?'':ex['TARE(LB)']).replace(/[^0-9.\-]/g,'').trim();
     var gNum=String(ex['TARE(G)']==null?'':ex['TARE(G)']).replace(/[^0-9.\-]/g,'').trim();
     function byLb(){ ex['TARE(LB)']=lbNum+' LB'; var g=lbToG(lbNum); if(g!=null) ex['TARE(G)']=String(g)+' G'; }
@@ -776,6 +779,50 @@
     var hasG=(gNum!=='' && !isNaN(parseFloat(gNum)));
     if(gFirst){ if(hasG) byG(); else if(hasLb) byLb(); }
     else { if(hasLb) byLb(); else if(hasG) byG(); }
+  }
+  /* [TARE 단위] 표시 단위 판정 — 스토어와 동일 규칙
+       1) 값에 LB/G가 있으면 그대로  2) TARE(LB)/TARE(G) 열은 열 이름이 곧 단위
+       3) TARE 열의 단위 없는 값 → 같은 행의 TARE(LB)/TARE(G)와 비율 비교 (LB↔G는 약 453배 차이라 확실히 구분)
+       4) 판정 불가 → 같은 열에서 많이 쓰인 단위 (없으면 LB) */
+  var __tareMaj=null;
+  function tareMajUnit(){
+    if(__tareMaj) return __tareMaj;
+    var lb=0, g=0;
+    try{
+      var rows=(work&&work.length)?work:(rowsFor(curCat())||[]);
+      for(var i=0;i<rows.length;i++){
+        var m=String(getVal(rows[i],'TARE')||'').match(/(LB|G)\s*$/i);
+        if(!m) continue;
+        if(m[1].toUpperCase()==='LB') lb++; else g++;
+      }
+    }catch(e){}
+    __tareMaj=(g>lb)?'G':'LB';
+    return __tareMaj;
+  }
+  function tareUnitOf(row, col, raw){
+    var s=String(raw==null?'':raw);
+    var m=s.match(/(LB|G)\s*$/i); if(m) return m[1].toUpperCase();
+    var tk=tareNormKey(col&&col.key);
+    if(tk==='TARE(LB)') return 'LB';
+    if(tk==='TARE(G)') return 'G';
+    var v=parseFloat(s.replace(/[^0-9.\-]/g,'')); if(isNaN(v)||v<=0) return tareMajUnit();
+    function num(k){ var x=parseFloat(String(getVal(row,k)||'').replace(/[^0-9.\-]/g,'')); return isNaN(x)?null:x; }
+    var lb=num('TARE(LB)'), g=num('TARE(G)');
+    if(lb!=null && lb>0){ var rl=v/lb; if(rl>=0.98 && rl<=2.05) return 'LB'; }
+    if(g!=null && g>0){ var rg=v/g; if(rg>=0.98 && rg<=2.05) return 'G'; }
+    return tareMajUnit();
+  }
+  // TARE 계열 표시값 — 숫자는 설정 자릿수(없으면 2자리)로 정리하고 단위는 항상 붙임
+  function tareDisp(v, col, row){
+    var s=String(v==null?'':v);
+    var m=s.match(/^\s*([+-]?[0-9]*\.?[0-9]+)\s*(LB|G)?\s*$/i);
+    if(!m) return s;
+    var tn=parseFloat(m[1]); if(isNaN(tn)) return s;
+    var unit=' '+tareUnitOf(row, col, s);
+    var d=decOfKey(col&&col.key);
+    if(d!=null) return (Math.round((tn+Number.EPSILON)*Math.pow(10,d))/Math.pow(10,d)).toFixed(d)+unit;
+    if(m[1].indexOf('.')<0) return m[1]+unit;
+    return (Math.round((tn+Number.EPSILON)*100)/100).toFixed(2)+unit;
   }
   function tareMismatch(r){ var lb=lbToG(getVal(r,'TARE(LB)')); if(lb==null) return false; var g=parseFloat(String(getVal(r,'TARE(G)')==null?'':getVal(r,'TARE(G)')).replace(/[^0-9.\-]/g,'')); if(isNaN(g)) return true; return Math.abs(g-lb)>1; }
   var PLU_PAL=[
@@ -1279,7 +1326,9 @@
       var limit=(c.trunc>0)?c.trunc:TL;                 // 열별 표시 글자수(없으면 전체 공통값)
       var alignCls=c.align?(' align-'+c.align):'';        // 열별 정렬
       var fv=String(getVal(r,c.key)||'');
-      if(c.fmt==='price'){ fv=fmtPrice(fv, decOfKey(c.key)); }
+      var __tkD=tareNormKey(c.key);
+      if(__tkD==='TARE'||__tkD==='TARE(LB)'||__tkD==='TARE(G)'){ fv=tareDisp(fv, c, r); }
+      else if(c.fmt==='price'){ fv=fmtPrice(fv, decOfKey(c.key)); }
       else if(c.fmt==='margin' && decOfKey(c.key)!=null){ var __mn=parseFloat(String(fv).replace(/[%\s,]/g,'')); fv=isNaN(__mn)?String(fv):(__mn.toFixed(decOfKey(c.key))+'%'); }  // [소수점] 명시 설정 시에만 — 미설정이면 아래 기존 표시 유지
       else if(c.fmt==='number' && decOfKey(c.key)!=null){ var __nn=parseFloat(String(fv).replace(/,/g,'')); if(!isNaN(__nn)) fv=__nn.toFixed(decOfKey(c.key)); else fv=String(fv); }
       else fv=String(round2Disp(fv));
@@ -1413,6 +1462,7 @@
   }
 
   function renderContent(){
+    __tareMaj=null;   // TARE 단위 다수결 캐시 무효화
     if(pluSearchTerm.trim()){ renderSearch(pluSearchTerm.trim()); return; }
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
@@ -2190,7 +2240,7 @@
         if(_nk==='TARE(LB)'){ var g=lbToG(t.value); if(g!=null){ var gv=String(g)+' G'; if(!work[idx].extra) work[idx].extra={}; work[idx].extra['TARE(G)']=gv; var ins=tb.querySelectorAll('input.plu-edit-input[data-idx="'+idx+'"]'); Array.prototype.forEach.call(ins,function(ii){ if(tareNormKey(ii.getAttribute('data-key'))==='TARE(G)'){ ii.value=gv; } }); } }
         else if(_nk==='TARE(G)'){ var lb=gToLb(t.value); if(lb!=null){ var lv=String(lb)+' LB'; if(!work[idx].extra) work[idx].extra={}; work[idx].extra['TARE(LB)']=lv; var ins2=tb.querySelectorAll('input.plu-edit-input[data-idx="'+idx+'"]'); Array.prototype.forEach.call(ins2,function(ii){ if(tareNormKey(ii.getAttribute('data-key'))==='TARE(LB)'){ ii.value=lv; } }); } }
         markDirty(); } });
-      tb.addEventListener('change',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var nk=tareNormKey(key); if(work&&work[idx]&&(nk==='TARE(LB)'||nk==='TARE(G)')){ var num=String(t.value).replace(/[^0-9.\-]/g,'').trim(); if(num!==''&&!isNaN(parseFloat(num))){ var nv=num+(nk==='TARE(LB)'?' LB':' G'); t.value=nv; if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=nv; markDirty(); } } });
+      tb.addEventListener('change',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var nk=tareNormKey(key); if(work&&work[idx]&&(nk==='TARE'||nk==='TARE(LB)'||nk==='TARE(G)')){ var num=String(t.value).replace(/[^0-9.\-]/g,'').trim(); if(num!==''&&!isNaN(parseFloat(num))){ var nv=num+' '+tareUnitOf(work[idx],{key:key},t.value); t.value=nv; if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=nv; markDirty(); } } });
       tb.addEventListener('change',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-check'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); if(work&&work[idx]){ if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=!!t.checked; markDirty(); } });
       tb.addEventListener('click',function(e){ var d=e.target.closest&&e.target.closest('.plu-row-del'); if(!d)return; var idx=parseInt(d.getAttribute('data-del'),10); if(work){ work.splice(idx,1); markDirty(); if(pluRender) pluRender(); } });
       tb.addEventListener('click', async function(e){ var c=e.target.closest&&e.target.closest('.mgr-refedit'); if(!c)return; var st=c.getAttribute('data-store'), plu=c.getAttribute('data-plu'), key=c.getAttribute('data-key'), typ=c.getAttribute('data-typ'); var cur=mgrRefVal({store:st,srcKey:key},plu); if(typ==='check'){ mgrSetStoreOv(st, curCat(), plu, key, cur?false:true); } else { var nv=await uiPrompt('['+st+'] 값 입력', cur==null?'':String(cur)); if(nv===null) return; mgrSetStoreOv(st, curCat(), plu, key, nv.trim()); } });
