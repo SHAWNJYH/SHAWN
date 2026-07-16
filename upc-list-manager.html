@@ -272,6 +272,13 @@
   #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
   #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
   #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
+  /* [팝업 무스크롤] 팝업 본문은 고정, 카테고리/필드 목록만 내부 스크롤 (PLU와 동일 규칙) */
+  #pluExportMenuOv .pcm-body:not(.em-list-view) { overflow:hidden; display:flex; flex-direction:column; }
+  #pluExportMenuOv .pcm-body.em-list-view { overflow:auto; }
+  /* 홈 그리드(카테고리|필드)가 남는 높이를 전부 차지하고, 목록은 그 안에서만 스크롤 → 팝업 본문은 절대 안 잘리고 스크롤도 없음 */
+  #pluExportMenuOv .pcm-body:not(.em-list-view) > div:first-child { flex:1 1 auto; min-height:120px; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) > div:first-child > .em-sec { min-height:0; height:100%; box-sizing:border-box; }
+  #pluExportMenuOv .em-cat-wrap, #pluExportMenuOv .em-cfg-list { flex:1 1 auto; min-height:0; overflow:auto; }
   #icpOverlay .pcm-modal { max-width:480px; border-radius:18px; }
   #icpOverlay .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
   #icpOverlay .pcm-head .pcm-x { color:#fff; opacity:.75; }
@@ -3422,7 +3429,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '</div></div>'+
         '</div>') : '';
       var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+(startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
-      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:0;overflow:hidden;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
     }
     // 리스트 화면 HTML
     var emEntryMap={};
@@ -3476,9 +3483,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       }; });
     }
     // 홈 화면 표시
-    function showHome(){ var b=$('emBody'); if(b){ b.innerHTML=homeHTML(); bindHome(); } }
+    function showHome(){ var b=$('emBody'); if(b){ b.classList.remove('em-list-view'); b.innerHTML=homeHTML(); bindHome(); } }
     // 리스트 화면 표시
-        function showList(mode){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(mode); bindList(mode); } }
+        function showList(mode){ var b=$('emBody'); if(b){ b.classList.add('em-list-view'); b.innerHTML=listHTML(mode); bindList(mode); } }
     $('emClose').onclick=close; $(ov).onclick=function(e){ if(e.target&&e.target.id===ov) close(); };
     showHome();
   }
@@ -3644,7 +3651,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 
   // ===== 돌아가기 / 검색 =====
   // 돌아가기: 편집 모드면 편집만 종료(페이지 유지), 아니면 이전 화면으로 이동
-  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
+  // 돌아가기 — 직전 페이지가 형제 앱(UPC/PLU 매니저·OCR)이면 history.back() 시 서로 오가는 문제가 있어 홈으로 직행
+  function __fromSiblingApp(){ try{ var f=String(document.referrer||'').split('?')[0].split('#')[0]; return /(upc-list-manager|plu-list-manager|upc-list-convert-ocr)\.html$/i.test(f); }catch(e){ return false; } }
+  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1 && !__fromSiblingApp()){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
   var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=function(){ window.location.href='plu-list-manager.html'; };
   var __goOcr=$('pluGoOcr'); if(__goOcr) __goOcr.onclick=function(){ window.location.href='upc-list-convert-ocr.html'; };

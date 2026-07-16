@@ -553,17 +553,19 @@
   .em-export-cta:disabled { opacity:.45; cursor:not-allowed; filter:none; }
   .em-back-btn { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:14px 0; font-family:var(--mono); font-size:14px; font-weight:800; cursor:pointer; background:var(--bg-elev); color:var(--text-dim); transition:all .12s; }
   .em-back-btn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
-  #pluExportMenuOv .pcm-modal { max-width:1040px; border-radius:18px; }
+  #pluExportMenuOv .pcm-modal { max-width:760px; border-radius:18px; }
   #pluExportMenuOv .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
   #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
   #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
   #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
   .em-box { border:1px solid var(--border); border-radius:14px; padding:14px 16px; background:var(--bg-elev); display:flex; flex-direction:column; gap:10px; }
-  .em-grid { display:grid; grid-template-columns:1.05fr 1fr; align-items:start; }
-  .em-grid > .em-col { padding:16px 20px; display:flex; flex-direction:column; gap:10px; min-width:0; }
-  .em-grid > .em-col + .em-col { border-left:1px solid #efeee9; }
-  .em-grid .em-cat-wrap { max-height:46vh; overflow:auto; }
-  .em-grid .em-cfg-list { grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); max-height:30vh; overflow:auto; }
+  /* [팝업 무스크롤] 팝업 본문은 고정, 카테고리/필드 목록만 내부 스크롤 (UPC와 동일 규칙) */
+  #pluExportMenuOv .pcm-body:not(.em-list-view) { overflow:hidden; display:flex; flex-direction:column; }
+  #pluExportMenuOv .pcm-body.em-list-view { overflow:auto; }
+  /* 홈 그리드(카테고리|필드)가 남는 높이를 전부 차지하고, 목록은 그 안에서만 스크롤 → 팝업 본문은 절대 안 잘리고 스크롤도 없음 */
+  #pluExportMenuOv .pcm-body:not(.em-list-view) > div:first-child { flex:1 1 auto; min-height:120px; }
+  #pluExportMenuOv .pcm-body:not(.em-list-view) > div:first-child > .em-sec { min-height:0; height:100%; box-sizing:border-box; }
+  #pluExportMenuOv .em-cat-wrap, #pluExportMenuOv .em-cfg-list { flex:1 1 auto; min-height:0; overflow:auto; }
   .em-grid .em-cat-subs { grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); }
   .em-grid .em-modes { flex-wrap:wrap; }
   .em-list-sec { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
@@ -2383,40 +2385,36 @@
     '</div></div>';
     document.body.appendChild(wrap.firstChild);
     var close=function(){ var o=$(ov); if(o) o.remove(); };
-    // 홈 화면 HTML — 2단(카테고리 | 필드+LIST) 그리드로 스크롤 없이 한 화면
+    // 홈 화면 HTML — UPC 매니저와 동일 레이아웃 (2단 그리드 + 전폭 섹션 · 팝업 스크롤 없음, 내부 목록만 스크롤)
     function homeHTML(){
+      var catSec='<div class="em-sec">'+
+          '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="em-allbtn" id="emCatAll" type="button">전체 선택</button></div>'+
+          '<div class="em-cat-wrap">'+catHtml+'</div>'+
+        '</div>';
       var cfgLay=(layoutByCat[curCat()]||[]);
       var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">필드가 없습니다.</div>';
-      var fmtSec='<div class="em-list-sec">'+
+      var cfgSec='<div class="em-sec">'+
+          '<div class="em-row-between"><div class="em-tt">내보내기 필드</div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
+          '<div class="em-cfg-list">'+cfgRows+'</div>'+
+        '</div>';
+      var catExpSec='<div class="em-sec">'+
           '<div class="em-tt">EXPORT 카테고리 형식으로 내보내기 (HANA 등)</div>'+
           '<div class="em-box">'+
             '<div style="display:flex;gap:8px;align-items:center;">'+
               '<select id="emCatSel" style="flex:1;border:1.5px solid var(--border,#e5e5e0);border-radius:9px;padding:8px 10px;font-size:13px;"><option value="">EXPORT 카테고리 불러오는 중…</option></select>'+
               '<button class="em-allbtn" id="emCatExp" type="button" style="border-radius:10px;padding:9px 16px;background:#c9a961;color:#fff;border-color:#c9a961;">⬇ EXPORT</button>'+
             '</div>'+
-            '<div style="font-size:11px;color:#9a9aa0;margin-top:6px;">왼쪽 <b>카테고리 선택</b>에서 체크한 목록을, 선택한 EXPORT 카테고리의 엑셀 형식(연결 매핑)으로 출력합니다.</div>'+
+            '<div style="font-size:11px;color:#9a9aa0;margin-top:6px;">위 <b>카테고리 선택</b>에서 체크한 목록을, 선택한 EXPORT 카테고리의 엑셀 형식(연결 매핑)으로 출력합니다.</div>'+
           '</div>'+
         '</div>';
-      var listSec='<div class="em-list-sec">'+
+      var listSec='<div class="em-sec">'+
           '<div class="em-tt">신상품 / 가격변경 LIST 선택 EXPORT</div>'+
           '<div class="em-box"><div class="em-row em-modes">'+
             '<button class="em-allbtn em-go" data-mode="set" type="button" style="border-radius:10px;padding:9px 14px;">⬇ LIST 선택 EXPORT</button>'+
           '</div></div>'+
         '</div>';
-      var grid='<div class="em-grid">'+
-          '<div class="em-col">'+
-            '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="em-allbtn" id="emCatAll" type="button">전체 선택</button></div>'+
-            '<div class="em-cat-wrap">'+catHtml+'</div>'+
-          '</div>'+
-          '<div class="em-col">'+
-            '<div class="em-row-between"><div class="em-tt">내보내기 필드</div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
-            '<div class="em-cfg-list">'+cfgRows+'</div>'+
-            fmtSec+
-            listSec+
-          '</div>'+
-        '</div>';
       var foot='<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button><button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button></div>';
-      return grid+foot;
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;min-height:0;overflow:hidden;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
     }
     // LIST 선택 화면 — 가격변경 이력을 카테고리별로 선택해 EXPORT
     var emEntryMap={};
@@ -2462,8 +2460,8 @@
       var bk=$('emBack2'); if(bk) bk.onclick=showHome;
       document.querySelectorAll('#'+ov+' .em-exp').forEach(function(b){ b.onclick=function(){ var en=emEntryMap[b.getAttribute('data-key')]; if(!en) return; exportHistGroup(en.records, en.kind, en.date); }; });
     }
-    function showHome(){ var b=$('emBody'); if(b){ b.innerHTML=homeHTML(); bindHome(); } }
-    function showList(){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(); bindList(); } }
+    function showHome(){ var b=$('emBody'); if(b){ b.classList.remove('em-list-view'); b.innerHTML=homeHTML(); bindHome(); } }
+    function showList(){ var b=$('emBody'); if(b){ b.classList.add('em-list-view'); b.innerHTML=listHTML(); bindList(); } }
     var x=$('emClose'); if(x) x.onclick=close;
     var ovEl=$(ov); if(ovEl) ovEl.onclick=function(e){ if(e.target===ovEl) close(); };
     showHome();
@@ -2968,7 +2966,9 @@
   }
 
   // ===== 돌아가기 / 검색 =====
-  async function goBack(){ if(!(await leaveEditGuard()))return; if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
+  // 돌아가기 — 직전 페이지가 형제 앱(UPC/PLU 매니저·OCR)이면 history.back() 시 서로 오가는 문제가 있어 홈으로 직행
+  function __fromSiblingApp(){ try{ var f=String(document.referrer||'').split('?')[0].split('#')[0]; return /(upc-list-manager|plu-list-manager|upc-list-convert-ocr)\.html$/i.test(f); }catch(e){ return false; } }
+  async function goBack(){ if(!(await leaveEditGuard()))return; if(document.referrer && history.length>1 && !__fromSiblingApp()){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
   var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=async function(){ if(!(await leaveEditGuard()))return; window.location.href='upc-list-manager.html'; };
   var __goOcr=$('pluGoOcr'); if(__goOcr) __goOcr.onclick=async function(){ if(!(await leaveEditGuard()))return; window.location.href='upc-list-convert-ocr.html'; };
