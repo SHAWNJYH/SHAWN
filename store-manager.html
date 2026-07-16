@@ -145,6 +145,8 @@
   .fm-fill.on:hover{ border-color:#166030; background:#166030; color:#fff; }
   .fm-dec-in{ width:22px; height:20px; border:1px solid var(--border); border-radius:5px; padding:0 2px; font-family:var(--mono); font-size:11px; font-weight:800; text-align:center; box-sizing:border-box; flex:0 0 auto; background:#fff; }
   input.fm-dec-in:focus{ outline:none; border-color:var(--accent-warm); }
+  input.fm-dec-in{ -moz-appearance:textfield; appearance:textfield; }
+  input.fm-dec-in::-webkit-outer-spin-button, input.fm-dec-in::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
   .fm-dec-na{ display:inline-block; background:repeating-linear-gradient(45deg,#f2f2ee 0 4px,#fafaf8 4px 8px); border-style:dashed; }
   .fm-row.grp-msrp .fm-dec-in,.fm-row.grp-srp .fm-dec-in{ background:#fff; }
   .fm-row.grp-msrp .fm-fill,.fm-row.grp-srp .fm-fill{ background:rgba(255,255,255,.16); color:#fff; border-color:rgba(255,255,255,.3); }
@@ -1309,7 +1311,7 @@
         '<button class="fm-storelink'+(slMode(m)!=='all'?' on':'')+'" type="button" title="매장·카테고리 연결 (숨김/표시): '+slText(m)+'">🏬</button>'+
         '<button class="fm-fill'+(m.fill?' on':'')+'" type="button" title="전체 적용(필드 채우기) '+(m.fill?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다 (저장 후 적용)">'+(m.fill?'✓':'⤓')+'</button>'+
         ((m.type==='price'||m.type==='margin'||m.type==='number')
-          ?('<input type="number" class="fm-dec-in" min="0" max="6" step="1" value="'+(m.dec!=null?m.dec:'')+'" placeholder="2" title="소수점 자릿수 — $/%/숫자 필드의 리스트 표시 자릿수 (비우면 기존 그대로: 가격·%는 2자리)">')
+          ?('<input type="text" inputmode="numeric" maxlength="1" class="fm-dec-in" value="'+(m.dec!=null?m.dec:'')+'" placeholder="2" title="소수점 자릿수(0~6) — $/%/숫자 필드의 리스트 표시 자릿수. 숫자만 입력, 비우면 기존 그대로(가격·%는 2자리)">')
           :'<span class="fm-dec-in fm-dec-na" title="소수점 자릿수는 $ / % / 숫자 타입에서만 설정 가능"></span>')+
         '<select class="fm-rtype" title="필드 종류">'+mfTypeOptionsShort(m.type)+'</select>'+
       '</div>'+
@@ -1367,7 +1369,10 @@
         var i=parseInt(row.getAttribute('data-i'),10);
         if(!row.querySelector('.fm-name')) return;
         var fillB=row.querySelector('.fm-fill'); if(fillB) fillB.onclick=function(){ fmWork[i].fill=!fmWork[i].fill; fmDirty=true; fmRender(); };
-        var decIn=row.querySelector('input.fm-dec-in'); if(decIn) decIn.addEventListener('change', function(){ var v=this.value.trim(); if(v===''){ delete fmWork[i].dec; } else { var d=Math.floor(Number(v)); if(!isFinite(d)||d<0) d=0; if(d>6) d=6; fmWork[i].dec=d; this.value=d; } fmDirty=true; markCnt(); });
+        var decIn=row.querySelector('input.fm-dec-in'); if(decIn){
+          decIn.addEventListener('input', function(){ var v=this.value.replace(/[^0-9]/g,''); if(v!==''){ var d=parseInt(v,10); if(d>6) d=6; v=String(d); } this.value=v; });
+          decIn.addEventListener('change', function(){ var v=this.value.trim(); if(v===''){ delete fmWork[i].dec; } else { var d=parseInt(v,10); if(!isFinite(d)||d<0) d=0; if(d>6) d=6; fmWork[i].dec=d; this.value=d; } fmDirty=true; markCnt(); });
+        }
         row.querySelector('.fm-name').addEventListener('input', function(){ var __s=this.selectionStart,__e=this.selectionEnd; this.value=this.value.toUpperCase(); try{this.setSelectionRange(__s,__e);}catch(_){} fmWork[i].label=this.value; fmDirty=true; });
         var __rt=row.querySelector('.fm-rtype'); if(__rt) __rt.addEventListener('change', function(){ fmWork[i].type=this.value; fmDirty=true; fmRender(); });
         var __ul=row.querySelector('.fm-userlock'); if(__ul){ __ul.onclick=function(){ fmWork[i].locked=!fmWork[i].locked; fmDirty=true; fmRender(); }; }
