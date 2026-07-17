@@ -1508,9 +1508,15 @@
   th.stl-col { color:#1f7a43; }
   .stl-echk, .stl-etext { cursor:pointer; }
   .stl-etext:hover { outline:2px solid #9bd6ad; outline-offset:-2px; }
-  .stl-cell.stl-editing { padding:0 !important; outline:2px solid #2a8a4a; outline-offset:-2px; }
-  .stl-inline { width:100%; box-sizing:border-box; border:none; outline:none; background:#fffdf2; color:#111;
-    font-family:var(--mono, monospace); font-size:12px; font-weight:700; padding:4px 5px; text-align:inherit; }
+  /* [폭 고정] 편집 가능 셀은 항상 같은 최소폭 → 값이 비었을 때(＋)나 입력 중이나 열 너비가 흔들리지 않음 */
+  .stl-etext { min-width:62px; }
+  /* 입력칸은 절대배치로 셀을 덮어써서 표 레이아웃(열 너비)에 전혀 관여하지 않는다.
+     원래 내용은 .stl-ghost 로 남겨 셀 폭을 그대로 유지 (input 의 기본 폭이 열을 밀어내던 문제 해결) */
+  .stl-cell.stl-editing { position:relative; outline:2px solid #2a8a4a; outline-offset:-2px; }
+  .stl-cell.stl-editing > .stl-ghost { visibility:hidden; }
+  .stl-inline { position:absolute; left:0; top:0; width:100%; height:100%; box-sizing:border-box;
+    border:none; outline:none; background:#fffdf2; color:#111;
+    font-family:var(--mono, monospace); font-size:12px; font-weight:700; padding:8px 9px; text-align:inherit; }
   .plu-table thead th.stl-coldrag { cursor:grab; }
   .plu-table thead th.stl-coldrag:active { cursor:grabbing; }
   .plu-table thead th.stl-coldragging { opacity:.45; }
@@ -1622,7 +1628,8 @@
     __inlineOn=true;
     cell.classList.add('stl-editing');
     var numeric=(fmt==='price'||fmt==='margin'||fmt==='number');
-    cell.innerHTML='<input class="stl-inline" type="text"'+(numeric?' inputmode="decimal"':'')+' value="'+esc(curStr)+'">';
+    cell.innerHTML='<span class="stl-ghost">'+prevHTML+'</span>'
+      +'<input class="stl-inline" type="text" size="1"'+(numeric?' inputmode="decimal"':'')+' value="'+esc(curStr)+'">';
     var inp=cell.querySelector('input');
     try{ inp.focus(); inp.select(); }catch(e){}
     var done=false;
