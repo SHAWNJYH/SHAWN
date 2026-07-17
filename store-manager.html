@@ -938,25 +938,32 @@
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       imxState.master={ id:IMX_MASTER_ID, name:'ITEM MASTER', fields:Array.isArray(d.fields)?d.fields:[],
                         mappings:(d.mappings&&typeof d.mappings==='object')?d.mappings:{}, samples:d.samples||{}, fileName:d.fileName||'' };
+      imxState._masterLoaded=true;
       if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); }
     }).catch(function(){});
     fb.getDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       imxState.profiles=Array.isArray(d.profiles)?d.profiles:[];
       imxState.activeId=d.activeId||IMX_MASTER_ID;
+      imxState._profilesLoaded=true;
       imxRender(); requestAnimationFrame(imxDraw);
     }).catch(function(){ imxRender(); });
   }
-  function imxSaveMatch(){
+  /* 저장 경로 분리 — 선택된 카테고리에 따라 엉뚱한 문서를 덮어쓰지 않도록 명시적으로 나눈다 */
+  function imxSaveProfiles(){
     var fb=window.smFb; if(!fb||!fb.setDoc) return;
-    if(imxIsMaster()){
-      var m=imxState.master;
-      try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MASTER_DOC), { fields:m.fields||[], mappings:m.mappings||{}, samples:m.samples||{}, fileName:m.fileName||'', updatedAt:Date.now() }, {merge:true})
-        .then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
-      return;
-    }
-    try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { profiles:imxState.profiles, activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
+    if(!imxState._profilesLoaded) return;   // 로드 전 저장 금지
+    try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { profiles:imxState.profiles, activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true})
+      .then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
   }
+  function imxSaveMaster(){
+    var fb=window.smFb; if(!fb||!fb.setDoc) return;
+    if(!imxState._masterLoaded) return;     // 로드 전 저장 금지 (빈 값으로 덮어쓰기 방지)
+    var m=imxState.master;
+    try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MASTER_DOC), { fields:m.fields||[], mappings:m.mappings||{}, samples:m.samples||{}, fileName:m.fileName||'', updatedAt:Date.now() }, {merge:true})
+      .then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
+  }
+  function imxSaveMatch(){ if(imxIsMaster()) imxSaveMaster(); else imxSaveProfiles(); }
   function imxSetMap(analyzeKey, excelField){    var p=imxActive(); if(!p) return; if(!p.mappings) p.mappings={};
     if(excelField) p.mappings[analyzeKey]=excelField; else delete p.mappings[analyzeKey];
     imxSaveMatch();
@@ -1030,20 +1037,23 @@
   }
   function imxRenderArmed(){ var e=$('imxArmedNote'); if(!e) return; var f=imxState.armed?imxField(imxState.armed):null; e.textContent=f?('"'+f.label+'" 선택됨 → 오른쪽 IMPORT 필드를 클릭해 연결 (여러 필드가 같은 IMPORT 필드 공유 가능)'):''; }
   /* 구버전 호환: 예전 {엑셀열: 필드key} 매핑을 {필드key: 엑셀열} 로 1회 변환 후 저장 */
+  /* 구버전 매핑 방향 변환 — 대상이 ITEM ANALYZE 프로필이므로 판정도 반드시 ITEM ANALYZE 필드 기준.
+     (현재 선택된 카테고리 기준으로 판정하면 ITEM MASTER 선택 중에 analyze 매핑이 지워진다) */
+  function imxAnalyzeField(key){ for(var i=0;i<imxAnalyzeFields.length;i++){ if(imxAnalyzeFields[i].key===key) return imxAnalyzeFields[i]; } return null; }
   function imxMigrateDir(){
-    if(!imxAnalyzeFields.length) return false;
+    if(!imxAnalyzeFields.length || !imxState._profilesLoaded) return false;
     var changed=false;
     imxState.profiles.forEach(function(p){
       var mp=p.mappings||{}, out={}, dirty=false;
       Object.keys(mp).forEach(function(k){
         var v=mp[k];
-        if(imxField(k)) out[k]=v;
-        else if(imxField(v)){ var fk=String(v).trim().toUpperCase(); if(!out[fk]){ out[fk]=k; dirty=true; } }
+        if(imxAnalyzeField(k)) out[k]=v;
+        else if(imxAnalyzeField(v)){ var fk=String(v).trim().toUpperCase(); if(!out[fk]){ out[fk]=k; dirty=true; } }
         else dirty=true;   // 어느 쪽도 유효하지 않은 항목은 제거
       });
       if(dirty){ p.mappings=out; changed=true; }
     });
-    if(changed) imxSaveMatch();
+    if(changed) imxSaveProfiles();
     return changed;
   }
   function imxRender(){ imxMigrateDir(); imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed();
@@ -1245,7 +1255,7 @@
   if($('imxFieldsBtn')) $('imxFieldsBtn').onclick=iafOpen;
 
   /* 카테고리 전환은 선택 상태만 저장 (마스터 문서를 덮어쓰지 않도록 분리) */
-  function imxSaveActiveId(){ var fb=window.smFb; if(!fb||!fb.setDoc) return;
+  function imxSaveActiveId(){ var fb=window.smFb; if(!fb||!fb.setDoc||!imxState._profilesLoaded) return;
     try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).catch(function(){}); }catch(e){} }
   if($('imxProfileSel')) $('imxProfileSel').onchange=function(){ imxState.activeId=this.value; imxState.armed=null; imxSaveActiveId(); imxRender(); requestAnimationFrame(imxDraw); };
   if($('imxClearBtn')) $('imxClearBtn').onclick=function(){ var p=imxActive(); if(!p) return; if(!confirm('현재 카테고리("'+p.name+'")의 모든 연결을 초기화할까요?')) return; p.mappings={}; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
