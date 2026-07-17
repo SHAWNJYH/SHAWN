@@ -1128,11 +1128,11 @@
   };
   /* ===== ITEM ANALYZE 필드 수정/추가 (app-config/item-analyze-fields) =====
      ITEM MANAGEMENT 가 IMPORT 받을 필드 정의. 여기서 이름·역할·기능을 바로 고칠 수 있다. */
-  var IAF_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],
+  var IAF_ROLES=[['upc','UPC · 식별'],['code','ITEM CODE · PLU · 코드'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],
                  ['qty','수량 (QTY)'],['amount','판매금액 · SRP TOTAL'],['cost_amount','원가금액 · COST TOTAL'],
                  ['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
   var IAF_FNS=[['none','그대로'],['eng','설명 분리 · 영문(/ 왼쪽)'],['kor','설명 분리 · 한글(/ 오른쪽)'],['per_qty','수량으로 나눔 (단가 $)']];
-  var IAF_VER=3;   // 요청 반영: 수량 다음 → 원가금액(COST TOTAL) → 판매금액(SRP TOTAL)
+  var IAF_VER=4;   // v3: 원가금액/판매금액 순서 · v4: ITEM CODE · PLU 를 코드 역할로(검색 대상)
   function iafOpts(list, sel){ return list.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+esc(r[1])+'</option>'; }).join(''); }
   function iafSaved(t){ var e=$('iafSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
   /* 편집 대상 = 현재 선택된 카테고리 */
@@ -1156,6 +1156,12 @@
     if(!d || !Array.isArray(d.fields) || !d.fields.length) return false;
     if((d.cfgVersion||0) >= IAF_VER) return false;
     var fields=d.fields.map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key||'')), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
+    // ITEM CODE · PLU · 상품코드 → 코드 역할 (검색 대상: UPC · ITEM CODE · KOR DESC · ENG DESC)
+    fields.forEach(function(f){
+      if(f.role!=='text' && f.role!=='upc') return;
+      var k=String(f.key+' '+f.label).toUpperCase().replace(/\s+/g,'');
+      if(/ITEMCODE|^PLU$|PLU\b|품목코드|상품코드|SKU/.test(k)) f.role='code';
+    });
     // 이름: 원가금액(COST TOTAL) · 판매금액(SRP TOTAL)
     fields.forEach(function(f){ if(f.role==='amount') f.label='판매금액(SRP TOTAL)'; });
     if(!fields.some(function(f){ return f.role==='cost_amount'; })) fields.push({ key:'원가금액', label:'', role:'cost_amount', fn:'none' });

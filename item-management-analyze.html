@@ -241,12 +241,12 @@
   <!-- 오른쪽: 상품 검색 -->
   <div class="ia-right">
     <div class="ia-sec">
-      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">상품 검색</span><span class="ia-sec-sub">UPC · 상품명 (부분·유사 검색)</span></div>
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">상품 검색</span><span class="ia-sec-sub">UPC · ITEM CODE · KOR DESC · ENG DESC (부분·유사 검색)</span></div>
       <div class="sr-box">
         <div class="sr-row">
           <div class="sr-search sr-field" style="flex:1;">
             <label>검색어</label>
-            <input id="srInput" type="text" placeholder="상품명 또는 UPC 입력 (예: 신라 · 신라면 · 8801…)" autocomplete="off">
+            <input id="srInput" type="text" placeholder="UPC · ITEM CODE · KOR DESC · ENG DESC 로 검색 (예: 8801 · 12345 · 신라면 · SHIN…)" autocomplete="off">
             <div class="sr-sugg" id="srSugg"></div>
           </div>
           <button class="sr-go" id="srGo" type="button">검색</button>
@@ -378,9 +378,10 @@
   function fieldIsNum(role){ return role==='cost'||role==='srp'||role==='price'||role==='qty'||role==='amount'||role==='cost_amount'; }
   function fieldOpt(role){ return role==='qty'||role==='amount'||role==='cost_amount'||role==='date'||role==='category'; }
   function deriveRoles(){
-    var idKey=null,idKeys=[],nameKeys=[],priceKeys=[],amountKey=null,costAmtKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
+    var idKey=null,idKeys=[],codeKeys=[],nameKeys=[],priceKeys=[],amountKey=null,costAmtKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
     FIELDS.forEach(function(f){
       if(f.role==='upc'){ if(!idKey) idKey=f.key; idKeys.push(f.key); }
+      else if(f.role==='code'){ codeKeys.push(f.key); }
       else if(f.role==='name') nameKeys.push(f.key);
       else if(f.role==='cost'||f.role==='srp'||f.role==='price'){ priceKeys.push(f.key); if(f.role==='cost'&&!costKey) costKey=f.key; if(f.role==='srp'&&!srpKey) srpKey=f.key; if(f.role==='price'&&!costKey) costKey=f.key; }
       else if(f.role==='amount'){ if(!amountKey) amountKey=f.key; }
@@ -395,7 +396,7 @@
     if(!srpKey && priceKeys.length>1) srpKey=priceKeys[1];
     var pset={}; priceKeys.forEach(function(k){ pset[k]=1; });
     if(!idKeys.length && idKey) idKeys=[idKey];
-    ROLES={ idKey:idKey, idKeys:idKeys, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, costAmtKey:costAmtKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
+    ROLES={ idKey:idKey, idKeys:idKeys, codeKeys:codeKeys, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, costAmtKey:costAmtKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
   }
   function setFields(arr){ FIELDS=(arr&&arr.length)?normCfg(arr):normCfg(FIELD_DEFAULTS); deriveRoles(); }
   function fieldByKey(k){ k=String(k||'').trim().toUpperCase(); for(var i=0;i<FIELDS.length;i++){ if(FIELDS[i].key===k) return FIELDS[i]; } return null; }
@@ -548,6 +549,9 @@
       p._ids=(p.ids||[]).map(function(x){ return String(x).toLowerCase(); });
       p._ids.push(String(p.key||'').toLowerCase());   // 정규화된 UPC 로도 검색 가능
       p._names=ROLES.nameKeys.map(function(nk2){ return norm(p.vals[nk2]); }).filter(Boolean);
+      // ITEM CODE · PLU 등 코드 필드도 검색 대상
+      p.codes=(ROLES.codeKeys||[]).map(function(ck){ return String(p.vals[ck]==null?'':p.vals[ck]).trim(); }).filter(Boolean);
+      p._codes=p.codes.map(function(x){ return x.toLowerCase(); });
       return p; });
   }
 
@@ -558,6 +562,11 @@
       if(idn===qu || (quk && upcKey(idn)===quk)) s=Math.max(s,1000);
       else if(idn.indexOf(qu)===0) s=Math.max(s,650);
       else if(idn.indexOf(qu)>=0) s=Math.max(s,420);
+    });
+    (p._codes||[]).forEach(function(cd){ if(!cd) return;
+      if(cd===qu || (quk && upcKey(cd)===quk)) s=Math.max(s,980);
+      else if(cd.indexOf(qu)===0) s=Math.max(s,640);
+      else if(cd.indexOf(qu)>=0) s=Math.max(s,410);
     });
     p._names.forEach(function(nm){ if(!nm) return;
       if(nm===qn) s=Math.max(s,900);
@@ -923,7 +932,7 @@
     box.innerHTML=suggList.map(function(p,i){
       var stores=Object.keys(p.perStore).length; var nm=pName(p), n2=pName2(p);
       return '<div class="sr-sugg-item" data-i="'+i+'"><div class="sr-sugg-nm">'+esc(nm||p.id||'(이름없음)')+'</div>'+
-        '<div class="sr-sugg-sub">'+(p.id?('UPC '+esc(p.id)+' · '):'')+(n2?esc(n2)+' · ':'')+stores+'개 매장</div></div>';
+        '<div class="sr-sugg-sub">'+(p.id?('UPC '+esc(p.id)+' · '):'')+((p.codes&&p.codes.length)?('CODE '+esc(p.codes[0])+' · '):'')+(n2?esc(n2)+' · ':'')+stores+'개 매장</div></div>';
     }).join('');
     box.classList.add('show');
     box.querySelectorAll('.sr-sugg-item').forEach(function(el){ el.onclick=function(){ pick(suggList[+el.getAttribute('data-i')]); }; });
@@ -1043,7 +1052,7 @@
   $('mapOv').addEventListener('click', function(e){ if(e.target===$('mapOv')) closeMap(); });
 
   /* ===== ITEM ANALYZE 필드 관리 (필드관리 마스터 중 선별) ===== */
-  var IM_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],['qty','수량 (QTY)'],['amount','판매금액 · SRP TOTAL'],['cost_amount','원가금액 · COST TOTAL'],['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
+  var IM_ROLES=[['upc','UPC · 식별'],['code','ITEM CODE · PLU · 코드'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],['qty','수량 (QTY)'],['amount','판매금액 · SRP TOTAL'],['cost_amount','원가금액 · COST TOTAL'],['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
   function roleOpts(sel){ return IM_ROLES.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+r[1]+'</option>'; }).join(''); }
   var cfgFromCloud=false, cfgChecked=false, __seedTried=false;
 
@@ -1092,7 +1101,8 @@
   }
   /* 마스터 필드명으로 role 추정(빈 설정일 때 자동 시드용) */
   function seedRole(key){ var k=norm(key);
-    if(k.indexOf('upc')>=0||k==='plu') return 'upc';
+    if(k.indexOf('upc')>=0||k.indexOf('barcode')>=0||k.indexOf('바코드')>=0) return 'upc';
+    if(k.indexOf('itemcode')>=0||k.indexOf('item code')>=0||k==='plu'||k.indexOf('품목코드')>=0||k.indexOf('상품코드')>=0||k.indexOf('sku')>=0) return 'code';
     if(k.indexOf('kor')>=0||k.indexOf('한글')>=0||k.indexOf('상품명')>=0||k.indexOf('국문')>=0) return 'name';
     if(k.indexOf('eng')>=0||k.indexOf('영문')>=0) return 'name';
     if(k.indexOf('cost')>=0||k.indexOf('원가')>=0||k.indexOf('매입')>=0) return 'cost';
