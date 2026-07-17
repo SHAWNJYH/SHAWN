@@ -403,8 +403,12 @@
   setFields(FIELD_DEFAULTS);
   /* 제품 접근 헬퍼 */
   function pId(p){ return p.id||''; }
-  function pName(p){ for(var i=0;i<ROLES.nameKeys.length;i++){ var v=p.vals[ROLES.nameKeys[i]]; if(v) return v; } return ''; }
-  function pName2(p){ var seen=false; for(var i=0;i<ROLES.nameKeys.length;i++){ var v=p.vals[ROLES.nameKeys[i]]; if(v){ if(seen) return v; seen=true; } } return ''; }
+  function pNames(p){ var out=[];
+    for(var i=0;i<ROLES.nameKeys.length;i++){ var v=p.vals[ROLES.nameKeys[i]]; if(v && out.indexOf(v)<0) out.push(v); }
+    (p.mNames||[]).forEach(function(v){ if(v && out.indexOf(v)<0) out.push(v); });   // ITEM MASTER 이름 보강
+    return out; }
+  function pName(p){ var n=pNames(p); return n[0]||''; }
+  function pName2(p){ var n=pNames(p); return n[1]||''; }
 
   /* ===== 상태 ===== */
   var datasets={};        // store -> {store,fileName,uploadedAt,rowCount,map,rows:[normalized]}
@@ -494,6 +498,40 @@
     for(var i=0;i<ROLES.nameKeys.length;i++){ var v=row[ROLES.nameKeys[i]]; if(v) return v; }
     return '';
   }
+  /* ===== ITEM MASTER 조회 인덱스 =====
+     ITEM CODE(또는 마스터의 UPC·상품명)로 검색하면 → 마스터에서 UPC 를 찾고
+     → 그 UPC 로 각 매장 엑셀 데이터를 연결해 결과를 보여준다. */
+  var IM_INDEX={};   // 정규화 UPC → { upc, codes:[], names:[] }
+  function buildMasterIndex(){
+    IM_INDEX={};
+    var rows=(imMaster&&imMaster.rows)||[]; if(!rows.length) return;
+    var upcF=IM_FIELDS.filter(function(f){ return f.role==='upc'; });
+    var codeF=IM_FIELDS.filter(function(f){ return f.role==='code'; });
+    var nameF=IM_FIELDS.filter(function(f){ return f.role==='name'; });
+    rows.forEach(function(r){
+      var uk='', uraw='';
+      for(var i=0;i<upcF.length;i++){ var raw=String(r[upcF[i].key]==null?'':r[upcF[i].key]).trim(); var t=upcKey(raw); if(t){ uk=t; uraw=raw; break; } }
+      if(!uk) return;
+      var e=IM_INDEX[uk]; if(!e){ e={ upc:uraw, codes:[], names:[] }; IM_INDEX[uk]=e; }
+      codeF.forEach(function(f){ var v=String(r[f.key]==null?'':r[f.key]).trim(); if(v && e.codes.indexOf(v)<0) e.codes.push(v); });
+      nameF.forEach(function(f){ var v=String(r[f.key]==null?'':r[f.key]).trim(); if(v && e.names.indexOf(v)<0) e.names.push(v); });
+    });
+  }
+  /* 검색어로 마스터를 뒤져 UPC 후보를 찾는다 (매장 데이터가 없어도 안내용으로 사용) */
+  function masterLookup(q){
+    var qu=String(q).trim().toLowerCase(), qn=norm(q), quk=upcKey(qu); if(!qu) return null;
+    var best=null;
+    Object.keys(IM_INDEX).some(function(uk){
+      var e=IM_INDEX[uk];
+      var hit = (quk && uk===quk)
+        || e.codes.some(function(c){ var cl=c.toLowerCase(); return cl===qu || (quk && upcKey(c)===quk) || cl.indexOf(qu)>=0; })
+        || e.names.some(function(n){ var nn=norm(n); return nn===qn || nn.indexOf(qn)>=0; });
+      if(hit){ best={ key:uk, upc:e.upc, codes:e.codes, names:e.names }; return true; }
+      return false;
+    });
+    return best;
+  }
+
   /* ===== 인덱스 재구성 — 매장 전체를 하나의 상품으로 병합 ===== */
   function rebuildIndex(){
     productsByUpc={};
@@ -548,9 +586,19 @@
       p._idn=String(p.id||'').toLowerCase();
       p._ids=(p.ids||[]).map(function(x){ return String(x).toLowerCase(); });
       p._ids.push(String(p.key||'').toLowerCase());   // 정규화된 UPC 로도 검색 가능
-      p._names=ROLES.nameKeys.map(function(nk2){ return norm(p.vals[nk2]); }).filter(Boolean);
-      // ITEM CODE · PLU 등 코드 필드도 검색 대상
+      // ITEM CODE · PLU 등 코드 필드
       p.codes=(ROLES.codeKeys||[]).map(function(ck){ return String(p.vals[ck]==null?'':p.vals[ck]).trim(); }).filter(Boolean);
+      // ITEM MASTER 연결 — 매장 엑셀에 ITEM CODE·상품명이 없어도 마스터의 코드/이름으로 검색되게 함
+      // (반드시 _names·_codes 를 만들기 전에 채워야 한다)
+      p.mNames=[];
+      var seenU={}; p.ids.concat([p.key]).forEach(function(idr){ var uk=upcKey(idr); if(!uk||seenU[uk]) return; seenU[uk]=1;
+        var e=IM_INDEX[uk]; if(!e) return;
+        e.codes.forEach(function(c){ if(p.codes.indexOf(c)<0) p.codes.push(c); });
+        e.names.forEach(function(n2){ if(p.mNames.indexOf(n2)<0) p.mNames.push(n2); });
+        if(!p.id && e.upc) p.id=e.upc;
+      });
+      p._names=ROLES.nameKeys.map(function(nk2){ return norm(p.vals[nk2]); }).filter(Boolean);
+      p.mNames.forEach(function(n2){ var v=norm(n2); if(v && p._names.indexOf(v)<0) p._names.push(v); });
       p._codes=p.codes.map(function(x){ return x.toLowerCase(); });
       return p; });
   }
@@ -785,7 +833,7 @@
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       var arr=(Array.isArray(d.fields)?d.fields:[]).map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
       IM_FIELDS=arr.length?arr:IM_DEFAULTS.slice();
-      renderMaster();
+      buildMasterIndex(); rebuildIndex(); renderMaster();
     }, function(){}); }catch(e){}
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_MATCH_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
@@ -806,7 +854,8 @@
       var rows=[];
       snaps.forEach(function(sn){ var dd=(sn&&sn.exists&&sn.exists())?(sn.data()||{}):{}; if(Array.isArray(dd.rows)) rows=rows.concat(dd.rows); });
       imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:rows.length, rows:rows };
-      renderMaster();
+      buildMasterIndex(); rebuildIndex(); renderMaster();
+      if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } }
     }).catch(function(){ imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:meta.rowCount||0, rows:[] }; renderMaster(); });
   }
   /* ITEM MASTER 매핑 — IMPORT 설정의 ITEM MASTER 카테고리 우선, 없으면 열 이름으로 보조 매칭 */
@@ -866,7 +915,7 @@
       for(var j=chunks;j<prev;j++){ try{ await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+j), { rows:[], updatedAt:Date.now() }); }catch(e){} }
       await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC), { fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, chunks:chunks, fields:IM_FIELDS.map(function(f){ return f.key; }), updatedAt:Date.now() }, {merge:true});
       imMaster={ fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, rows:rows };
-      renderMaster();
+      buildMasterIndex(); rebuildIndex(); renderMaster();
       toast('ITEM MASTER 업로드됨 · '+rows.length+'개 · 필드 '+mappedCount+'개 연결');
     }catch(e){ toast('저장 실패 (용량/규칙 확인)'); }
   }
@@ -888,7 +937,7 @@
       var prev=0; try{ var sn=await fb.getDoc(fb.doc(fb.db,CFG_COL,IM_DOC)); if(sn&&sn.exists&&sn.exists()) prev=(sn.data()||{}).chunks||0; }catch(e){}
       for(var i=0;i<prev;i++){ try{ await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+i), { rows:[], updatedAt:Date.now() }); }catch(e){} }
       await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC), { fileName:'', uploadedAt:0, rowCount:0, chunks:0, updatedAt:Date.now() }, {merge:true});
-      imMaster=null; renderMaster(); toast('ITEM MASTER 삭제됨');
+      imMaster=null; buildMasterIndex(); rebuildIndex(); renderMaster(); toast('ITEM MASTER 삭제됨');
     }catch(e){ toast('삭제 실패 (규칙 확인)'); }
   }
   function renderMaster(){
@@ -940,7 +989,24 @@
   function pick(p){ if(!p) return; selected=p; $('srInput').value=pName(p)||p.id||''; $('srSugg').classList.remove('show'); renderResult(p); addHistory($('srInput').value, p); }
   function doSearch(){
     var q=($('srInput').value||'').trim(); if(!q){ toast('검색어를 입력하세요'); return; }
-    var r=runSearch(q,1); if(!r.length){ toast('일치하는 상품이 없습니다'); renderResultEmpty('검색 결과 없음'); return; }
+    var r=runSearch(q,1);
+    if(!r.length){
+      // 매장 데이터엔 없지만 ITEM MASTER 에는 있는 경우 — 무엇이 없는지 정확히 알려준다
+      var m=masterLookup(q);
+      $('srSugg').classList.remove('show');
+      if(m){
+        toast('ITEM MASTER 에는 있으나 매장 업로드 데이터가 없습니다');
+        $('rsBox').innerHTML='<div class="rs-card">'+
+          '<div class="rs-head"><span class="rs-name">'+esc(m.names[0]||m.upc||q)+'</span>'+
+          '<span class="rs-upc">('+(m.upc?('UPC '+esc(m.upc)):'UPC 없음')+')</span></div>'+
+          (m.names[1]?'<div class="rs-eng2">'+esc(m.names[1])+'</div>':'')+
+          '<div class="rs-meta">ITEM MASTER 에서 찾음'+(m.codes.length?(' · CODE '+esc(m.codes.join(', '))):'')+'</div>'+
+          '<div class="rs-nostore">이 UPC 로 업로드된 매장 판매 데이터가 없습니다.<br>해당 매장 엑셀을 업로드하면 매장별 비교가 표시됩니다.</div>'+
+        '</div>';
+        return;
+      }
+      toast('일치하는 상품이 없습니다'); renderResultEmpty('검색 결과 없음'); return;
+    }
     selected=r[0]; $('srSugg').classList.remove('show'); renderResult(r[0]); addHistory(q, r[0]);
   }
 
