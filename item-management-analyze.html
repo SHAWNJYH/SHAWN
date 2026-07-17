@@ -341,7 +341,8 @@
   ];
   var IM_FIELDS=IM_DEFAULTS.slice();
   var IM_MATCH={ fields:[], mappings:{} };   // {필드key: 엑셀열}
-  var imMaster=null;                          // { fileName, uploadedAt, rowCount, rows:[{UPC,PLU,...}] }
+  var imMaster=null;                          // { fileName, uploadedAt, rowCount, rows:[...] }
+  var imErr='';                               // 로드/저장 실패 표시
   var MASTER_COL='upc-config', MASTER_DOC='main';  // 필드관리 마스터 필드
   var MASTER=[];        // [{key,label}] — 필드관리 마스터
   var IMX_PROFILES=[];  // [{ 필드key: 엑셀열 }] — ITEM 필드매칭(선 연결)에서 생성. 여러 필드가 같은 열 공유 가능.
@@ -477,8 +478,11 @@
         else o[f.key]=(raw==null?'':String(raw)).trim();
       });
       return o;
-    }).filter(function(o){ var hasId=(ROLES.idKeys||[]).some(function(k){ var v=o[k]; return v!=null&&String(v).trim()!==''; });
-      var hasName=ROLES.nameKeys.some(function(k){ return o[k]; }); return hasId||hasName; });
+    }).filter(function(o){
+      var okId=(ROLES.idKeys||[]).some(function(k){ var v=o[k]; return v!=null&&String(v).trim()!==''; });
+      var okCode=(ROLES.codeKeys||[]).some(function(k){ var v=o[k]; return v!=null&&String(v).trim()!==''; });
+      var okName=ROLES.nameKeys.some(function(k){ return o[k]; });
+      return okId||okCode||okName; });
   }
 
   /* ===== 인덱스 재구성 ===== */
@@ -494,40 +498,64 @@
     var out=[]; (ROLES.idKeys||[]).forEach(function(k){ var t=upcKey(row[k]); if(t && out.indexOf(t)<0) out.push(t); });
     return out;
   }
+  function rowCodes(row){
+    var out=[]; (ROLES.codeKeys||[]).forEach(function(k){ var v=String(row[k]==null?'':row[k]).trim(); if(v && out.indexOf(v)<0) out.push(v); });
+    return out;
+  }
   function rowName(row){
     for(var i=0;i<ROLES.nameKeys.length;i++){ var v=row[ROLES.nameKeys[i]]; if(v) return v; }
     return '';
   }
   /* ===== ITEM MASTER 조회 인덱스 =====
-     ITEM CODE(또는 마스터의 UPC·상품명)로 검색하면 → 마스터에서 UPC 를 찾고
-     → 그 UPC 로 각 매장 엑셀 데이터를 연결해 결과를 보여준다. */
-  var IM_INDEX={};   // 정규화 UPC → { upc, codes:[], names:[] }
+     ITEM MASTER 가 매장 연결의 허브다.
+       검색어(UPC · ITEM CODE · DESC) → 마스터에서 해당 상품을 찾고
+       → 그 상품의 UPC(및 코드)로 모든 매장 엑셀을 매칭해 매장별 가격을 보여준다.
+     역할이 code 로 지정돼 있지 않아도(일반 텍스트) 코드로 취급해 검색되게 한다. */
+  var IM_ITEM={};    // canon → { upc, upcs:[], codes:[], names:[] }
+  var IM_BYUPC={};   // 정규화 UPC → canon
+  var IM_BYCODE={};  // 소문자 코드 → canon
+  function imCodeKey(v){ return String(v==null?'':v).trim().toLowerCase(); }
   function buildMasterIndex(){
-    IM_INDEX={};
+    IM_ITEM={}; IM_BYUPC={}; IM_BYCODE={};
     var rows=(imMaster&&imMaster.rows)||[]; if(!rows.length) return;
-    var upcF=IM_FIELDS.filter(function(f){ return f.role==='upc'; });
-    var codeF=IM_FIELDS.filter(function(f){ return f.role==='code'; });
-    var nameF=IM_FIELDS.filter(function(f){ return f.role==='name'; });
     rows.forEach(function(r){
-      var uk='', uraw='';
-      for(var i=0;i<upcF.length;i++){ var raw=String(r[upcF[i].key]==null?'':r[upcF[i].key]).trim(); var t=upcKey(raw); if(t){ uk=t; uraw=raw; break; } }
-      if(!uk) return;
-      var e=IM_INDEX[uk]; if(!e){ e={ upc:uraw, codes:[], names:[] }; IM_INDEX[uk]=e; }
-      codeF.forEach(function(f){ var v=String(r[f.key]==null?'':r[f.key]).trim(); if(v && e.codes.indexOf(v)<0) e.codes.push(v); });
-      nameF.forEach(function(f){ var v=String(r[f.key]==null?'':r[f.key]).trim(); if(v && e.names.indexOf(v)<0) e.names.push(v); });
+      var upcs=[], codes=[], names=[];
+      IM_FIELDS.forEach(function(f){
+        var raw=String(r[f.key]==null?'':r[f.key]).trim(); if(!raw) return;
+        if(f.role==='upc') upcs.push(raw);
+        else if(f.role==='code'||f.role==='text') codes.push(raw);   // 역할 미지정(텍스트)도 코드로 인정
+        else if(f.role==='name') names.push(raw);
+      });
+      var canon = upcs.length ? upcKey(upcs[0]) : (codes.length ? ('c:'+imCodeKey(codes[0])) : '');
+      if(!canon) return;
+      var e=IM_ITEM[canon]; if(!e){ e={ upc:(upcs[0]||''), upcs:[], codes:[], names:[] }; IM_ITEM[canon]=e; }
+      upcs.forEach(function(u){ var k=upcKey(u); if(!k) return; IM_BYUPC[k]=canon; if(e.upcs.indexOf(u)<0) e.upcs.push(u); if(!e.upc) e.upc=u; });
+      codes.forEach(function(c){ IM_BYCODE[imCodeKey(c)]=canon; if(e.codes.indexOf(c)<0) e.codes.push(c); });
+      names.forEach(function(n){ if(e.names.indexOf(n)<0) e.names.push(n); });
     });
   }
-  /* 검색어로 마스터를 뒤져 UPC 후보를 찾는다 (매장 데이터가 없어도 안내용으로 사용) */
+  /* 매장 행 → 마스터 상품(canon) 해석: UPC 로 먼저, 없으면 ITEM CODE 로 */
+  function masterCanonOf(ids, codes){
+    for(var i=0;i<ids.length;i++){ if(IM_BYUPC[ids[i]]) return IM_BYUPC[ids[i]]; }
+    for(var j=0;j<codes.length;j++){ var c=IM_BYCODE[imCodeKey(codes[j])]; if(c) return c; }
+    return '';
+  }
+  /* 검색어로 마스터 상품 찾기 (UPC · ITEM CODE · DESC 전부) */
   function masterLookup(q){
     var qu=String(q).trim().toLowerCase(), qn=norm(q), quk=upcKey(qu); if(!qu) return null;
-    var best=null;
-    Object.keys(IM_INDEX).some(function(uk){
-      var e=IM_INDEX[uk];
-      var hit = (quk && uk===quk)
-        || e.codes.some(function(c){ var cl=c.toLowerCase(); return cl===qu || (quk && upcKey(c)===quk) || cl.indexOf(qu)>=0; })
-        || e.names.some(function(n){ var nn=norm(n); return nn===qn || nn.indexOf(qn)>=0; });
-      if(hit){ best={ key:uk, upc:e.upc, codes:e.codes, names:e.names }; return true; }
-      return false;
+    var keys=Object.keys(IM_ITEM), best=null, bestScore=0;
+    keys.forEach(function(k){
+      var e=IM_ITEM[k], sc=0;
+      if(quk && (k===quk || e.upcs.some(function(u){ return upcKey(u)===quk; }))) sc=Math.max(sc,1000);
+      e.codes.forEach(function(c){ var cl=imCodeKey(c);
+        if(cl===qu || (quk && upcKey(c)===quk)) sc=Math.max(sc,980);
+        else if(cl.indexOf(qu)===0) sc=Math.max(sc,640);
+        else if(cl.indexOf(qu)>=0) sc=Math.max(sc,410); });
+      e.names.forEach(function(n){ var nn=norm(n);
+        if(nn===qn) sc=Math.max(sc,900);
+        else if(nn.indexOf(qn)===0) sc=Math.max(sc,560);
+        else if(nn.indexOf(qn)>=0) sc=Math.max(sc,320); });
+      if(sc>bestScore){ bestScore=sc; best={ key:k, upc:e.upc, upcs:e.upcs, codes:e.codes, names:e.names }; }
     });
     return best;
   }
@@ -542,20 +570,28 @@
     var nameHint={};
     STORES.forEach(function(store){ var ds=datasets[store]; if(!ds||!ds.rows) return;
       ds.rows.forEach(function(row){
-        var ids=rowIds(row); var nk='nm:'+norm(rowName(row));
-        if(ids.length){
-          find(ids[0]); for(var i=1;i<ids.length;i++) union(ids[i], ids[0]);
-          if(nk!=='nm:' && nameHint[nk]===undefined) nameHint[nk]=ids[0];   // UPC 없는 행이 붙을 자리
+        var ids=rowIds(row), codes=rowCodes(row); var nk='nm:'+norm(rowName(row));
+        var canon=masterCanonOf(ids, codes);           // ITEM MASTER 경유 해석
+        var toks=ids.slice();
+        if(canon && toks.indexOf(canon)<0) toks.push(canon);
+        codes.forEach(function(c){ var ck='c:'+imCodeKey(c); if(toks.indexOf(ck)<0) toks.push(ck); });   // 코드 자체도 식별자
+        if(toks.length){
+          find(toks[0]); for(var i=1;i<toks.length;i++) union(toks[i], toks[0]);
+          if(nk!=='nm:' && nameHint[nk]===undefined) nameHint[nk]=toks[0];
         }
       });
     });
     // --- 2차: 상품 구성 ---
     STORES.forEach(function(store){ var ds=datasets[store]; if(!ds||!ds.rows) return;
       ds.rows.forEach(function(row){
-        var ids=rowIds(row); var nmv=rowName(row); var nk='nm:'+norm(nmv);
+        var ids=rowIds(row), codes=rowCodes(row); var nmv=rowName(row); var nk='nm:'+norm(nmv);
+        var canon=masterCanonOf(ids, codes);
+        var toks=ids.slice();
+        if(canon && toks.indexOf(canon)<0) toks.push(canon);
+        codes.forEach(function(c){ var ck='c:'+imCodeKey(c); if(toks.indexOf(ck)<0) toks.push(ck); });
         var root;
-        if(ids.length) root=find(ids[0]);
-        else if(nameHint[nk]!==undefined) root=find(nameHint[nk]);   // UPC 없는 행 → 같은 이름 상품에 합류
+        if(toks.length) root=find(toks[0]);
+        else if(nameHint[nk]!==undefined) root=find(nameHint[nk]);   // 식별자 없는 행 → 같은 이름 상품에 합류
         else if(nk!=='nm:') root=find(nk);
         else return;
         var p=productsByUpc[root]; if(!p){ p={ key:root, id:'', ids:[], vals:{}, perStore:{} }; productsByUpc[root]=p; }
@@ -591,12 +627,19 @@
       // ITEM MASTER 연결 — 매장 엑셀에 ITEM CODE·상품명이 없어도 마스터의 코드/이름으로 검색되게 함
       // (반드시 _names·_codes 를 만들기 전에 채워야 한다)
       p.mNames=[];
-      var seenU={}; p.ids.concat([p.key]).forEach(function(idr){ var uk=upcKey(idr); if(!uk||seenU[uk]) return; seenU[uk]=1;
-        var e=IM_INDEX[uk]; if(!e) return;
-        e.codes.forEach(function(c){ if(p.codes.indexOf(c)<0) p.codes.push(c); });
-        e.names.forEach(function(n2){ if(p.mNames.indexOf(n2)<0) p.mNames.push(n2); });
-        if(!p.id && e.upc) p.id=e.upc;
-      });
+      var pIdTokens=p.ids.map(function(x){ return upcKey(x); }).filter(Boolean);
+      if(String(p.key||'').indexOf('c:')!==0 && String(p.key||'').indexOf('nm:')!==0 && p.key) pIdTokens.push(p.key);
+      var canon=masterCanonOf(pIdTokens, p.codes);
+      if(!canon && IM_ITEM[p.key]) canon=p.key;
+      var me=canon?IM_ITEM[canon]:null;
+      if(me){
+        me.codes.forEach(function(c){ if(p.codes.indexOf(c)<0) p.codes.push(c); });
+        me.names.forEach(function(n2){ if(p.mNames.indexOf(n2)<0) p.mNames.push(n2); });
+        me.upcs.forEach(function(u){ if(p.ids.indexOf(u)<0) p.ids.push(u); });
+        if(!p.id && me.upc) p.id=me.upc;
+      }
+      p._ids=(p.ids||[]).map(function(x){ return String(x).toLowerCase(); });
+      p._ids.push(String(p.key||'').toLowerCase());
       p._names=ROLES.nameKeys.map(function(nk2){ return norm(p.vals[nk2]); }).filter(Boolean);
       p.mNames.forEach(function(n2){ var v=norm(n2); if(v && p._names.indexOf(v)<0) p._names.push(v); });
       p._codes=p.codes.map(function(x){ return x.toLowerCase(); });
@@ -723,8 +766,10 @@
         if(!rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
         // STORE MANAGER · ITEM 필드매칭에서 해둔 매핑을 그대로 적용
         var map=guessMap(headers);
-        var hasId=(ROLES.idKeys||[]).some(function(k){ return map[k]; }); var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
-        if(hasId || hasName){
+        var hasId=(ROLES.idKeys||[]).some(function(k){ return map[k]; });
+        var hasCode=(ROLES.codeKeys||[]).some(function(k){ return map[k]; });   // ITEM CODE 만 있어도 ITEM MASTER 로 연결됨
+        var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
+        if(hasId || hasCode || hasName){
           pending=null;
           commitUpload(store, file.name, rows, map, true, headers, fileDate);   // 모달 없이 바로 업로드
         } else {
@@ -812,8 +857,10 @@
   async function saveMapping(){
     if(!pending) return;
     var map={}; $('mapRows').querySelectorAll('select').forEach(function(sel){ map[sel.getAttribute('data-k')]=sel.value; });
-    var hasId=(ROLES.idKeys||[]).some(function(k){ return map[k]; }); var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
-    if(!hasId && !hasName){ toast('식별(UPC) 또는 상품명 중 하나는 매핑하세요'); return; }
+    var hasId=(ROLES.idKeys||[]).some(function(k){ return map[k]; });
+    var hasCode=(ROLES.codeKeys||[]).some(function(k){ return map[k]; });
+    var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
+    if(!hasId && !hasCode && !hasName){ toast('UPC · ITEM CODE · 상품명 중 하나는 매핑하세요'); return; }
     var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false, pending.headers, pending.fileDate||(datasets[pending.store]&&datasets[pending.store].fileDate));
     if(okc) closeMap();
   }
@@ -834,18 +881,18 @@
       var arr=(Array.isArray(d.fields)?d.fields:[]).map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
       IM_FIELDS=arr.length?arr:IM_DEFAULTS.slice();
       buildMasterIndex(); rebuildIndex(); renderMaster();
-    }, function(){}); }catch(e){}
+    }, function(e){ imErr='ITEM MASTER 필드 불러오기 실패 (Firestore 규칙 확인)'; renderMaster(); }); }catch(e){}
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_MATCH_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       IM_MATCH={ fields:Array.isArray(d.fields)?d.fields:[], mappings:(d.mappings&&typeof d.mappings==='object')?d.mappings:{} };
       renderMaster();
-    }, function(){}); }catch(e){}
+    }, function(e){ imErr='매칭 불러오기 실패 (Firestore 규칙 확인)'; renderMaster(); }); }catch(e){}
     // 메타 + 청크 로드
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
-      if(!d || !d.rowCount){ imMaster=null; renderMaster(); return; }
+      if(!d || !d.rowCount){ imMaster=null; buildMasterIndex(); rebuildIndex(); renderMaster(); return; }
       loadMasterChunks(d);
-    }, function(){}); }catch(e){}
+    }, function(e){ imErr='ITEM MASTER 불러오기 실패 (Firestore 규칙 확인)'; renderMaster(); }); }catch(e){}
   }
   function loadMasterChunks(meta){
     var fb=window.iaCfgFb; var n=meta.chunks||0; var jobs=[];
@@ -853,7 +900,7 @@
     Promise.all(jobs).then(function(snaps){
       var rows=[];
       snaps.forEach(function(sn){ var dd=(sn&&sn.exists&&sn.exists())?(sn.data()||{}):{}; if(Array.isArray(dd.rows)) rows=rows.concat(dd.rows); });
-      imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:rows.length, rows:rows };
+      imErr=''; imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:rows.length, rows:rows };
       buildMasterIndex(); rebuildIndex(); renderMaster();
       if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } }
     }).catch(function(){ imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:meta.rowCount||0, rows:[] }; renderMaster(); });
@@ -914,10 +961,11 @@
       }
       for(var j=chunks;j<prev;j++){ try{ await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+j), { rows:[], updatedAt:Date.now() }); }catch(e){} }
       await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC), { fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, chunks:chunks, fields:IM_FIELDS.map(function(f){ return f.key; }), updatedAt:Date.now() }, {merge:true});
-      imMaster={ fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, rows:rows };
+      imErr=''; imMaster={ fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, rows:rows };
       buildMasterIndex(); rebuildIndex(); renderMaster();
+      if(selected){ var ag=productsByUpc[selected.key]; if(ag){ selected=ag; renderResult(ag); } }
       toast('ITEM MASTER 업로드됨 · '+rows.length+'개 · 필드 '+mappedCount+'개 연결');
-    }catch(e){ toast('저장 실패 (용량/규칙 확인)'); }
+    }catch(e){ imErr='저장 실패 (Firestore 규칙/용량 확인)'; renderMaster(); toast('ITEM MASTER 저장 실패 — Firestore 규칙 확인'); }
   }
   function downloadMaster(){
     if(!imMaster||!imMaster.rows||!imMaster.rows.length){ toast('다운로드할 ITEM MASTER 가 없습니다'); return; }
@@ -946,7 +994,8 @@
     var linked=IM_FIELDS.filter(function(f){ return (IM_MATCH.mappings||{})[f.key]; }).length;
     $('imCount').textContent=has?(imMaster.rowCount.toLocaleString('en-US')+'개 상품'):(linked?('연결 '+linked+'/'+IM_FIELDS.length+' 필드'):'미연결');
     var meta;
-    if(has) meta='<span class="fn">'+esc(imMaster.fileName||'—')+'</span><br>'+imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
+    if(imErr) meta='<span class="st-warn">⚠ '+esc(imErr)+'</span>';
+    else if(has) meta='<span class="fn">'+esc(imMaster.fileName||'—')+'</span><br>'+imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
     else if(!linked) meta='<span class="st-warn">⚠ IMPORT 설정 · ITEM MASTER 카테고리에서 필드를 연결하세요</span>';
     else meta='업로드된 파일 없음';
     box.innerHTML='<div class="st-card master'+(has?' has':'')+'" data-master="1">'+
