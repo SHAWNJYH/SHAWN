@@ -1118,10 +1118,10 @@
   /* ===== ITEM ANALYZE 필드 수정/추가 (app-config/item-analyze-fields) =====
      ITEM MANAGEMENT 가 IMPORT 받을 필드 정의. 여기서 이름·역할·기능을 바로 고칠 수 있다. */
   var IAF_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],
-                 ['qty','수량 (QTY)'],['amount','총 판매금액 (AMOUNT)'],['cost_amount','원가금액 (COST AMOUNT)'],
+                 ['qty','수량 (QTY)'],['amount','판매금액 · SRP TOTAL'],['cost_amount','원가금액 · COST TOTAL'],
                  ['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
   var IAF_FNS=[['none','그대로'],['eng','설명 분리 · 영문(/ 왼쪽)'],['kor','설명 분리 · 한글(/ 오른쪽)'],['per_qty','수량으로 나눔 (단가 $)']];
-  var IAF_VER=2;   // 요청 반영: 판매금액 → 총 판매금액, 원가금액 필드 추가
+  var IAF_VER=3;   // 요청 반영: 수량 다음 → 원가금액(COST TOTAL) → 판매금액(SRP TOTAL)
   function iafOpts(list, sel){ return list.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+esc(r[1])+'</option>'; }).join(''); }
   function iafSaved(t){ var e=$('iafSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
   function iafSave(fields, quiet){
@@ -1140,13 +1140,18 @@
     if(!d || !Array.isArray(d.fields) || !d.fields.length) return false;
     if((d.cfgVersion||0) >= IAF_VER) return false;
     var fields=d.fields.map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key||'')), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
-    var changed=false;
-    fields.forEach(function(f){ if(f.role==='amount' && /^판매금액$/.test(String(f.label).trim())){ f.label='총 판매금액'; changed=true; } });
-    if(!fields.some(function(f){ return f.role==='cost_amount'; })){
-      fields.push({ key:'원가금액', label:'원가금액', role:'cost_amount', fn:'none' }); changed=true;
-    }
-    iafSave(fields, true).then(function(){ if(changed && $('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); } });
-    return changed;
+    // 이름: 원가금액(COST TOTAL) · 판매금액(SRP TOTAL)
+    fields.forEach(function(f){ if(f.role==='amount') f.label='판매금액(SRP TOTAL)'; });
+    if(!fields.some(function(f){ return f.role==='cost_amount'; })) fields.push({ key:'원가금액', label:'', role:'cost_amount', fn:'none' });
+    fields.forEach(function(f){ if(f.role==='cost_amount') f.label='원가금액(COST TOTAL)'; });
+    // 순서: … 수량 → 원가금액(COST TOTAL) → 판매금액(SRP TOTAL)
+    var camt=fields.filter(function(f){ return f.role==='cost_amount'; });
+    var amt =fields.filter(function(f){ return f.role==='amount'; });
+    var rest=fields.filter(function(f){ return f.role!=='cost_amount' && f.role!=='amount'; });
+    var qi=-1; for(var i=0;i<rest.length;i++){ if(rest[i].role==='qty'){ qi=i; break; } }
+    var out=(qi<0) ? rest.concat(camt, amt) : rest.slice(0,qi+1).concat(camt, amt, rest.slice(qi+1));
+    iafSave(out, true).then(function(){ if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); } });
+    return true;
   }
   function iafFillNewKey(){
     var sel=$('iafNewKey'); if(!sel) return;
@@ -2219,7 +2224,8 @@
         <select class="ex-sel" id="iafNewFn"></select>
         <button class="ex-btn warm" id="iafAdd" type="button">＋ 추가</button>
       </div>
-      <div class="iaf-note">역할은 데이터 해석 기준입니다 — <b>총 판매금액</b>과 <b>원가금액</b>은 각각 합계로 집계되고, COST · SRP 는 검색 결과에서 판매수량으로 나눠 단가로 표시됩니다.</div>
+      <div class="iaf-note">역할은 데이터 해석 기준입니다 — <b>원가금액(COST TOTAL)</b> · <b>판매금액(SRP TOTAL)</b> 은 합계로 집계되고,
+        검색 결과의 단가는 <b>COST = 원가금액 ÷ 수량</b>, <b>SRP = 판매금액 ÷ 수량</b> 으로 계산합니다.</div>
     </div>
   </div>
 </div>

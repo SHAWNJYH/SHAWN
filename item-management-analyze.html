@@ -245,7 +245,7 @@
           <button class="sr-go" id="srGo" type="button">검색</button>
           <button class="sr-clear" id="srClear" type="button">초기화</button>
         </div>
-        <div class="sr-hint">매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 비교합니다. (COST · SRP 는 판매수량으로 나눈 단가)</div>
+        <div class="sr-hint">매장별 단가·금액을 한눈에 비교합니다. (COST = 원가금액 ÷ 수량 · SRP = 판매금액 ÷ 수량)</div>
       </div>
     </div>
 
@@ -919,14 +919,20 @@
 
   /* ===== 결과 렌더 ===== */
   function renderResultEmpty(msg){ $('rsBox').innerHTML='<div class="rs-empty"><div class="ic">🔎</div><div class="t">'+esc(msg||'상품을 검색하세요')+'</div><div class="s">DESC(상품명)로 검색하면 매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 보여드립니다.</div></div>'; }
-  /* 매장별 집계 — COST·SRP 는 판매수량 기준으로 나눈 단가로 표시 */
+  /* 매장별 집계 — 단가 계산
+       COST = 원가금액(COST TOTAL) ÷ 수량
+       SRP  = 판매금액(SRP TOTAL)  ÷ 수량
+     (원가금액·판매금액이 연결돼 있지 않은 경우에만 COST·SRP 열 값을 수량으로 나눠 사용) */
   function storeSummary(p){
     var out={};
     STORES.forEach(function(s){
       var ps=p.perStore[s]; if(!ps) return;
       var qty=ps.qty||0;
-      var cost=(ps.costSum==null)?null:((qty>0)?(ps.costSum/qty):ps.costLast);
-      var srp =(ps.srpSum==null) ?null:((qty>0)?(ps.srpSum/qty) :ps.srpLast);
+      var cost, srp;
+      if(ps.hasCostAmt && qty>0) cost=ps.costAmt/qty;
+      else cost=(ps.costSum==null)?null:((qty>0)?(ps.costSum/qty):ps.costLast);
+      if(ps.hasAmt && qty>0) srp=ps.amount/qty;
+      else srp=(ps.srpSum==null)?null:((qty>0)?(ps.srpSum/qty):ps.srpLast);
       out[s]={ cost:cost, srp:srp, qty:(ps.hasQty?qty:null), amount:(ps.hasAmt?ps.amount:null), costAmt:(ps.hasCostAmt?ps.costAmt:null), date:ps.date||0 };
     });
     return out;
@@ -957,8 +963,8 @@
         '<div class="rs-metric"><span class="lb">COST</span><span class="vv">'+(d.cost!=null?money(d.cost):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">SRP</span><span class="vv">'+(d.srp!=null?money(d.srp):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">판매수량</span><span class="vv">'+fmtQty(d.qty)+'</span></div>'+
-        '<div class="rs-metric"><span class="lb">'+esc(amtLb)+'</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
         (ROLES.costAmtKey?('<div class="rs-metric"><span class="lb">'+esc(cAmtLb)+'</span><span class="vv">'+(d.costAmt!=null?money(d.costAmt):'—')+'</span></div>'):'')+
+        '<div class="rs-metric"><span class="lb">'+esc(amtLb)+'</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
       '</div>';
     }).join('');
     var storesHtml=stores.length?('<div class="rs-stores">'+cols+'</div>'):'<div class="rs-nostore">판매 매장 데이터가 없습니다.</div>';
@@ -1013,7 +1019,7 @@
   $('mapOv').addEventListener('click', function(e){ if(e.target===$('mapOv')) closeMap(); });
 
   /* ===== ITEM ANALYZE 필드 관리 (필드관리 마스터 중 선별) ===== */
-  var IM_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],['qty','수량 (QTY)'],['amount','총 판매금액 (AMOUNT)'],['cost_amount','원가금액 (COST AMOUNT)'],['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
+  var IM_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],['qty','수량 (QTY)'],['amount','판매금액 · SRP TOTAL'],['cost_amount','원가금액 · COST TOTAL'],['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
   function roleOpts(sel){ return IM_ROLES.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+r[1]+'</option>'; }).join(''); }
   var cfgFromCloud=false, cfgChecked=false, __seedTried=false;
 
