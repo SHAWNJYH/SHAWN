@@ -322,6 +322,27 @@
   .fm-row .fm-key{ }
   /* 삭제된 필드 모달 */
   .sm-modal-ov{ position:fixed; inset:0; background:rgba(20,18,14,.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+  /* ITEM ANALYZE 필드 편집기 */
+  .iaf-ov{ position:fixed; inset:0; background:rgba(28,26,22,.5); display:none; align-items:center; justify-content:center; z-index:80; padding:20px; }
+  .iaf-ov.show{ display:flex; }
+  .iaf-modal{ background:var(--bg-elev,#fffdf7); border-radius:16px; width:min(860px,96vw); max-height:86vh; display:flex; flex-direction:column; box-shadow:0 18px 50px rgba(0,0,0,.3); overflow:hidden; }
+  .iaf-head{ display:flex; align-items:center; gap:12px; padding:16px 18px; border-bottom:1.5px solid var(--border); }
+  .iaf-title{ font-size:16px; font-weight:900; letter-spacing:.02em; }
+  .iaf-sub{ font-size:11.5px; color:var(--text-dim); font-weight:700; margin-top:2px; }
+  .iaf-head .fm-saved{ margin-left:auto; }
+  .iaf-body{ padding:16px 18px 20px; overflow:auto; }
+  .iaf-row{ display:grid; grid-template-columns:150px 1fr 170px 180px 40px 34px; gap:8px; align-items:center; background:var(--bg-elev-2); border:1.5px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:7px; }
+  .iaf-row.upc{ border-color:var(--accent-warm); }
+  .iaf-key{ font-family:var(--mono); font-size:11px; font-weight:800; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .iaf-in{ border:1.5px solid var(--border); background:var(--bg); border-radius:8px; padding:7px 9px; font-size:12.5px; font-weight:800; color:var(--text); width:100%; }
+  .iaf-in:focus{ outline:none; border-color:var(--accent-warm); }
+  .iaf-ord{ display:flex; gap:2px; }
+  .iaf-ord button{ border:1px solid var(--border); background:var(--bg); border-radius:5px; width:18px; height:26px; font-size:9px; cursor:pointer; color:var(--text-dim); }
+  .iaf-del{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:8px; padding:7px 0; font-size:12px; font-weight:800; cursor:pointer; }
+  .iaf-del:hover{ border-color:#c0392b; color:#c0392b; }
+  .iaf-add{ display:grid; grid-template-columns:150px 1fr 170px 180px auto; gap:8px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); }
+  .iaf-note{ margin-top:12px; font-size:11.5px; color:var(--text-dim); font-weight:700; line-height:1.6; }
+  .iaf-empty{ padding:22px; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; border:1.5px dashed var(--border); border-radius:10px; }
   .sm-modal{ background:#fffdf7; border-radius:14px; width:min(560px,92vw); max-height:82vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 18px 50px rgba(0,0,0,.3); }
   .sm-modal-head{ display:flex; align-items:center; gap:8px; padding:14px 16px; font-weight:800; color:#3a2f1a; border-bottom:1px solid #ecdfc4; background:linear-gradient(180deg,#fbf4e4,#fffdf7); }
   .sm-modal-x{ margin-left:auto; border:none; background:transparent; font-size:18px; cursor:pointer; color:#8a7a52; }
@@ -507,6 +528,7 @@
         <input type="file" id="imxFile" accept=".xlsx,.xls,.csv" style="display:none;">
         <button class="ex-btn" id="imxClearBtn" type="button">연결 초기화</button>
         <button class="ex-btn" id="imxDeleteBtn" type="button">카테고리 삭제</button>
+        <button class="ex-btn warm" id="imxFieldsBtn" type="button">⚙ ITEM ANALYZE 필드</button>
         <span class="ex-spacer"></span>
         <span class="ex-armed-note" id="imxArmedNote"></span>
         <span class="fm-saved" id="imxSaved"></span>
@@ -885,7 +907,7 @@
   function imxSaved(t){ var e=$('imxSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
   function imxUid(){ return 'im_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
   function imxActive(){ if(imxIsMaster()) return imxState.master; return imxState.profiles.find(function(p){ return p.id===imxState.activeId; })||null; }
-  function imxParseFields(d){ return (d&&Array.isArray(d.fields))?d.fields.map(function(f){ return {key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text')}; }).filter(function(f){return f.key;}):[]; }
+  function imxParseFields(d){ return (d&&Array.isArray(d.fields))?d.fields.map(function(f){ return {key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text'), fn:String(f.fn||'none')}; }).filter(function(f){return f.key;}):[]; }
 
   function imxLoad(){
     var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(imxLoad,400); return; }
@@ -893,12 +915,14 @@
       try{ fb.onSnapshot(fb.doc(fb.db,'app-config',IMX_FIELDS_DOC), function(snap){
         var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
         imxAnalyzeFields=imxParseFields(d);
+        iafNormalize(d);
+        if($('iafOv') && $('iafOv').classList.contains('show')) iafRender();
         if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); }
       }); }catch(e){}
     }
     fb.getDoc(fb.doc(fb.db,'app-config',IMX_FIELDS_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      imxAnalyzeFields=imxParseFields(d); imxRender(); requestAnimationFrame(imxDraw);
+      imxAnalyzeFields=imxParseFields(d); iafNormalize(d); imxRender(); requestAnimationFrame(imxDraw);
     }).catch(function(){});
     fb.getDoc(fb.doc(fb.db,'app-config',IMX_MASTER_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
@@ -1091,6 +1115,102 @@
     var prof={ id:imxUid(), name:nm, fields:[], mappings:{}, fileName:'' };
     imxState.profiles.push(prof); imxState.activeId=prof.id; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw);
   };
+  /* ===== ITEM ANALYZE 필드 수정/추가 (app-config/item-analyze-fields) =====
+     ITEM MANAGEMENT 가 IMPORT 받을 필드 정의. 여기서 이름·역할·기능을 바로 고칠 수 있다. */
+  var IAF_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],
+                 ['qty','수량 (QTY)'],['amount','총 판매금액 (AMOUNT)'],['cost_amount','원가금액 (COST AMOUNT)'],
+                 ['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
+  var IAF_FNS=[['none','그대로'],['eng','설명 분리 · 영문(/ 왼쪽)'],['kor','설명 분리 · 한글(/ 오른쪽)'],['per_qty','수량으로 나눔 (단가 $)']];
+  var IAF_VER=2;   // 요청 반영: 판매금액 → 총 판매금액, 원가금액 필드 추가
+  function iafOpts(list, sel){ return list.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+esc(r[1])+'</option>'; }).join(''); }
+  function iafSaved(t){ var e=$('iafSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
+  function iafSave(fields, quiet){
+    var fb=window.smFb; if(!fb||!fb.setDoc) return Promise.resolve(false);
+    var clean=(fields||[]).map(function(f){
+      var fn=String(f.fn||'none'); if(!IAF_FNS.some(function(x){ return x[0]===fn; })) fn='none';
+      return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null&&String(f.label).trim())?String(f.label).trim():String(f.key), role:String(f.role||'text'), fn:fn };
+    });
+    imxAnalyzeFields=clean;
+    return fb.setDoc(fb.doc(fb.db,'app-config',IMX_FIELDS_DOC), { fields:clean, cfgVersion:IAF_VER, updatedAt:Date.now() }, {merge:true})
+      .then(function(){ if(!quiet) iafSaved('저장됨'); return true; })
+      .catch(function(){ if(!quiet) iafSaved('저장 실패 (규칙 확인)'); return false; });
+  }
+  /* 요청 반영 1회 보정 — 이미 적용됐으면(cfgVersion) 건드리지 않음 */
+  function iafNormalize(d){
+    if(!d || !Array.isArray(d.fields) || !d.fields.length) return false;
+    if((d.cfgVersion||0) >= IAF_VER) return false;
+    var fields=d.fields.map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key||'')), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
+    var changed=false;
+    fields.forEach(function(f){ if(f.role==='amount' && /^판매금액$/.test(String(f.label).trim())){ f.label='총 판매금액'; changed=true; } });
+    if(!fields.some(function(f){ return f.role==='cost_amount'; })){
+      fields.push({ key:'원가금액', label:'원가금액', role:'cost_amount', fn:'none' }); changed=true;
+    }
+    iafSave(fields, true).then(function(){ if(changed && $('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); } });
+    return changed;
+  }
+  function iafFillNewKey(){
+    var sel=$('iafNewKey'); if(!sel) return;
+    var used={}; imxAnalyzeFields.forEach(function(f){ used[f.key]=1; });
+    var opts='<option value="__new__">＋ 직접 입력(새 필드)</option>';
+    (state.masterRaw||[]).forEach(function(m){ if(used[m.key]) return; opts+='<option value="'+esc(m.key)+'">'+esc(m.label||m.key)+'  ('+esc(m.key)+')</option>'; });
+    sel.innerHTML=opts;
+  }
+  function iafRender(){
+    var box=$('iafList'); if(!box) return;
+    if(!imxAnalyzeFields.length){ box.innerHTML='<div class="iaf-empty">등록된 ITEM ANALYZE 필드가 없습니다. 아래에서 추가하세요.</div>'; return; }
+    box.innerHTML=imxAnalyzeFields.map(function(f,i){
+      return '<div class="iaf-row'+(f.role==='upc'?' upc':'')+'">'+
+        '<div class="iaf-key" title="'+esc(f.key)+'">'+esc(f.key)+'</div>'+
+        '<input class="iaf-in iaf-label" data-i="'+i+'" type="text" value="'+esc(f.label||f.key)+'">'+
+        '<select class="ex-sel iaf-role" data-i="'+i+'">'+iafOpts(IAF_ROLES, f.role)+'</select>'+
+        '<select class="ex-sel iaf-fn" data-i="'+i+'">'+iafOpts(IAF_FNS, f.fn||'none')+'</select>'+
+        '<div class="iaf-ord"><button data-up="'+i+'" type="button">▲</button><button data-down="'+i+'" type="button">▼</button></div>'+
+        '<button class="iaf-del" data-del="'+i+'" type="button">✕</button>'+
+      '</div>';
+    }).join('');
+    function clone(){ return imxAnalyzeFields.map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; }); }
+    box.querySelectorAll('.iaf-label').forEach(function(el){ var i=+el.getAttribute('data-i');
+      el.onchange=function(){ var nf=clone(); nf[i].label=el.value.trim()||nf[i].key; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+    box.querySelectorAll('.iaf-role').forEach(function(el){ var i=+el.getAttribute('data-i');
+      el.onchange=function(){ var nf=clone(); nf[i].role=el.value; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+    box.querySelectorAll('.iaf-fn').forEach(function(el){ var i=+el.getAttribute('data-i');
+      el.onchange=function(){ var nf=clone(); nf[i].fn=el.value; iafSave(nf).then(function(){ iafRender(); }); }; });
+    box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up');
+      b.onclick=function(){ if(i<=0) return; var nf=clone(); var t=nf[i-1]; nf[i-1]=nf[i]; nf[i]=t; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+    box.querySelectorAll('[data-down]').forEach(function(b){ var i=+b.getAttribute('data-down');
+      b.onclick=function(){ if(i>=imxAnalyzeFields.length-1) return; var nf=clone(); var t=nf[i+1]; nf[i+1]=nf[i]; nf[i]=t; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+    box.querySelectorAll('[data-del]').forEach(function(b){ var i=+b.getAttribute('data-del');
+      b.onclick=function(){ if(!confirm('필드 ['+(imxAnalyzeFields[i].label||imxAnalyzeFields[i].key)+']를 ITEM ANALYZE 에서 제거할까요?')) return;
+        var nf=clone(); nf.splice(i,1); iafSave(nf).then(function(){ iafRender(); iafFillNewKey(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+  }
+  function iafAdd(){
+    var pick=($('iafNewKey').value||'').trim();
+    var label=($('iafNewLabel').value||'').trim();
+    var key = (pick==='__new__') ? label.toUpperCase() : pick.toUpperCase();
+    if(!key){ alert('추가할 필드를 선택하거나 이름을 입력하세요.'); return; }
+    if(imxAnalyzeFields.some(function(f){ return f.key===key; })){ alert('이미 추가된 필드입니다.'); return; }
+    var m=(state.masterRaw||[]).find(function(x){ return x.key===key; });
+    var nf=imxAnalyzeFields.map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; });
+    nf.push({ key:key, label:label||(m&&m.label)||key, role:$('iafNewRole').value||'text', fn:$('iafNewFn').value||'none' });
+    iafSave(nf).then(function(){ $('iafNewLabel').value=''; iafRender(); iafFillNewKey(); imxRender(); requestAnimationFrame(imxDraw); });
+  }
+  /* 모달 마크업이 이 스크립트보다 뒤에 있으므로, 열 때 바인딩한다 */
+  var _iafBound=false;
+  function iafBind(){
+    if(_iafBound) return; if(!$('iafOv')||!$('iafAdd')) return; _iafBound=true;
+    $('iafClose').onclick=function(){ $('iafOv').classList.remove('show'); };
+    $('iafAdd').onclick=iafAdd;
+    $('iafOv').addEventListener('click', function(e){ if(e.target===$('iafOv')) $('iafOv').classList.remove('show'); });
+  }
+  function iafOpen(){
+    iafBind();
+    if(!$('iafOv')) return;
+    $('iafNewRole').innerHTML=iafOpts(IAF_ROLES,'text');
+    $('iafNewFn').innerHTML=iafOpts(IAF_FNS,'none');
+    iafFillNewKey(); iafRender(); $('iafOv').classList.add('show');
+  }
+  if($('imxFieldsBtn')) $('imxFieldsBtn').onclick=iafOpen;
+
   /* 카테고리 전환은 선택 상태만 저장 (마스터 문서를 덮어쓰지 않도록 분리) */
   function imxSaveActiveId(){ var fb=window.smFb; if(!fb||!fb.setDoc) return;
     try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).catch(function(){}); }catch(e){} }
@@ -2079,6 +2199,31 @@
   .cf-btn.danger{ color:#c0392b; }
   .cf-empty{ text-align:center; color:#9a9aa0; font-size:12px; padding:20px; }
 </style>
+<!-- ITEM ANALYZE 필드 수정/추가 (app-config/item-analyze-fields) -->
+<div class="iaf-ov" id="iafOv">
+  <div class="iaf-modal">
+    <div class="iaf-head">
+      <div>
+        <div class="iaf-title">ITEM ANALYZE 필드</div>
+        <div class="iaf-sub">ITEM MANAGEMENT 가 IMPORT 받을 필드입니다. 이름 · 역할 · 업로드 기능을 지정하세요.</div>
+      </div>
+      <span class="fm-saved" id="iafSaved"></span>
+      <button class="ex-btn" id="iafClose" type="button">닫기</button>
+    </div>
+    <div class="iaf-body">
+      <div id="iafList"></div>
+      <div class="iaf-add">
+        <select class="ex-sel" id="iafNewKey"></select>
+        <input class="iaf-in" id="iafNewLabel" type="text" placeholder="표시 이름 (예: 원가금액)">
+        <select class="ex-sel" id="iafNewRole"></select>
+        <select class="ex-sel" id="iafNewFn"></select>
+        <button class="ex-btn warm" id="iafAdd" type="button">＋ 추가</button>
+      </div>
+      <div class="iaf-note">역할은 데이터 해석 기준입니다 — <b>총 판매금액</b>과 <b>원가금액</b>은 각각 합계로 집계되고, COST · SRP 는 검색 결과에서 판매수량으로 나눠 단가로 표시됩니다.</div>
+    </div>
+  </div>
+</div>
+
 <div id="cfOv"><div id="cfCard">
   <div id="cfHead"><h3 id="cfTitle">필드 관리</h3><span style="flex:1;"></span><button class="cf-btn" id="cfClose">✕</button></div>
   <div id="cfBody"></div>

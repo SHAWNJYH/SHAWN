@@ -366,26 +366,27 @@
     var hasKor=/[\uAC00-\uD7A3\u3130-\u318F]/.test(s);
     return hasKor?{eng:'',kor:s}:{eng:s,kor:''};
   }
-  function fieldIsNum(role){ return role==='cost'||role==='srp'||role==='price'||role==='qty'||role==='amount'; }
-  function fieldOpt(role){ return role==='qty'||role==='amount'||role==='date'||role==='category'; }
+  function fieldIsNum(role){ return role==='cost'||role==='srp'||role==='price'||role==='qty'||role==='amount'||role==='cost_amount'; }
+  function fieldOpt(role){ return role==='qty'||role==='amount'||role==='cost_amount'||role==='date'||role==='category'; }
   function deriveRoles(){
-    var idKey=null,idKeys=[],nameKeys=[],priceKeys=[],amountKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
+    var idKey=null,idKeys=[],nameKeys=[],priceKeys=[],amountKey=null,costAmtKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
     FIELDS.forEach(function(f){
       if(f.role==='upc'){ if(!idKey) idKey=f.key; idKeys.push(f.key); }
       else if(f.role==='name') nameKeys.push(f.key);
       else if(f.role==='cost'||f.role==='srp'||f.role==='price'){ priceKeys.push(f.key); if(f.role==='cost'&&!costKey) costKey=f.key; if(f.role==='srp'&&!srpKey) srpKey=f.key; if(f.role==='price'&&!costKey) costKey=f.key; }
       else if(f.role==='amount'){ if(!amountKey) amountKey=f.key; }
+      else if(f.role==='cost_amount'){ if(!costAmtKey) costAmtKey=f.key; }
       else if(f.role==='date'){ if(!dateKey) dateKey=f.key; }
       else if(f.role==='category'){ if(!catKey) catKey=f.key; }
       else if(f.role==='qty'){ if(!qtyKey) qtyKey=f.key; }
-      if(f.role!=='qty'&&f.role!=='amount'&&f.role!=='date') disp.push(f);
+      if(f.role!=='qty'&&f.role!=='amount'&&f.role!=='cost_amount'&&f.role!=='date') disp.push(f);
     });
     if(!idKey && FIELDS.length) idKey=FIELDS[0].key;
     if(!costKey && priceKeys.length) costKey=priceKeys[0];
     if(!srpKey && priceKeys.length>1) srpKey=priceKeys[1];
     var pset={}; priceKeys.forEach(function(k){ pset[k]=1; });
     if(!idKeys.length && idKey) idKeys=[idKey];
-    ROLES={ idKey:idKey, idKeys:idKeys, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
+    ROLES={ idKey:idKey, idKeys:idKeys, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, costAmtKey:costAmtKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
   }
   function setFields(arr){ FIELDS=(arr&&arr.length)?normCfg(arr):normCfg(FIELD_DEFAULTS); deriveRoles(); }
   function fieldByKey(k){ k=String(k||'').trim().toUpperCase(); for(var i=0;i<FIELDS.length;i++){ if(FIELDS[i].key===k) return FIELDS[i]; } return null; }
@@ -517,14 +518,16 @@
         ROLES.displayFields.forEach(function(f){ if(ROLES.priceSet[f.key]) return; if((p.vals[f.key]==null||p.vals[f.key]==='')&&row[f.key]!=null&&row[f.key]!=='') p.vals[f.key]=row[f.key]; });
         // 매장별 집계 — COST·SRP 는 합계로 모아두고 표시 시점에 판매수량으로 나눔
         var cur=p.perStore[store];
-        if(!cur){ cur={ costSum:null, srpSum:null, qty:0, amount:0, costLast:null, srpLast:null, date:0, rows:0, hasQty:false, hasAmt:false }; p.perStore[store]=cur; }
+        if(!cur){ cur={ costSum:null, srpSum:null, qty:0, amount:0, costAmt:0, costLast:null, srpLast:null, date:0, rows:0, hasQty:false, hasAmt:false, hasCostAmt:false }; p.perStore[store]=cur; }
         var q=ROLES.qtyKey?num(row[ROLES.qtyKey]):null;
         var c=ROLES.costKey?num(row[ROLES.costKey]):null;
         var sp=ROLES.srpKey?num(row[ROLES.srpKey]):null;
         var amt=ROLES.amountKey?num(row[ROLES.amountKey]):null;
+        var camt=ROLES.costAmtKey?num(row[ROLES.costAmtKey]):null;
         var dt=(ROLES.dateKey?row[ROLES.dateKey]:0)||(ds.fileDate||0);
         if(q!=null){ cur.qty+=q; cur.hasQty=true; }
         if(amt!=null){ cur.amount+=amt; cur.hasAmt=true; }
+        if(camt!=null){ cur.costAmt+=camt; cur.hasCostAmt=true; }
         if(c!=null){ cur.costSum=(cur.costSum||0)+c; cur.costLast=c; }
         if(sp!=null){ cur.srpSum=(cur.srpSum||0)+sp; cur.srpLast=sp; }
         if(dt && dt>(cur.date||0)) cur.date=dt;
@@ -924,7 +927,7 @@
       var qty=ps.qty||0;
       var cost=(ps.costSum==null)?null:((qty>0)?(ps.costSum/qty):ps.costLast);
       var srp =(ps.srpSum==null) ?null:((qty>0)?(ps.srpSum/qty) :ps.srpLast);
-      out[s]={ cost:cost, srp:srp, qty:(ps.hasQty?qty:null), amount:(ps.hasAmt?ps.amount:null), date:ps.date||0 };
+      out[s]={ cost:cost, srp:srp, qty:(ps.hasQty?qty:null), amount:(ps.hasAmt?ps.amount:null), costAmt:(ps.hasCostAmt?ps.costAmt:null), date:ps.date||0 };
     });
     return out;
   }
@@ -945,6 +948,8 @@
     var q=($('srInput').value||'').trim();
     var nm=pName(p), n2=pName2(p);
     var grand=0; stores.forEach(function(s){ grand+=(summ[s].amount||0); });
+    var amtF=ROLES.amountKey?fieldByKey(ROLES.amountKey):null, amtLb=(amtF&&amtF.label)||'총 판매금액';
+    var cAmtF=ROLES.costAmtKey?fieldByKey(ROLES.costAmtKey):null, cAmtLb=(cAmtF&&cAmtF.label)||'원가금액';
     var cols=stores.map(function(s){ var d=summ[s];
       return '<div class="rs-st">'+
         '<div class="rs-st-nm">'+esc(s)+'</div>'+
@@ -952,7 +957,8 @@
         '<div class="rs-metric"><span class="lb">COST</span><span class="vv">'+(d.cost!=null?money(d.cost):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">SRP</span><span class="vv">'+(d.srp!=null?money(d.srp):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">판매수량</span><span class="vv">'+fmtQty(d.qty)+'</span></div>'+
-        '<div class="rs-metric"><span class="lb">판매금액</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">'+esc(amtLb)+'</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
+        (ROLES.costAmtKey?('<div class="rs-metric"><span class="lb">'+esc(cAmtLb)+'</span><span class="vv">'+(d.costAmt!=null?money(d.costAmt):'—')+'</span></div>'):'')+
       '</div>';
     }).join('');
     var storesHtml=stores.length?('<div class="rs-stores">'+cols+'</div>'):'<div class="rs-nostore">판매 매장 데이터가 없습니다.</div>';
@@ -962,7 +968,7 @@
         '<span class="rs-upc">('+(p.id?('UPC '+esc(p.id)):'UPC 없음')+')</span>'+
       '</div>'+
       (n2?'<div class="rs-eng2">'+esc(n2)+'</div>':'')+
-      '<div class="rs-meta">'+stores.length+'개 매장 · 합계 판매금액 <b>'+money(grand)+'</b></div>'+
+      '<div class="rs-meta">'+stores.length+'개 매장 · 합계 '+esc(amtLb)+' <b>'+money(grand)+'</b></div>'+
       storesHtml+
     '</div>';
   }
@@ -1007,7 +1013,7 @@
   $('mapOv').addEventListener('click', function(e){ if(e.target===$('mapOv')) closeMap(); });
 
   /* ===== ITEM ANALYZE 필드 관리 (필드관리 마스터 중 선별) ===== */
-  var IM_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],['qty','수량 (QTY)'],['amount','판매금액 (AMOUNT)'],['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
+  var IM_ROLES=[['upc','UPC · 식별'],['name','상품명 · 검색'],['cost','COST · 원가'],['srp','SRP · 판매가'],['price','가격 · 기타'],['qty','수량 (QTY)'],['amount','총 판매금액 (AMOUNT)'],['cost_amount','원가금액 (COST AMOUNT)'],['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
   function roleOpts(sel){ return IM_ROLES.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+r[1]+'</option>'; }).join(''); }
   var cfgFromCloud=false, cfgChecked=false, __seedTried=false;
 
