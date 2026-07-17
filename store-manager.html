@@ -519,6 +519,8 @@
         </div>
       </div>
       <div class="st-hint" style="padding:0 22px 16px; margin:0;">
+        <b>ITEM MASTER</b> 카테고리는 ITEM MANAGEMENT 의 상품 마스터를 IMPORT 하는 기준입니다(받는 필드 고정: UPC · PLU · KOR DESC · ENG DESC · COST · SRP).
+        그 외 카테고리는 매장 판매 엑셀용입니다.<br>
         왼쪽 <b>ITEM ANALYZE 필드</b>(ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 선택 · 필드관리 마스터 필드만)를 클릭해 선택한 뒤,
         오른쪽 <b>IMPORT 필드</b>(업로드한 엑셀의 열)를 클릭하면 선으로 연결됩니다(필드 왼쪽의 선택 상자로도 지정 가능). 화살표는 데이터가 들어오는 방향
         (<b>IMPORT 필드 → ITEM ANALYZE 필드</b>)을 가리킵니다. 여러 필드가 <b>같은 IMPORT 필드</b>를 공유할 수 있어 KOR DESC·ENG DESC 처럼
@@ -861,14 +863,28 @@
      연결: mappings[ITEM ANALYZE 필드 key] = IMPORT 필드(엑셀열) → app-config/item-analyze-match 저장
      ITEM ANALYZE 는 이 매칭으로 업로드 데이터를 자동 매핑한다. */
   var IMX_FIELDS_DOC='item-analyze-fields', IMX_MATCH_DOC='item-analyze-match';
-  var imxState={ profiles:[], activeId:'', armed:null, _fsub:false };
+  /* ITEM MASTER 카테고리 — IMPORT 받을 기준 필드는 고정(UPC/PLU/KOR DESC/ENG DESC/COST/SRP).
+     ITEM ANALYZE 판매 매핑(item-analyze-match)과 필드명이 겹치므로 반드시 별도 문서에 저장한다. */
+  var IMX_MASTER_DOC='item-management-itemmaster-match', IMX_MASTER_ID='__itemmaster__';
+  var IMX_MASTER_FIELDS=[
+    {key:'UPC',      label:'UPC',      role:'upc'},
+    {key:'PLU',      label:'PLU',      role:'text'},
+    {key:'KOR DESC', label:'KOR DESC', role:'name'},
+    {key:'ENG DESC', label:'ENG DESC', role:'name'},
+    {key:'COST',     label:'COST',     role:'cost'},
+    {key:'SRP',      label:'SRP',      role:'srp'}
+  ];
+  var imxState={ profiles:[], activeId:'', armed:null, _fsub:false,
+                 master:{ id:IMX_MASTER_ID, name:'ITEM MASTER', fields:[], mappings:{}, samples:{}, fileName:'' } };
   var imxAnalyzeFields=[];   // [{key,label,role}]
+  function imxIsMaster(){ return imxState.activeId===IMX_MASTER_ID; }
+  function imxCurFields(){ return imxIsMaster()?IMX_MASTER_FIELDS:imxAnalyzeFields; }
   var IMX_PALETTE=['#4a6cc9','#2f9e5e','#e07b1f','#8b5cf6','#e57ba5','#0e9aa7','#b5388a','#7a6cc4','#c0653a','#5b7083','#a8703e','#27408b','#d4543b','#3a8f6a'];
-  function imxColor(key){ var i=-1; for(var n=0;n<imxAnalyzeFields.length;n++){ if(imxAnalyzeFields[n].key===key){ i=n; break; } } return IMX_PALETTE[(i<0?0:i)%IMX_PALETTE.length]; }
-  function imxField(key){ for(var i=0;i<imxAnalyzeFields.length;i++){ if(imxAnalyzeFields[i].key===key) return imxAnalyzeFields[i]; } return null; }
+  function imxColor(key){ var L=imxCurFields(); var i=-1; for(var n=0;n<L.length;n++){ if(L[n].key===key){ i=n; break; } } return IMX_PALETTE[(i<0?0:i)%IMX_PALETTE.length]; }
+  function imxField(key){ var L=imxCurFields(); for(var i=0;i<L.length;i++){ if(L[i].key===key) return L[i]; } return null; }
   function imxSaved(t){ var e=$('imxSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
   function imxUid(){ return 'im_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-  function imxActive(){ return imxState.profiles.find(function(p){ return p.id===imxState.activeId; })||null; }
+  function imxActive(){ if(imxIsMaster()) return imxState.master; return imxState.profiles.find(function(p){ return p.id===imxState.activeId; })||null; }
   function imxParseFields(d){ return (d&&Array.isArray(d.fields))?d.fields.map(function(f){ return {key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text')}; }).filter(function(f){return f.key;}):[]; }
 
   function imxLoad(){
@@ -884,15 +900,27 @@
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       imxAnalyzeFields=imxParseFields(d); imxRender(); requestAnimationFrame(imxDraw);
     }).catch(function(){});
+    fb.getDoc(fb.doc(fb.db,'app-config',IMX_MASTER_DOC)).then(function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      imxState.master={ id:IMX_MASTER_ID, name:'ITEM MASTER', fields:Array.isArray(d.fields)?d.fields:[],
+                        mappings:(d.mappings&&typeof d.mappings==='object')?d.mappings:{}, samples:d.samples||{}, fileName:d.fileName||'' };
+      if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); }
+    }).catch(function(){});
     fb.getDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       imxState.profiles=Array.isArray(d.profiles)?d.profiles:[];
-      imxState.activeId=d.activeId||((imxState.profiles[0]&&imxState.profiles[0].id)||'');
+      imxState.activeId=d.activeId||IMX_MASTER_ID;
       imxRender(); requestAnimationFrame(imxDraw);
     }).catch(function(){ imxRender(); });
   }
   function imxSaveMatch(){
     var fb=window.smFb; if(!fb||!fb.setDoc) return;
+    if(imxIsMaster()){
+      var m=imxState.master;
+      try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MASTER_DOC), { fields:m.fields||[], mappings:m.mappings||{}, samples:m.samples||{}, fileName:m.fileName||'', updatedAt:Date.now() }, {merge:true})
+        .then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
+      return;
+    }
     try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { profiles:imxState.profiles, activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).then(function(){ imxSaved('저장됨'); }).catch(function(){ imxSaved('저장 실패 (규칙 확인)'); }); }catch(e){}
   }
   function imxSetMap(analyzeKey, excelField){    var p=imxActive(); if(!p) return; if(!p.mappings) p.mappings={};
@@ -903,17 +931,22 @@
 
   function imxRenderProfileSel(){
     var sel=$('imxProfileSel'); if(!sel) return;
-    if(!imxState.profiles.length){ sel.innerHTML='<option value="">— 카테고리 —</option>'; return; }
-    sel.innerHTML=imxState.profiles.map(function(p){ var mark=(p.fields&&p.fields.length)?(' · '+(p.fileName||'파일')):' (파일 없음)'; return '<option value="'+p.id+'"'+(p.id===imxState.activeId?' selected':'')+'>'+esc(p.name+mark)+'</option>'; }).join('');
+    var m=imxState.master; var mMark=(m.fields&&m.fields.length)?(' · '+(m.fileName||'파일')):' (파일 없음)';
+    var html='<option value="'+IMX_MASTER_ID+'"'+(imxIsMaster()?' selected':'')+'>'+esc('ITEM MASTER'+mMark)+'</option>';
+    html+=imxState.profiles.map(function(p){ var mark=(p.fields&&p.fields.length)?(' · '+(p.fileName||'파일')):' (파일 없음)'; return '<option value="'+p.id+'"'+(p.id===imxState.activeId?' selected':'')+'>'+esc(p.name+mark)+'</option>'; }).join('');
+    sel.innerHTML=html;
   }
   // 왼쪽: ITEM ANALYZE 필드. mappings[필드key]=IMPORT 필드. 여러 필드가 같은 IMPORT 필드를 공유 가능(KOR/ENG 분리).
   function imxRenderAnalyzeCol(){
     var col=$('imxAnalyzeCol'); if(!col) return;
-    if(!imxAnalyzeFields.length){ col.innerHTML='<div class="ex-empty">ITEM ANALYZE 필드가 없습니다.<br>ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 필드관리 마스터 필드를 선택하세요.</div>'; return; }
+    var LF=imxCurFields();
+    if(!LF.length){ col.innerHTML='<div class="ex-empty">ITEM ANALYZE 필드가 없습니다.<br>ITEM ANALYZE 앱의 <b>필드 추가/수정</b>에서 필드관리 마스터 필드를 선택하세요.</div>'; return; }
     var p=imxActive(); var excelFields=(p&&p.fields)||[];
     var opts='<option value="">— 없음 —</option>'+excelFields.map(function(h){ return '<option value="'+esc(h)+'">'+esc(h)+'</option>'; }).join('');
-    var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">ITEM ANALYZE 필드</span><span class="ex-col-sub">'+imxAnalyzeFields.length+'개 · 필드관리 마스터</span></div>';
-    html+=imxAnalyzeFields.map(function(f,i){
+    var colName=imxIsMaster()?'ITEM MASTER 필드':'ITEM ANALYZE 필드';
+    var colSub=imxIsMaster()?(LF.length+'개 · IMPORT 기준 필드(고정)'):(LF.length+'개 · 필드관리 마스터');
+    var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">'+colName+'</span><span class="ex-col-sub">'+colSub+'</span></div>';
+    html+=LF.map(function(f,i){
       var c=imxColor(f.key); var armed=imxState.armed===f.key?' armed':'';
       var mapped=(p&&p.mappings)?p.mappings[f.key]:''; var brokenSrc=mapped&&excelFields.indexOf(mapped)<0;
       var linked=mapped?' linked':'';
@@ -939,7 +972,7 @@
   function imxRenderExcelCol(){
     var col=$('imxExcelCol'); if(!col) return;
     var p=imxActive();
-    if(!p){ col.innerHTML='<div class="ex-empty">카테고리가 없습니다.<br>상단 <b>＋ 카테고리</b>로 추가하세요.</div>'; return; }
+    if(!p){ col.innerHTML='<div class="ex-empty">카테고리를 선택하세요.<br>상단 <b>＋ 카테고리</b>로 추가할 수 있습니다.</div>'; return; }
     if(!p.fields||!p.fields.length){ col.innerHTML='<div class="ex-empty"><b>'+esc(p.name)+'</b> 카테고리에 업로드된 엑셀이 없습니다.<br>상단 <b>📄 엑셀 업로드</b>로 이 카테고리의 샘플 엑셀을 올리세요.<br>(엑셀 첫 행이 열 목록이 됩니다)</div>'; return; }
     var rev={}; if(p.mappings){ Object.keys(p.mappings).forEach(function(ak){ var ef=p.mappings[ak]; if(!imxField(ak)) return; if(!rev[ef]) rev[ef]=[]; rev[ef].push(ak); }); }
     var html='<div class="ex-col-head"><span class="tick"></span><span class="ex-col-name">IMPORT 필드 — '+esc(p.name)+'</span><span class="ex-col-sub">'+p.fields.length+'개</span></div>';
@@ -1058,9 +1091,14 @@
     var prof={ id:imxUid(), name:nm, fields:[], mappings:{}, fileName:'' };
     imxState.profiles.push(prof); imxState.activeId=prof.id; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw);
   };
-  if($('imxProfileSel')) $('imxProfileSel').onchange=function(){ imxState.activeId=this.value; imxState.armed=null; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
+  /* 카테고리 전환은 선택 상태만 저장 (마스터 문서를 덮어쓰지 않도록 분리) */
+  function imxSaveActiveId(){ var fb=window.smFb; if(!fb||!fb.setDoc) return;
+    try{ fb.setDoc(fb.doc(fb.db,'app-config',IMX_MATCH_DOC), { activeId:imxState.activeId, updatedAt:Date.now() }, {merge:true}).catch(function(){}); }catch(e){} }
+  if($('imxProfileSel')) $('imxProfileSel').onchange=function(){ imxState.activeId=this.value; imxState.armed=null; imxSaveActiveId(); imxRender(); requestAnimationFrame(imxDraw); };
   if($('imxClearBtn')) $('imxClearBtn').onclick=function(){ var p=imxActive(); if(!p) return; if(!confirm('현재 카테고리("'+p.name+'")의 모든 연결을 초기화할까요?')) return; p.mappings={}; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
-  if($('imxDeleteBtn')) $('imxDeleteBtn').onclick=function(){ var p=imxActive(); if(!p) return; if(!confirm('카테고리 "'+p.name+'"를 삭제할까요?')) return; imxState.profiles=imxState.profiles.filter(function(x){ return x.id!==p.id; }); imxState.activeId=(imxState.profiles[0]&&imxState.profiles[0].id)||''; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
+  if($('imxDeleteBtn')) $('imxDeleteBtn').onclick=function(){ var p=imxActive(); if(!p) return;
+    if(imxIsMaster()){ alert('ITEM MASTER 는 기본 카테고리라 삭제할 수 없습니다.\n연결을 지우려면 "연결 초기화"를 사용하세요.'); return; }
+    if(!confirm('카테고리 "'+p.name+'"를 삭제할까요?')) return; imxState.profiles=imxState.profiles.filter(function(x){ return x.id!==p.id; }); imxState.activeId=(imxState.profiles[0]&&imxState.profiles[0].id)||''; imxSaveMatch(); imxRender(); requestAnimationFrame(imxDraw); };
   var __imxCw=document.querySelector('#smPanelItemMatch .ex-canvas-wrap'); if(__imxCw) __imxCw.addEventListener('scroll', function(){ imxDraw(); });
   window.addEventListener('resize', function(){ if($('smPanelItemMatch')&&$('smPanelItemMatch').classList.contains('active')) imxDraw(); });
 

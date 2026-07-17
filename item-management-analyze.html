@@ -51,7 +51,7 @@
   .ia-user{ font-size:13px; font-weight:700; color:var(--text-dim); }
   .ia-user b{ color:var(--text); }
 
-  .ia-wrap{ max-width:1280px; margin:0 auto; padding:24px 24px 100px; }
+  .ia-wrap{ max-width:1560px; margin:0 auto; padding:24px 24px 100px; }
   .ia-sec{ margin-bottom:28px; }
   .ia-sec-head{ display:flex; align-items:center; gap:9px; margin:0 2px 14px; }
   .ia-sec-tick{ width:9px; height:9px; border-radius:3px; background:var(--accent-warm); }
@@ -59,8 +59,21 @@
   .ia-sec-sub{ font-size:12px; font-weight:700; color:var(--text-faint); }
 
   /* 매장 업로드 그리드 */
-  .st-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(232px,1fr)); gap:12px; }
-  .st-card{ position:relative; border:1.5px solid var(--border); border-radius:14px; background:var(--bg-elev); padding:14px 15px; display:flex; flex-direction:column; gap:9px; transition:border-color .12s, background .12s, box-shadow .12s; }
+  /* 화면 분할 — 왼쪽은 업로드 박스 크기만큼, 오른쪽(상품검색)이 나머지 전부 */
+  .ia-split{ display:flex; align-items:flex-start; gap:22px; }
+  .ia-left{ flex:0 0 auto; width:calc(174px * 3 + 10px * 2); }   /* 업로드 박스 3개 가로 */
+  .ia-right{ flex:1 1 0; min-width:0; }
+  .ia-left .ia-sec{ margin-bottom:20px; }
+  /* 업로드 박스: 왼쪽에서 가로로 나열 */
+  .st-grid{ display:grid; grid-template-columns:repeat(3, 174px); gap:10px; }
+  #imBox{ grid-template-columns:174px; }   /* ITEM MASTER — 매장 박스와 동일 크기 */
+  @media(max-width:1180px){
+    .ia-split{ flex-direction:column; }
+    .ia-left{ width:100%; }
+    .st-grid{ grid-template-columns:repeat(auto-fill, minmax(174px,1fr)); }
+  }
+  .st-card{ position:relative; border:1.5px solid var(--border); border-radius:14px; background:var(--bg-elev); padding:11px 12px; display:flex; flex-direction:column; gap:7px; transition:border-color .12s, background .12s, box-shadow .12s; }
+  .st-card.master{ border-color:var(--accent-warm); background:var(--accent-soft); }
   .st-card.has{ border-color:var(--accent-warm); box-shadow:0 6px 20px rgba(201,169,97,.08); }
   .st-card.dragover{ border-color:var(--accent-warm); border-style:dashed; background:var(--accent-soft); box-shadow:0 0 0 3px var(--accent-soft); }
   .st-card.dragover *{ pointer-events:none; }
@@ -199,40 +212,55 @@
 </div>
 
 <div class="ia-wrap">
-  <!-- 매장별 엑셀 업로드 -->
-  <div class="ia-sec">
-    <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">매장별 엑셀 업로드</span><span class="ia-sec-sub" id="stCount"></span></div>
-    <div class="st-grid" id="stGrid"></div>
+ <div class="ia-split">
+
+  <!-- 왼쪽: 업로드 (박스 크기에 맞춘 폭) -->
+  <div class="ia-left">
+
+    <!-- ITEM MASTER (매장 박스와 동일 크기) -->
+    <div class="ia-sec">
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">ITEM MASTER</span><span class="ia-sec-sub" id="imCount"></span></div>
+      <div class="st-grid" id="imBox"></div>
+    </div>
+
+    <!-- 매장별 엑셀 업로드 -->
+    <div class="ia-sec">
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">기간/부서별 매출순 상품 집계</span><span class="ia-sec-sub" id="stCount"></span></div>
+      <div class="st-grid" id="stGrid"></div>
+    </div>
+
   </div>
 
-  <!-- 검색 -->
-  <div class="ia-sec">
-    <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">상품 검색</span><span class="ia-sec-sub">UPC · 상품명 (부분·유사 검색)</span></div>
-    <div class="sr-box">
-      <div class="sr-row">
-        <div class="sr-search sr-field" style="flex:1;">
-          <label>검색어</label>
-          <input id="srInput" type="text" placeholder="상품명 또는 UPC 입력 (예: 신라 · 신라면 · 8801…)" autocomplete="off">
-          <div class="sr-sugg" id="srSugg"></div>
+  <!-- 오른쪽: 상품 검색 -->
+  <div class="ia-right">
+    <div class="ia-sec">
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">상품 검색</span><span class="ia-sec-sub">UPC · 상품명 (부분·유사 검색)</span></div>
+      <div class="sr-box">
+        <div class="sr-row">
+          <div class="sr-search sr-field" style="flex:1;">
+            <label>검색어</label>
+            <input id="srInput" type="text" placeholder="상품명 또는 UPC 입력 (예: 신라 · 신라면 · 8801…)" autocomplete="off">
+            <div class="sr-sugg" id="srSugg"></div>
+          </div>
+          <button class="sr-go" id="srGo" type="button">검색</button>
+          <button class="sr-clear" id="srClear" type="button">초기화</button>
         </div>
-        <button class="sr-go" id="srGo" type="button">검색</button>
-        <button class="sr-clear" id="srClear" type="button">초기화</button>
+        <div class="sr-hint">매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 비교합니다. (COST · SRP 는 판매수량으로 나눈 단가)</div>
       </div>
-      <div class="sr-hint">매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 비교합니다. (COST · SRP 는 판매수량으로 나눈 단가)</div>
+    </div>
+
+    <div class="ia-sec">
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">검색 결과</span></div>
+      <div id="rsBox"><div class="rs-empty"><div class="ic">🔎</div><div class="t">상품을 검색하세요</div><div class="s">DESC(상품명)로 검색하면 매장별 COST · SRP · 판매수량 · 판매금액을 한눈에 보여드립니다.</div></div></div>
+    </div>
+
+    <div class="ia-sec">
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">검색 히스토리</span><span class="ia-sec-sub">최근 20개</span></div>
+      <div class="hs-wrap" id="hsWrap"><div class="hs-empty">검색 기록이 없습니다.</div></div>
     </div>
   </div>
 
-  <!-- 결과 -->
-  <div class="ia-sec">
-    <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">검색 결과</span></div>
-    <div id="rsBox"><div class="rs-empty"><div class="ic">🔎</div><div class="t">상품을 검색하세요</div><div class="s">각 매장의 현재 판매가격과 기간 총 판매금액을 보여드립니다.</div></div></div>
-  </div>
-
-  <!-- 히스토리 -->
-  <div class="ia-sec">
-    <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">검색 히스토리</span><span class="ia-sec-sub">최근 20개</span></div>
-    <div class="hs-wrap" id="hsWrap"><div class="hs-empty">검색 기록이 없습니다.</div></div>
-  </div>
+ </div>
 </div>
 
 <!-- ITEM ANALYZE 필드 추가/수정 모달 (필드관리 마스터에서 선택) -->
@@ -272,6 +300,7 @@
 </div>
 
 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+<input type="file" id="imFile" accept=".xlsx,.xls,.csv" style="display:none;">
 <div class="ia-toast" id="iaToast"></div>
 
 <script>
@@ -289,7 +318,21 @@
   var STORES=['TACOMA','FEDERAL WAY','BELLEVUE','LYNNWOOD','REDMOND','BALLARD','MELLOW WAY','DISTRICT H','M2M','G-MART'];
   var MAP_LS='iaMap:', HIST_LS='iaHistory';
   var CFG_COL='app-config', CFG_DOC='item-analyze-fields';
-  var MATCH_DOC='item-analyze-match';       // STORE MANAGER · ITEM 필드매칭 선 연결
+  var MATCH_DOC='item-analyze-match';       // STORE MANAGER · IMPORT 설정 선 연결(매장 판매 엑셀)
+  /* ITEM MASTER — STORE MANAGER · IMPORT 설정의 "ITEM MASTER" 카테고리 매칭으로 IMPORT.
+     데이터는 Firebase 에 저장(문서명 item-management-itemmaster). Firestore 1MB 제한 때문에 청크로 나눠 저장. */
+  var IM_MATCH_DOC='item-management-itemmaster-match';
+  var IM_DOC='item-management-itemmaster';
+  var IM_FIELDS=[
+    {key:'UPC',      label:'UPC',      role:'upc'},
+    {key:'PLU',      label:'PLU',      role:'text'},
+    {key:'KOR DESC', label:'KOR DESC', role:'name'},
+    {key:'ENG DESC', label:'ENG DESC', role:'name'},
+    {key:'COST',     label:'COST',     role:'cost'},
+    {key:'SRP',      label:'SRP',      role:'srp'}
+  ];
+  var IM_MATCH={ fields:[], mappings:{} };   // {필드key: 엑셀열}
+  var imMaster=null;                          // { fileName, uploadedAt, rowCount, rows:[{UPC,PLU,...}] }
   var MASTER_COL='upc-config', MASTER_DOC='main';  // 필드관리 마스터 필드
   var MASTER=[];        // [{key,label}] — 필드관리 마스터
   var IMX_PROFILES=[];  // [{ 필드key: 엑셀열 }] — ITEM 필드매칭(선 연결)에서 생성. 여러 필드가 같은 열 공유 가능.
@@ -718,6 +761,145 @@
     try{ await idbDel(store); delete datasets[store]; rebuildIndex(); renderStores(); toast(store+' 삭제됨'); if(selected) renderResult(selected); }catch(e){ toast('삭제 실패'); }
   }
 
+  /* ===== ITEM MASTER =====
+     매칭: app-config/item-management-itemmaster-match (STORE MANAGER · IMPORT 설정 → ITEM MASTER 카테고리)
+     데이터: app-config/item-management-itemmaster (+ 청크 문서 -c0, -c1 …) */
+  var IM_CHUNK=1200;   // 문서당 행 수 (Firestore 1MB 제한 여유)
+  function subscribeItemMaster(){
+    var fb=window.iaCfgFb; if(!fb||!fb.onSnapshot){ setTimeout(subscribeItemMaster,400); return; }
+    try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_MATCH_DOC), function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      IM_MATCH={ fields:Array.isArray(d.fields)?d.fields:[], mappings:(d.mappings&&typeof d.mappings==='object')?d.mappings:{} };
+      renderMaster();
+    }, function(){}); }catch(e){}
+    // 메타 + 청크 로드
+    try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_DOC), function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+      if(!d || !d.rowCount){ imMaster=null; renderMaster(); return; }
+      loadMasterChunks(d);
+    }, function(){}); }catch(e){}
+  }
+  function loadMasterChunks(meta){
+    var fb=window.iaCfgFb; var n=meta.chunks||0; var jobs=[];
+    for(var i=0;i<n;i++) jobs.push(fb.getDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+i)));
+    Promise.all(jobs).then(function(snaps){
+      var rows=[];
+      snaps.forEach(function(sn){ var dd=(sn&&sn.exists&&sn.exists())?(sn.data()||{}):{}; if(Array.isArray(dd.rows)) rows=rows.concat(dd.rows); });
+      imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:rows.length, rows:rows };
+      renderMaster();
+    }).catch(function(){ imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:meta.rowCount||0, rows:[] }; renderMaster(); });
+  }
+  /* ITEM MASTER 매핑 — IMPORT 설정의 ITEM MASTER 카테고리 우선, 없으면 열 이름으로 보조 매칭 */
+  function masterMap(headers){
+    var m={}, hset={}; headers.forEach(function(h){ hset[norm(h)]=h; });
+    var mp=IM_MATCH.mappings||{};
+    Object.keys(mp).forEach(function(fk){ var want=norm(mp[fk]); if(hset[want]) m[String(fk).trim().toUpperCase()]=hset[want]; });
+    IM_FIELDS.forEach(function(f){ if(m[f.key]) return; var w=hset[norm(f.key)]||hset[norm(f.label)]; if(w) m[f.key]=w; });
+    return m;
+  }
+  function handleMasterFile(file){
+    if(!file) return;
+    var nm=(file.name||'').toLowerCase();
+    if(!/\.(xlsx|xls|csv)$/.test(nm)){ toast('엑셀/CSV 파일만 업로드할 수 있습니다'); return; }
+    if(typeof XLSX==='undefined'){ toast('엑셀 라이브러리 로드 실패 — 새로고침'); return; }
+    var fr=new FileReader();
+    fr.onload=function(ev){
+      try{
+        var wb=XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var aoa=XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:''});
+        var parsed=sheetToRows(aoa);
+        if(!parsed.rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
+        var map=masterMap(parsed.headers);
+        var mapped=IM_FIELDS.filter(function(f){ return map[f.key]; });
+        if(!mapped.length){
+          toast('ITEM MASTER 매칭이 없습니다 — STORE MANAGER · IMPORT 설정의 ITEM MASTER 카테고리에서 연결하세요');
+          return;
+        }
+        var rows=parsed.rows.map(function(r){
+          var o={};
+          IM_FIELDS.forEach(function(f){ var col=map[f.key]; var raw=(col?r[col]:'');
+            if(f.role==='cost'||f.role==='srp'){ var v=num(raw); o[f.key]=(v==null?'':v); }
+            else o[f.key]=(raw==null?'':String(raw)).trim();
+          });
+          return o;
+        }).filter(function(o){ return String(o['UPC']||'').trim()!=='' || String(o['PLU']||'').trim()!=='' || String(o['KOR DESC']||'').trim()!=='' || String(o['ENG DESC']||'').trim()!==''; });
+        if(!rows.length){ toast('유효한 행이 없습니다 (UPC·PLU·상품명 모두 비어있음)'); return; }
+        saveMaster(file.name, rows, mapped.length);
+      }catch(err){ toast('엑셀 파싱 실패 — 형식 확인'); }
+    };
+    fr.onerror=function(){ toast('파일 읽기 실패'); };
+    fr.readAsArrayBuffer(file);
+  }
+  async function saveMaster(fileName, rows, mappedCount){
+    var fb=window.iaCfgFb; if(!fb||!fb.setDoc){ toast('저장 실패 (연결 확인)'); return; }
+    var chunks=Math.ceil(rows.length/IM_CHUNK);
+    toast('ITEM MASTER 저장 중… '+rows.length+'개');
+    try{
+      // 이전 청크 정리 후 새로 저장
+      var prev=0; try{ var sn=await fb.getDoc(fb.doc(fb.db,CFG_COL,IM_DOC)); if(sn&&sn.exists&&sn.exists()) prev=(sn.data()||{}).chunks||0; }catch(e){}
+      for(var i=0;i<chunks;i++){
+        await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+i), { rows:rows.slice(i*IM_CHUNK,(i+1)*IM_CHUNK), updatedAt:Date.now() });
+      }
+      for(var j=chunks;j<prev;j++){ try{ await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+j), { rows:[], updatedAt:Date.now() }); }catch(e){} }
+      await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC), { fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, chunks:chunks, fields:IM_FIELDS.map(function(f){ return f.key; }), updatedAt:Date.now() }, {merge:true});
+      imMaster={ fileName:fileName, uploadedAt:Date.now(), rowCount:rows.length, rows:rows };
+      renderMaster();
+      toast('ITEM MASTER 업로드됨 · '+rows.length+'개 · 필드 '+mappedCount+'개 연결');
+    }catch(e){ toast('저장 실패 (용량/규칙 확인)'); }
+  }
+  function downloadMaster(){
+    if(!imMaster||!imMaster.rows||!imMaster.rows.length){ toast('다운로드할 ITEM MASTER 가 없습니다'); return; }
+    if(typeof XLSX==='undefined'){ toast('엑셀 라이브러리 로드 실패'); return; }
+    var keys=IM_FIELDS.map(function(f){ return f.key; });
+    var aoa=[keys].concat(imMaster.rows.map(function(r){ return keys.map(function(k){ return r[k]; }); }));
+    var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ITEM MASTER');
+    var base=(imMaster.fileName||'item-master').replace(/\.(xlsx|xls|csv)$/i,'');
+    XLSX.writeFile(wb, base+'_ITEM-MASTER.xlsx');
+    toast('다운로드 시작');
+  }
+  async function removeMaster(){
+    if(!confirm('ITEM MASTER 데이터를 삭제할까요?')) return;
+    var fb=window.iaCfgFb; if(!fb||!fb.setDoc){ toast('삭제 실패'); return; }
+    try{
+      var prev=0; try{ var sn=await fb.getDoc(fb.doc(fb.db,CFG_COL,IM_DOC)); if(sn&&sn.exists&&sn.exists()) prev=(sn.data()||{}).chunks||0; }catch(e){}
+      for(var i=0;i<prev;i++){ try{ await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC+'-c'+i), { rows:[], updatedAt:Date.now() }); }catch(e){} }
+      await fb.setDoc(fb.doc(fb.db,CFG_COL,IM_DOC), { fileName:'', uploadedAt:0, rowCount:0, chunks:0, updatedAt:Date.now() }, {merge:true});
+      imMaster=null; renderMaster(); toast('ITEM MASTER 삭제됨');
+    }catch(e){ toast('삭제 실패 (규칙 확인)'); }
+  }
+  function renderMaster(){
+    var box=$('imBox'); if(!box) return;
+    var has=!!(imMaster&&imMaster.rowCount);
+    var linked=IM_FIELDS.filter(function(f){ return (IM_MATCH.mappings||{})[f.key]; }).length;
+    $('imCount').textContent=has?(imMaster.rowCount.toLocaleString('en-US')+'개 상품'):(linked?('연결 '+linked+'/'+IM_FIELDS.length+' 필드'):'미연결');
+    var meta;
+    if(has) meta='<span class="fn">'+esc(imMaster.fileName||'—')+'</span><br>'+imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
+    else if(!linked) meta='<span class="st-warn">⚠ IMPORT 설정 · ITEM MASTER 카테고리에서 필드를 연결하세요</span>';
+    else meta='업로드된 파일 없음';
+    box.innerHTML='<div class="st-card master'+(has?' has':'')+'" data-master="1">'+
+      '<div class="st-drop">↓ 여기에 놓기</div>'+
+      '<div class="st-name"><span class="dotk"></span>ITEM MASTER</div>'+
+      '<div class="st-meta">'+meta+'</div>'+
+      '<div class="st-drophint">UPC · PLU · KOR/ENG DESC · COST · SRP</div>'+
+      '<div class="st-actions">'+
+        '<button class="st-up'+(has?' re':'')+'" id="imUp" type="button">'+(has?'다시 업로드':'엑셀 업로드')+'</button>'+
+        (has?'<button class="st-fix" id="imDown" type="button">다운로드</button>':'')+
+        (has?'<button class="st-rm" id="imRm" type="button">삭제</button>':'')+
+      '</div></div>';
+    $('imUp').onclick=function(){ var fi=$('imFile'); fi.value=''; fi.click(); };
+    if($('imDown')) $('imDown').onclick=downloadMaster;
+    if($('imRm')) $('imRm').onclick=removeMaster;
+    var card=box.querySelector('.st-card');
+    card.addEventListener('dragenter', function(e){ e.preventDefault(); card.classList.add('dragover'); });
+    card.addEventListener('dragover', function(e){ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect='copy'; card.classList.add('dragover'); });
+    card.addEventListener('dragleave', function(e){ if(!card.contains(e.relatedTarget)) card.classList.remove('dragover'); });
+    card.addEventListener('drop', function(e){ e.preventDefault(); e.stopPropagation(); card.classList.remove('dragover');
+      var dt=e.dataTransfer; var f=dt&&dt.files&&dt.files[0]; if(f) handleMasterFile(f); });
+  }
+  $('imFile').onchange=function(e){ var f=e.target.files&&e.target.files[0]; handleMasterFile(f); };
+
   /* ===== 검색 UI ===== */
   var suggList=[], suggActive=-1;
   function renderSugg(q){
@@ -944,6 +1126,8 @@
 
   /* ===== 초기 로드 ===== */
   renderStores(); renderHistory();
+  renderMaster();
+  subscribeItemMaster();
   idbAll().then(function(all){ datasets=all||{}; rebuildIndex(); renderStores(); }).catch(function(){ /* IndexedDB 미지원/차단 */ });
   function startCfg(){ subscribeFieldCfg(); subscribeMaster(); subscribeMatch(); }
   if(window.iaCfgFb) startCfg(); else window.addEventListener('iacfg-ready', startCfg);
