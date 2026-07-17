@@ -326,9 +326,9 @@
   function fieldIsNum(role){ return role==='cost'||role==='srp'||role==='price'||role==='qty'||role==='amount'; }
   function fieldOpt(role){ return role==='qty'||role==='amount'||role==='date'||role==='category'; }
   function deriveRoles(){
-    var idKey=null,nameKeys=[],priceKeys=[],amountKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
+    var idKey=null,idKeys=[],nameKeys=[],priceKeys=[],amountKey=null,dateKey=null,catKey=null,qtyKey=null,costKey=null,srpKey=null,disp=[];
     FIELDS.forEach(function(f){
-      if(f.role==='upc'){ if(!idKey) idKey=f.key; }
+      if(f.role==='upc'){ if(!idKey) idKey=f.key; idKeys.push(f.key); }
       else if(f.role==='name') nameKeys.push(f.key);
       else if(f.role==='cost'||f.role==='srp'||f.role==='price'){ priceKeys.push(f.key); if(f.role==='cost'&&!costKey) costKey=f.key; if(f.role==='srp'&&!srpKey) srpKey=f.key; if(f.role==='price'&&!costKey) costKey=f.key; }
       else if(f.role==='amount'){ if(!amountKey) amountKey=f.key; }
@@ -341,7 +341,8 @@
     if(!costKey && priceKeys.length) costKey=priceKeys[0];
     if(!srpKey && priceKeys.length>1) srpKey=priceKeys[1];
     var pset={}; priceKeys.forEach(function(k){ pset[k]=1; });
-    ROLES={ idKey:idKey, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
+    if(!idKeys.length && idKey) idKeys=[idKey];
+    ROLES={ idKey:idKey, idKeys:idKeys, nameKeys:nameKeys, priceKeys:priceKeys, priceSet:pset, costKey:costKey, srpKey:srpKey, amountKey:amountKey, dateKey:dateKey, catKey:catKey, qtyKey:qtyKey, displayFields:disp };
   }
   function setFields(arr){ FIELDS=(arr&&arr.length)?normCfg(arr):normCfg(FIELD_DEFAULTS); deriveRoles(); }
   function fieldByKey(k){ k=String(k||'').trim().toUpperCase(); for(var i=0;i<FIELDS.length;i++){ if(FIELDS[i].key===k) return FIELDS[i]; } return null; }
@@ -418,18 +419,57 @@
         else o[f.key]=(raw==null?'':String(raw)).trim();
       });
       return o;
-    }).filter(function(o){ var id=ROLES.idKey?o[ROLES.idKey]:''; var hasName=ROLES.nameKeys.some(function(k){ return o[k]; }); return (id&&String(id).length)||hasName; });
+    }).filter(function(o){ var hasId=(ROLES.idKeys||[]).some(function(k){ var v=o[k]; return v!=null&&String(v).trim()!==''; });
+      var hasName=ROLES.nameKeys.some(function(k){ return o[k]; }); return hasId||hasName; });
   }
 
   /* ===== 인덱스 재구성 ===== */
+  /* UPC 정규화 — 매장마다 텍스트/숫자, 앞자리 0 유무가 달라도 같은 상품으로 인식
+     예) '08801' · 8801 · ' 8801 ' · '8801-0' → 8801 */
+  function upcKey(v){
+    var s=String(v==null?'':v).trim(); if(!s) return '';
+    var dg=s.replace(/\D/g,'');
+    if(dg){ dg=dg.replace(/^0+/,''); return dg||'0'; }
+    return norm(s);
+  }
+  function rowIds(row){
+    var out=[]; (ROLES.idKeys||[]).forEach(function(k){ var t=upcKey(row[k]); if(t && out.indexOf(t)<0) out.push(t); });
+    return out;
+  }
+  function rowName(row){
+    for(var i=0;i<ROLES.nameKeys.length;i++){ var v=row[ROLES.nameKeys[i]]; if(v) return v; }
+    return '';
+  }
+  /* ===== 인덱스 재구성 — 매장 전체를 하나의 상품으로 병합 ===== */
   function rebuildIndex(){
     productsByUpc={};
+    // --- 1차: 식별자 합치기 (같은 행에 있는 UPC 들은 동일 상품) ---
+    var parent={};
+    function find(x){ if(parent[x]===undefined) parent[x]=x; while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; }
+    function union(a,b){ var ra=find(a), rb=find(b); if(ra!==rb) parent[ra]=rb; }
+    var nameHint={};
     STORES.forEach(function(store){ var ds=datasets[store]; if(!ds||!ds.rows) return;
       ds.rows.forEach(function(row){
-        var idv=ROLES.idKey?String(row[ROLES.idKey]||'').trim():'';
-        var nmv=''; for(var ni=0;ni<ROLES.nameKeys.length;ni++){ if(row[ROLES.nameKeys[ni]]){ nmv=row[ROLES.nameKeys[ni]]; break; } }
-        var key=idv||('nm:'+norm(nmv)); if(!key||key==='nm:') return;
-        var p=productsByUpc[key]; if(!p){ p={ key:key, id:idv, vals:{}, perStore:{} }; productsByUpc[key]=p; }
+        var ids=rowIds(row); var nk='nm:'+norm(rowName(row));
+        if(ids.length){
+          find(ids[0]); for(var i=1;i<ids.length;i++) union(ids[i], ids[0]);
+          if(nk!=='nm:' && nameHint[nk]===undefined) nameHint[nk]=ids[0];   // UPC 없는 행이 붙을 자리
+        }
+      });
+    });
+    // --- 2차: 상품 구성 ---
+    STORES.forEach(function(store){ var ds=datasets[store]; if(!ds||!ds.rows) return;
+      ds.rows.forEach(function(row){
+        var ids=rowIds(row); var nmv=rowName(row); var nk='nm:'+norm(nmv);
+        var root;
+        if(ids.length) root=find(ids[0]);
+        else if(nameHint[nk]!==undefined) root=find(nameHint[nk]);   // UPC 없는 행 → 같은 이름 상품에 합류
+        else if(nk!=='nm:') root=find(nk);
+        else return;
+        var p=productsByUpc[root]; if(!p){ p={ key:root, id:'', ids:[], vals:{}, perStore:{} }; productsByUpc[root]=p; }
+        // 표시용 UPC(원본 표기 유지) — 여러 표기가 있으면 모두 검색 대상
+        (ROLES.idKeys||[]).forEach(function(k){ var raw=String(row[k]==null?'':row[k]).trim(); if(raw && p.ids.indexOf(raw)<0) p.ids.push(raw); });
+        if(!p.id && p.ids.length) p.id=p.ids[0];
         // 표시 값(식별·이름·카테고리·텍스트) — 비어있으면 채움
         ROLES.displayFields.forEach(function(f){ if(ROLES.priceSet[f.key]) return; if((p.vals[f.key]==null||p.vals[f.key]==='')&&row[f.key]!=null&&row[f.key]!=='') p.vals[f.key]=row[f.key]; });
         // 매장별 집계 — COST·SRP 는 합계로 모아두고 표시 시점에 판매수량으로 나눔
@@ -450,14 +490,20 @@
     });
     productList=Object.keys(productsByUpc).map(function(k){ var p=productsByUpc[k];
       p._idn=String(p.id||'').toLowerCase();
-      p._names=ROLES.nameKeys.map(function(nk){ return norm(p.vals[nk]); }).filter(Boolean);
+      p._ids=(p.ids||[]).map(function(x){ return String(x).toLowerCase(); });
+      p._ids.push(String(p.key||'').toLowerCase());   // 정규화된 UPC 로도 검색 가능
+      p._names=ROLES.nameKeys.map(function(nk2){ return norm(p.vals[nk2]); }).filter(Boolean);
       return p; });
   }
 
-  /* ===== 검색 (부분 + 유사) ===== */
   function scoreProduct(p,q){
     var qn=norm(q), qu=String(q).trim().toLowerCase(); if(!qn) return 0; var s=0;
-    if(p._idn){ if(p._idn===qu) s=Math.max(s,1000); else if(p._idn.indexOf(qu)===0) s=Math.max(s,650); else if(p._idn.indexOf(qu)>=0) s=Math.max(s,420); }
+    var quk=upcKey(qu);
+    (p._ids||[]).forEach(function(idn){ if(!idn) return;
+      if(idn===qu || (quk && upcKey(idn)===quk)) s=Math.max(s,1000);
+      else if(idn.indexOf(qu)===0) s=Math.max(s,650);
+      else if(idn.indexOf(qu)>=0) s=Math.max(s,420);
+    });
     p._names.forEach(function(nm){ if(!nm) return;
       if(nm===qn) s=Math.max(s,900);
       else if(nm.indexOf(qn)===0) s=Math.max(s,560);
@@ -474,6 +520,16 @@
 
   /* ===== 기간 필터 없음 — 업로드된 파일 전체 기준 집계 ===== */
 
+  /* 미연결 판정 — 판매일(파일날짜 사용)과, 이미 다른 UPC 필드가 연결된 경우의 UPC 는 제외 */
+  function unmappedFields(map){
+    var idMapped=(ROLES.idKeys||[]).some(function(k){ return map&&map[k]; });
+    return FIELDS.filter(function(f){
+      if(f.role==='date') return false;
+      if(f.role==='upc' && idMapped && !(map&&map[f.key])) return false;
+      return !(map&&map[f.key]);
+    });
+  }
+
   /* ===== 토스트 ===== */
   var tT=null; function toast(m){ var e=$('iaToast'); e.textContent=m; e.classList.add('show'); if(tT) clearTimeout(tT); tT=setTimeout(function(){ e.classList.remove('show'); },1800); }
 
@@ -484,7 +540,7 @@
     $('stGrid').innerHTML=STORES.map(function(s){
       var ds=datasets[s]; var has=!!ds;
       var legacy=has&&!ds.raw;
-      var unmapped=has?FIELDS.filter(function(f){ return f.role!=='date' && !(ds.map&&ds.map[f.key]); }):[];   // 판매일은 파일 날짜 사용 → 통과
+      var unmapped=has?unmappedFields(ds.map):[];
       var warn='';
       if(legacy) warn='<br><span class="st-warn">⚠ 이전 형식 — 다시 업로드하면 최신 매핑/기능이 적용됩니다</span>';
       else if(has&&unmapped.length) warn='<br><span class="st-warn">⚠ 미연결 '+unmapped.length+'개: '+esc(unmapped.map(function(f){ return f.label; }).join(', '))+'</span>';
@@ -558,7 +614,7 @@
         if(!rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
         // STORE MANAGER · ITEM 필드매칭에서 해둔 매핑을 그대로 적용
         var map=guessMap(headers);
-        var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
+        var hasId=(ROLES.idKeys||[]).some(function(k){ return map[k]; }); var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
         if(hasId || hasName){
           pending=null;
           commitUpload(store, file.name, rows, map, true, headers, fileDate);   // 모달 없이 바로 업로드
@@ -592,7 +648,7 @@
     var map={}; FIELDS.forEach(function(f){ map[f.key]=(base&&base[f.key]&&pending.headers.indexOf(base[f.key])>=0)?base[f.key]:(guess[f.key]||''); });
     // 이름 없는 열은 샘플 값을 함께 보여줌
     var smp={}; pending.headers.forEach(function(h){ for(var i=0;i<pending.rawRows.length&&i<12;i++){ var v=pending.rawRows[i][h]; if(v!=null&&String(v).trim()!==''){ smp[h]=String(v).trim().slice(0,28); break; } } });
-    var missing=FIELDS.filter(function(f){ return f.role!=='date' && !map[f.key]; });
+    var missing=unmappedFields(map);
     $('mapTitle').textContent=pending.store+' · 필드 매핑';
     $('mapSub').innerHTML='<b>'+esc(pending.fileName)+'</b> — 헤더가 없는 열은 <b>열 H</b> 처럼 엑셀 열 문자로 표시되며 괄호 안에 실제 데이터 예시가 보입니다.'+
       (missing.length?'<br><span style="color:#b06a00;font-weight:800;">미연결: '+esc(missing.map(function(f){ return f.label; }).join(', '))+'</span>':'')+
@@ -617,7 +673,7 @@
       await idbPut(store, ds);
       try{ localStorage.setItem(MAP_LS+store, JSON.stringify(map)); }catch(e){}
       datasets[store]=ds; rebuildIndex(); renderStores();
-      var miss=FIELDS.filter(function(f){ return f.role!=='date' && !map[f.key]; });
+      var miss=unmappedFields(map);
       if(auto && miss.length) toast(store+' 업로드됨 · '+rows.length+'개 — 미연결: '+miss.map(function(f){ return f.label; }).join(', '));
       else toast(store+' 업로드됨 · '+rows.length+'개'+(auto?' · 자동 매핑 적용':''));
       if(selected){ var again=productsByUpc[selected.key]; if(again){ selected=again; renderResult(again); } else renderResult(selected); }
@@ -652,7 +708,7 @@
   async function saveMapping(){
     if(!pending) return;
     var map={}; $('mapRows').querySelectorAll('select').forEach(function(sel){ map[sel.getAttribute('data-k')]=sel.value; });
-    var hasId=ROLES.idKey&&map[ROLES.idKey]; var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
+    var hasId=(ROLES.idKeys||[]).some(function(k){ return map[k]; }); var hasName=ROLES.nameKeys.some(function(k){ return map[k]; });
     if(!hasId && !hasName){ toast('식별(UPC) 또는 상품명 중 하나는 매핑하세요'); return; }
     var okc=await commitUpload(pending.store, pending.fileName, pending.rawRows, map, false, pending.headers, pending.fileDate||(datasets[pending.store]&&datasets[pending.store].fileDate));
     if(okc) closeMap();
