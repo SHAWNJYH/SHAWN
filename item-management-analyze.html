@@ -329,15 +329,17 @@
   /* ITEM MASTER — STORE MANAGER · IMPORT 설정의 "ITEM MASTER" 카테고리 매칭으로 IMPORT.
      데이터는 Firebase 에 저장(문서명 item-management-itemmaster). Firestore 1MB 제한 때문에 청크로 나눠 저장. */
   var IM_MATCH_DOC='item-management-itemmaster-match';
+  var IM_FIELDS_DOC='item-management-itemmaster-fields';   // STORE MANAGER · IMPORT 설정에서 편집
   var IM_DOC='item-management-itemmaster';
-  var IM_FIELDS=[
-    {key:'UPC',      label:'UPC',      role:'upc'},
-    {key:'PLU',      label:'PLU',      role:'text'},
-    {key:'KOR DESC', label:'KOR DESC', role:'name'},
-    {key:'ENG DESC', label:'ENG DESC', role:'name'},
-    {key:'COST',     label:'COST',     role:'cost'},
-    {key:'SRP',      label:'SRP',      role:'srp'}
+  var IM_DEFAULTS=[
+    {key:'UPC',      label:'UPC',      role:'upc',  fn:'none'},
+    {key:'PLU',      label:'PLU',      role:'text', fn:'none'},
+    {key:'KOR DESC', label:'KOR DESC', role:'name', fn:'none'},
+    {key:'ENG DESC', label:'ENG DESC', role:'name', fn:'none'},
+    {key:'COST',     label:'COST',     role:'cost', fn:'none'},
+    {key:'SRP',      label:'SRP',      role:'srp',  fn:'none'}
   ];
+  var IM_FIELDS=IM_DEFAULTS.slice();
   var IM_MATCH={ fields:[], mappings:{} };   // {필드key: 엑셀열}
   var imMaster=null;                          // { fileName, uploadedAt, rowCount, rows:[{UPC,PLU,...}] }
   var MASTER_COL='upc-config', MASTER_DOC='main';  // 필드관리 마스터 필드
@@ -769,6 +771,13 @@
   var IM_CHUNK=1200;   // 문서당 행 수 (Firestore 1MB 제한 여유)
   function subscribeItemMaster(){
     var fb=window.iaCfgFb; if(!fb||!fb.onSnapshot){ setTimeout(subscribeItemMaster,400); return; }
+    // ITEM MASTER 필드 정의 (STORE MANAGER · IMPORT 설정 → ITEM MASTER 카테고리)
+    try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_FIELDS_DOC), function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      var arr=(Array.isArray(d.fields)?d.fields:[]).map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
+      IM_FIELDS=arr.length?arr:IM_DEFAULTS.slice();
+      renderMaster();
+    }, function(){}); }catch(e){}
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_MATCH_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       IM_MATCH={ fields:Array.isArray(d.fields)?d.fields:[], mappings:(d.mappings&&typeof d.mappings==='object')?d.mappings:{} };
@@ -820,12 +829,14 @@
         }
         var rows=parsed.rows.map(function(r){
           var o={};
-          IM_FIELDS.forEach(function(f){ var col=map[f.key]; var raw=(col?r[col]:'');
-            if(f.role==='cost'||f.role==='srp'){ var v=num(raw); o[f.key]=(v==null?'':v); }
+          IM_FIELDS.forEach(function(f){ var col=map[f.key]; var raw=(col?r[col]:''); var fn=f.fn||'none';
+            if(fn==='eng') o[f.key]=splitDesc(raw).eng;
+            else if(fn==='kor') o[f.key]=splitDesc(raw).kor;
+            else if(f.role==='cost'||f.role==='srp'||f.role==='price'){ var v=num(raw); o[f.key]=(v==null?'':v); }
             else o[f.key]=(raw==null?'':String(raw)).trim();
           });
           return o;
-        }).filter(function(o){ return String(o['UPC']||'').trim()!=='' || String(o['PLU']||'').trim()!=='' || String(o['KOR DESC']||'').trim()!=='' || String(o['ENG DESC']||'').trim()!==''; });
+        }).filter(function(o){ return IM_FIELDS.some(function(f){ return String(o[f.key]||'').trim()!==''; }); });
         if(!rows.length){ toast('유효한 행이 없습니다 (UPC·PLU·상품명 모두 비어있음)'); return; }
         saveMaster(file.name, rows, mapped.length);
       }catch(err){ toast('엑셀 파싱 실패 — 형식 확인'); }
@@ -884,7 +895,7 @@
       '<div class="st-drop">↓ 여기에 놓기</div>'+
       '<div class="st-name"><span class="dotk"></span>ITEM MASTER</div>'+
       '<div class="st-meta">'+meta+'</div>'+
-      '<div class="st-drophint">UPC · PLU · KOR/ENG DESC · COST · SRP</div>'+
+      '<div class="st-drophint">'+esc(IM_FIELDS.map(function(f){ return f.label; }).join(' · '))+'</div>'+
       '<div class="st-actions">'+
         (has?'':'<button class="st-up" id="imUp" type="button">엑셀 업로드</button>')+
         (has?'<button class="st-fix" id="imDown" type="button">다운로드</button>':'')+
