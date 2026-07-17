@@ -888,14 +888,16 @@
   /* ITEM MASTER 카테고리 — IMPORT 받을 기준 필드는 고정(UPC/PLU/KOR DESC/ENG DESC/COST/SRP).
      ITEM ANALYZE 판매 매핑(item-analyze-match)과 필드명이 겹치므로 반드시 별도 문서에 저장한다. */
   var IMX_MASTER_DOC='item-management-itemmaster-match', IMX_MASTER_ID='__itemmaster__';
-  var IMX_MASTER_FIELDS=[
-    {key:'UPC',      label:'UPC',      role:'upc'},
-    {key:'PLU',      label:'PLU',      role:'text'},
-    {key:'KOR DESC', label:'KOR DESC', role:'name'},
-    {key:'ENG DESC', label:'ENG DESC', role:'name'},
-    {key:'COST',     label:'COST',     role:'cost'},
-    {key:'SRP',      label:'SRP',      role:'srp'}
+  var IMX_MASTER_FIELDS_DOC='item-management-itemmaster-fields';
+  var IMX_MASTER_DEFAULTS=[
+    {key:'UPC',      label:'UPC',      role:'upc',  fn:'none'},
+    {key:'PLU',      label:'PLU',      role:'text', fn:'none'},
+    {key:'KOR DESC', label:'KOR DESC', role:'name', fn:'none'},
+    {key:'ENG DESC', label:'ENG DESC', role:'name', fn:'none'},
+    {key:'COST',     label:'COST',     role:'cost', fn:'none'},
+    {key:'SRP',      label:'SRP',      role:'srp',  fn:'none'}
   ];
+  var IMX_MASTER_FIELDS=IMX_MASTER_DEFAULTS.slice();   // 편집 가능 (Firestore 동기화)
   var imxState={ profiles:[], activeId:'', armed:null, _fsub:false,
                  master:{ id:IMX_MASTER_ID, name:'ITEM MASTER', fields:[], mappings:{}, samples:{}, fileName:'' } };
   var imxAnalyzeFields=[];   // [{key,label,role}]
@@ -924,6 +926,14 @@
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       imxAnalyzeFields=imxParseFields(d); iafNormalize(d); imxRender(); requestAnimationFrame(imxDraw);
     }).catch(function(){});
+    fb.onSnapshot(fb.doc(fb.db,'app-config',IMX_MASTER_FIELDS_DOC), function(snap){
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      var arr=imxParseFields(d);
+      if(arr.length){ IMX_MASTER_FIELDS=arr; }
+      else if(!imxState._mfSeeded){ imxState._mfSeeded=true; iafSaveTo('master', IMX_MASTER_DEFAULTS, true); }
+      if($('iafOv') && $('iafOv').classList.contains('show') && imxIsMaster()) iafRender();
+      if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); }
+    }, function(){});
     fb.getDoc(fb.doc(fb.db,'app-config',IMX_MASTER_DOC)).then(function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
       imxState.master={ id:IMX_MASTER_ID, name:'ITEM MASTER', fields:Array.isArray(d.fields)?d.fields:[],
@@ -1036,7 +1046,8 @@
     if(changed) imxSaveMatch();
     return changed;
   }
-  function imxRender(){ imxMigrateDir(); imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed(); }
+  function imxRender(){ imxMigrateDir(); imxRenderProfileSel(); imxRenderAnalyzeCol(); imxRenderExcelCol(); imxRenderArmed();
+    var b=$('imxFieldsBtn'); if(b) b.textContent='⚙ '+(imxIsMaster()?'ITEM MASTER':'ITEM ANALYZE')+' 필드'; }
   function imxCssEsc(s){ return String(s).replace(/["\\]/g,'\\$&'); }
   function imxDraw(){
     var svg=$('imxSvg'), canvas=$('imxCanvas'); if(!svg||!canvas) return; svg.innerHTML='';
@@ -1124,17 +1135,22 @@
   var IAF_VER=3;   // 요청 반영: 수량 다음 → 원가금액(COST TOTAL) → 판매금액(SRP TOTAL)
   function iafOpts(list, sel){ return list.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+esc(r[1])+'</option>'; }).join(''); }
   function iafSaved(t){ var e=$('iafSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
-  function iafSave(fields, quiet){
+  /* 편집 대상 = 현재 선택된 카테고리 */
+  function iafTarget(){ return imxIsMaster()?'master':'analyze'; }
+  function iafSaveTo(target, fields, quiet){
     var fb=window.smFb; if(!fb||!fb.setDoc) return Promise.resolve(false);
     var clean=(fields||[]).map(function(f){
       var fn=String(f.fn||'none'); if(!IAF_FNS.some(function(x){ return x[0]===fn; })) fn='none';
       return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null&&String(f.label).trim())?String(f.label).trim():String(f.key), role:String(f.role||'text'), fn:fn };
     });
-    imxAnalyzeFields=clean;
-    return fb.setDoc(fb.doc(fb.db,'app-config',IMX_FIELDS_DOC), { fields:clean, cfgVersion:IAF_VER, updatedAt:Date.now() }, {merge:true})
+    var doc = (target==='master') ? IMX_MASTER_FIELDS_DOC : IMX_FIELDS_DOC;
+    var payload = (target==='master') ? { fields:clean, updatedAt:Date.now() } : { fields:clean, cfgVersion:IAF_VER, updatedAt:Date.now() };
+    if(target==='master') IMX_MASTER_FIELDS=clean; else imxAnalyzeFields=clean;
+    return fb.setDoc(fb.doc(fb.db,'app-config',doc), payload, {merge:true})
       .then(function(){ if(!quiet) iafSaved('저장됨'); return true; })
       .catch(function(){ if(!quiet) iafSaved('저장 실패 (규칙 확인)'); return false; });
   }
+  function iafSave(fields, quiet){ return iafSaveTo(iafTarget(), fields, quiet); }
   /* 요청 반영 1회 보정 — 이미 적용됐으면(cfgVersion) 건드리지 않음 */
   function iafNormalize(d){
     if(!d || !Array.isArray(d.fields) || !d.fields.length) return false;
@@ -1150,20 +1166,21 @@
     var rest=fields.filter(function(f){ return f.role!=='cost_amount' && f.role!=='amount'; });
     var qi=-1; for(var i=0;i<rest.length;i++){ if(rest[i].role==='qty'){ qi=i; break; } }
     var out=(qi<0) ? rest.concat(camt, amt) : rest.slice(0,qi+1).concat(camt, amt, rest.slice(qi+1));
-    iafSave(out, true).then(function(){ if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); } });
+    iafSaveTo('analyze', out, true).then(function(){ if($('smPanelItemMatch').classList.contains('active')){ imxRender(); requestAnimationFrame(imxDraw); } });
     return true;
   }
   function iafFillNewKey(){
     var sel=$('iafNewKey'); if(!sel) return;
-    var used={}; imxAnalyzeFields.forEach(function(f){ used[f.key]=1; });
+    var used={}; imxCurFields().forEach(function(f){ used[f.key]=1; });
     var opts='<option value="__new__">＋ 직접 입력(새 필드)</option>';
     (state.masterRaw||[]).forEach(function(m){ if(used[m.key]) return; opts+='<option value="'+esc(m.key)+'">'+esc(m.label||m.key)+'  ('+esc(m.key)+')</option>'; });
     sel.innerHTML=opts;
   }
   function iafRender(){
     var box=$('iafList'); if(!box) return;
-    if(!imxAnalyzeFields.length){ box.innerHTML='<div class="iaf-empty">등록된 ITEM ANALYZE 필드가 없습니다. 아래에서 추가하세요.</div>'; return; }
-    box.innerHTML=imxAnalyzeFields.map(function(f,i){
+    var CF=imxCurFields();
+    if(!CF.length){ box.innerHTML='<div class="iaf-empty">등록된 필드가 없습니다. 아래에서 추가하세요.</div>'; return; }
+    box.innerHTML=CF.map(function(f,i){
       return '<div class="iaf-row'+(f.role==='upc'?' upc':'')+'">'+
         '<div class="iaf-key" title="'+esc(f.key)+'">'+esc(f.key)+'</div>'+
         '<input class="iaf-in iaf-label" data-i="'+i+'" type="text" value="'+esc(f.label||f.key)+'">'+
@@ -1173,7 +1190,7 @@
         '<button class="iaf-del" data-del="'+i+'" type="button">✕</button>'+
       '</div>';
     }).join('');
-    function clone(){ return imxAnalyzeFields.map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; }); }
+    function clone(){ return imxCurFields().map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; }); }
     box.querySelectorAll('.iaf-label').forEach(function(el){ var i=+el.getAttribute('data-i');
       el.onchange=function(){ var nf=clone(); nf[i].label=el.value.trim()||nf[i].key; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
     box.querySelectorAll('.iaf-role').forEach(function(el){ var i=+el.getAttribute('data-i');
@@ -1183,9 +1200,9 @@
     box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up');
       b.onclick=function(){ if(i<=0) return; var nf=clone(); var t=nf[i-1]; nf[i-1]=nf[i]; nf[i]=t; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
     box.querySelectorAll('[data-down]').forEach(function(b){ var i=+b.getAttribute('data-down');
-      b.onclick=function(){ if(i>=imxAnalyzeFields.length-1) return; var nf=clone(); var t=nf[i+1]; nf[i+1]=nf[i]; nf[i]=t; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+      b.onclick=function(){ if(i>=imxCurFields().length-1) return; var nf=clone(); var t=nf[i+1]; nf[i+1]=nf[i]; nf[i]=t; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
     box.querySelectorAll('[data-del]').forEach(function(b){ var i=+b.getAttribute('data-del');
-      b.onclick=function(){ if(!confirm('필드 ['+(imxAnalyzeFields[i].label||imxAnalyzeFields[i].key)+']를 ITEM ANALYZE 에서 제거할까요?')) return;
+      b.onclick=function(){ var CF2=imxCurFields(); if(!confirm('필드 ['+(CF2[i].label||CF2[i].key)+']를 '+(imxIsMaster()?'ITEM MASTER':'ITEM ANALYZE')+' 에서 제거할까요?')) return;
         var nf=clone(); nf.splice(i,1); iafSave(nf).then(function(){ iafRender(); iafFillNewKey(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
   }
   function iafAdd(){
@@ -1193,9 +1210,9 @@
     var label=($('iafNewLabel').value||'').trim();
     var key = (pick==='__new__') ? label.toUpperCase() : pick.toUpperCase();
     if(!key){ alert('추가할 필드를 선택하거나 이름을 입력하세요.'); return; }
-    if(imxAnalyzeFields.some(function(f){ return f.key===key; })){ alert('이미 추가된 필드입니다.'); return; }
+    if(imxCurFields().some(function(f){ return f.key===key; })){ alert('이미 추가된 필드입니다.'); return; }
     var m=(state.masterRaw||[]).find(function(x){ return x.key===key; });
-    var nf=imxAnalyzeFields.map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; });
+    var nf=imxCurFields().map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; });
     nf.push({ key:key, label:label||(m&&m.label)||key, role:$('iafNewRole').value||'text', fn:$('iafNewFn').value||'none' });
     iafSave(nf).then(function(){ $('iafNewLabel').value=''; iafRender(); iafFillNewKey(); imxRender(); requestAnimationFrame(imxDraw); });
   }
@@ -1210,6 +1227,11 @@
   function iafOpen(){
     iafBind();
     if(!$('iafOv')) return;
+    var isM=imxIsMaster();
+    $('iafTitle').textContent=(isM?'ITEM MASTER':'ITEM ANALYZE')+' 필드';
+    $('iafSub').innerHTML=isM
+      ? 'ITEM MANAGEMENT 의 <b>ITEM MASTER</b> 박스가 IMPORT 받을 필드입니다.'
+      : 'ITEM MANAGEMENT 가 매장 판매 엑셀에서 IMPORT 받을 필드입니다. <b>ITEM MASTER 를 제외한 모든 카테고리가 공유</b>합니다(카테고리마다 다른 건 엑셀 열 연결).';
     $('iafNewRole').innerHTML=iafOpts(IAF_ROLES,'text');
     $('iafNewFn').innerHTML=iafOpts(IAF_FNS,'none');
     iafFillNewKey(); iafRender(); $('iafOv').classList.add('show');
@@ -2209,8 +2231,8 @@
   <div class="iaf-modal">
     <div class="iaf-head">
       <div>
-        <div class="iaf-title">ITEM ANALYZE 필드</div>
-        <div class="iaf-sub">ITEM MANAGEMENT 가 IMPORT 받을 필드입니다. 이름 · 역할 · 업로드 기능을 지정하세요.</div>
+        <div class="iaf-title" id="iafTitle">필드</div>
+        <div class="iaf-sub" id="iafSub"></div>
       </div>
       <span class="fm-saved" id="iafSaved"></span>
       <button class="ex-btn" id="iafClose" type="button">닫기</button>
