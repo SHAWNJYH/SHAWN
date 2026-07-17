@@ -1218,7 +1218,7 @@
   /* [채우기] UPC 매니저 __FILL_PICK 하드코딩과 동일한 레거시 목록 — fill 속성이 없는 옛 데이터는 이 7개가 '이미 적용'으로 간주(미리 체크) */
   var FM_FILL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
   function fmDecOf(m){ if(!m||m.dec==null) return null; var d=Math.floor(Number(m.dec)); return (isFinite(d)&&d>=0&&d<=6)?d:null; }
-  function fmFillOf(m,k){ return (m&&m.fill!=null) ? !!m.fill : !!FM_FILL_LEGACY[String(k||'').toUpperCase()]; }
+  function fmFillOf(m,k){ if(m&&m.fill!=null) return !!m.fill; if(m&&m.catOf) return true; return !!FM_FILL_LEGACY[String(k||'').toUpperCase()]; }   // 카테고리 필드는 기존에 숫자 드롭다운이 항상 떴으므로 기본 ON
   function fmLineOf(m){ return (m&&typeof m.line==='number'&&m.line>=0)?Math.floor(m.line):-1; }
   function fmSlotOf(m){ return (m&&typeof m.slot==='number'&&m.slot>=0)?Math.floor(m.slot):-1; }
   function fmNormRow(m){ var __o={key:m.key,label:(m.label!=null?m.label:m.key),type:m.type,align:m.align||'',trunc:m.trunc||0,bg:m.bg||'',fg:m.fg||'',boxc:m.boxc||'',bold:!!m.bold,locked:!!m.locked,stores:normSL(m.stores),storesByCat:normSBC(m.storesByCat),fill:fmFillOf(m,m.key),line:fmLineOf(m),slot:fmSlotOf(m)}; var __d0=fmDecOf(m); if(__d0!=null) __o.dec=__d0; if(m.catOf){ __o.catOf=String(m.catOf); __o.catValues=Array.isArray(m.catValues)?m.catValues:[]; } return __o; }
@@ -1603,9 +1603,13 @@
         // 이름 변경 시 중복 검사
         if(found.key!==K && merged.some(function(m){ return m!==found && m.key===K; })){ err='이미 있는 필드 이름입니다: '+K; return; }
         found.key=K; found.label=K; found.catOf=change.catOf; found.catValues=change.catValues||[];
+        // [정렬·채우기·고정] 팝업에서 설정한 값 반영 → masterFields 저장 → UPC/PLU 매니저·스토어에 그대로 적용
+        if(change.align!==undefined) found.align=change.align||'';
+        if(change.fill!==undefined) found.fill=!!change.fill;
+        if(change.locked!==undefined) found.locked=!!change.locked;
       } else {
         if(merged.some(function(m){ return m.key===K; })){ err='이미 있는 필드 이름입니다: '+K; return; }
-        merged.push({ key:K, label:K, type:'text', align:'', trunc:0, bg:'', fg:'', boxc:'', bold:false, locked:false, stores:null, storesByCat:null, catOf:change.catOf, catValues:change.catValues||[] });
+        merged.push({ key:K, label:K, type:'text', align:(change.align||''), trunc:0, bg:'', fg:'', boxc:'', bold:false, locked:!!change.locked, fill:!!change.fill, stores:null, storesByCat:null, catOf:change.catOf, catValues:change.catValues||[] });
       }
     });
     if(err){ alert(err); return; }
@@ -1631,9 +1635,13 @@
       merged.forEach(function(m){ if(m.key===(change.orig||K)) found=m; });
       if(found){
         found.key=K; found.label=K; found.catOf=change.catOf; found.catValues=change.catValues||[];
+        // [정렬·채우기·고정] 팝업 설정 반영
+        if(change.align!==undefined) found.align=change.align||'';
+        if(change.fill!==undefined) found.fill=!!change.fill;
+        if(change.locked!==undefined) found.locked=!!change.locked;
       } else {
         if(merged.some(function(m){ return m.key===K; })){ alert('이미 있는 필드 이름입니다: '+K); return; }
-        merged.push({ key:K, label:K, type:'text', align:'', trunc:0, bg:'', fg:'', boxc:'', bold:false, locked:false, stores:null, storesByCat:null, catOf:change.catOf, catValues:change.catValues||[] });
+        merged.push({ key:K, label:K, type:'text', align:(change.align||''), trunc:0, bg:'', fg:'', boxc:'', bold:false, locked:!!change.locked, fill:!!change.fill, stores:null, storesByCat:null, catOf:change.catOf, catValues:change.catValues||[] });
       }
     }
     var data=fmNorm(merged);
@@ -2002,6 +2010,15 @@
 </div>
 <!-- 카테고리 필드 관리 팝업 -->
 <style>
+  .cf-ctrl{ display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .cf-tg{ width:26px; height:24px; border:1.5px dashed #c8c8c2; background:#fff; color:#b9b9b2; border-radius:6px; font-size:12px; font-weight:900; cursor:pointer; padding:0; line-height:1; }
+  .cf-tg:hover{ border-color:#c9a961; }
+  .cf-fill.on{ border:1.5px solid #1e7a3c; background:#1e7a3c; color:#fff; box-shadow:0 0 0 2px rgba(30,122,60,.3); }
+  .cf-lock.on{ border:1.5px solid #1f2937; background:#1f2937; color:#fff; box-shadow:0 0 0 2px rgba(31,41,55,.28); }
+  .cf-align{ display:inline-flex; border:1px solid #e5e5e0; border-radius:6px; overflow:hidden; }
+  .cf-al{ width:24px; height:24px; border:none; border-right:1px solid #e5e5e0; background:#f6f6f3; color:#777; font-size:11px; font-weight:900; cursor:pointer; padding:0; }
+  .cf-al:last-child{ border-right:none; }
+  .cf-al.on{ background:#c9a961; color:#3a2e12; }
   #cfOv{ position:fixed; inset:0; z-index:800; background:rgba(20,20,24,.45); display:none; align-items:center; justify-content:center; }
   #cfOv.show{ display:flex; }
   #cfCard{ width:min(94vw,1040px); max-height:88vh; background:#fff; border-radius:16px; display:flex; flex-direction:column; box-shadow:0 30px 80px rgba(0,0,0,.35); overflow:hidden; }
@@ -2061,10 +2078,20 @@
     if(!fields.length){ body.innerHTML='<div class="cf-empty">'+CUR_CAT+' 카테고리 전용 필드가 없습니다.<br>아래 <b>＋ 새 필드 추가</b>로 만드세요.</div>'; return; }
     body.innerHTML=fields.map(function(f,i){
       var vals=(f.catValues||[]);
-      return '<div class="cf-field" data-key="'+esc(f.key)+'">'
+      var F={ fill:!!f.fill, locked:!!f.locked, align:(f.align||'') };
+      return '<div class="cf-field" data-key="'+esc(f.key)+'" data-fill="'+(F.fill?'1':'')+'" data-locked="'+(F.locked?'1':'')+'" data-align="'+esc(F.align)+'">'
         +'<div class="cf-frow">'
-        +'<input class="cf-name" value="'+esc(f.key)+'" data-orig="'+esc(f.key)+'">'
+        +'<input class="cf-name" value="'+esc(f.key)+'" data-orig="'+esc(f.key)+'"'+(F.locked?' readonly':'')+'>'
         +'<button class="cf-btn danger cf-del" type="button" title="필드 삭제" style="padding:4px 8px;">✕</button></div>'
+        +'<div class="cf-ctrl">'
+          +'<button class="cf-tg cf-fill'+(F.fill?' on':'')+'" type="button" title="전체 라인 채우기 '+(F.fill?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다">'+(F.fill?'✓':'⤓')+'</button>'
+          +'<button class="cf-tg cf-lock'+(F.locked?' on':'')+'" type="button" title="'+(F.locked?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금')+'">'+(F.locked?'🔒':'🔓')+'</button>'
+          +'<span class="cf-align" title="정렬 — UPC·PLU 매니저/스토어 리스트에 그대로 적용">'
+            +'<button class="cf-al'+(F.align==='left'?' on':'')+'" data-al="left" type="button" title="왼쪽 정렬">L</button>'
+            +'<button class="cf-al'+(F.align==='center'?' on':'')+'" data-al="center" type="button" title="가운데 정렬">C</button>'
+            +'<button class="cf-al'+(F.align==='right'?' on':'')+'" data-al="right" type="button" title="오른쪽 정렬">R</button>'
+          +'</span>'
+        +'</div>'
         +'<div class="cf-vals">'+vals.map(function(v){
           return '<div class="cf-vrow"><input class="cf-num" value="'+esc(v.n)+'" placeholder="숫자"><input class="cf-desc" value="'+esc(v.d)+'" placeholder="이 숫자에 대한 설명"><button class="cf-btn danger cf-vdel" type="button">🗑</button></div>';
         }).join('')+'</div>'
@@ -2073,6 +2100,34 @@
     }).join('');
     bindCat();
   }
+  /* 필드 박스의 [⤓ 전체 라인 채우기] · [🔒 고정] · [L C R 정렬] 배선.
+     상태는 box의 data-* 에 담아 두었다가 적용(저장) 시 함께 전송한다. */
+  function bindCtrl(box){
+    var fillB=box.querySelector('.cf-fill');
+    if(fillB) fillB.onclick=function(){
+      var on=box.dataset.fill!=='1';
+      box.dataset.fill=on?'1':'';
+      fillB.classList.toggle('on', on); fillB.textContent=on?'✓':'⤓';
+      fillB.title='전체 라인 채우기 '+(on?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다';
+    };
+    var lockB=box.querySelector('.cf-lock');
+    if(lockB) lockB.onclick=function(){
+      var on=box.dataset.locked!=='1';
+      box.dataset.locked=on?'1':'';
+      lockB.classList.toggle('on', on); lockB.textContent=on?'🔒':'🔓';
+      lockB.title=on?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금';
+      var nm=box.querySelector('.cf-name'); if(nm) nm.readOnly=on;
+    };
+    Array.prototype.forEach.call(box.querySelectorAll('.cf-al'), function(b){
+      b.onclick=function(){
+        var a=b.dataset.al;
+        var next=(box.dataset.align===a)?'':a;      // 같은 버튼 재클릭 → 해제
+        box.dataset.align=next;
+        Array.prototype.forEach.call(box.querySelectorAll('.cf-al'), function(x){ x.classList.toggle('on', x.dataset.al===next); });
+      };
+    });
+  }
+  function ctrlOf(box){ return { fill:(box.dataset.fill==='1'), locked:(box.dataset.locked==='1'), align:(box.dataset.align||'') }; }
   function bindCat(){
     Array.prototype.forEach.call($('cfBody').querySelectorAll('.cf-field'), function(box){
       var key=box.dataset.key;
@@ -2082,8 +2137,10 @@
         node.querySelector('.cf-vdel').onclick=function(){ node.parentNode.removeChild(node); };
       };
       Array.prototype.forEach.call(box.querySelectorAll('.cf-vdel'), function(b){ b.onclick=function(){ var r=b.closest('.cf-vrow'); if(r) r.parentNode.removeChild(r); }; });
+      bindCtrl(box);
       box.querySelector('.cf-apply').onclick=function(){ applyCatField(box, key); };
       box.querySelector('.cf-del').onclick=function(){
+        if(box.dataset.locked==='1'){ alert('고정된 필드입니다. 🔓로 해제 후 삭제하세요.'); return; }
         if(!confirm('필드 "'+key+'" 를 삭제할까요?')) return;
         window.cfSaveField&&window.cfSaveField({ del:key }, function(){ renderCat(); flashSaved('삭제됨'); });
       };
@@ -2098,7 +2155,8 @@
       var d=(r.querySelector('.cf-desc').value||'').trim();
       if(n!=='') vals.push({n:n,d:d});
     });
-    window.cfSaveField&&window.cfSaveField({ orig:origKey, key:name, catOf:CUR_CAT, catValues:vals }, function(){ renderCat(); flashSaved('적용됨'); });
+    var C=ctrlOf(box);
+    window.cfSaveField&&window.cfSaveField({ orig:origKey, key:name, catOf:CUR_CAT, catValues:vals, fill:C.fill, locked:C.locked, align:C.align }, function(){ renderCat(); flashSaved('적용됨'); });
   }
   function flashSaved(t){ var s=$('cfSaved'); if(s){ s.textContent='✓ '+t; setTimeout(function(){ s.textContent=''; }, 1800); } }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];}); }
@@ -2110,10 +2168,20 @@
     var body=$('cfBody');
     var empty=body.querySelector('.cf-empty'); if(empty) empty.parentNode.removeChild(empty);
     var w=document.createElement('div');
-    w.innerHTML='<div class="cf-field" data-key="">'
+    var F={ fill:false, locked:false, align:'' };
+    w.innerHTML='<div class="cf-field" data-key="" data-fill="" data-locked="" data-align="">'
       +'<div class="cf-frow">'
       +'<input class="cf-name" value="'+esc(name)+'" data-orig="">'
       +'<button class="cf-btn danger cf-del" type="button" title="필드 삭제" style="padding:4px 8px;">✕</button></div>'
+      +'<div class="cf-ctrl">'
+          +'<button class="cf-tg cf-fill'+(F.fill?' on':'')+'" type="button" title="전체 라인 채우기 '+(F.fill?'ON':'OFF')+' — ON이면 UPC·PLU 매니저 편집모드에서 이 필드에 전체 채우기 기능이 표시됩니다">'+(F.fill?'✓':'⤓')+'</button>'
+          +'<button class="cf-tg cf-lock'+(F.locked?' on':'')+'" type="button" title="'+(F.locked?'고정됨 — 클릭하면 해제':'고정 — 수정·삭제 잠금')+'">'+(F.locked?'🔒':'🔓')+'</button>'
+          +'<span class="cf-align" title="정렬 — UPC·PLU 매니저/스토어 리스트에 그대로 적용">'
+            +'<button class="cf-al'+(F.align==='left'?' on':'')+'" data-al="left" type="button" title="왼쪽 정렬">L</button>'
+            +'<button class="cf-al'+(F.align==='center'?' on':'')+'" data-al="center" type="button" title="가운데 정렬">C</button>'
+            +'<button class="cf-al'+(F.align==='right'?' on':'')+'" data-al="right" type="button" title="오른쪽 정렬">R</button>'
+          +'</span>'
+        +'</div>'
       +'<div class="cf-vals"></div>'
       +'<div style="display:flex;gap:8px;margin-top:8px;"><button class="cf-btn cf-vadd" type="button">＋ 숫자 추가</button><span style="flex:1;"></span><button class="cf-btn warm cf-apply" type="button">✓ 적용</button></div>'
       +'</div>';
@@ -2124,6 +2192,7 @@
       var node=w2.firstChild; box.querySelector('.cf-vals').appendChild(node);
       node.querySelector('.cf-vdel').onclick=function(){ node.parentNode.removeChild(node); };
     };
+    bindCtrl(box);
     box.querySelector('.cf-apply').onclick=function(){ applyCatField(box, ''); };
     box.querySelector('.cf-del').onclick=function(){ if(!confirm('이 새 필드 박스를 지울까요? (아직 저장 전)')) return; box.parentNode.removeChild(box); };
   }
@@ -2141,7 +2210,8 @@
         var d=(r.querySelector('.cf-desc').value||'').trim();
         if(n!=='') vals.push({n:n,d:d});
       });
-      changes.push({ orig:(box.dataset.key||''), key:name, catOf:CUR_CAT, catValues:vals });
+      var C=ctrlOf(box);
+      changes.push({ orig:(box.dataset.key||''), key:name, catOf:CUR_CAT, catValues:vals, fill:C.fill, locked:C.locked, align:C.align });
     });
     if(bad.length){ alert('이름이 비어있는 필드가 있습니다.'); return; }
     if(window.cfSaveFieldsBulk){ window.cfSaveFieldsBulk(changes, function(){ renderCat(); flashSaved('전체 적용됨'); }); }
