@@ -61,16 +61,16 @@
   /* 매장 업로드 그리드 */
   /* 화면 분할 — 왼쪽은 업로드 박스 크기만큼, 오른쪽(상품검색)이 나머지 전부 */
   .ia-split{ display:flex; align-items:flex-start; gap:22px; }
-  .ia-left{ flex:0 0 auto; width:calc(174px * 3 + 10px * 2); }   /* 업로드 박스 3개 가로 */
+  .ia-left{ flex:0 0 auto; width:calc(186px * 2 + 10px); }   /* 업로드 박스 2개 가로 */
   .ia-right{ flex:1 1 0; min-width:0; }
   .ia-left .ia-sec{ margin-bottom:20px; }
   /* 업로드 박스: 왼쪽에서 가로로 나열 */
-  .st-grid{ display:grid; grid-template-columns:repeat(3, 174px); gap:10px; }
-  #imBox{ grid-template-columns:174px; }   /* ITEM MASTER — 매장 박스와 동일 크기 */
+  .st-grid{ display:grid; grid-template-columns:repeat(2, 186px); gap:10px; }   /* 가로 2개 매장씩 */
+  #imBox{ grid-template-columns:186px; }   /* ITEM MASTER — 매장 박스와 동일 크기 */
   @media(max-width:1180px){
     .ia-split{ flex-direction:column; }
     .ia-left{ width:100%; }
-    .st-grid{ grid-template-columns:repeat(auto-fill, minmax(174px,1fr)); }
+    .st-grid{ grid-template-columns:repeat(auto-fill, minmax(186px,1fr)); }
   }
   .st-card{ position:relative; border:1.5px solid var(--border); border-radius:14px; background:var(--bg-elev); padding:11px 12px; display:flex; flex-direction:column; gap:7px; transition:border-color .12s, background .12s, box-shadow .12s; }
   .st-card.master{ border-color:var(--accent-warm); background:var(--accent-soft); }
@@ -592,15 +592,12 @@
         '<div class="st-drop">↓ 여기에 놓기</div>'+
         '<div class="st-name"><span class="dotk"></span>'+esc(s)+'</div>'+
         '<div class="st-meta">'+meta+'</div>'+
-        '<div class="st-drophint">엑셀 파일을 카드로 드래그하거나 버튼을 누르세요</div>'+
         '<div class="st-actions">'+
-          '<button class="st-up'+(has?' re':'')+'" data-up="'+esc(s)+'" type="button">'+(has?'다시 업로드':'엑셀 업로드')+'</button>'+
-          (has&&ds.raw?'<button class="st-fix'+(unmapped.length?' need':'')+'" data-fix="'+esc(s)+'" type="button">매핑 수정</button>':'')+
+          (has?'':'<button class="st-up" data-up="'+esc(s)+'" type="button">엑셀 업로드</button>')+
           (has?'<button class="st-rm" data-rm="'+esc(s)+'" type="button">삭제</button>':'')+
         '</div></div>';
     }).join('');
     $('stGrid').querySelectorAll('[data-up]').forEach(function(b){ b.onclick=function(){ startUpload(b.getAttribute('data-up')); }; });
-    $('stGrid').querySelectorAll('[data-fix]').forEach(function(b){ b.onclick=function(){ openMapFor(b.getAttribute('data-fix')); }; });
     $('stGrid').querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ removeStore(b.getAttribute('data-rm')); }; });
     $('stGrid').querySelectorAll('.st-card').forEach(function(card){
       var store=card.getAttribute('data-store'); if(!store) return;
@@ -678,11 +675,6 @@
   window.addEventListener('drop', function(e){ e.preventDefault(); });
 
   /* ===== 매핑 모달 ===== */
-  function openMapFor(store){
-    var ds=datasets[store]; if(!ds||!ds.raw){ toast('원본이 없어 다시 업로드가 필요합니다'); return; }
-    pending={ store:store, fileName:ds.fileName, headers:(ds.headers||Object.keys(ds.raw[0]||{})), rawRows:ds.raw, existing:ds.map, fileDate:ds.fileDate };
-    openMapModal();
-  }
   function openMapModal(){
     if(!pending) return;
     var saved=null; try{ saved=JSON.parse(localStorage.getItem(MAP_LS+pending.store)||'null'); }catch(e){}
@@ -884,11 +876,11 @@
       '<div class="st-meta">'+meta+'</div>'+
       '<div class="st-drophint">UPC · PLU · KOR/ENG DESC · COST · SRP</div>'+
       '<div class="st-actions">'+
-        '<button class="st-up'+(has?' re':'')+'" id="imUp" type="button">'+(has?'다시 업로드':'엑셀 업로드')+'</button>'+
+        (has?'':'<button class="st-up" id="imUp" type="button">엑셀 업로드</button>')+
         (has?'<button class="st-fix" id="imDown" type="button">다운로드</button>':'')+
         (has?'<button class="st-rm" id="imRm" type="button">삭제</button>':'')+
       '</div></div>';
-    $('imUp').onclick=function(){ var fi=$('imFile'); fi.value=''; fi.click(); };
+    if($('imUp')) $('imUp').onclick=function(){ var fi=$('imFile'); fi.value=''; fi.click(); };
     if($('imDown')) $('imDown').onclick=downloadMaster;
     if($('imRm')) $('imRm').onclick=removeMaster;
     var card=box.querySelector('.st-card');
