@@ -51,7 +51,7 @@
   .ia-user{ font-size:13px; font-weight:700; color:var(--text-dim); }
   .ia-user b{ color:var(--text); }
 
-  .ia-wrap{ max-width:1560px; margin:0 auto; padding:24px 24px 100px; }
+  .ia-wrap{ max-width:1880px; margin:0 auto; padding:24px 24px 100px; }
   .ia-sec{ margin-bottom:28px; }
   .ia-sec-head{ display:flex; align-items:center; gap:9px; margin:0 2px 14px; }
   .ia-sec-tick{ width:9px; height:9px; border-radius:3px; background:var(--accent-warm); }
@@ -134,15 +134,22 @@
   .rs-meta{ font-size:12px; color:var(--text-dim); font-weight:700; margin:6px 0 14px; }
   .rs-meta b{ color:var(--text); }
   /* 매장 가로 나열 + 옅은 회색 세로 구분선 */
-  .rs-stores{ display:flex; overflow-x:auto; border:1.5px solid var(--border); border-radius:13px; background:var(--bg); }
-  .rs-st{ flex:0 0 auto; min-width:132px; padding:12px 16px; border-left:1px solid #e7e7e2; }
-  .rs-st:first-child{ border-left:none; }
-  .rs-st-nm{ font-size:13px; font-weight:800; letter-spacing:.02em; text-align:center; padding-bottom:9px; margin-bottom:8px; border-bottom:1.5px solid var(--border); white-space:nowrap; }
-  .rs-date{ font-size:11px; font-weight:800; color:var(--accent-warm); text-align:center; padding-bottom:8px; margin-bottom:6px; border-bottom:1px dashed var(--border); white-space:nowrap; letter-spacing:.02em; }
+  /* 한 줄에 최대 5개 매장, 6번째부터 다음 줄 — 자체 스크롤 없음 */
+  .rs-stores{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); border:1.5px solid var(--border); border-radius:13px; background:var(--bg); overflow:hidden; }
+  .rs-st{ min-width:0; padding:11px 13px; border-left:1px solid #e7e7e2; }
+  .rs-st:nth-child(5n+1){ border-left:none; }        /* 각 줄 첫 칸 */
+  .rs-st:nth-child(n+6){ border-top:1px solid #e7e7e2; }  /* 두 번째 줄부터 위 구분선 */
+  /* 매장이름 + 날짜 같은 라인 */
+  .rs-st-head{ display:flex; align-items:baseline; justify-content:space-between; gap:6px; padding-bottom:8px; margin-bottom:7px; border-bottom:1.5px solid var(--border); }
+  .rs-st-nm{ font-size:12.5px; font-weight:800; letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rs-date{ font-size:10px; font-weight:800; color:var(--accent-warm); white-space:nowrap; letter-spacing:.02em; flex:0 0 auto; }
   .rs-metric{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:5px 0; }
   .rs-metric .lb{ font-size:11px; font-weight:800; color:var(--text-faint); letter-spacing:.03em; }
   .rs-metric .vv{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
   .rs-metric .vv.strong{ color:var(--accent-warm); }
+  .rs-metric .vv.mg{ color:#2f9e5e; }
+  .rs-metric .vv.mg.neg{ color:#c0392b; }
+  .rs-metric{ padding:4px 0; }
   .rs-nostore{ padding:22px; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; border:1.5px dashed var(--border); border-radius:13px; }
 
   /* 히스토리 */
@@ -946,6 +953,13 @@
     var i=name.toLowerCase().indexOf(String(q).toLowerCase()); if(i<0) return esc(name);
     return esc(name.slice(0,i))+'<span class="hl">'+esc(name.slice(i,i+q.length))+'</span>'+esc(name.slice(i+q.length));
   }
+  /* MARGIN — COST 대비 판매가 (SRP-COST)/COST. 금액 합계가 있으면 합계 기준 = 평균 마진 */
+  function marginPct(d){
+    if(d.costAmt!=null && d.amount!=null && d.costAmt>0) return (d.amount-d.costAmt)/d.costAmt*100;
+    if(d.cost!=null && d.srp!=null && d.cost>0) return (d.srp-d.cost)/d.cost*100;
+    return null;
+  }
+  function fmtPct(n){ if(n==null||isNaN(n)) return '—'; return (Math.round(n*10)/10).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
   function fmtQty(n){ if(n==null) return '—'; var v=Number(n); if(isNaN(v)) return '—'; return (Math.round(v*100)/100).toLocaleString('en-US'); }
   function renderResult(p){
     selected=p;
@@ -953,18 +967,17 @@
     var stores=STORES.filter(function(s){ return summ[s]; });
     var q=($('srInput').value||'').trim();
     var nm=pName(p), n2=pName2(p);
-    var grand=0; stores.forEach(function(s){ grand+=(summ[s].amount||0); });
-    var amtF=ROLES.amountKey?fieldByKey(ROLES.amountKey):null, amtLb=(amtF&&amtF.label)||'총 판매금액';
-    var cAmtF=ROLES.costAmtKey?fieldByKey(ROLES.costAmtKey):null, cAmtLb=(cAmtF&&cAmtF.label)||'원가금액';
-    var cols=stores.map(function(s){ var d=summ[s];
+    var grand=0, gCost=0, gHasCost=false; stores.forEach(function(s){ grand+=(summ[s].amount||0); if(summ[s].costAmt!=null){ gCost+=summ[s].costAmt; gHasCost=true; } });
+    var gMg=(gHasCost&&gCost>0)?((grand-gCost)/gCost*100):null;
+    var cols=stores.map(function(s){ var d=summ[s]; var mg=marginPct(d);
       return '<div class="rs-st">'+
-        '<div class="rs-st-nm">'+esc(s)+'</div>'+
-        '<div class="rs-date">'+esc(ymdK(d.date))+'</div>'+
+        '<div class="rs-st-head"><span class="rs-st-nm" title="'+esc(s)+'">'+esc(s)+'</span><span class="rs-date">'+esc(ymdK(d.date))+'</span></div>'+
         '<div class="rs-metric"><span class="lb">COST</span><span class="vv">'+(d.cost!=null?money(d.cost):'—')+'</span></div>'+
         '<div class="rs-metric"><span class="lb">SRP</span><span class="vv">'+(d.srp!=null?money(d.srp):'—')+'</span></div>'+
-        '<div class="rs-metric"><span class="lb">판매수량</span><span class="vv">'+fmtQty(d.qty)+'</span></div>'+
-        (ROLES.costAmtKey?('<div class="rs-metric"><span class="lb">'+esc(cAmtLb)+'</span><span class="vv">'+(d.costAmt!=null?money(d.costAmt):'—')+'</span></div>'):'')+
-        '<div class="rs-metric"><span class="lb">'+esc(amtLb)+'</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">QTY</span><span class="vv">'+fmtQty(d.qty)+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">COST TOTAL</span><span class="vv">'+(d.costAmt!=null?money(d.costAmt):'—')+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">SRP TOTAL</span><span class="vv strong">'+(d.amount!=null?money(d.amount):'—')+'</span></div>'+
+        '<div class="rs-metric"><span class="lb">MARGIN</span><span class="vv mg'+((mg!=null&&mg<0)?' neg':'')+'">'+(mg!=null?fmtPct(mg):'—')+'</span></div>'+
       '</div>';
     }).join('');
     var storesHtml=stores.length?('<div class="rs-stores">'+cols+'</div>'):'<div class="rs-nostore">판매 매장 데이터가 없습니다.</div>';
@@ -974,7 +987,7 @@
         '<span class="rs-upc">('+(p.id?('UPC '+esc(p.id)):'UPC 없음')+')</span>'+
       '</div>'+
       (n2?'<div class="rs-eng2">'+esc(n2)+'</div>':'')+
-      '<div class="rs-meta">'+stores.length+'개 매장 · 합계 '+esc(amtLb)+' <b>'+money(grand)+'</b></div>'+
+      '<div class="rs-meta">'+stores.length+'개 매장 · 합계 SRP TOTAL <b>'+money(grand)+'</b>'+(gMg!=null?(' · 평균 MARGIN <b>'+fmtPct(gMg)+'</b>'):'')+'</div>'+
       storesHtml+
     '</div>';
   }
