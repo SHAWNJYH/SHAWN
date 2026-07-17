@@ -104,6 +104,9 @@
   th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 700; text-align: center; }
   td.lbl, th.lbl { text-align: left; font-weight: 600; color: #334155; background: #fafbfd; }
   tr.total td { font-weight: 700; background: #f8fafc; border-top: 2px solid #cbd5e1; }
+  /* 주간비교: Diff 계산에 쓰이는 최근 2주 + Diff 2줄 강조 (아주 옅은 노란색) */
+  #tblWeekly tr.wk-hl td { background: #fffbeb; }
+  #tblWeekly tr.wk-hl td.lbl { background: #fdf6dc; }
   td.neg { color: #dc2626; }
   td.pos { color: #047857; }
   .grp-last  { background: #eef2f7 !important; color: #475569 !important; }
@@ -113,7 +116,8 @@
   .dash-top { display: flex; gap: 14px; margin-bottom: 14px; align-items: stretch; }
   .dash-top .monthly { flex: 1 1 auto; min-width: 0; }
   .dash-top .stockbox { width: 640px; flex: 0 0 auto; display: flex; flex-direction: column; }
-  .stock-scroll { overflow-y: auto; overflow-x: auto; flex: 1; max-height: 434px; }
+  /* Meat Stock: 자체 스크롤 없이 내용만큼 카드가 늘어남 */
+  .stock-scroll { overflow: visible; flex: 1; }
   .quick { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
   .quick .spacer { flex: 1; }
   .btn {
@@ -304,7 +308,7 @@
   @media (max-width: 1024px){
     .dash-top { flex-direction: column; }
     .dash-top .stockbox { width: 100%; }
-    .stock-scroll { max-height: 340px; }
+    .stock-scroll { max-height: none; }
 
     .entry-wrap { flex-direction: column; }
     .entry-left, .entry-form { width: 100%; }
@@ -661,7 +665,14 @@ const KEY = 'salesmgr_v1_data';
    sales   : A date | B grocery | C produce | D meat | E houseware | F seafood | G deli | H bakery | I total
    purchase: A date | B dept | C vendor | D invoice | E amt
    stock   : A date | B item | C qty | D weight | E cost                                            */
-let DB = { sales: [], purchase: [], stock: [], stockItems: Array(13).fill('') };
+const STOCK_ROWS = 12;                          // Meat Stock 품목 줄 수 (13→12로 축소)
+/* 저장돼 있던 13줄짜리 배열(구버전/타 기기)도 앞 12개만 취하고 부족하면 채움 */
+function normStockItems(a){
+  const out = Array(STOCK_ROWS).fill('');
+  if (Array.isArray(a)) for (let i=0;i<STOCK_ROWS;i++) out[i] = (typeof a[i]==='string') ? a[i] : '';
+  return out;
+}
+let DB = { sales: [], purchase: [], stock: [], stockItems: Array(STOCK_ROWS).fill('') };
 /* 워크북 sales 시트 기본 데이터 (2026-06-01 ~ 06-06) */
 const SEED_SALES = [
   {date:'2026-06-01', g:5305.23, p:812.09, m:6883.34, h:37.18, s:null, d:null, b:null, total:13037.84},
@@ -761,7 +772,7 @@ const SEED_PURCHASE = [
 (function load(){
   try { const raw = store.getItem(KEY); if (raw) { const d = JSON.parse(raw);
     DB.sales = d.sales||[]; DB.purchase = d.purchase||[]; DB.stock = d.stock||[];
-    DB.stockItems = (d.stockItems && d.stockItems.length===13) ? d.stockItems : Array(13).fill('');
+    DB.stockItems = normStockItems(d.stockItems);
   } } catch(e){}
   if (!DB.sales.length) DB.sales = SEED_SALES.map(r=>({...r}));
   else {                                        // 새 워크북 기본 데이터 병합 (날짜 기준, 사용자 수정분 유지)
@@ -839,7 +850,7 @@ function applyRemote(d){
   DB.sales = Array.isArray(d.sales) ? d.sales : [];
   DB.purchase = Array.isArray(d.purchase) ? d.purchase : [];
   DB.stock = Array.isArray(d.stock) ? d.stock : [];
-  if (Array.isArray(d.stockItems) && d.stockItems.length === 13) DB.stockItems = d.stockItems;
+  if (Array.isArray(d.stockItems)) DB.stockItems = normStockItems(d.stockItems);
   try { store.setItem(KEY, JSON.stringify(DB)); } catch(e){}
   renderAll();
 }
@@ -1368,7 +1379,7 @@ function computeDashboard(){
   const from30 = iso(addDays(t,-30)), toDay = iso(t);
   const S=[];
   const ST={box:0, lbs:0};                                           // v3: Total 행
-  for (let i=0;i<13;i++){
+  for (let i=0;i<STOCK_ROWS;i++){
     const code = DB.stockItems[i];
     let row = {code, box:null, lbs:null, lst:null, ldate:null, moc:null};
     if (code && code.trim().length){
@@ -1416,19 +1427,21 @@ function renderDashboard(){
   document.querySelector('#tblMonthly tbody').innerHTML = html;
 
   /* Weekly (v2.0: 4주) */
-  function weekTr(w){
-    let r='<tr><td class="lbl">'+w.date+'</td>';
+  function weekTr(w, hl){
+    let r='<tr'+(hl?' class="wk-hl"':'')+'><td class="lbl">'+w.date+'</td>';
     for (const [s,p] of w.cells) r += numCell(s,2)+numCell(p,2);
     r += numCell(w.ts,2)+numCell(w.tp,2)+numCell(w.gp,2)+pctCell(w.pc===null?'':w.pc)+'</tr>';
     return r;
   }
-  let d1='<tr><td class="lbl">Diff from prev week($)</td>', d2='<tr><td class="lbl">Diff from prev week(%)</td>';
+  let d1='<tr class="wk-hl"><td class="lbl">Diff from prev week($)</td>', d2='<tr class="wk-hl"><td class="lbl">Diff from prev week(%)</td>';
   for (let i=0;i<12;i++){ d1 += numCell(D.dAmt[i],2); d2 += pctCell(D.dPct[i]===null?'':D.dPct[i]); }
   for (const v of D.dTot.amt) d1 += numCell(v,2);
   d1 += '<td></td></tr>';
   for (const v of D.dTot.pct) d2 += pctCell(v===null?'':v);
   d2 += '<td></td></tr>';
-  document.querySelector('#tblWeekly tbody').innerHTML = D.weeks.map(weekTr).join('')+d1+d2;
+  /* Diff 계산에 쓰이는 '최근 2주'(마지막 두 행)와 Diff 2줄을 옅은 노란색으로 강조 */
+  document.querySelector('#tblWeekly tbody').innerHTML =
+    D.weeks.map((w,i)=>weekTr(w, i>=D.weeks.length-2)).join('')+d1+d2;
 
   /* Meat Stock (v3.0: 가중평균 + Total 행) */
   let sh='';
@@ -1570,7 +1583,7 @@ function restoreRun(input){
     const ns = Array.isArray(d.sales)    ? d.sales    : [];
     const np = Array.isArray(d.purchase) ? d.purchase : [];
     const nk = Array.isArray(d.stock)    ? d.stock    : [];
-    const ni = (Array.isArray(d.stockItems) && d.stockItems.length === 13) ? d.stockItems : null;
+    const ni = Array.isArray(d.stockItems) ? normStockItems(d.stockItems) : null;
     let when = '알 수 없음';
     try { if (p.exportedAt) when = new Date(p.exportedAt).toLocaleString('ko-KR'); } catch(e){}
     const msg = '이 백업으로 전체 데이터를 되돌립니다.\n\n'
@@ -1837,19 +1850,21 @@ async function exportDashboardExcel(){
   ['Sales','Purchase','GP($)','GP(%)'].forEach((h,i)=>C(21,14+i,h,TOT));
   D.weeks.forEach((w,wi)=>{
     const rw = 22+wi;
-    C(rw,1,w.date,LBL);
-    w.cells.forEach(([s,p],i)=>{ C(rw,2+i*2,s,{fmt:ACCT}); C(rw,3+i*2,p,{fmt:ACCT}); });
-    C(rw,14,w.ts,{fmt:ACCT}); C(rw,15,w.tp,{fmt:ACCT}); C(rw,16,w.gp,{fmt:ACCT}); pcell(rw,17,w.pc);
+    const HL = (wi>=D.weeks.length-2) ? 'FFFFFBEB' : null;   // 최근 2주 옅은 노란색
+    C(rw,1,w.date,HL?{...LBL,fill:HL}:LBL);
+    w.cells.forEach(([s,p],i)=>{ C(rw,2+i*2,s,{fmt:ACCT,fill:HL}); C(rw,3+i*2,p,{fmt:ACCT,fill:HL}); });
+    C(rw,14,w.ts,{fmt:ACCT,fill:HL}); C(rw,15,w.tp,{fmt:ACCT,fill:HL}); C(rw,16,w.gp,{fmt:ACCT,fill:HL}); pcell(rw,17,w.pc,HL?{fill:HL}:{});
   });
   const dr = 22 + D.weeks.length;                 // Diff 행 = 26
-  C(dr,1,'Diff from prev week($)',LBL);
-  D.dAmt.forEach((v,i)=>C(dr,2+i,v,{fmt:ACCT}));
-  D.dTot.amt.forEach((v,i)=>C(dr,14+i,v,{fmt:ACCT}));
-  C(dr,17,null,{});
-  C(dr+1,1,'Diff from prev week(%)',LBL);
-  D.dPct.forEach((v,i)=>pcell(dr+1,2+i,v));
-  D.dTot.pct.forEach((v,i)=>pcell(dr+1,14+i,v));
-  C(dr+1,17,null,{});
+  const DHL='FFFFFBEB';
+  C(dr,1,'Diff from prev week($)',{...LBL,fill:DHL});
+  D.dAmt.forEach((v,i)=>C(dr,2+i,v,{fmt:ACCT,fill:DHL}));
+  D.dTot.amt.forEach((v,i)=>C(dr,14+i,v,{fmt:ACCT,fill:DHL}));
+  C(dr,17,null,{fill:DHL});
+  C(dr+1,1,'Diff from prev week(%)',{...LBL,fill:DHL});
+  D.dPct.forEach((v,i)=>pcell(dr+1,2+i,v,{fill:DHL}));
+  D.dTot.pct.forEach((v,i)=>pcell(dr+1,14+i,v,{fill:DHL}));
+  C(dr+1,17,null,{fill:DHL});
 
   saveBlob(await wb.xlsx.writeBuffer(), 'DASHBOARD_'+stamp()+'.xlsx');
   toast('EXCEL EXPORT DONE', true);
