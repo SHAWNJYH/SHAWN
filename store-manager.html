@@ -283,6 +283,8 @@
   .efld.mapped{ border-color:var(--mf-color,var(--border)); }
   .efld.noname .fld-name{ color:var(--text-faint); font-style:italic; }
   .efld.noname .fld-name em{ font-size:9.5px; font-style:normal; font-weight:800; opacity:.75; }
+  .mfld .imx-smp{ font-size:10px; font-weight:700; color:var(--text-dim); background:var(--bg-elev-2); border:1px solid var(--border); border-radius:5px; padding:1px 5px; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mfld .imx-smp.bad{ color:#c0392b; border-color:#e0a33a; background:#fff3e6; font-weight:800; }
   .efld .imx-smp{ font-size:10.5px; font-weight:700; color:var(--text-dim); background:var(--bg-elev-2); border:1px solid var(--border); border-radius:5px; padding:1px 6px; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .ex-empty{ grid-column:1 / -1; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; padding:40px 20px; border:1.5px dashed var(--border); border-radius:14px; }
@@ -992,12 +994,16 @@
       var mapped=(p&&p.mappings)?p.mappings[f.key]:''; var brokenSrc=mapped&&excelFields.indexOf(mapped)<0;
       var linked=mapped?' linked':'';
       var tag=mapped?('<span class="map-tag'+(brokenSrc?' broken':'')+'"'+(brokenSrc?'':' style="background:'+c+'"')+'>'+esc(mapped)+(brokenSrc?' ⚠':'')+'</span>'):'';
+      // 연결된 열의 실제 샘플 값 — 잘못 연결하면 바로 보인다 (예: UPC ← A-7742)
+      var smpV=(mapped&&p&&p.samples)?p.samples[mapped]:'';
+      var upcBad=(f.role==='upc' && smpV && !/^[0-9][0-9\s\-]*$/.test(String(smpV).trim()));
+      var smpTag=smpV?('<span class="imx-smp'+(upcBad?' bad':'')+'" title="'+esc(smpV)+(upcBad?' — UPC 형태가 아닙니다':'')+'">'+(upcBad?'⚠ ':'')+esc(smpV)+'</span>'):'';
       var selHtml=excelFields.length?('<select class="imx-src" data-key="'+esc(f.key)+'">'+opts.replace('value="'+esc(mapped)+'"','value="'+esc(mapped)+'" selected')+'</select>'):'';
       var xBtn=mapped?'<button class="map-x" data-key="'+esc(f.key)+'" title="연결 해제">✕</button>':'';
       return '<div class="fld mfld'+armed+linked+'" data-field="'+esc(f.key)+'" style="--mf-color:'+c+'">'+
         '<span class="swatch" style="background:'+c+'"></span>'+
         '<span class="fld-name" title="'+esc(f.role)+'">'+esc(f.label)+'</span>'+
-        tag+selHtml+xBtn+
+        tag+smpTag+selHtml+xBtn+
         '<span class="anchor mf-anchor"></span></div>';
     }).join('');
     col.innerHTML=html;

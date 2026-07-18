@@ -124,6 +124,7 @@
   .st-fix{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:9px; padding:7px 10px; font-size:12px; font-weight:800; cursor:pointer; }
   .st-fix:hover{ border-color:var(--accent-warm); color:var(--text); }
   .st-fix.need{ border-color:#e0a33a; color:#b06a00; background:#fff8ec; }
+  .st-idx{ display:inline-block; font-size:10px; font-weight:800; color:var(--text-faint); letter-spacing:.02em; }
   .st-warn{ display:inline-block; margin-top:4px; font-size:10.5px; font-weight:800; color:#b06a00; }
   .sr-field label em{ font-style:normal; font-size:9.5px; font-weight:800; color:var(--accent-warm); letter-spacing:.02em; margin-left:4px; }
   .rs-card{ border:1.5px solid var(--border); border-radius:16px; background:var(--bg-elev); padding:18px; }
@@ -527,24 +528,46 @@
   var IM_BYUPC={};   // 정규화 UPC → canon
   var IM_BYCODE={};  // 소문자 코드 → canon
   function imCodeKey(v){ return String(v==null?'':v).trim().toLowerCase(); }
+  var IM_STAT={ rows:0, upc:0, code:0, name:0, stale:false, upcTotal:0, upcBad:0, upcSample:'', upcWrong:false };
+  function isUpcLike(v){ return /^[0-9][0-9\s\-]*$/.test(String(v||'').trim()); }
   function buildMasterIndex(){
     IM_ITEM={}; IM_BYUPC={}; IM_BYCODE={};
+    IM_STAT={ rows:0, upc:0, code:0, name:0, stale:false };
     var rows=(imMaster&&imMaster.rows)||[]; if(!rows.length) return;
+    IM_STAT.rows=rows.length;
+    // 저장된 행이 현재 ITEM MASTER 필드 구성과 맞는지 (필드를 바꾼 뒤 재업로드 안 한 경우 감지)
+    var rk={}; Object.keys(rows[0]||{}).forEach(function(k){ rk[k]=1; });
+    IM_STAT.stale=IM_FIELDS.some(function(f){ return (f.role==='upc'||f.role==='code'||f.role==='name') && !rk[f.key]; });
     rows.forEach(function(r){
       var upcs=[], codes=[], names=[];
       IM_FIELDS.forEach(function(f){
         var raw=String(r[f.key]==null?'':r[f.key]).trim(); if(!raw) return;
-        if(f.role==='upc') upcs.push(raw);
-        else if(f.role==='code'||f.role==='text') codes.push(raw);   // 역할 미지정(텍스트)도 코드로 인정
-        else if(f.role==='name') names.push(raw);
+        if(f.role==='upc'){ upcs.push(raw); }
+        else if(f.role==='code'||f.role==='text'){ codes.push(raw); }
+        else if(f.role==='name'){ names.push(raw); }
       });
       var canon = upcs.length ? upcKey(upcs[0]) : (codes.length ? ('c:'+imCodeKey(codes[0])) : '');
       if(!canon) return;
       var e=IM_ITEM[canon]; if(!e){ e={ upc:(upcs[0]||''), upcs:[], codes:[], names:[] }; IM_ITEM[canon]=e; }
-      upcs.forEach(function(u){ var k=upcKey(u); if(!k) return; IM_BYUPC[k]=canon; if(e.upcs.indexOf(u)<0) e.upcs.push(u); if(!e.upc) e.upc=u; });
-      codes.forEach(function(c){ IM_BYCODE[imCodeKey(c)]=canon; if(e.codes.indexOf(c)<0) e.codes.push(c); });
+      upcs.forEach(function(u){
+        var k=upcKey(u); if(k){ IM_BYUPC[k]=canon; if(e.upcs.indexOf(u)<0) e.upcs.push(u); if(!e.upc) e.upc=u; }
+        IM_BYCODE[imCodeKey(u)]=canon;                       // UPC 값으로 ITEM CODE 칸 검색해도 찾히도록
+      });
+      codes.forEach(function(c){
+        IM_BYCODE[imCodeKey(c)]=canon; if(e.codes.indexOf(c)<0) e.codes.push(c);
+        if(isUpcLike(c)){ var k2=upcKey(c); if(k2 && !IM_BYUPC[k2]){ IM_BYUPC[k2]=canon; if(!e.upc) e.upc=c; if(e.upcs.indexOf(c)<0) e.upcs.push(c); } }   // UPC 가 텍스트 필드에 들어있어도 인식
+      });
       names.forEach(function(n){ if(e.names.indexOf(n)<0) e.names.push(n); });
     });
+    IM_STAT.upc=Object.keys(IM_BYUPC).length;
+    IM_STAT.code=Object.keys(IM_BYCODE).length;
+    IM_STAT.name=Object.keys(IM_ITEM).filter(function(k){ return IM_ITEM[k].names.length; }).length;
+    // UPC 필드에 UPC 가 아닌 값(예: ITEM CODE)이 들어온 경우 감지
+    var upcF=IM_FIELDS.filter(function(f){ return f.role==='upc'; });
+    var tot=0, bad=0, sample='';
+    if(upcF.length){ rows.forEach(function(r){ var v=String(r[upcF[0].key]==null?'':r[upcF[0].key]).trim(); if(!v) return; tot++; if(!isUpcLike(v)){ bad++; if(!sample) sample=v; } }); }
+    IM_STAT.upcTotal=tot; IM_STAT.upcBad=bad; IM_STAT.upcSample=sample;
+    IM_STAT.upcWrong = (tot>0 && bad/tot>0.5);   // 절반 이상이 UPC 형태가 아니면 연결 오류로 판단
   }
   /* 매장 행 → 마스터 상품(canon) 해석: UPC 로 먼저, 없으면 ITEM CODE 로 */
   function masterCanonOf(ids, codes){
@@ -952,7 +975,9 @@
       imErr=''; imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:rows.length, rows:rows };
       buildMasterIndex(); rebuildIndex(); renderMaster();
       refreshResult();
-    }).catch(function(){ imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:meta.rowCount||0, rows:[] }; renderMaster(); });
+    }).catch(function(){ imErr='ITEM MASTER 데이터 불러오기 실패 (Firestore 규칙 확인)';
+      imMaster={ fileName:meta.fileName||'', uploadedAt:meta.uploadedAt||0, rowCount:meta.rowCount||0, rows:[] };
+      buildMasterIndex(); rebuildIndex(); renderMaster(); });
   }
   /* ITEM MASTER 매핑 — IMPORT 설정의 ITEM MASTER 카테고리 우선, 없으면 열 이름으로 보조 매칭 */
   function masterMap(headers){
@@ -1044,7 +1069,13 @@
     $('imCount').textContent=has?(imMaster.rowCount.toLocaleString('en-US')+'개 상품'):(linked?('연결 '+linked+'/'+IM_FIELDS.length+' 필드'):'미연결');
     var meta;
     if(imErr) meta='<span class="st-warn">⚠ '+esc(imErr)+'</span>';
-    else if(has) meta='<span class="fn">'+esc(imMaster.fileName||'—')+'</span><br>'+imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
+    else if(has){
+      meta='<span class="fn">'+esc(imMaster.fileName||'—')+'</span><br>'+imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
+      meta+='<br><span class="st-idx">검색 인덱스 · UPC '+IM_STAT.upc.toLocaleString('en-US')+' · CODE '+IM_STAT.code.toLocaleString('en-US')+' · 이름 '+IM_STAT.name.toLocaleString('en-US')+'</span>';
+      if(IM_STAT.stale) meta+='<br><span class="st-warn">⚠ 필드 구성이 바뀌었습니다 — 다시 업로드하세요</span>';
+      else if(IM_STAT.upcWrong) meta+='<br><span class="st-warn">⚠ UPC 필드에 UPC 가 아닌 값이 들어있습니다 (예: '+esc(IM_STAT.upcSample)+')<br>STORE MANAGER · IMPORT 설정 → ITEM MASTER 에서 UPC 열 연결을 고친 뒤 다시 업로드하세요</span>';
+      else if(!IM_STAT.upcTotal) meta+='<br><span class="st-warn">⚠ UPC 가 비어 있습니다 — IMPORT 설정 → ITEM MASTER 에서 UPC 열을 연결한 뒤 다시 업로드하세요</span>';
+    }
     else if(!linked) meta='<span class="st-warn">⚠ IMPORT 설정 · ITEM MASTER 카테고리에서 필드를 연결하세요</span>';
     else meta='업로드된 파일 없음';
     box.innerHTML='<div class="st-card master'+(has?' has':'')+'" data-master="1">'+
