@@ -96,11 +96,13 @@
   /* 검색 */
   .sr-box{ border:1.5px solid var(--border); border-radius:16px; background:var(--bg-elev); padding:18px; }
   .sr-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
-  .sr-field{ display:flex; flex-direction:column; gap:6px; }
+  /* 상품명 · UPC · ITEM CODE — 세 칸 모두 같은 디자인 */
+  .sr-field{ position:relative; display:flex; flex-direction:column; gap:6px; flex-grow:1; flex-shrink:1; flex-basis:0; min-width:220px; }
   .sr-field label{ font-size:11.5px; font-weight:800; color:var(--text-dim); letter-spacing:.03em; padding-left:2px; }
-  .sr-search{ position:relative; flex:1; min-width:240px; }
-  .sr-search input{ width:100%; border:1.5px solid var(--border); background:var(--bg); border-radius:11px; padding:12px 14px; font-size:15px; color:var(--text); }
-  .sr-search input:focus{ outline:none; border-color:var(--accent-warm); background:#fff; }
+  .sr-field input{ width:100%; border:1.5px solid var(--border); background:var(--bg); border-radius:11px; padding:12px 14px; font-size:15px; font-family:inherit; color:var(--text); }
+  .sr-field input:focus{ outline:none; border-color:var(--accent-warm); background:#fff; }
+  .sr-field input::placeholder{ color:var(--text-faint); font-weight:600; }
+  .sr-search{ position:relative; }
   .sr-date input{ border:1.5px solid var(--border); background:var(--bg); border-radius:11px; padding:11px 12px; font-size:14px; color:var(--text); }
   .sr-date input:focus{ outline:none; border-color:var(--accent-warm); background:#fff; }
   .sr-go{ border:1.5px solid var(--accent); background:var(--accent); color:#fff; border-radius:11px; padding:12px 20px; font-size:14px; font-weight:800; cursor:pointer; }
@@ -246,16 +248,16 @@
       <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">상품 검색</span><span class="ia-sec-sub">UPC · ITEM CODE · KOR DESC · ENG DESC (부분·유사 검색)</span></div>
       <div class="sr-box">
         <div class="sr-row">
-          <div class="sr-search sr-field" style="flex:1.6;">
+          <div class="sr-search sr-field">
             <label>상품명 검색 <em>부분 검색</em></label>
             <input id="srName" type="text" placeholder="신라 · 신라면 · SHIN … (일부만 입력해도 됩니다)" autocomplete="off">
             <div class="sr-sugg" id="srSugg"></div>
           </div>
-          <div class="sr-field" style="flex:1;">
+          <div class="sr-field">
             <label>UPC 검색 <em>정확히 일치</em></label>
             <input id="srUpc" type="text" placeholder="예: 8801234567890" autocomplete="off">
           </div>
-          <div class="sr-field" style="flex:1;">
+          <div class="sr-field">
             <label>ITEM CODE 검색 <em>정확히 일치</em></label>
             <input id="srCode" type="text" placeholder="예: A-7742" autocomplete="off">
           </div>
