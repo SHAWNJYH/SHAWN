@@ -784,7 +784,7 @@
       var warn='';
       if(legacy) warn='<br><span class="st-warn">⚠ 이전 형식 — 다시 업로드하면 최신 매핑/기능이 적용됩니다</span>';
       else if(has&&unmapped.length) warn='<br><span class="st-warn">⚠ 미연결 '+unmapped.length+'개: '+esc(unmapped.map(function(f){ return f.label; }).join(', '))+'</span>';
-      var meta=has? ('<span class="fn">'+esc(ds.fileName)+'</span><br>'+ds.rowCount+'개 · '+ymd(ds.uploadedAt)+warn) : '업로드된 파일 없음';
+      var meta=has? (ds.rowCount+'개 · '+ymd(ds.uploadedAt)+warn) : '업로드된 파일 없음';
       return '<div class="st-card'+(has?' has':'')+'" data-store="'+esc(s)+'">'+
         '<div class="st-drop">↓ 여기에 놓기</div>'+
         '<div class="st-name"><span class="dotk"></span>'+esc(s)+'</div>'+
@@ -1090,8 +1090,9 @@
     var meta;
     if(imErr) meta='<span class="st-warn">⚠ '+esc(imErr)+'</span>';
     else if(has){
-      meta='<span class="fn">'+esc(imMaster.fileName||'—')+'</span><br>'+imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
-      meta+='<br><span class="st-idx">검색 인덱스 · UPC '+IM_STAT.upc.toLocaleString('en-US')+' · CODE '+IM_STAT.code.toLocaleString('en-US')+' · 이름 '+IM_STAT.name.toLocaleString('en-US')+'</span>';
+      // 정상: 총 개수 · 업로드 날짜만
+      meta=imMaster.rowCount.toLocaleString('en-US')+'개 · '+ymd(imMaster.uploadedAt);
+      // 문제가 있을 때만 경고
       if(IM_STAT.stale) meta+='<br><span class="st-warn">⚠ 필드 구성이 바뀌었습니다 — 다시 업로드하세요</span>';
       else if(IM_STAT.upcWrong) meta+='<br><span class="st-warn">⚠ UPC 필드에 UPC 가 아닌 값이 들어있습니다 (예: '+esc(IM_STAT.upcSample)+')<br>STORE MANAGER · IMPORT 설정 → ITEM MASTER 에서 UPC 열 연결을 고친 뒤 다시 업로드하세요</span>';
       else if(!IM_STAT.upcTotal) meta+='<br><span class="st-warn">⚠ UPC 가 비어 있습니다 — IMPORT 설정 → ITEM MASTER 에서 UPC 열을 연결한 뒤 다시 업로드하세요</span>';
@@ -1102,7 +1103,6 @@
       '<div class="st-drop">↓ 여기에 놓기</div>'+
       '<div class="st-name"><span class="dotk"></span>ITEM MASTER</div>'+
       '<div class="st-meta">'+meta+'</div>'+
-      '<div class="st-drophint">'+esc(IM_FIELDS.map(function(f){ return f.label; }).join(' · '))+'</div>'+
       '<div class="st-actions">'+
         (has?'':'<button class="st-up" id="imUp" type="button">엑셀 업로드</button>')+
         (has?'<button class="st-fix" id="imDown" type="button">다운로드</button>':'')+
