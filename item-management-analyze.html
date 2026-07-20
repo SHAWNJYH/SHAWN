@@ -344,12 +344,12 @@
   var IM_FIELDS_DOC='item-management-itemmaster-fields';   // STORE MANAGER · IMPORT 설정에서 편집
   var IM_DOC='item-management-itemmaster';
   var IM_DEFAULTS=[
-    {key:'UPC',      label:'UPC',      role:'upc',  fn:'none'},
-    {key:'PLU',      label:'PLU',      role:'text', fn:'none'},
-    {key:'KOR DESC', label:'KOR DESC', role:'name', fn:'none'},
-    {key:'ENG DESC', label:'ENG DESC', role:'name', fn:'none'},
-    {key:'COST',     label:'COST',     role:'cost', fn:'none'},
-    {key:'SRP',      label:'SRP',      role:'srp',  fn:'none'}
+    {key:'UPC',      label:'UPC',      role:'upc',  fn:'none', fmt:'text'},
+    {key:'PLU',      label:'PLU',      role:'text', fn:'none', fmt:'text'},
+    {key:'KOR DESC', label:'KOR DESC', role:'name', fn:'none', fmt:'text'},
+    {key:'ENG DESC', label:'ENG DESC', role:'name', fn:'none', fmt:'text'},
+    {key:'COST',     label:'COST',     role:'cost', fn:'none', fmt:'price'},
+    {key:'SRP',      label:'SRP',      role:'srp',  fn:'none', fmt:'price'}
   ];
   var IM_FIELDS=IM_DEFAULTS.slice();
   var IM_MATCH={ fields:[], mappings:{} };   // {필드key: 엑셀열}
@@ -963,7 +963,7 @@
     // ITEM MASTER 필드 정의 (STORE MANAGER · IMPORT 설정 → ITEM MASTER 카테고리)
     try{ fb.onSnapshot(fb.doc(fb.db,CFG_COL,IM_FIELDS_DOC), function(snap){
       var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-      var arr=(Array.isArray(d.fields)?d.fields:[]).map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
+      var arr=(Array.isArray(d.fields)?d.fields:[]).map(function(f){ var role=String(f.role||'text'); var fmt=String(f.fmt||''); if(['text','number','price','margin'].indexOf(fmt)<0) fmt=defaultFmt(role); return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:role, fn:String(f.fn||'none'), fmt:fmt }; }).filter(function(f){ return f.key; });
       IM_FIELDS=arr.length?arr:IM_DEFAULTS.slice();
       buildMasterIndex(); rebuildIndex(); renderMaster();
     }, function(e){ imErr='ITEM MASTER 필드 불러오기 실패 (Firestore 규칙 확인)'; renderMaster(); }); }catch(e){}
@@ -1058,7 +1058,14 @@
     if(!imMaster||!imMaster.rows||!imMaster.rows.length){ toast('다운로드할 ITEM MASTER 가 없습니다'); return; }
     if(typeof XLSX==='undefined'){ toast('엑셀 라이브러리 로드 실패'); return; }
     var keys=IM_FIELDS.map(function(f){ return f.key; });
-    var aoa=[keys].concat(imMaster.rows.map(function(r){ return keys.map(function(k){ return r[k]; }); }));
+    // 표시 형식(STORE MANAGER · IMPORT 설정) 반영 — 가격·마진은 소수점 2자리 반올림
+    function fmtCell(f, v){
+      var fmt=(f&&f.fmt)||'text';
+      if(fmt==='price'||fmt==='margin'){ var n=num(v); return (n==null)?(v==null?'':v):(Math.round(n*100)/100); }
+      if(fmt==='number'){ var n2=num(v); return (n2==null)?(v==null?'':v):n2; }
+      return (v==null?'':v);
+    }
+    var aoa=[keys].concat(imMaster.rows.map(function(r){ return IM_FIELDS.map(function(f){ return fmtCell(f, r[f.key]); }); }));
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'ITEM MASTER');
     var base=(imMaster.fileName||'item-master').replace(/\.(xlsx|xls|csv)$/i,'');
