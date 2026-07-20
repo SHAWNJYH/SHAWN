@@ -64,6 +64,14 @@
   .status{ font-size:12px; font-weight:800; margin-top:8px; }
   .status.ok{ color:var(--success); } .status.warn{ color:#b4791f; } .status.err{ color:var(--danger); }
 
+  .im-linkbox{ border:1.5px solid var(--border); border-radius:12px; background:var(--bg-elev-2,#f6f4ee); padding:12px 14px; margin-top:4px; }
+  .im-linkrow{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:5px 0; font-size:13px; }
+  .im-linkrow + .im-linkrow{ border-top:1px solid var(--border); }
+  .im-linklabel{ color:var(--text-dim); font-weight:700; }
+  .im-linkval{ font-weight:800; color:var(--text); }
+  .im-linkval b{ color:var(--accent-warm,#c9a961); }
+  .im-linkbox.warn{ border-color:#e0a33a; background:#fff7ec; }
+  .im-linkbox.warn .im-linkval#imLinkState{ color:#b06a00; }
   .mstate{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); }
   .mstate .big{ font-family:var(--serif); font-size:15px; font-weight:900; color:var(--text); }
   .mstate .big b{ color:var(--accent-warm); font-size:19px; }
@@ -146,22 +154,14 @@
   <!-- ===== 관리 모드 ===== -->
   <div id="manageUI">
     <div class="grid2">
-      <!-- 좌: 아이템 마스터 (누적 임시저장) -->
+      <!-- 좌: 아이템 마스터 (ITEM MANAGEMENT 연결 · 읽기 전용) -->
       <div class="card">
-        <h2>📦 ITEM MASTER <button class="btn sm" id="masterDownloadBtn" style="margin-left:auto;background:#fff;color:#1a1a1d;border:1.5px solid #d8d3c8;">⬇ EXCEL EXPORT</button></h2>
-        <div class="hint">엑셀을 올리고 <b>저장(누적)</b>을 누르면 STI LIST에 쌓입니다. 같은 위치에 또 올려 누르면 <b>중복 제외, 신규만</b> 추가됩니다.</div>
-        <div class="drop" id="dropMaster"><div class="di">📦</div><div class="dt">아이템마스터 엑셀 선택</div><div class="ds">.xlsx / .xls / .csv</div></div>
-        <input type="file" id="fileMaster" accept=".xlsx,.xls,.csv" class="hidden">
-        <div id="mapMaster" class="hidden">
-          <div class="maprow"><label>ITEMCODE</label><select class="msel" id="mMasterCode"></select></div>
-          <div class="maprow"><label>UPC</label><select class="msel" id="mMasterUpc"></select></div>
-          <div class="status" id="stMasterUp"></div>
-        </div>
-        <div class="mstate">
-          <span class="big">임시저장 <b id="masterCount">0</b> 개</span>
-          <span class="sp"></span>
-          <button class="btn sm" id="masterDupBtn" style="background:#fff;color:#1a1a1d;border:1.5px solid #d8d3c8;">🔍 중복확인</button>
-          <button class="btn danger sm" id="masterClearBtn">전체삭제</button>
+        <h2>📦 ITEM MASTER <span class="tag">ITEM MANAGEMENT 연결</span> <button class="btn sm" id="masterDownloadBtn" style="margin-left:auto;background:#fff;color:#1a1a1d;border:1.5px solid #d8d3c8;">⬇ EXCEL EXPORT</button></h2>
+        <div class="hint">ITEM MANAGEMENT(ITEM ANALYZE)의 <b>ITEM MASTER</b> 자료를 그대로 사용합니다. 여기서는 업로드하지 않으며, ITEM MANAGEMENT에서 ITEM MASTER를 갱신하면 자동으로 반영됩니다.</div>
+        <div class="im-linkbox" id="imLinkBox">
+          <div class="im-linkrow"><span class="im-linklabel">연결 상태</span><span class="im-linkval" id="imLinkState">불러오는 중…</span></div>
+          <div class="im-linkrow"><span class="im-linklabel">ITEM MASTER 상품</span><span class="im-linkval"><b id="masterRows">0</b> 개</span></div>
+          <div class="im-linkrow"><span class="im-linklabel">ITEMCODE ↔ UPC 매칭</span><span class="im-linkval"><b id="masterCount">0</b> 개 코드</span></div>
         </div>
         <div class="status" id="stMaster"></div>
       </div>
@@ -219,30 +219,6 @@
 
 <!-- 추가 업로드 확인 팝업 -->
 <!-- 저장 확인 팝업 (최초 업로드) -->
-<div class="ov" id="ovConfirmSave"><div class="ov-card" style="max-width:440px">
-  <div class="ov-head"><h3>ITEM MASTER 저장</h3><span class="sp"></span><button class="ov-x" id="ovCsX">✕</button></div>
-  <div class="ov-body"><div class="ov-note" id="ovCsNote">업로드한 데이터를 ITEM MASTER에 저장할까요?</div></div>
-  <div class="ov-foot"><button class="btn sm" id="ovCsCancel">취소</button><button class="btn warm sm" id="ovCsSave">저장</button></div>
-</div></div>
-
-<!-- 중복 리스트 팝업 (좌: 코드같고 UPC다름 / 우: UPC같고 코드다름) -->
-<div class="ov" id="ovDup"><div class="ov-card" style="max-width:960px">
-  <div class="ov-head"><h3>🔍 중복 항목 정리</h3><span class="sp"></span><button class="ov-x" id="ovDupX">✕</button></div>
-  <div class="ov-body">
-    <div class="ov-note" id="ovDupNote"></div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-      <div>
-        <div style="font-size:12px; font-weight:800; color:var(--text-dim); margin-bottom:6px;">◀ 같은 ITEMCODE · 다른 UPC</div>
-        <div style="border:1px solid var(--border); border-radius:10px; overflow:auto; max-height:52vh;" id="dupLeftWrap"><div id="dupLeftBody"></div></div>
-      </div>
-      <div>
-        <div style="font-size:12px; font-weight:800; color:var(--text-dim); margin-bottom:6px;">같은 UPC · 다른 ITEMCODE ▶</div>
-        <div style="border:1px solid var(--border); border-radius:10px; overflow:auto; max-height:52vh;" id="dupRightWrap"><div id="dupRightBody"></div></div>
-      </div>
-    </div>
-  </div>
-  <div class="ov-foot"><button class="btn sm" id="ovDupCancel">나가기</button><button class="btn warm sm" id="ovDupApply">✓ UPDATE (ITEM MASTER 누적)</button></div>
-</div></div>
 
 <div class="ov" id="ovAdd"><div class="ov-card">
 <!-- placeholder -->
@@ -336,11 +312,11 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = { apiKey:"AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0", authDomain:"the-shawn.firebaseapp.com", projectId:"the-shawn", storageBucket:"the-shawn.firebasestorage.app", messagingSenderId:"519898602513", appId:"1:519898602513:web:0f35e3dc9c29dce21665b0", measurementId:"G-NKGYGC63JN" };
   const app=initializeApp(firebaseConfig);
   window.fbDb=getFirestore(app);
-  window.fbFns={ doc, getDoc, setDoc, deleteDoc, collection, getDocs };
+  window.fbFns={ doc, getDoc, setDoc, deleteDoc, collection, getDocs, onSnapshot };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 
@@ -350,6 +326,11 @@
   var $=function(id){ return document.getElementById(id); };
   var E=window.AdEngine;
   var AD_COL='advertising', MASTER_ID='STI LIST', AD_DRAFT_ID='_AD_DRAFT';
+  /* ITEM MANAGEMENT(ITEM ANALYZE)의 ITEM MASTER 자료 — 여기서 읽어와 광고 매칭에 사용 (읽기 전용) */
+  var IM_CFG_COL='app-config';
+  var IM_DOC='item-management-itemmaster';              // 메타 { rowCount, chunks, uploadedAt }
+  var IM_FIELDS_DOC='item-management-itemmaster-fields'; // 필드 정의 [{key,role,...}]
+  var imMasterRows=0, imMasterFields=[], imMasterAt=0, imLinkErr='';
   var MODE=(new URLSearchParams(location.search).get('mode')||'manage');
   var isView=(MODE==='view');
   var isNew=(MODE==='newitem');
@@ -394,321 +375,115 @@
     drop.addEventListener('drop',function(e){ e.preventDefault(); drop.classList.remove('over'); var f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) readExcel(f,function(err,aoa){ if(err){toast('읽기 실패');return;} onLoad(aoa); }); });
   }
 
-  /* ===== 아이템 마스터 (STI LIST 누적) ===== */
+  /* ===== 아이템 마스터 — ITEM MANAGEMENT(ITEM ANALYZE) ITEM MASTER 연결 (읽기 전용) =====
+     ITEM MANAGEMENT 마스터 행에서 코드(ITEM CODE·PLU 등 code 역할)와 UPC(upc 역할)를 뽑아
+     광고 매칭용 {ITEMCODE → [UPC]} 인덱스를 만든다. */
   function masterCount(){ return Object.keys(masterIndex).length; }
-  function updateMasterUI(){ $('masterCount').textContent=masterCount(); }
+  function digitsOnly2(s){ return String(s==null?'':s).replace(/[^0-9]/g,''); }
+  function normKey2(s){ return String(s==null?'':s).trim().toUpperCase().replace(/[\s\-_.\/~*\[\]#]/g,''); }
+  function isUpcLike2(v){ return /^[0-9][0-9\s\-]*$/.test(String(v==null?'':v).trim()); }
+  function updateMasterUI(){
+    if($('masterCount')) $('masterCount').textContent=masterCount();
+    if($('masterRows')) $('masterRows').textContent=imMasterRows.toLocaleString('en-US');
+    var box=$('imLinkBox'), st=$('imLinkState');
+    if(!box||!st) return;
+    box.classList.remove('warn');
+    if(imLinkErr){ box.classList.add('warn'); st.textContent='⚠ '+imLinkErr; }
+    else if(!imMasterRows){ box.classList.add('warn'); st.textContent='ITEM MASTER 없음 — ITEM MANAGEMENT에서 먼저 업로드하세요'; }
+    else if(!masterCount()){ box.classList.add('warn'); st.textContent='⚠ ITEMCODE↔UPC 매칭 0 — ITEM MASTER의 UPC·ITEM CODE 연결 확인'; }
+    else st.textContent='✓ 연결됨'+(imMasterAt?(' · '+ymdShort(imMasterAt)):'');
+  }
+  function ymdShort(ms){ if(!ms) return ''; var d=new Date(ms); var p=function(x){return (x<10?'0':'')+x;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+  // 필드 정의에서 code/upc/name 역할 키 추출 (역할 미지정이면 이름으로 추정)
+  function imRoleKeys(){
+    var codeKeys=[], upcKeys=[], nameKeys=[];
+    (imMasterFields||[]).forEach(function(f){
+      var role=String(f.role||''), key=String(f.key||'');
+      var kk=normKey2(key);
+      if(role==='upc') upcKeys.push(key);
+      else if(role==='code') codeKeys.push(key);
+      else if(role==='name') nameKeys.push(key);
+      else { // 역할 미지정 — 이름으로 추정
+        if(/UPC|BARCODE|바코드/.test(kk)) upcKeys.push(key);
+        else if(/ITEMCODE|^PLU$|SKU|상품코드|품목코드/.test(kk)) codeKeys.push(key);
+      }
+    });
+    // 아무것도 못 찾으면 관용적 기본값
+    if(!upcKeys.length) upcKeys=['UPC'];
+    if(!codeKeys.length) codeKeys=['ITEM CODE','PLU'];
+    return { codeKeys:codeKeys, upcKeys:upcKeys, nameKeys:nameKeys };
+  }
+  var masterCodeRaw={};   // 정규화코드 → 원본 표기 (다운로드용)
+  function buildIndexFromRows(rows){
+    var rk=imRoleKeys(); var idx={}, meta={}; masterCodeRaw={};
+    (rows||[]).forEach(function(r){
+      // UPC 값 (첫 유효)
+      var upc='';
+      for(var i=0;i<rk.upcKeys.length;i++){ var u=digitsOnly2(r[rk.upcKeys[i]]); if(u){ upc=u; break; } }
+      // 코드 값들 (여러 코드 필드 각각 등록 — ITEM CODE·PLU 모두로 검색 가능)
+      var codes=[];
+      rk.codeKeys.forEach(function(ck){ var raw=String(r[ck]==null?'':r[ck]).trim(); var c=normKey2(raw); if(c && codes.indexOf(c)<0){ codes.push(c); if(!masterCodeRaw[c]) masterCodeRaw[c]=raw; } });
+      // UPC 필드에 코드가, 코드 필드에 UPC 가 섞인 경우도 관용 처리
+      if(!upc){ rk.codeKeys.forEach(function(ck){ var raw=String(r[ck]==null?'':r[ck]).trim(); if(isUpcLike2(raw)){ var uu=digitsOnly2(raw); if(uu&&!upc) upc=uu; } }); }
+      if(!codes.length && upc) codes.push('U'+upc);   // 코드가 없으면 UPC 자체를 코드로도 등록
+      if(!upc && !codes.length) return;
+      // 부가정보 (다운로드용)
+      var kor='', eng='';
+      rk.nameKeys.forEach(function(nk){ var v=String(r[nk]==null?'':r[nk]).trim(); if(!v) return; if(/KOR|한/i.test(nk)||/[\uAC00-\uD7A3]/.test(v)){ if(!kor) kor=v; } else if(!eng) eng=v; });
+      codes.forEach(function(code){ if(!idx[code]) idx[code]=[]; if(upc && idx[code].indexOf(upc)<0) idx[code].push(upc); });
+      if(upc && !meta[upc]) meta[upc]={ kor:kor, eng:eng, size:'' };
+    });
+    return { index:idx, meta:meta };
+  }
   function masterLoad(){
     if(!fbReady()) return;
-    window.fbFns.getDoc(window.fbFns.doc(window.fbDb, AD_COL, MASTER_ID)).then(function(s){
-      masterIndex={}; masterMeta={}; if(s.exists()){ var d=s.data()||{}; var map=d.map||{}; for(var k in map){ var v=String(map[k]||''); masterIndex[k]=v?v.split(','):[]; } masterMeta=(d.meta&&typeof d.meta==='object')?d.meta:{}; }
-      updateMasterUI();
-    }).catch(function(){ updateMasterUI(); });
+    var F=window.fbFns, db=window.fbDb;
+    // 필드 정의 구독
+    try{ F.onSnapshot(F.doc(db, IM_CFG_COL, IM_FIELDS_DOC), function(s){
+      var d=(s&&s.exists&&s.exists())?(s.data()||{}):{};
+      imMasterFields=Array.isArray(d.fields)?d.fields:[];
+      reloadMasterData();
+    }, function(){ imMasterFields=[]; reloadMasterData(); }); }catch(e){}
+    // 메타 구독 → 청크 로드
+    try{ F.onSnapshot(F.doc(db, IM_CFG_COL, IM_DOC), function(s){
+      var d=(s&&s.exists&&s.exists())?(s.data()||{}):null;
+      imLinkErr='';
+      if(!d || !d.rowCount){ imMasterRows=0; imMasterAt=0; masterIndex={}; masterMeta={}; updateMasterUI(); refreshAd(); return; }
+      imMasterRows=d.rowCount||0; imMasterAt=d.uploadedAt||0; loadMasterChunks(d);
+    }, function(){ imLinkErr='ITEM MASTER 불러오기 실패 (Firestore 규칙 확인)'; masterIndex={}; masterMeta={}; updateMasterUI(); }); }catch(e){}
   }
-  function onMasterLoaded(aoa){
-    lastMasterUpload=aoa; $('mapMaster').classList.remove('hidden'); $('dropMaster').classList.add('loaded');
-    var empty = (masterCount()===0);
-    $('dropMaster').querySelector('.dt').textContent='✓ 업로드됨 ('+(aoa.length-1)+'행)'+(empty?' — 저장 여부를 확인하세요':' — 자동 검사 중…');
-    fillColSelect($('mMasterCode'), aoa[0]||[], 'ITEMCODE'); fillColSelect($('mMasterUpc'), aoa[0]||[], 'UPC');
-    // 컬럼 선택 후 흐름 시작
-    setTimeout(processUpload, 200);
-  }
-  // 컬럼 변경 시에도 재처리
-  function onMasterColChange(){ if(lastMasterUpload) processUpload(); }
-
-  /* ===== 유효성 검사 ===== */
-  // ITEMCODE 4자리 이상 / UPC 7자리 이상 · 숫자만
-  function codeIssue(rawCode){ var c=norm(rawCode); if(!c) return 'ITEMCODE 비어있음'; if(c.replace(/\s/g,'').length<4) return 'ITEMCODE 4자리 미만'; return ''; }
-  function upcIssue(rawUpc){ var u=norm(rawUpc); if(!u) return 'UPC 비어있음';
-    if(/[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(u)) return 'UPC 한글 포함';
-    if(/[A-Za-z]/.test(u)) return 'UPC 영문 포함';
-    if(/[^0-9]/.test(u)) return 'UPC 특수문자 포함';
-    if(u.length<7) return 'UPC 7자리 미만'; return ''; }
-
-  // 업로드 원본 행 파싱 (원본 보존)
-  var __lastParsed=[];
-  function parseNewRows(){
-    var codeVal=$('mMasterCode').value || 'ITEMCODE';
-    var upcVal=$('mMasterUpc').value || 'UPC';
-    var res=E.buildItemIndex(lastMasterUpload,{itemcode:codeVal, upc:upcVal});
-    if(res.error) return { error:res.error };
-    var aoa=lastMasterUpload, ci=res.itemcodeCol, ui=res.upcCol, rows=[];
-    var di=E.resolveColIndex(aoa[0]||[], 'DESC');   // desc 컬럼(있으면)
-    var ki=E.resolveColIndex(aoa[0]||[], 'KOR DESC'), ei=E.resolveColIndex(aoa[0]||[], 'ENG DESC'), si=E.resolveColIndex(aoa[0]||[], 'UNIT SIZE');
-    for(var r=1;r<aoa.length;r++){ var row=aoa[r]||[];
-      var rawCode=String(row[ci]==null?'':row[ci]).trim();
-      var rawUpc=String(row[ui]==null?'':row[ui]).trim();
-      var desc=(di>=0)?String(row[di]==null?'':row[di]).trim():'';
-      if(!rawCode && !rawUpc) continue;
-      var kor=(ki>=0)?String(row[ki]==null?'':row[ki]).trim():'';
-      var eng=(ei>=0)?String(row[ei]==null?'':row[ei]).trim():'';
-      var usz=(si>=0)?String(row[si]==null?'':row[si]).trim():'';
-      rows.push({ code:E.normKey(rawCode), rawCode:rawCode, rawUpc:rawUpc, desc:desc, kor:kor, eng:eng, size:usz });
-    }
-    __lastParsed=rows;
-    return { rows:rows };
-  }
-  function metaFromParsed(upc){ for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if(it.rawUpc===upc){ if(it.kor||it.eng||it.size) return {kor:it.kor||'',eng:it.eng||'',size:it.size||''}; } } return null; }
-  function setMeta(upc){ var m=metaFromParsed(upc); if(m) masterMeta[upc]=m; }
-  // code/upc로 이번 파일의 desc 찾기
-  function findDesc(code, upc){
-    for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if((code && it.code===code) || (upc && it.rawUpc===upc)){ if(it.desc) return it.desc; } }
-    return '';
+  var __imMeta=null;
+  function reloadMasterData(){ if(__imMeta) loadMasterChunks(__imMeta); }
+  function loadMasterChunks(meta){
+    __imMeta=meta;
+    var F=window.fbFns, db=window.fbDb; var n=meta.chunks||0, jobs=[];
+    for(var i=0;i<n;i++) jobs.push(F.getDoc(F.doc(db, IM_CFG_COL, IM_DOC+'-c'+i)));
+    Promise.all(jobs).then(function(snaps){
+      var rows=[]; snaps.forEach(function(sn){ var dd=(sn&&sn.exists&&sn.exists())?(sn.data()||{}):{}; if(Array.isArray(dd.rows)) rows=rows.concat(dd.rows); });
+      var built=buildIndexFromRows(rows);
+      masterIndex=built.index; masterMeta=built.meta;
+      imLinkErr='';
+      updateMasterUI(); refreshAd();
+    }).catch(function(){ imLinkErr='ITEM MASTER 데이터 불러오기 실패 (Firestore 규칙 확인)'; masterIndex={}; masterMeta={}; updateMasterUI(); });
   }
 
-  // 메인 흐름: 최초(빈 마스터)면 저장확인 / 이후면 신제품 자동등록 + 문제만 팝업
-  function processUpload(){
-    if(!lastMasterUpload) return;
-    var p=parseNewRows();
-    var st=$('stMasterUp');
-    var dt=$('dropMaster').querySelector('.dt');
-    if(p.error){ st.className='status err'; st.textContent='⚠ '+p.error; if(dt) dt.textContent='✓ 업로드됨 — 컬럼을 확인하세요'; return; }
-    if(dt) dt.textContent='✓ 업로드됨 ('+(lastMasterUpload.length-1)+'행)';
-
-    if(masterCount()===0){
-      // 최초 업로드: 검증만 하고 "저장할까요" 팝업
-      var valid=0, bad=0;
-      p.rows.forEach(function(it){ if(codeIssue(it.rawCode)||upcIssue(it.rawUpc)) bad++; else valid++; });
-      st.className='status ok'; st.textContent='업로드 '+p.rows.length+'행 · 유효 '+valid+' · 형식오류 '+bad;
-      $('ovCsNote').textContent='업로드한 데이터 중 유효 '+valid+'건을 ITEM MASTER에 저장할까요?'+(bad?(' (형식오류 '+bad+'건은 제외됩니다)'):'');
-      __pendingFirstRows=p.rows;
-      $('ovConfirmSave').classList.add('show');
-      return;
-    }
-
-    // 이후 업로드: 분류
-    var split=splitRows(p.rows);
-    // 신제품(정상·비중복) 자동 등록
-    var added=0;
-    split.clean.forEach(function(it){ if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); added++; } setMeta(it.rawUpc); });
-    var tail=(split.badCount?(' · 형식오류 '+split.badCount+' 제외'):'')+(split.dupCount?(' · 중복 '+split.dupCount+' 통과'):'');
-    if(hasConflicts(split)){
-      st.className='status'; st.textContent='신제품 '+added+'쌍 자동등록'+tail+' · 확인필요 항목 있음';
-      persistThen(function(){ updateMasterUI(); openDupResolve(split.leftGroups, split.rightGroups, added); });
-    } else {
-      st.className='status'; st.innerHTML='<span class="spin"></span> 저장중…';
-      masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ 신제품 '+added+'쌍 등록'+tail+' · 총 '+masterCount()+'개'; updateMasterUI(); refreshAd(); toast('자동 등록 완료 · 신제품 '+added+'쌍'); })
-        .catch(function(err){ st.className='status err'; st.textContent='저장 실패: '+(err&&err.message||err); });
-    }
-  }
-  var __pendingFirstRows=null;
-  function saveFirstUpload(){
-    if(!__pendingFirstRows){ $('ovConfirmSave').classList.remove('show'); return; }
-    var added=0;
-    __pendingFirstRows.forEach(function(it){ if(codeIssue(it.rawCode)||upcIssue(it.rawUpc)) return; if(!masterIndex[it.code]) masterIndex[it.code]=[]; if(masterIndex[it.code].indexOf(it.rawUpc)<0){ masterIndex[it.code].push(it.rawUpc); setMeta(it.rawUpc); added++; } });
-    __pendingFirstRows=null;
-    $('ovConfirmSave').classList.remove('show');
-    var st=$('stMaster'); st.className='status'; st.innerHTML='<span class="spin"></span> 저장중…';
-    masterPersist().then(function(){ st.className='status ok'; st.textContent='✓ '+added+'쌍 저장 · 총 '+masterCount()+'개'; updateMasterUI(); refreshAd(); toast('저장 완료 · '+added+'쌍'); })
-      .catch(function(err){ st.className='status err'; st.textContent='저장 실패: '+(err&&err.message||err); });
-  }
-
-  // 행 분류: clean(정상·비중복) / problemRows(중복 or 형식오류)
-  function splitRows(rows){
-    var upcOwner={}; for(var k in masterIndex){ (masterIndex[k]||[]).forEach(function(u){ upcOwner[u]=k; }); }
-    // 새 파일 안에서의 code별 upc 모음
-    var newByCode={}, newByUpc={};
-    rows.forEach(function(it){ if(!newByCode[it.code]) newByCode[it.code]=[]; if(newByCode[it.code].indexOf(it.rawUpc)<0) newByCode[it.code].push(it.rawUpc);
-      if(!newByUpc[it.rawUpc]) newByUpc[it.rawUpc]=[]; if(newByUpc[it.rawUpc].indexOf(it.code)<0) newByUpc[it.rawUpc].push(it.code); });
-    var clean=[], leftGroups={}, rightGroups={}, badCount=0, dupCount=0;
-    rows.forEach(function(it){
-      var code=it.code, u=it.rawUpc;
-      // 형식오류 → 자동등록 제외(팝업 안 함)
-      if(codeIssue(it.rawCode) || upcIssue(u)){ badCount++; return; }
-      var existUpcs=masterIndex[code]||null;
-      var upcOwnerCode = upcOwner[u];
-      var codeMultiUpc = (newByCode[code]||[]).length>1;   // 새 파일 내: 같은 code에 UPC 여러 개
-      var upcMultiCode = (newByUpc[u]||[]).length>1;        // 새 파일 내: 같은 UPC에 code 여러 개
-      // 코드 같고 UPC 다름: 기존과 다르거나, 새 파일 내에서 여러 UPC
-      var codeDupUpcDiff = (existUpcs && existUpcs.indexOf(u)<0) || codeMultiUpc;
-      // UPC 같고 코드 다름: 기존 다른 코드가 소유, 또는 새 파일 내에서 여러 code
-      var upcDupCodeDiff = (upcOwnerCode!==undefined && upcOwnerCode!==code) || upcMultiCode;
-      var exactDup = existUpcs && existUpcs.indexOf(u)>=0;  // 기존과 완전 동일
-      // 완전 동일 + 내부 충돌 없음 → 통과
-      if(exactDup){ dupCount++; try{ setMeta(u); }catch(e){} return; }   // 완전 동일 → 통과(설명 정보는 갱신)
-      var conflict=false;
-      if(codeDupUpcDiff){
-        conflict=true;
-        var set={}; (existUpcs||[]).forEach(function(x){set[x]=1;}); (newByCode[code]||[]).forEach(function(x){set[x]=1;});
-        leftGroups[code]=Object.keys(set);
-      }
-      if(upcDupCodeDiff){
-        conflict=true;
-        var cs={}; if(upcOwnerCode!==undefined) cs[upcOwnerCode]=1; (newByUpc[u]||[]).forEach(function(x){cs[x]=1;});
-        rightGroups[u]=Object.keys(cs);
-      }
-      if(!conflict){ clean.push(it); }   // 정상 신제품
-    });
-    return { clean:clean, leftGroups:leftGroups, rightGroups:rightGroups, badCount:badCount, dupCount:dupCount };
-  }
-  function hasConflicts(split){ return Object.keys(split.leftGroups).length>0 || Object.keys(split.rightGroups).length>0; }
-  function persistThen(cb){ masterPersist().then(function(){ cb&&cb(); }).catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); }); }
-
-  /* ===== 중복·오류 팝업 ===== */
-  var __leftGroups=null, __rightGroups=null;
-  function openDupResolve(leftGroups, rightGroups, autoAdded){
-    __leftGroups=leftGroups||{}; __rightGroups=rightGroups||{};
-    renderLeftGroups(__leftGroups);
-    renderRightGroups(__rightGroups);
-    var ln=Object.keys(__leftGroups).length, rn=Object.keys(__rightGroups).length;
-    $('ovDupNote').textContent='중복 항목입니다. 왼쪽은 같은 ITEMCODE의 UPC들, 오른쪽은 같은 UPC의 ITEMCODE들입니다. 값을 고치거나 지운 뒤 UPDATE를 누르면 남은 값이 최종으로 저장됩니다.'+(autoAdded?(' (신제품 '+autoAdded+'쌍은 이미 자동등록됨)'):'');
-    $('ovDup').classList.add('show');
-  }
-  function openDupList(){
-    if(lastMasterUpload){
-      var p=parseNewRows(); if(p.error){ toast('⚠ '+p.error); return; }
-      var split=splitRows(p.rows);
-      if(hasConflicts(split)){ openDupResolve(split.leftGroups, split.rightGroups, 0); return; }
-      toast('업로드 파일과 마스터 간 중복이 없습니다'); return;
-    }
-    // 업로드가 없으면 저장된 ITEM MASTER 자체를 점검
-    var L={}, R={}, owner={};
-    for(var k in masterIndex){
-      var ups=masterIndex[k]||[];
-      if(ups.length>1) L[k]=ups.slice();
-      ups.forEach(function(u){ if(owner[u]===undefined) owner[u]=[]; owner[u].push(k); });
-    }
-    for(var u in owner){ if(owner[u].length>1) R[u]=owner[u].slice(); }
-    if(!Object.keys(L).length && !Object.keys(R).length){ toast('ITEM MASTER에 중복이 없습니다'); return; }
-    openDupResolve(L, R, 0);
-  }
-  // UPC의 KOR DESC 찾기 (업로드 파일 → 마스터 메타)
-  function korOf(upc){
-    for(var i=0;i<__lastParsed.length;i++){ var it=__lastParsed[i]; if(it.rawUpc===upc && it.kor) return it.kor; }
-    var mm=masterMeta[upc]; return (mm&&mm.kor)?mm.kor:'';
-  }
-  function korOfCode(code, upcs){
-    for(var i=0;i<(upcs||[]).length;i++){ var k=korOf(upcs[i]); if(k) return k; }
-    for(var j=0;j<__lastParsed.length;j++){ var it=__lastParsed[j]; if(it.code===code && it.kor) return it.kor; }
-    return '';
-  }
-  // 값 입력칸 + 개별 삭제(🗑)
-  function valCell(cls, val){
-    return '<span class="dvrow" style="display:flex;gap:6px;align-items:center;margin:4px 0;">'
-      +'<input class="'+cls+'" value="'+esc(val||'')+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;">'
-      +'<button class="btn sm danger dval-del" type="button">🗑</button></span>';
-  }
-  // 왼쪽: ITEMCODE / UPC#1 / UPC#2 ...
-  function renderLeftGroups(groups){
-    var body=$('dupLeftBody'); if(!body) return;
-    var keys=Object.keys(groups);
-    if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
-    body.innerHTML=keys.map(function(code){
-      var upcs=groups[code]||[];
-      var kd=korOfCode(code, upcs);
-      return '<div class="dgrp" data-code="'+esc(code)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
-        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">ITEMCODE</div>'
-        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">'
-        +'<input class="dgrp-code" value="'+esc(code)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;">'
-        +(kd?('<span style="font-size:12px;color:var(--text-dim);">'+esc(kd)+'</span>'):'')
-        +'</div>'
-        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">UPC</div>'
-        +'<div class="dgrp-vals">'+upcs.map(function(u){ return valCell('dgrp-upc', u); }).join('')+'</div>'
-        +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ UPC 추가</button>'
-        +'</div>';
-    }).join('');
-    bindGroupEvents(body, 'dgrp-upc');
-  }
-  // 오른쪽: UPC / ITEMCODE#1 / ITEMCODE#2 ...
-  function renderRightGroups(groups){
-    var body=$('dupRightBody'); if(!body) return;
-    var keys=Object.keys(groups);
-    if(!keys.length){ body.innerHTML='<div style="padding:16px;color:var(--text-faint);font-size:12px;text-align:center;">해당 없음</div>'; return; }
-    body.innerHTML=keys.map(function(upc){
-      var codes=groups[upc]||[];
-      var kd=korOf(upc);
-      return '<div class="dgrp" data-upc="'+esc(upc)+'" style="border-bottom:1px solid var(--border);padding:10px 12px;">'
-        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;">UPC</div>'
-        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">'
-        +'<input class="dgrp-upckey" value="'+esc(upc)+'" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-family:var(--mono);font-size:13px;font-weight:800;">'
-        +(kd?('<span style="font-size:12px;color:var(--text-dim);">'+esc(kd)+'</span>'):'')
-        +'</div>'
-        +'<div style="font-size:11px;color:var(--text-dim);margin-bottom:2px;">ITEMCODE</div>'
-        +'<div class="dgrp-vals">'+codes.map(function(c){ return valCell('dgrp-code2', c); }).join('')+'</div>'
-        +'<button class="btn ghost sm dgrp-add" type="button" style="margin-top:4px;">＋ ITEMCODE 추가</button>'
-        +'</div>';
-    }).join('');
-    bindGroupEvents(body, 'dgrp-code2');
-  }
-  function bindGroupEvents(body, valCls){
-    Array.prototype.forEach.call(body.querySelectorAll('.dval-del'), function(b){ b.onclick=function(){ var w=b.closest('.dvrow'); if(w) w.parentNode.removeChild(w); }; });
-    Array.prototype.forEach.call(body.querySelectorAll('.dgrp-add'), function(b){ b.onclick=function(){ var g=b.closest('.dgrp'); var vals=g.querySelector('.dgrp-vals'); var w=document.createElement('div'); w.innerHTML=valCell(valCls,''); var node=w.firstChild; vals.appendChild(node); node.querySelector('.dval-del').onclick=function(){ vals.removeChild(node); }; }; });
-  }
-  // UPDATE: 팝업에 남은 값이 최종값
-  function applyDupList(){
-    if(!fbReady()){ toast('연결 대기 중입니다'); return; }
-    var invalid=[];
-    // 왼쪽: code → 남은 upcs (해당 code의 최종 UPC 집합)
-    var leftResult={};
-    Array.prototype.forEach.call($('dupLeftBody').querySelectorAll('.dgrp'), function(g){
-      var code=E.normKey((g.querySelector('.dgrp-code')||{}).value||'');
-      if(!code) return;
-      var ci=codeIssue(code); if(ci){ invalid.push(code+' — '+ci); }
-      var ups=[];
-      Array.prototype.forEach.call(g.querySelectorAll('.dgrp-upc'), function(inp){ var u=norm(inp.value); if(!u) return; var ui=upcIssue(u); if(ui){ invalid.push(code+'/'+u+' — '+ui); return; } if(ups.indexOf(u)<0) ups.push(u); });
-      leftResult[code]=ups;
-    });
-    // 오른쪽: upc → 남은 codes (해당 UPC를 소유할 최종 ITEMCODE들)
-    var rightResult={};
-    Array.prototype.forEach.call($('dupRightBody').querySelectorAll('.dgrp'), function(g){
-      var upc=norm((g.querySelector('.dgrp-upckey')||{}).value||'');
-      if(!upc) return;
-      var ui=upcIssue(upc); if(ui){ invalid.push(upc+' — '+ui); }
-      var cds=[];
-      Array.prototype.forEach.call(g.querySelectorAll('.dgrp-code2'), function(inp){ var c=E.normKey(inp.value); if(!c) return; var ci=codeIssue(c); if(ci){ invalid.push(c+' — '+ci); return; } if(cds.indexOf(c)<0) cds.push(c); });
-      rightResult[upc]=cds;
-    });
-    if(invalid.length){ toast('형식오류가 남아있습니다: '+invalid[0]+(invalid.length>1?(' 외 '+(invalid.length-1)+'건'):'')); return; }
-    // 반영 (1) 왼쪽: 해당 code의 UPC 집합을 최종값으로 교체
-    for(var code in leftResult){ if(leftResult[code].length){ masterIndex[code]=leftResult[code]; leftResult[code].forEach(setMeta); } else delete masterIndex[code]; }
-    // 반영 (2) 오른쪽: 각 upc를 먼저 모든 code에서 제거 후, 남긴 code들에만 추가
-    for(var upc in rightResult){
-      for(var k in masterIndex){ var i=masterIndex[k].indexOf(upc); if(i>=0){ masterIndex[k].splice(i,1); if(!masterIndex[k].length) delete masterIndex[k]; } }
-      rightResult[upc].forEach(function(c){ if(!masterIndex[c]) masterIndex[c]=[]; if(masterIndex[c].indexOf(upc)<0) masterIndex[c].push(upc); }); setMeta(upc);
-    }
-    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; lastMasterUpload=null; __lastParsed=[]; var dz=$('dropMaster'); if(dz){ var dt=dz.querySelector('.dt'); if(dt) dt.textContent='✓ 중복 정리 완료 — 새 파일을 올릴 수 있습니다'; } toast('UPDATE 완료 · 총 '+masterCount()+'개'); })
-      .catch(function(err){ toast('저장 실패: '+(err&&err.message||err)); });
-  }
-
-  /* ===== ITEM LIST DOWNLOAD ===== */
+  /* (ITEM MANAGEMENT 연결로 전환 — 자체 업로드/저장/중복확인 로직 제거됨)
+     다운로드는 연결된 ITEM MASTER(현재 매칭 인덱스)를 그대로 내보낸다. */
   function masterDownload(){
+    if(typeof XLSX==='undefined'){ toast('엑셀 라이브러리 로드 실패'); return; }
     var keys=Object.keys(masterIndex);
-    if(!keys.length){ toast('다운로드할 데이터가 없습니다'); return; }
+    if(!keys.length){ toast('연결된 ITEM MASTER 자료가 없습니다'); return; }
     var aoa=[['UPC','ITEMCODE','KOR DESC','ENG DESC','UNIT SIZE']];
     keys.sort().forEach(function(k){
+      var disp=masterCodeRaw[k]||k;
       var upcs=masterIndex[k]||[];
-      if(!upcs.length){ aoa.push(['',k,'','','']); return; }
-      upcs.forEach(function(u){ var mm=masterMeta[u]||{}; aoa.push([u, k, mm.kor||'', mm.eng||'', mm.size||'']); });
+      if(!upcs.length){ aoa.push(['',disp,'','','']); return; }
+      upcs.forEach(function(u){ var mm=masterMeta[u]||{}; aoa.push([u, disp, mm.kor||'', mm.eng||'', mm.size||'']); });
     });
     var ws=XLSX.utils.aoa_to_sheet(aoa), wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'ITEM_MASTER');
     var d=new Date(), ymd=d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
     XLSX.writeFile(wb, 'ITEM_LIST('+ymd+').xlsx');
-  }
-
-  function bindMasterTools(){
-    var b;
-    if(b=$('masterDownloadBtn')) b.onclick=masterDownload;
-    if(b=$('masterDupBtn')) b.onclick=openDupList;
-    if(b=$('mMasterCode')) b.onchange=onMasterColChange;
-    if(b=$('mMasterUpc')) b.onchange=onMasterColChange;
-    if(b=$('ovCsX')) b.onclick=function(){ $('ovConfirmSave').classList.remove('show'); __pendingFirstRows=null; };
-    if(b=$('ovCsCancel')) b.onclick=function(){ $('ovConfirmSave').classList.remove('show'); __pendingFirstRows=null; };
-    if(b=$('ovCsSave')) b.onclick=saveFirstUpload;
-    if(b=$('ovDupX')) b.onclick=function(){ $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; };
-    if(b=$('ovDupCancel')) b.onclick=function(){ $('ovDup').classList.remove('show'); __leftGroups=__rightGroups=null; };
-    if(b=$('ovDupApply')) b.onclick=applyDupList;
-    var ov=$('ovDup'); if(ov) ov.addEventListener('click', function(e){ if(e.target===ov){ ov.classList.remove('show'); __leftGroups=__rightGroups=null; } });
-    var ov2=$('ovConfirmSave'); if(ov2) ov2.addEventListener('click', function(e){ if(e.target===ov2){ ov2.classList.remove('show'); __pendingFirstRows=null; } });
-  }
-  function masterPersist(){
-    var map={}; for(var k in masterIndex){ map[k]=masterIndex[k].join(','); }
-    return window.fbFns.setDoc(window.fbFns.doc(window.fbDb, AD_COL, MASTER_ID), { type:'master', map:map, meta:masterMeta, count:masterCount(), updatedAt:Date.now() }, {merge:false});
-  }
-  function masterClear(){
-    if(!fbReady()) return;
-    if(!confirm('임시저장된 아이템마스터('+masterCount()+'개)를 전체 삭제할까요?')) return;
-    masterMeta={};
-    masterIndex={};
-    masterPersist().then(function(){ updateMasterUI(); refreshAd(); $('stMaster').textContent=''; toast('전체 삭제됨'); }).catch(function(err){ toast('삭제 실패: '+(err&&err.message||err)); });
+    toast('다운로드 시작');
   }
 
   /* ===== 광고상품 매칭 ===== */
@@ -1089,13 +864,10 @@
         whenFb(initView);
       }
     } else {
-      wireDrop('dropMaster','fileMaster', onMasterLoaded);
       wireDrop('dropAd','fileAd', onAdLoaded);
-      ['mMasterCode','mMasterUpc'].forEach(function(id){ $(id).onchange=onMasterColChange; });
       ['mAdCode','mAdDesc','mAdCost','mAdSrp'].forEach(function(id){ $(id).onchange=rematch; });
       $('adTitle').addEventListener('input', function(){ curTitle=norm(this.value); if(curList.length){ $('previewTitle').textContent=curTitle||'미리보기'; clearTimeout(window.__dft); window.__dft=setTimeout(saveDraft,600); } });
-      $('masterClearBtn').onclick=masterClear;
-      bindMasterTools();
+      var dlb=$('masterDownloadBtn'); if(dlb) dlb.onclick=masterDownload;
       var nb=$('adNewBtn'); if(nb) nb.onclick=newAd;
       bindAdEditTools();
       $('savedList').addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return; var it=e.target.closest('.saved-item'); var id=it&&it.getAttribute('data-id'); if(!id) return; if(b.getAttribute('data-act')==='view') viewSaved(id); else delSaved(id); });
