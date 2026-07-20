@@ -333,7 +333,7 @@
   .iaf-sub{ font-size:11.5px; color:var(--text-dim); font-weight:700; margin-top:2px; }
   .iaf-head .fm-saved{ margin-left:auto; }
   .iaf-body{ padding:16px 18px 20px; overflow:auto; }
-  .iaf-row{ display:grid; grid-template-columns:150px 1fr 170px 180px 40px 34px; gap:8px; align-items:center; background:var(--bg-elev-2); border:1.5px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:7px; }
+  .iaf-row{ display:grid; grid-template-columns:130px 1fr 150px 150px 160px 40px 34px; gap:7px; align-items:center; background:var(--bg-elev-2); border:1.5px solid var(--border); border-radius:10px; padding:8px 10px; margin-bottom:7px; }
   .iaf-row.upc{ border-color:var(--accent-warm); }
   .iaf-key{ font-family:var(--mono); font-size:11px; font-weight:800; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .iaf-in{ border:1.5px solid var(--border); background:var(--bg); border-radius:8px; padding:7px 9px; font-size:12.5px; font-weight:800; color:var(--text); width:100%; }
@@ -342,7 +342,7 @@
   .iaf-ord button{ border:1px solid var(--border); background:var(--bg); border-radius:5px; width:18px; height:26px; font-size:9px; cursor:pointer; color:var(--text-dim); }
   .iaf-del{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:8px; padding:7px 0; font-size:12px; font-weight:800; cursor:pointer; }
   .iaf-del:hover{ border-color:#c0392b; color:#c0392b; }
-  .iaf-add{ display:grid; grid-template-columns:150px 1fr 170px 180px auto; gap:8px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); }
+  .iaf-add{ display:grid; grid-template-columns:130px 1fr 150px 150px 160px auto; gap:7px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); }
   .iaf-note{ margin-top:12px; font-size:11.5px; color:var(--text-dim); font-weight:700; line-height:1.6; }
   .iaf-empty{ padding:22px; text-align:center; color:var(--text-faint); font-weight:700; font-size:13px; border:1.5px dashed var(--border); border-radius:10px; }
   .sm-modal{ background:#fffdf7; border-radius:14px; width:min(560px,92vw); max-height:82vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 18px 50px rgba(0,0,0,.3); }
@@ -911,7 +911,13 @@
   function imxSaved(t){ var e=$('imxSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
   function imxUid(){ return 'im_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
   function imxActive(){ if(imxIsMaster()) return imxState.master; return imxState.profiles.find(function(p){ return p.id===imxState.activeId; })||null; }
-  function imxParseFields(d){ return (d&&Array.isArray(d.fields))?d.fields.map(function(f){ return {key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:String(f.role||'text'), fn:String(f.fn||'none')}; }).filter(function(f){return f.key;}):[]; }
+  function IAF_FMTS_HAS(v){ return ['text','number','price','margin'].indexOf(String(v))>=0; }
+  function iafDefaultFmt(role){
+    if(role==='cost'||role==='srp'||role==='price'||role==='amount'||role==='cost_amount') return 'price';
+    if(role==='qty') return 'number';
+    return 'text';
+  }
+  function imxParseFields(d){ return (d&&Array.isArray(d.fields))?d.fields.map(function(f){ var role=String(f.role||'text'); return {key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null&&String(f.label))?String(f.label):String(f.key||''), role:role, fn:String(f.fn||'none'), fmt:(f.fmt&&IAF_FMTS_HAS(f.fmt))?f.fmt:iafDefaultFmt(role)}; }).filter(function(f){return f.key;}):[]; }
 
   function imxLoad(){
     var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(imxLoad,400); return; }
@@ -1148,6 +1154,8 @@
                  ['qty','수량 (QTY)'],['amount','판매금액 · SRP TOTAL'],['cost_amount','원가금액 · COST TOTAL'],
                  ['date','판매일 (DATE)'],['category','카테고리'],['text','일반 텍스트']];
   var IAF_FNS=[['none','그대로'],['eng','설명 분리 · 영문(/ 왼쪽)'],['kor','설명 분리 · 한글(/ 오른쪽)'],['per_qty','수량으로 나눔 (단가 $)']];
+  /* 표시 형식 — 들어오는 값을 어떻게 보여줄지. 가격·마진은 소수점 2자리 반올림 */
+  var IAF_FMTS=[['text','텍스트 (그대로)'],['number','숫자'],['price','가격 ($, 소수점 2자리)'],['margin','마진 (%, 소수점 2자리)']];
   var IAF_VER=4;   // v3: 원가금액/판매금액 순서 · v4: ITEM CODE · PLU 를 코드 역할로(검색 대상)
   function iafOpts(list, sel){ return list.map(function(r){ return '<option value="'+r[0]+'"'+(r[0]===sel?' selected':'')+'>'+esc(r[1])+'</option>'; }).join(''); }
   function iafSaved(t){ var e=$('iafSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2000); } }
@@ -1157,7 +1165,8 @@
     var fb=window.smFb; if(!fb||!fb.setDoc) return Promise.resolve(false);
     var clean=(fields||[]).map(function(f){
       var fn=String(f.fn||'none'); if(!IAF_FNS.some(function(x){ return x[0]===fn; })) fn='none';
-      return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null&&String(f.label).trim())?String(f.label).trim():String(f.key), role:String(f.role||'text'), fn:fn };
+      var fmt=String(f.fmt||''); if(!IAF_FMTS.some(function(x){ return x[0]===fmt; })) fmt=iafDefaultFmt(String(f.role||'text'));
+      return { key:String(f.key).trim().toUpperCase(), label:(f.label!=null&&String(f.label).trim())?String(f.label).trim():String(f.key), role:String(f.role||'text'), fn:fn, fmt:fmt };
     });
     var doc = (target==='master') ? IMX_MASTER_FIELDS_DOC : IMX_FIELDS_DOC;
     var payload = (target==='master') ? { fields:clean, updatedAt:Date.now() } : { fields:clean, cfgVersion:IAF_VER, updatedAt:Date.now() };
@@ -1171,7 +1180,7 @@
   function iafNormalize(d){
     if(!d || !Array.isArray(d.fields) || !d.fields.length) return false;
     if((d.cfgVersion||0) >= IAF_VER) return false;
-    var fields=d.fields.map(function(f){ return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key||'')), role:String(f.role||'text'), fn:String(f.fn||'none') }; }).filter(function(f){ return f.key; });
+    var fields=d.fields.map(function(f){ var role=String(f.role||'text'); return { key:String(f.key||'').trim().toUpperCase(), label:(f.label!=null?String(f.label):String(f.key||'')), role:role, fn:String(f.fn||'none'), fmt:(f.fmt&&IAF_FMTS_HAS(f.fmt))?f.fmt:iafDefaultFmt(role) }; }).filter(function(f){ return f.key; });
     // ITEM CODE · PLU · 상품코드 → 코드 역할 (검색 대상: UPC · ITEM CODE · KOR DESC · ENG DESC)
     fields.forEach(function(f){
       if(f.role!=='text' && f.role!=='upc') return;
@@ -1180,7 +1189,7 @@
     });
     // 이름: 원가금액(COST TOTAL) · 판매금액(SRP TOTAL)
     fields.forEach(function(f){ if(f.role==='amount') f.label='판매금액(SRP TOTAL)'; });
-    if(!fields.some(function(f){ return f.role==='cost_amount'; })) fields.push({ key:'원가금액', label:'', role:'cost_amount', fn:'none' });
+    if(!fields.some(function(f){ return f.role==='cost_amount'; })) fields.push({ key:'원가금액', label:'', role:'cost_amount', fn:'none', fmt:'price' });
     fields.forEach(function(f){ if(f.role==='cost_amount') f.label='원가금액(COST TOTAL)'; });
     // 순서: … 수량 → 원가금액(COST TOTAL) → 판매금액(SRP TOTAL)
     var camt=fields.filter(function(f){ return f.role==='cost_amount'; });
@@ -1207,16 +1216,21 @@
         '<div class="iaf-key" title="'+esc(f.key)+'">'+esc(f.key)+'</div>'+
         '<input class="iaf-in iaf-label" data-i="'+i+'" type="text" value="'+esc(f.label||f.key)+'">'+
         '<select class="ex-sel iaf-role" data-i="'+i+'">'+iafOpts(IAF_ROLES, f.role)+'</select>'+
+        '<select class="ex-sel iaf-fmt" data-i="'+i+'">'+iafOpts(IAF_FMTS, f.fmt||iafDefaultFmt(f.role))+'</select>'+
         '<select class="ex-sel iaf-fn" data-i="'+i+'">'+iafOpts(IAF_FNS, f.fn||'none')+'</select>'+
         '<div class="iaf-ord"><button data-up="'+i+'" type="button">▲</button><button data-down="'+i+'" type="button">▼</button></div>'+
         '<button class="iaf-del" data-del="'+i+'" type="button">✕</button>'+
       '</div>';
     }).join('');
-    function clone(){ return imxCurFields().map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; }); }
+    function clone(){ return imxCurFields().map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none',fmt:x.fmt||iafDefaultFmt(x.role)}; }); }
     box.querySelectorAll('.iaf-label').forEach(function(el){ var i=+el.getAttribute('data-i');
       el.onchange=function(){ var nf=clone(); nf[i].label=el.value.trim()||nf[i].key; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
     box.querySelectorAll('.iaf-role').forEach(function(el){ var i=+el.getAttribute('data-i');
-      el.onchange=function(){ var nf=clone(); nf[i].role=el.value; iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+      el.onchange=function(){ var nf=clone(); var prev=nf[i].role; nf[i].role=el.value;
+        if((nf[i].fmt||'text')===iafDefaultFmt(prev)) nf[i].fmt=iafDefaultFmt(el.value);   // 형식을 손대지 않았으면 역할 기본값으로
+        iafSave(nf).then(function(){ iafRender(); imxRender(); requestAnimationFrame(imxDraw); }); }; });
+    box.querySelectorAll('.iaf-fmt').forEach(function(el){ var i=+el.getAttribute('data-i');
+      el.onchange=function(){ var nf=clone(); nf[i].fmt=el.value; iafSave(nf).then(function(){ iafRender(); }); }; });
     box.querySelectorAll('.iaf-fn').forEach(function(el){ var i=+el.getAttribute('data-i');
       el.onchange=function(){ var nf=clone(); nf[i].fn=el.value; iafSave(nf).then(function(){ iafRender(); }); }; });
     box.querySelectorAll('[data-up]').forEach(function(b){ var i=+b.getAttribute('data-up');
@@ -1235,7 +1249,8 @@
     if(imxCurFields().some(function(f){ return f.key===key; })){ alert('이미 추가된 필드입니다.'); return; }
     var m=(state.masterRaw||[]).find(function(x){ return x.key===key; });
     var nf=imxCurFields().map(function(x){ return {key:x.key,label:x.label,role:x.role,fn:x.fn||'none'}; });
-    nf.push({ key:key, label:label||(m&&m.label)||key, role:$('iafNewRole').value||'text', fn:$('iafNewFn').value||'none' });
+    var nrole=$('iafNewRole').value||'text';
+    nf.push({ key:key, label:label||(m&&m.label)||key, role:nrole, fn:$('iafNewFn').value||'none', fmt:($('iafNewFmt')?$('iafNewFmt').value:'')||iafDefaultFmt(nrole) });
     iafSave(nf).then(function(){ $('iafNewLabel').value=''; iafRender(); iafFillNewKey(); imxRender(); requestAnimationFrame(imxDraw); });
   }
   /* 모달 마크업이 이 스크립트보다 뒤에 있으므로, 열 때 바인딩한다 */
@@ -1255,7 +1270,9 @@
       ? 'ITEM MANAGEMENT 의 <b>ITEM MASTER</b> 박스가 IMPORT 받을 필드입니다.'
       : 'ITEM MANAGEMENT 가 매장 판매 엑셀에서 IMPORT 받을 필드입니다. <b>ITEM MASTER 를 제외한 모든 카테고리가 공유</b>합니다(카테고리마다 다른 건 엑셀 열 연결).';
     $('iafNewRole').innerHTML=iafOpts(IAF_ROLES,'text');
+    $('iafNewFmt').innerHTML=iafOpts(IAF_FMTS,'text');
     $('iafNewFn').innerHTML=iafOpts(IAF_FNS,'none');
+    $('iafNewRole').onchange=function(){ $('iafNewFmt').value=iafDefaultFmt(this.value); };
     iafFillNewKey(); iafRender(); $('iafOv').classList.add('show');
   }
   if($('imxFieldsBtn')) $('imxFieldsBtn').onclick=iafOpen;
@@ -2265,11 +2282,13 @@
         <select class="ex-sel" id="iafNewKey"></select>
         <input class="iaf-in" id="iafNewLabel" type="text" placeholder="표시 이름 (예: 원가금액)">
         <select class="ex-sel" id="iafNewRole"></select>
+        <select class="ex-sel" id="iafNewFmt"></select>
         <select class="ex-sel" id="iafNewFn"></select>
         <button class="ex-btn warm" id="iafAdd" type="button">＋ 추가</button>
       </div>
-      <div class="iaf-note">역할은 데이터 해석 기준입니다 — <b>원가금액(COST TOTAL)</b> · <b>판매금액(SRP TOTAL)</b> 은 합계로 집계되고,
-        검색 결과의 단가는 <b>COST = 원가금액 ÷ 수량</b>, <b>SRP = 판매금액 ÷ 수량</b> 으로 계산합니다.</div>
+      <div class="iaf-note"><b>역할</b>은 데이터 해석 기준(UPC·상품명·원가 등), <b>표시 형식</b>은 화면에 보여줄 방식입니다 —
+        <b>가격</b>·<b>마진</b>은 소수점 2자리로 반올림해서 표시합니다. 원가금액·판매금액은 합계로 집계되고,
+        단가는 <b>COST = 원가금액 ÷ 수량</b>, <b>SRP = 판매금액 ÷ 수량</b> 입니다.</div>
     </div>
   </div>
 </div>

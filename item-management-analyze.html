@@ -376,7 +376,18 @@
   var FIELDS=[], ROLES={};
   var FN_LIST=['none','eng','kor','per_qty'];
   var FN_LABEL={none:'그대로', eng:'설명 분리 · 영문(/ 왼쪽)', kor:'설명 분리 · 한글(/ 오른쪽)', per_qty:'수량으로 나눔 (단가 $)'};
-  function normCfg(arr){ var seen={},out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null)return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; var fn=String(f.fn||'none'); if(FN_LIST.indexOf(fn)<0) fn='none'; out.push({key:k,label:(f.label!=null?String(f.label):k),role:String(f.role||'text'),fn:fn}); }); return out; }
+  function defaultFmt(role){ if(role==='cost'||role==='srp'||role==='price'||role==='amount'||role==='cost_amount') return 'price'; if(role==='qty') return 'number'; return 'text'; }
+  function normCfg(arr){ var seen={},out=[]; (arr||[]).forEach(function(f){ if(!f||f.key==null)return; var k=String(f.key).trim().toUpperCase(); if(!k||seen[k])return; seen[k]=1; var fn=String(f.fn||'none'); if(FN_LIST.indexOf(fn)<0) fn='none'; var role=String(f.role||'text'); var fmt=String(f.fmt||''); if(['text','number','price','margin'].indexOf(fmt)<0) fmt=defaultFmt(role); out.push({key:k,label:(f.label!=null?String(f.label):k),role:role,fn:fn,fmt:fmt}); }); return out; }
+  function fieldByKey(k){ for(var i=0;i<FIELDS.length;i++){ if(FIELDS[i].key===k) return FIELDS[i]; } return null; }
+  /* 표시 형식 적용 — 가격·마진은 소수점 2자리 반올림 */
+  function fmtNumber(n){ if(n==null||isNaN(n)) return '—'; return Number(n).toLocaleString('en-US',{maximumFractionDigits:2}); }
+  function money2(n){ if(n==null||isNaN(n)) return '—'; return '$'+(Math.round(Number(n)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function margin2(n){ if(n==null||isNaN(n)) return '—'; return (Math.round(Number(n)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
+  function fmtByField(f, n){ var fmt=(f&&f.fmt)||'text';
+    if(fmt==='price') return money2(n);
+    if(fmt==='margin') return margin2(n);
+    if(fmt==='number') return fmtNumber(n);
+    return (n==null?'—':String(n)); }
   /* 결합 설명(H) 을 단독 '/' 기준으로 영문(왼쪽)/한글(오른쪽) 분리 */
   function splitDesc(raw){
     var s=String(raw==null?'':raw).trim(); if(!s) return {eng:'',kor:''};
@@ -446,7 +457,7 @@
   /* ===== 값 파서 ===== */
   function num(v){ if(v==null||v==='') return null; if(typeof v==='number') return v; var s=String(v).replace(/[$,\s]/g,''); if(!s) return null; var n=parseFloat(s); return isNaN(n)?null:n; }
   function parseDate(v){ if(v==null||v==='') return null; if(v instanceof Date) return v.getTime(); if(typeof v==='number'){ if(v>20000&&v<80000) return Math.round((v-25569)*86400000); return null; } var t=Date.parse(String(v)); return isNaN(t)?null:t; }
-  function money(n){ if(n==null||isNaN(n)) return '—'; return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function money(n){ if(n==null||isNaN(n)) return '—'; return '$'+(Math.round(Number(n)*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function ymd(ms){ if(!ms) return ''; var d=new Date(ms); var p=function(x){return (x<10?'0':'')+x;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 
   /* ===== 문자열 정규화 / 유사도 ===== */
@@ -1275,7 +1286,7 @@
     if(d.cost!=null && d.srp!=null && d.cost>0) return (d.srp-d.cost)/d.cost*100;
     return null;
   }
-  function fmtPct(n){ if(n==null||isNaN(n)) return '—'; return (Math.round(n*10)/10).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1})+'%'; }
+  function fmtPct(n){ if(n==null||isNaN(n)) return '—'; return (Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'%'; }
   function fmtQty(n){ if(n==null) return '—'; var v=Number(n); if(isNaN(v)) return '—'; return (Math.round(v*100)/100).toLocaleString('en-US'); }
   function renderResult(p, m, hlQ){
     selected=p;
