@@ -35,7 +35,6 @@
   30. 데이터 내보내기 안내문 삭제. 이름·UPC 검색은 현재 선택된 중간 카테고리(cat+sub) 리스트에서만 검색. 카테고리설정을 편집툴바에서 관리자 메뉴로 이동(뷰모드 가능). 히스토리는 작업(addHist 호출)마다 batch를 부여해 같은 날이라도 매번 별도 항목으로 기록(시각 HH:MM 표시·건수 표시), 그룹은 batch 기준(과거 기록은 날짜 기준 폴백).
   31. UPC 열 색상: MSRP·MSRP(%)는 초록(헤더+데이터, upc-c-blue 배경 #dcfce7). SRP·SRP(%)는 헤더+데이터 모두 노란 바탕(#fde047)+붉은 글씨(#dc2626)+볼드. 뷰/편집 헤더·데이터·입력칸 적용.
   32. [디버깅 정리] 도달 불가능한 죽은 코드 제거: pluCfgModal 서브시스템(모달 HTML·openCfgModal/saveCfgModal/closeCfgModal·관련 배선 4곳·#pluCfgModal CSS) — EXPORT 열 설정은 내보내기 메뉴 인라인 체크박스(.em-cfg-col)로 대체됨. 성능: 인라인 체크박스 토글 저장을 scheduleCheckSave(600ms 디바운스)로 변경(즉시 전체쓰기 반복 제거, 최종 결과 동일). 보존(기능 유지): importMarginOn/importMargin(신규 UI는 데이터불러오기 메뉴로 이동했으나 과거 저장값 호환 위해 cfg/블록 유지), srpMarginOn(예약 필드).
-  33. [가져오기 규칙] (1) COST 열이 매칭되지 않으면 MSRP 가격 자동적용 안 함(원본 그대로). (2) SRP는 COST가 있어도 자동적용 대상이 아님 — 엑셀 값만 그대로 반영(SRP는 데이터변환의 SALES/MARGIN 계산 버튼 전용). (3) 데이터불러오기 메뉴에 [💲 MSRP 가격 자동적용] 토글 버튼 추가 — MARGIN(icpMgSw) 스위치가 OFF면 "MARGIN 적용을 해주세요" 안내 팝업 후 차단, MARGIN을 끄면 자동적용도 자동 OFF. applyMargin = 자동적용 ON && MARGIN ON. (4) 엑셀 헤더 ↔ 매니저 필드 라벨이 매칭되는 열만 가져옴 — 미매칭 열은 새 열 생성 없이 무시(토스트 안내), 헤더가 없으면 위치 추정 없이 중단. (5) MSRP/SRP에 이미 가격이 있으면 영문 팝업(Existing Price Found / Apply·Cancel) — Apply=덮어쓰기, Cancel=기존 가격 유지하고 나머지 필드만 가져옴. askMarginOverwrite(3버튼)는 askPriceUpdate(2버튼·영문)로 대체.
   14. 신제품/변경상품 이력은 날짜별로 다시 중간 카테고리별(상위 › 중간)로 나눠 표시한다. 각 그룹의 EXPORT·삭제는 해당 카테고리 그룹에만 적용된다.
   13. 데이터 내보내기에서 카테고리 '전체'를 고르면 그 상위 카테고리의 중간 카테고리별로 시트(탭)를 나눠 한 파일로 저장한다. 신상품/가격변경 LIST 선택 EXPORT는 관리자 팝업의 '데이터 내보내기' 메뉴에 있다.
 ================================================================================
@@ -272,25 +271,6 @@
   #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
   #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
   #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
-  /* [팝업 무스크롤] 팝업 본문은 고정, 카테고리/필드 목록만 내부 스크롤 (PLU와 동일 규칙) */
-  /* [무스크롤] 홈 화면은 컴팩트 고정(카테고리·필드 선택은 별도 팝업) — 본문 스크롤 없음 */
-  #pluExportMenuOv .pcm-body:not(.em-list-view) { overflow:hidden; }
-  #pluExportMenuOv .pcm-body.em-list-view { overflow:auto; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-sec { padding:8px 22px; gap:6px; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-box { padding:8px 12px; gap:5px; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-foot { padding:10px 22px; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-pick-btn { padding:8px 12px; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-modes .em-allbtn { padding:6px 12px !important; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) .em-sel-sum { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #pluExportMenuOv .pcm-body:not(.em-list-view) #emCatSel { padding:6px 10px !important; }
-  .em-pick-btn { flex:1; font-size:13px; font-weight:800; padding:12px 14px; border-radius:12px; }
-  .em-pick-btn b { color:#b8730f; font-size:14px; }
-  .em-sel-sum { font-size:11px; color:#9a9aa0; line-height:1.6; min-height:16px; }
-  /* 선택 팝업 — 깔끔 정렬, 목록만 내부 스크롤 */
-  #emPickOv .pcm-modal { max-width:640px; border-radius:18px; }
-  #emPickOv .pcm-body { padding:14px 18px; background:#fbfaf7; overflow:auto; max-height:calc(86vh - 130px); }
-  #emPickOv .em-pick-wrap { max-height:none; overflow:visible; }
-  #emPickOv .em-foot { border-top:1px solid #efeee9; }
   #icpOverlay .pcm-modal { max-width:480px; border-radius:18px; }
   #icpOverlay .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
   #icpOverlay .pcm-head .pcm-x { color:#fff; opacity:.75; }
@@ -299,7 +279,6 @@
   #icpOverlay .icp-lbl { margin-top:0; }
   #icpOverlay .icp-file { margin-top:0; }
   #icpOverlay .icp-opt { margin-top:0; padding-top:10px; }
-  #icpOverlay .icp-opt.icp-opt-sub { padding-top:6px; }
   .em-modes .em-go { flex:0 0 auto; }
   .em-sel { flex:1 1 160px; min-width:0; padding:8px 10px; border:1.5px solid var(--border); border-radius:8px; font-family:var(--mono); font-size:13px; background:#fff; color:var(--text); }
   .em-go { text-align:left; }
@@ -396,8 +375,7 @@
   .page-back.topbar-mini { padding:6px 9px; font-size:12px; gap:4px; border-radius:8px; border-width:1px; margin-left:1mm; }
   /* 메인 액션 버튼 동일 크기 (데이터내보내기 기준 · 인쇄 · 돌아가기) */
   .plu-tool-btn.mainact { min-width:160px; text-align:center; box-sizing:border-box; }
-  /* 상단 이동 버튼(PLU 매니저·UPC OCR·돌아가기): 아이콘 없이 텍스트 폭에 맞춘 컴팩트 사이즈 */
-  .page-back.mainact { min-width:0; padding:6px 11px; font-size:12px; box-sizing:border-box; text-align:center; justify-content:center; }
+  .page-back.mainact { min-width:160px; padding:8px 12px; font-size:13px; box-sizing:border-box; text-align:center; justify-content:center; }
   /* 관리자 팝업 */
   .adm-body { display:flex; flex-direction:column; gap:10px; padding:16px 18px 18px; }
   .adm-btn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:10px; padding:13px 14px; font-family:var(--mono); font-size:14px; font-weight:700; cursor:pointer; text-align:left; }
@@ -710,10 +688,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   .icp-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
   .icp-ok { background:#1e40af !important; border-color:#1e40af !important; color:#fff !important; }
   .icp-opt { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
-  .icp-opt.icp-opt-sub { border-top:none; padding-top:6px; margin-top:0; }
-  .icp-auto { font-weight:800 !important; }
-  .icp-auto.on { background:#1e7a46 !important; border-color:#1e7a46 !important; color:#fff !important; }
-  .icp-note { font-size:11px; color:var(--text-dim); line-height:1.5; width:100%; margin-top:4px; }
   .icp-file { display:flex; align-items:center; gap:10px; margin-top:10px; }
   .icp-fname { font-size:12px; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .icp-hint { font-size:11px; color:var(--text-dim); line-height:1.5; }
@@ -783,9 +757,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   </div>
   <input type="file" id="upcRestoreFile" accept="application/json,.json" style="display:none;">
   <input type="file" id="pluImportInput" accept=".xlsx,.xls" style="display:none;">
-  <button class="page-back topbar-mini mainact goblue" id="pluGoOther">PLU 매니저</button>
-  <button class="page-back topbar-mini mainact goblue" id="pluGoOcr">UPC OCR</button>
-  <button class="page-back topbar-mini mainact" id="pluBackBtn">돌아가기</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOther">🗂️ PLU 매니저</button>
+  <button class="page-back topbar-mini mainact goblue" id="pluGoOcr">🔄 UPC OCR</button>
+  <button class="page-back topbar-mini mainact" id="pluBackBtn">← 돌아가기</button>
 </div>
 <div class="egmm-screen">
   <div class="egmm-sub-screen">
@@ -897,9 +871,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
-  // [소수점] STORE MANAGER 필드관리에서 설정한 자릿수 — 미설정(null)이면 기존 동작(가격 2자리 등) 그대로
-  function decOfKey(key){ var st=(__MFSTY||{})[String(key==null?'':key).trim().toUpperCase()]; return (st&&typeof st.dec==='number')?st.dec:null; }
-  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':(t==='number'?'number':'text'))), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold, dec:((typeof f.dec==='number'&&f.dec>=0&&f.dec<=6)?Math.floor(f.dec):null) }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; var __fl={}; var __FL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var on=(f.fill!=null)?!!f.fill:(f.catOf?true:!!__FL_LEGACY[K]); if(on) __fl[K]=1; }); window.__MFFILL=__fl; }
+  function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue;
         var __k=String(__c.key||'').trim().toUpperCase();
         var ms=__MFSTY[__k];
@@ -1473,8 +1445,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // UPC(C) 열 → 붉은색 표시
   function isRedCol(c){ var u=String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,''); return u==='UPC(C)' || /UPC\(C\)/.test(u) || isSalesPriceCol(c); }
   // 가격 $0.00 형식 변환
-  function fmtPrice(v,dec){ if(v==null) return ''; var t=String(v).trim(); if(t==='') return ''; var n=Number(t.replace(/[^0-9.\-]/g,'')); if(isNaN(n)) return t; var d=(typeof dec==='number'&&dec>=0&&dec<=6)?dec:2; return '$'+n.toFixed(d); }
-  function fmtMargin(v,dec){ if(v==null) return ''; var s=String(v).replace(/[%\s,]/g,''); if(s==='') return ''; var n=parseFloat(s); if(isNaN(n)) return ''; var d=(typeof dec==='number'&&dec>=0&&dec<=6)?dec:2; return n.toFixed(d)+'%'; }
+  function fmtPrice(v){ if(v==null) return ''; var t=String(v).trim(); if(t==='') return ''; var n=Number(t.replace(/[^0-9.\-]/g,'')); if(isNaN(n)) return t; return '$'+n.toFixed(2); }
+  function fmtMargin(v){ if(v==null) return ''; var s=String(v).replace(/[%\s,]/g,''); if(s==='') return ''; var n=parseFloat(s); if(isNaN(n)) return ''; return n.toFixed(2)+'%'; }
   var PLU_PAL=[
     ['#e53935','#fb8c00','#fdd835','#43a047','#1e88e5','#3949ab','#8e24aa'],
     ['#b71c1c','#e65100','#f9a825','#1b5e20','#0d47a1','#1a237e','#4a148c'],
@@ -1650,7 +1622,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 보기 모드 행 HTML
   function viewRowHTML(r, rowIdx){
     var v=visibleCols();
-    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'||isMarginCol(c)){ var __mv=fmtMargin(getVal(r,c.key), decOfKey(c.key)); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+'"'+colorStyle(c)+(__mv.length>limit?(' title="'+escapeHtml(__mv)+'"'):'')+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key), decOfKey(c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); if(c.fmt==='number'){ var __nd=decOfKey(c.key); if(__nd!=null){ var __nn=parseFloat(String(fv).replace(/,/g,'')); if(!isNaN(__nn)) fv=__nn.toFixed(__nd); } } var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
+    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'||isMarginCol(c)){ var __mv=fmtMargin(getVal(r,c.key)); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+'"'+colorStyle(c)+(__mv.length>limit?(' title="'+escapeHtml(__mv)+'"'):'')+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
     var isNewRow=flagFresh(r,'__NEWFLAG');
     var isPriceUpd=flagFresh(r,'__PRICEUPD');
     var mark=(isNewRow?'N':'')+(isPriceUpd?'$':'');
@@ -1779,7 +1751,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       '</div>';
     }
     return '<div class="plu-tools">'+
-        '<button class="plu-tool-btn" id="pluPrintBtn">🖨 인쇄</button>'+
+        '<button class="plu-tool-btn mainact" id="pluPrintBtn">🖨 인쇄</button>'+
         '<button class="plu-tool-btn mainact" id="pluQuickExp">⬆ 데이터 내보내기</button>'+
         '<button class="plu-tool-btn mainact ni-btn'+((typeof __ocrHasData!=='undefined'&&__ocrHasData)?' ni-blink':'')+'" id="niBtn" title="UPC OCR 신규 아이템 가져오기">🆕 NEW ITEM</button>'+
         '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
@@ -1790,8 +1762,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return '<div class="plu-tools">'+
       '<button class="plu-tool-btn" id="pluFirstBtn" type="button" title="맨 위로">⤒ 처음</button>'+
       '<button class="plu-tool-btn" id="pluLastBtn" type="button" title="맨 아래로">⤓ 마지막</button>'+
-      '<span class="plu-count" id="pluCount"></span>'+
       '<button class="plu-hist-btn admin-icon" id="pluAdminBtn" title="관리자 기능 — 편집·신제품/변경상품 보기·데이터불러오기·매장관리·백업·복원·FB내보내기">👤</button>'+
+      '<span class="plu-count" id="pluCount"></span>'+
     '</div>';
   }
   // 처음/마지막: 테이블 래퍼를 맨 위/맨 아래로 스크롤 (PLU 매니저와 동일)
@@ -1848,7 +1820,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function impRowsHTML(rows, lay){
     var v=impVisibleCols(lay); var TL=getTruncLen();
     var head='<thead><tr>'+v.map(function(c){ var a=c.align?(' class="align-'+c.align+'"'):''; return '<th'+a+'>'+escapeHtml(c.label)+'</th>'; }).join('')+'</tr></thead>';
-    var body=rows.map(function(r){ return '<tr>'+v.map(function(c){ var limit=(c.trunc>0)?c.trunc:((isPriceCol(c)||isMarginCol(c))?8:TL); var raw=isPriceCol(c)?fmtPrice(getVal(r,c.key), decOfKey(c.key)):String(getVal(r,c.key)||''); var sv=raw.length>limit?(escapeHtml(raw.slice(0,limit))+'…'):escapeHtml(raw); var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var alignCls=c.align?(' align-'+c.align):''; return '<td class="'+clsFor(c.key)+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+alignCls+'">'+sv+'</td>'; }).join('')+'</tr>'; }).join('');
+    var body=rows.map(function(r){ return '<tr>'+v.map(function(c){ var limit=(c.trunc>0)?c.trunc:((isPriceCol(c)||isMarginCol(c))?8:TL); var raw=isPriceCol(c)?fmtPrice(getVal(r,c.key)):String(getVal(r,c.key)||''); var sv=raw.length>limit?(escapeHtml(raw.slice(0,limit))+'…'):escapeHtml(raw); var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var alignCls=c.align?(' align-'+c.align):''; return '<td class="'+clsFor(c.key)+(isSrpCol(c)?' upc-c-srp':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+alignCls+'">'+sv+'</td>'; }).join('')+'</tr>'; }).join('');
     return '<table class="plu-table">'+head+'<tbody>'+body+'</tbody></table>';
   }
   // 신규 import 리스트 렌더
@@ -2061,9 +2033,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var rows=(rowsFor(it.big)||[]).filter(function(r){ return rowSub(it.big, r)===it.sub; }).sort(byPluAsc);
       rows.forEach(function(row){
         aoa.push(cat.fields.map(function(ef){
-          var mf=maps[ef];
-          // 매핑이 없으면 엑셀 헤더명과 같은 이름의 필드로 폴백 / label 은 헤더명 유지(POS DESC 자동생성 판정용)
-          return exportCell(row, { key:(mf||ef), label:ef, type:'text' });
+          var mf=maps[ef]; if(!mf) return '';
+          return exportCell(row, { key:mf, label:mf, type:'text' });
         }));
         total++;
       });
@@ -2360,7 +2331,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
     var v=impVisibleCols(lay);
     var aoa=[v.map(function(c){return c.label;})];
-    rows.forEach(function(r){ aoa.push(v.map(function(c){ return isPriceCol(c)?fmtPrice(getVal(r,c.key), decOfKey(c.key)):String(getVal(r,c.key)||''); })); });
+    rows.forEach(function(r){ aoa.push(v.map(function(c){ return isPriceCol(c)?fmtPrice(getVal(r,c.key)):String(getVal(r,c.key)||''); })); });
     var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'LIST'); XLSX.writeFile(wb,fname+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
   }
 
@@ -2839,34 +2810,29 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===cat){ pluBig=i; var subs=PLU_TABS[i].subs||[]; var sj=subs.indexOf(sub); pluSub=(sj>=0?sj:0); pluCatFilter=''; return; } }
   }
   // 가져올 카테고리 선택 팝업 → Promise<{cat,sub}|null>
-  // [조건5] MSRP/SRP에 이미 가격이 있을 때 — 영문 확인 팝업 → Promise<'apply'|'cancel'>
-  //  · Apply  = 평균마진으로 계산한 값으로 MSRP를 덮어씀
-  //  · Cancel = 값이 이미 있는 MSRP/SRP는 엑셀 원본 그대로 유지 (나머지 필드는 정상 가져옴)
-  function askPriceUpdate(info){
+  // 불러오기 평균마진 — 이미 MSRP 가격이 있을 때 확인 팝업 → Promise<'cancel'|'asis'|'apply'>
+  function askMarginOverwrite(){
     return new Promise(function(resolve){
-      var old=$('pupOverlay'); if(old) old.remove();
-      var lines=[];
-      if(info && info.msrp) lines.push('MSRP&nbsp;&nbsp;<b>'+info.msrp+'</b> item(s)');
-      if(info && info.srp)  lines.push('SRP&nbsp;&nbsp;&nbsp;&nbsp;<b>'+info.srp+'</b> item(s)');
+      var old=$('amoOverlay'); if(old) old.remove();
       var wrap=document.createElement('div');
-      wrap.innerHTML='<div class="pcm-overlay" id="pupOverlay"><div class="pcm-modal" style="max-width:400px;">'+
-        '<div class="pcm-head">⚠ Existing Price Found<button class="pcm-x" id="pupX" type="button">✕</button></div>'+
+      wrap.innerHTML='<div class="pcm-overlay" id="amoOverlay"><div class="pcm-modal" style="max-width:380px;">'+
+        '<div class="pcm-head">⚠ 가격 확인<button class="pcm-x" id="amoX" type="button">✕</button></div>'+
         '<div class="pcm-body" style="padding:18px;">'+
-          '<div style="margin-bottom:12px;line-height:1.6;font-size:14px;">Some items already have a price in <b>MSRP</b> or <b>SRP</b>.<br>Do you want to update these prices?</div>'+
-          (lines.length?('<div style="background:#f6f7f9;border-radius:8px;padding:9px 11px;font-size:12px;line-height:1.7;margin-bottom:14px;">'+lines.join('<br>')+'</div>'):'')+
-          '<div style="font-size:11px;color:#8a8a90;line-height:1.5;margin-bottom:14px;">Apply = overwrite the existing prices.<br>Cancel = keep the existing prices (other fields are still imported).</div>'+
-          '<div style="display:flex;gap:8px;">'+
-            '<button class="plu-tool-btn icp-ok" id="pupApply" type="button" style="flex:1;">Apply</button>'+
-            '<button class="plu-tool-btn" id="pupCancel" type="button" style="flex:1;">Cancel</button>'+
+          '<div style="margin-bottom:16px;line-height:1.6;font-size:14px;">이미 가격이 있습니다.<br>평균마진으로 계산하여 가져올까요?</div>'+
+          '<div style="display:flex;flex-direction:column;gap:8px;">'+
+            '<button class="plu-tool-btn icp-ok" id="amoApply" type="button">평균마진 적용 후 가져오기</button>'+
+            '<button class="plu-tool-btn" id="amoAsis" type="button">원본 그대로 가져오기</button>'+
+            '<button class="plu-tool-btn" id="amoCancel" type="button">취소</button>'+
           '</div>'+
         '</div>'+
       '</div></div>';
       document.body.appendChild(wrap.firstChild);
-      var done=false; var close=function(v){ if(done) return; done=true; var o=$('pupOverlay'); if(o) o.remove(); resolve(v); };
-      $('pupX').onclick=function(){ close('cancel'); };
-      $('pupCancel').onclick=function(){ close('cancel'); };
-      $('pupApply').onclick=function(){ close('apply'); };
-      $('pupOverlay').onclick=function(e){ if(e.target&&e.target.id==='pupOverlay') close('cancel'); };
+      var done=false; var close=function(v){ if(done) return; done=true; var o=$('amoOverlay'); if(o) o.remove(); resolve(v); };
+      $('amoX').onclick=function(){ close('cancel'); };
+      $('amoCancel').onclick=function(){ close('cancel'); };
+      $('amoApply').onclick=function(){ close('apply'); };
+      $('amoAsis').onclick=function(){ close('asis'); };
+      $('amoOverlay').onclick=function(e){ if(e.target&&e.target.id==='amoOverlay') close('cancel'); };
     });
   }
   function pickImportCategory(){
@@ -2885,13 +2851,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
               '<label class="icp-lbl">중간 카테고리</label>'+
               '<select class="icp-sel" id="icpSub"></select>'+
               '<div class="icp-opt">'+
-                '<label class="dcv-switch" title="MARGIN — ON: 평균마진(%) 사용 / OFF: 미사용"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
-                '<span class="icp-lbl" style="margin:0;">MARGIN (불러오기 평균마진)</span>'+
+                '<label class="dcv-switch" title="ON: 평균마진으로 MSRP 계산해 가져오기 / OFF: 원본 그대로"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
+                '<span class="icp-lbl" style="margin:0;">불러오기 평균마진</span>'+
                 '<input type="number" class="dcv-num" id="icpMargin" min="0" max="99" step="1" value="40" disabled> <span class="icp-lbl" style="margin:0;">%</span>'+
-              '</div>'+
-              '<div class="icp-opt icp-opt-sub">'+
-                '<button class="plu-tool-btn icp-auto" id="icpAutoBtn" type="button" title="ON: COST에 평균마진을 적용해 MSRP를 채워서 가져옵니다">💲 MSRP 가격 자동적용 : OFF</button>'+
-                '<div class="icp-note">· COST 열이 없으면 MSRP 가격은 적용되지 않습니다.<br>· SRP는 자동적용 대상이 아닙니다 (엑셀 값만 그대로 반영).</div>'+
               '</div>'+
             '</div>'+
           '</div>'+
@@ -2913,29 +2875,14 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var fillSub=function(){ var ti=parseInt($('icpTop').value,10)||0; var subs=PLU_TABS[ti]?(PLU_TABS[ti].subs||[]):[]; $('icpSub').innerHTML=subs.length?subs.map(function(s,j){ return '<option value="'+j+'"'+((ti===pluBig&&j===pluSub)?' selected':'')+'>'+escapeHtml(s)+'</option>'; }).join(''):'<option value="-1">(중간 카테고리 없음)</option>'; };
       fillSub();
       $('icpTop').onchange=fillSub;
-      // [조건3] MSRP 가격 자동적용 버튼 — MARGIN 스위치가 OFF면 안내 팝업 후 차단
-      var autoOn=false;
-      var syncAuto=function(){ var b=$('icpAutoBtn'); if(!b) return; b.textContent='💲 MSRP 가격 자동적용 : '+(autoOn?'ON':'OFF'); b.classList.toggle('on', autoOn); };
-      var MARGIN_OFF_MSG='MARGIN 적용을 해주세요.\n\n[MARGIN (불러오기 평균마진)] 스위치를 ON으로 켜고\n마진(%)을 입력한 뒤 다시 시도하세요.';
-      $('icpMgSw').onchange=function(){ $('icpMargin').disabled=!$('icpMgSw').checked; if(!$('icpMgSw').checked && autoOn){ autoOn=false; syncAuto(); } };
-      $('icpAutoBtn').onclick=async function(){
-        if(!$('icpMgSw').checked){ await uiAlert(MARGIN_OFF_MSG); return; }
-        autoOn=!autoOn; syncAuto();
-      };
-      syncAuto();
+      $('icpMgSw').onchange=function(){ $('icpMargin').disabled=!$('icpMgSw').checked; };
       $('icpPick').onclick=function(){ $('icpFile').click(); };
       $('icpFile').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f){ picked=f; $('icpFname').textContent=f.name; $('icpOk').disabled=false; } };
       var close=function(val){ if(done) return; done=true; var o=$('icpOverlay'); if(o) o.remove(); resolve(val); };
       $('icpClose').onclick=function(){ close(null); };
       $('icpBack').onclick=function(){ close(null); openAdminModal(); };
       $('icpOverlay').onclick=function(e){ if(e.target&&e.target.id==='icpOverlay') close(null); };
-      $('icpOk').onclick=async function(){
-        if(!picked) return;
-        if(autoOn && !$('icpMgSw').checked){ await uiAlert(MARGIN_OFF_MSG); return; }
-        var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; var subs=t.subs||[]; var sj=parseInt($('icpSub').value,10); var sub=(sj>=0 && subs[sj]!=null)?subs[sj]:'';
-        var mv=Number($('icpMargin').value); if(!isFinite(mv)||mv<0)mv=0; if(mv>99)mv=99;
-        close({cat:t.label, sub:sub, applyMargin:(autoOn && $('icpMgSw').checked), margin:mv, file:picked});
-      };
+      $('icpOk').onclick=function(){ if(!picked) return; var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0]; var subs=t.subs||[]; var sj=parseInt($('icpSub').value,10); var sub=(sj>=0 && subs[sj]!=null)?subs[sj]:''; var am=$('icpMgSw').checked; var mv=Number($('icpMargin').value); if(!isFinite(mv)||mv<0)mv=0; if(mv>99)mv=99; close({cat:t.label, sub:sub, applyMargin:am, margin:mv, file:picked}); };
     });
   }
   // 필드(열) 설정 팝업 — 이름 변경 + 표시(숨김 토글) + 삭제. 헤더의 필드 이름 클릭으로 열림
@@ -3084,11 +3031,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input')) return;
         var key=String(t.getAttribute('data-key')||'').trim().toUpperCase();
         var mc=(window.__MFCAT||{})[key];
-        // [필드 채우기] STORE MANAGER 필드관리의 [⤓] 토글이 ON인 필드만 채우기 기능 표시
-        //  (마스터 미로드 시 레거시 7개 필드로 폴백 — 기존 __FILL_PICK와 동일)
-        var __FL_LEGACY={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
-        var __fillOn=!!((window.__MFFILL||__FL_LEGACY)[key]);
-        if(!mc && __fillOn){
+        // 반복값 필드: 기존 값 목록에서 골라 일괄 적용
+        var __FILL_PICK={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
+        if(!mc && __FILL_PICK[key]){
           var old2=document.getElementById('mfCatPick'); if(old2) old2.parentNode.removeChild(old2);
           var oldF2=document.getElementById('mfFillBtn'); if(oldF2) oldF2.parentNode.removeChild(oldF2);
           // 현재 리스트에서 이 필드의 고유 값 수집
@@ -3136,11 +3081,29 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           return;
         }
         if(!mc){
-          // [필드 채우기] 토글 OFF 필드 — 채우기 UI 표시 안 함 (ON 필드는 위의 값 선택 팝업이 '현재 입력값 채우기'까지 포함)
+          // 일반 필드: 입력값을 필드 전체에 채우는 버튼
           var oldF=document.getElementById('mfFillBtn'); if(oldF) oldF.parentNode.removeChild(oldF);
+          var fb=document.createElement('button'); fb.id='mfFillBtn'; fb.type='button'; fb.textContent='⤓ 전체 채우기';
+          fb.style.cssText='position:fixed;z-index:9500;background:#c9a961;color:#fff;border:0;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);';
+          var fr=t.getBoundingClientRect();
+          fb.style.left=Math.min(fr.left, window.innerWidth-110)+'px';
+          fb.style.top=(fr.bottom+4)+'px';
+          document.body.appendChild(fb);
+          fb.onmousedown=function(ev){
+            ev.preventDefault();
+            var val=t.value;
+            var kk=t.getAttribute('data-key'); var bb=t.getAttribute('data-base')==='1';
+            if(!confirm('현재 입력값 "'+val+'" 을(를) '+kk+' 필드 전체('+((work||[]).length)+'행)에 채울까요?')) return;
+            (work||[]).forEach(function(row){ if(!row) return; if(bb){ row[fieldOf(kk)]=val; } else { if(!row.extra) row.extra={}; row.extra[kk]=val; } });
+            var ins=tb.querySelectorAll('input.plu-edit-input[data-key="'+kk.replace(/"/g,'\\"')+'"]');
+            for(var i2=0;i2<ins.length;i2++){ ins[i2].value=val; }
+            markDirty();
+            if(fb.parentNode) fb.parentNode.removeChild(fb);
+          };
+          function rmF(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }
+          t.addEventListener('blur', function(){ setTimeout(rmF, 180); }, { once:true });
           return;
         }
-        if(!__fillOn) return;   // [전체 라인 채우기 OFF] 카테고리 필드의 숫자 선택(=전체 채우기) 미표시
         var old=document.getElementById('mfCatPick'); if(old) old.parentNode.removeChild(old);
         var pick=document.createElement('div'); pick.id='mfCatPick';
         pick.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:180px;max-height:240px;overflow:auto;';
@@ -3180,8 +3143,28 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       function __gv(r,label){ if(!r) return ''; var W=String(label).trim().toUpperCase(); if(r.extra){ for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ var v=r.extra[k]; if(v!=null) return String(v); } } } for(var k2 in r){ if(k2==='extra')continue; if(String(k2).trim().toUpperCase()===W){ var v2=r[k2]; if(v2!=null) return String(v2); } } return ''; }
       function __sv(r,label,val){ if(!r) return; var W=String(label).trim().toUpperCase(); if(!r.extra) r.extra={}; for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ r.extra[k]=val; return; } } r.extra[label]=val; }
       // ===== POS DESC 자동 생성 =====
-      // 규칙은 전역 posDescGen() 단일 소스 사용 (내보내기와 동일 결과 보장)
-      window.__posAutoGen=function(r){ return posDescGen(r); };
+      // 기본: BRAND 3자리 + ')' + ENG DESC → 총 18자리(공백 포함, 초과분 절단)
+      // UNIT SIZE·UOM 있으면: BRAND 3자리 + ')' + ENG DESC 7자리 + '_' + UNITSIZE + UOM
+      window.__posAutoGen=function(r){
+        // BRAND 3글자는 반드시 BRAND(ENG) 필드에서 (라벨 공백 무시 매칭, 폴백 없음)
+        var brand='';
+        (function(){
+          var want='BRAND(ENG)';
+          function normK(k){ return String(k==null?'':k).toUpperCase().replace(/\s+/g,''); }
+          if(r&&r.extra){ for(var k in r.extra){ if(normK(k)===want){ var v=r.extra[k]; if(v!=null&&String(v).trim()!==''){ brand=String(v); return; } } } }
+          if(r){ for(var k2 in r){ if(k2==='extra')continue; if(normK(k2)===want){ var v2=r[k2]; if(v2!=null&&String(v2).trim()!==''){ brand=String(v2); return; } } } }
+        })();
+        brand=brand.toUpperCase().replace(/\s+/g,'');
+        var eng=String(__gv(r,'ENG DESC')||'').toUpperCase();
+        var size=String(__gv(r,'UNIT SIZE')||'').trim();
+        var uom=String(__gv(r,'UOM')||'').trim().toUpperCase();
+        if(!brand) return '';   // BRAND(ENG) 없으면 생성하지 않음
+        var b3=brand.substring(0,3);
+        if(size!=='' && uom!==''){
+          return (b3+')'+eng.substring(0,7)+'_'+size+uom);
+        }
+        return (b3+')'+eng).substring(0,18);
+      };
       function __posMaybeAuto(row, rowIdx){
         var cur=__gv(row,'POS DESC');
         if(cur!=='' && row.__posAuto!==undefined && cur!==row.__posAuto) return;  // 수동 입력 보호
@@ -3283,32 +3266,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     setTimeout(function(){ try{ win.focus(); win.print(); }catch(e){} }, 400);
   }
   var EXPORT_COLS=[{key:'plu',label:'PLU',aliases:['PLU']},{key:'eng',label:'ENG DESC',aliases:['ENG DESC','ENG','ENGLISH','영문명','ENG DESC.']},{key:'kor',label:'KOR DESC',aliases:['KOR DESC','KOR','KOREAN','한글명']},{key:'cate',label:'CATEGORY',aliases:['CATEGORY','CATE','분류','CAT']},{key:'origin',label:'ORIGIN',aliases:['ORIGIN','원산지']}];
-  // ===== POS DESC 공용 유틸 (편집·내보내기 공용 · 전역) =====
-  // 필드명 정규화(대문자·공백제거)로 라벨 표기 차이 흡수
-  function __normFK(k){ return String(k==null?'':k).toUpperCase().replace(/\s+/g,''); }
-  // row(extra 우선)에서 라벨로 값 읽기
-  function __rowFV(r,label){
-    if(!r) return '';
-    var W=__normFK(label);
-    if(r.extra){ for(var k in r.extra){ if(__normFK(k)===W){ var v=r.extra[k]; if(v!=null) return String(v); } } }
-    for(var k2 in r){ if(k2==='extra') continue; if(__normFK(k2)===W){ var v2=r[k2]; if(v2!=null) return String(v2); } }
-    return '';
-  }
-  // POS DESC 자동 생성 규칙(단일 소스)
-  // 기본: BRAND(ENG) 3자리 + ')' + ENG DESC → 총 18자리(초과분 절단)
-  // UNIT SIZE·UOM 있으면: BRAND 3자리 + ')' + ENG DESC 7자리 + '_' + UNITSIZE + UOM
-  function posDescGen(r){
-    var brand=__rowFV(r,'BRAND(ENG)').toUpperCase().replace(/\s+/g,'');
-    if(!brand) return '';   // BRAND(ENG) 없으면 생성하지 않음
-    var eng=__rowFV(r,'ENG DESC').toUpperCase();
-    var size=__rowFV(r,'UNIT SIZE').trim();
-    var uom=__rowFV(r,'UOM').trim().toUpperCase();
-    var b3=brand.substring(0,3);
-    if(size!=='' && uom!=='') return (b3+')'+eng.substring(0,7)+'_'+size+uom);
-    return (b3+')'+eng).substring(0,18);
-  }
-  // POS DESC 열 판정(키 또는 라벨 기준)
-  function __isPosDescCol(col){ if(!col) return false; return __normFK(col.key)==='POSDESC' || __normFK(col.label)==='POSDESC'; }
   // 내보내기 값 변환
   function exportVal(r,col){ if(!r) return ''; if(col.key==='plu') return pluValOf(r); var bv=isBase(col.key)?(r[fieldOf(col.key)]||''):''; if(bv!=null&&bv!=='') return bv; if(r.extra){ var al=col.aliases||[col.key]; for(var i=0;i<al.length;i++){ var want=String(al[i]).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&v!=='') return v; } } } } var sig=String(((col&&col.key)||'')+'|'+((col&&col.label)||'')).toUpperCase(); if(isUpcOCol(col) || /UPC\s*\(\s*O\s*\)/.test(sig)){ var __a=__findAltVal(r,__UPCO_ALIAS,col.key); if(__a!=='') return __a; } else if(isUpcCCol(col) || /UPC\s*\(\s*C\s*\)/.test(sig)){ var __b=__findAltVal(r,__UPCC_ALIAS,col.key); if(__b!=='') return __b; } return ''; }
   // 내보내기 셀 값
@@ -3320,22 +3277,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return false;
   }
   function __chkOn(raw){ if(raw===true) return true; if(raw===false||raw==null) return false; var s2=String(raw).trim().toUpperCase(); return s2!=='' && s2!=='0' && s2!=='FALSE' && s2!=='X'; }
-  // [소수점] EXPORT 반올림 — STORE MANAGER 필드 소수점 설정(dec) 자릿수. 기존 2자리 로직과 동일한 EPSILON 보정 사용
-  function expRound(n, d){ var p=Math.pow(10, d); return Math.round((n+Number.EPSILON)*p)/p; }
-  function exportCell(r,col){ var raw=exportVal(r,col);
-    if(__isCheckColX(col)) return __chkOn(raw)?1:0;   // 체크 필드 = 숫자 1 / 0 (문자 아님)
-    var __d=decOfKey(col&&col.key);                    // STORE MANAGER 소수점 설정 (미설정 null → 기존 동작)
-    var __tk=String((col&&col.key)||'').toUpperCase().replace(/\s+/g,'');   // TARE 계열: 'LB'/'G' 단위 제거하고 숫자만 출력
-    if(__tk==='TARE'||__tk==='TARE(LB)'||__tk==='TARE(G)'){
-      var __ts=String(raw==null?'':raw).replace(/\s*(LB|G)\s*$/i,'').trim();
-      if(__d!=null && __ts!==''){ var __tn=parseFloat(__ts); if(!isNaN(__tn)) return expRound(__tn,__d).toFixed(__d); }
-      return __ts;
-    }
-    if(__isPosDescCol(col) && String(raw==null?'':raw).trim()===''){ var __pv=posDescGen(r); if(__pv!=='') return __pv; }   // 저장값 없으면 규칙대로 생성
-    if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return expRound(n, (__d!=null?__d:2)); } }
-    // 마진(%)·숫자 등: 소수점이 명시 설정된 필드만 적용 (미설정이면 기존 그대로)
-    if(__d!=null && raw!=null){ var __s=String(raw).trim(); if(__s!==''){ var __pct=/%\s*$/.test(__s); var __n2=parseFloat(__s.replace(/[%,\s]/g,'')); if(!isNaN(__n2)){ var __fx=expRound(__n2,__d).toFixed(__d); return __pct?(__fx+'%'):Number(__fx); } } }
-    return raw==null?'':raw; }
+  function exportCell(r,col){ var raw=exportVal(r,col); if(__isCheckColX(col)) return __chkOn(raw)?'1':'0'; if(col&&isPriceCol(col)&&raw!=null){ var t=String(raw).replace(/[^0-9.\-]/g,''); if(t!=='' && /\d/.test(t)){ var n=Number(t); if(!isNaN(n)) return Math.round((n+Number.EPSILON)*100)/100; } } return raw==null?'':raw; }
   // xlsx 시트 스타일 적용
   function styleSheet(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
@@ -3361,23 +3303,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var rr=[]; for(var i=0;i<nrows;i++) rr.push({hpt:18.75}); ws['!rows']=rr;
   }
   // 데이터 내보내기 서식: EA PRICE·SALES PRICE = ACCOUNTING, 그 외 전부 = TEXT(@)
-  // [소수점] 회계 서식 자릿수 — 기본 2자리, STORE MANAGER 설정이 있으면 그 자릿수
-  function acctFmt(d){ d=(typeof d==='number'&&d>=0&&d<=6)?d:2; var z=(d>0?('.'+new Array(d+1).join('0')):''); return '_("$"* #,##0'+z+'_);_("$"* \\(#,##0'+z+'\\);_("$"* "-"??_);_(@_)'; }
   function applyExportFormats(ws, cols, nrows){
     if(typeof XLSX==='undefined' || !ws) return;
+    var ACCT='_("$"* #,##0.00_);_("$"* \\(#,##0.00\\);_("$"* "-"??_);_(@_)';
     for(var c=0;c<cols.length;c++){
       var col=cols[c];
-      var ACCT=acctFmt(decOfKey(col&&col.key));
       var isAcct=((typeof isEaPriceCol==='function')&&isEaPriceCol(col))||((typeof isSalesPriceCol==='function')&&isSalesPriceCol(col));
-      var isChk=((typeof __isCheckColX==='function')&&__isCheckColX(col));
       for(var r=1;r<nrows;r++){
         var ad=XLSX.utils.encode_cell({r:r,c:c});
         if(!ws[ad]) ws[ad]={t:'s',v:''};
-        if(isChk){
-          // 체크 필드: TEXT(@) 강제 대상에서 제외 — 숫자 1/0 으로 기록
-          var cv=String(ws[ad].v==null?'':ws[ad].v).trim();
-          ws[ad].t='n'; ws[ad].v=(cv==='1'?1:0); ws[ad].z='0';
-        } else if(isAcct){
+        if(isAcct){
           var raw=String(ws[ad].v==null?'':ws[ad].v).trim();
           var n=Number(raw.replace(/[^0-9.\-]/g,''));
           if(raw!=='' && !isNaN(n)){ ws[ad].t='n'; ws[ad].v=n; ws[ad].z=ACCT; }
@@ -3424,60 +3359,17 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     document.body.appendChild(wrap.firstChild);
     // 모달/팝업 닫기
     var close=function(){ var o=$(ov); if(o) o.remove(); };
-    // ── 선택 상태 (메뉴 세션 동안 유지) ──
-    var selCats={};   // 'ti:si' → {big,sub}
-    function selList(){ return Object.keys(selCats).map(function(k){ return selCats[k]; }); }
-    function refreshSel(){
-      var c=$('emCatCnt'); if(c) c.textContent=String(Object.keys(selCats).length);
-      var sum=$('emCatSum'); if(sum){ var L=selList(); sum.textContent=L.length?(L.slice(0,4).map(function(x){ return x.big+' › '+x.sub; }).join('  ·  ')+(L.length>4?('  외 '+(L.length-4)+'개'):'')):'선택된 카테고리가 없습니다 — [📂 카테고리 선택]에서 체크하세요'; }
-      var f=$('emFldCnt'); if(f){ var lay=layoutByCat[curCat()]||[]; f.textContent=String(lay.filter(function(cc){ return cc.exp; }).length); }
-    }
-    function closePick(){ var o=$('emPickOv'); if(o) o.remove(); refreshSel(); }
-    function pickShell(title, inner){
-      var old=$('emPickOv'); if(old) old.remove();
-      var w=document.createElement('div');
-      w.innerHTML='<div class="pcm-overlay" id="emPickOv" style="z-index:10050;"><div class="pcm-modal">'+
-        '<div class="pcm-head">'+title+'<button class="pcm-x" id="emPickX" type="button">✕</button></div>'+
-        '<div class="pcm-body" id="emPickBody">'+inner+'</div>'+
-        '<div class="em-foot"><button class="em-export-cta" id="emPickOk" type="button">✓ 확인</button></div>'+
-      '</div></div>';
-      document.body.appendChild(w.firstChild);
-      $('emPickX').onclick=closePick; $('emPickOk').onclick=closePick;
-      $('emPickOv').onclick=function(e){ if(e.target&&e.target.id==='emPickOv') closePick(); };
-    }
-    // 카테고리 선택 팝업 — 상위 카테고리별 그룹으로 깔끔 정렬
-    function openCatPick(){
-      var html=PLU_TABS.map(function(t,ti){
-        var subs=t.subs||[];
-        var items=subs.map(function(sb,si){ var on=!!selCats[ti+':'+si]; return '<label class="em-cfg-item"><input type="checkbox" class="em-cat-col" data-ti="'+ti+'" data-si="'+si+'"'+(on?' checked':'')+'> <span>'+escapeHtml(sb)+'</span></label>'; }).join('');
-        return '<div class="em-cat-grp"><div class="em-cat-big">'+escapeHtml(t.label)+'</div><div class="em-cat-subs">'+items+'</div></div>';
-      }).join('');
-      pickShell('📂 카테고리 선택 <button class="em-allbtn" id="emCatAll" type="button" style="margin-left:10px;">전체 선택</button>',
-        '<div class="em-cat-wrap em-pick-wrap">'+html+'</div>');
-      function sync(ch){ var k=ch.getAttribute('data-ti')+':'+ch.getAttribute('data-si'); var ti=parseInt(ch.getAttribute('data-ti'),10), si=parseInt(ch.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(ch.checked && t && t.subs && t.subs[si]!=null){ selCats[k]={big:t.label, sub:t.subs[si]}; } else { delete selCats[k]; } refreshSel(); }
-      document.querySelectorAll('#emPickOv .em-cat-col').forEach(function(ch){ ch.onchange=function(){ sync(ch); }; });
-      var all=$('emCatAll'); if(all) all.onclick=function(){ var cs=document.querySelectorAll('#emPickOv .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; sync(c); }); all.textContent=allOn?'전체 선택':'전체 해제'; };
-    }
-    // 내보내기 필드 팝업 — 현재 카테고리 필드, 기존과 동일하게 즉시 저장
-    function openFldPick(){
-      var cfgLay=(layoutByCat[curCat()]||[]);
-      var rows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">필드가 없습니다.</div>';
-      pickShell('📋 내보내기 필드 <small style="font-weight:600;color:#9a9aa0;margin-left:6px;">'+escapeHtml(curCat())+'</small> <button class="em-allbtn" id="emFldAll" type="button" style="margin-left:10px;">전체 선택</button>',
-        '<div class="em-cfg-list em-pick-wrap">'+rows+'</div>');
-      document.querySelectorAll('#emPickOv .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); refreshSel(); }; });
-      var all=$('emFldAll'); if(all) all.onclick=function(){ var cs=document.querySelectorAll('#emPickOv .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); all.textContent=allOn?'전체 선택':'전체 해제'; };
-    }
     // 홈 화면 HTML
     function homeHTML(){
-      var selSec='<div class="em-sec">'+
-          '<div class="em-tt">내보내기 대상</div>'+
-          '<div class="em-box">'+
-            '<div class="em-row" style="gap:10px;">'+
-              '<button class="em-allbtn em-pick-btn" id="emPickCats" type="button">📂 카테고리 선택 <b id="emCatCnt">0</b>개</button>'+
-              '<button class="em-allbtn em-pick-btn" id="emPickFlds" type="button">📋 내보내기 필드 <b id="emFldCnt">0</b>개</button>'+
-            '</div>'+
-            '<div class="em-sel-sum" id="emCatSum"></div>'+
-          '</div>'+
+      var catSec='<div class="em-sec">'+
+          '<div class="em-row-between"><div class="em-tt">카테고리 선택</div><button class="em-allbtn" id="emCatAll" type="button">전체 선택</button></div>'+
+          '<div class="em-cat-wrap">'+catHtml+'</div>'+
+        '</div>';
+      var cfgLay=(layoutByCat[curCat()]||[]);
+      var cfgRows=cfgLay.map(function(c){ var k=escapeHtml(c.key); var tag=(c.type==='check'||c.type==='rcheck')?' <span class="em-cfg-tag">(체크)</span>':''; return '<label class="em-cfg-item"><input type="checkbox" class="em-cfg-col" data-key="'+k+'"'+(c.exp?' checked':'')+'> <span>'+escapeHtml(c.label)+tag+'</span></label>'; }).join('') || '<div class="hist-empty">열이 없습니다.</div>';
+      var cfgSec='<div class="em-sec">'+
+          '<div class="em-row-between"><div class="em-tt">내보내기 필드</div><button class="em-allbtn" id="emFldAll" type="button">전체 선택</button></div>'+
+          '<div class="em-cfg-list">'+cfgRows+'</div>'+
         '</div>';
       var catExpSec = startList ? ('<div class="em-sec">'+
           '<div class="em-tt">EXPORT 카테고리 형식으로 내보내기 (HANA 등)</div>'+
@@ -3499,7 +3391,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '</div></div>'+
         '</div>') : '';
       var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+(startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
-      return selSec+catExpSec+listSec+foot;
+      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
     }
     // 리스트 화면 HTML
     var emEntryMap={};
@@ -3518,10 +3410,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     // 홈 화면 이벤트 연결
     function bindHome(){
       var ab=$('emAdminBack'); if(ab) ab.onclick=function(){ close(); openAdminModal(); };
-      var pc=$('emPickCats'); if(pc) pc.onclick=openCatPick;
-      var pf=$('emPickFlds'); if(pf) pf.onclick=openFldPick;
-      refreshSel();
-      var de=$('emDoExp'); if(de) de.onclick=function(){ exportSelectedCats(selList()); };
+      document.querySelectorAll('#'+ov+' .em-cfg-col').forEach(function(ch){ ch.onchange=function(){ var key=ch.getAttribute('data-key'); var cat=curCat(); var plist=layoutByCat[cat]||[]; plist.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(workLayout){ workLayout.forEach(function(c){ if(c.key===key) c.exp=ch.checked; }); if(editMode) markDirty(); } scheduleCheckSave(cat); }; });
+      var catAll=$('emCatAll'); if(catAll) catAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; }); catAll.textContent=allOn?'전체 선택':'전체 해제'; };
+      var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
+      var de=$('emDoExp'); if(de) de.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); exportSelectedCats(list); };
       document.querySelectorAll('#'+ov+' .em-go').forEach(function(b){ b.onclick=function(){ showList(b.getAttribute('data-mode')); }; });
       // EXPORT 카테고리(HANA 등) 형식으로 현재 데이터 내보내기
       var goBtn=$('emCatExp');
@@ -3532,7 +3424,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           sel.innerHTML=cats.map(function(pf){ var has=(pf.fields&&pf.fields.length); return '<option value="'+escapeHtml(pf.id)+'">'+escapeHtml(pf.name+(has?(' · '+(pf.fileName||'파일')):' (파일 없음)'))+'</option>'; }).join('');
         });
         goBtn.onclick=function(){
-          var list=selList();
+          var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); });
           if(!list.length){ showToast('위 카테고리 선택에서 내보낼 목록을 체크하세요','error'); return; }
           var sel=$('emCatSel'); var catId=sel?sel.value:'';
           var cat=(__expCats||[]).filter(function(pf){ return pf.id===catId; })[0];
@@ -3553,9 +3445,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       }; });
     }
     // 홈 화면 표시
-    function showHome(){ var b=$('emBody'); if(b){ b.classList.remove('em-list-view'); b.innerHTML=homeHTML(); bindHome(); } }
+    function showHome(){ var b=$('emBody'); if(b){ b.innerHTML=homeHTML(); bindHome(); } }
     // 리스트 화면 표시
-        function showList(mode){ var b=$('emBody'); if(b){ b.classList.add('em-list-view'); b.innerHTML=listHTML(mode); bindList(mode); } }
+        function showList(mode){ var b=$('emBody'); if(b){ b.innerHTML=listHTML(mode); bindList(mode); } }
     $('emClose').onclick=close; $(ov).onclick=function(e){ if(e.target&&e.target.id===ov) close(); };
     showHome();
   }
@@ -3630,13 +3522,17 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         BASE.forEach(function(b){ labelMap[nm(b.label)]={key:b.key, base:true}; });
         (layoutByCat[cat]||[]).forEach(function(c){ labelMap[nm(c.label)]={key:c.key, base:isBase(c.key)}; });
         var hasHeader = header.some(function(h){ var n=nm(h); return !!n && (!!labelMap[n] || /plu/.test(n)); });
-        // [조건4] 엑셀 헤더 ↔ 매니저 필드 라벨이 매칭되는 필드만 가져온다. 헤더가 없으면 위치(순서) 추정 없이 중단.
-        if(!hasHeader){ showToast('엑셀 첫 행에 필드명(헤더)이 없습니다 — 매칭되는 필드가 있어야 가져올 수 있습니다','error'); return; }
-        var cols=[], __skipped=[];
-        header.forEach(function(h,ci){ var n=nm(h); if(!n) return; var m=labelMap[n];
-          if(m){ cols.push({key:m.key,label:String(h).trim(),base:m.base,ci:ci,isNew:false}); }
-          else { __skipped.push(String(h).trim()); } });   // 매칭 안 된 엑셀 열은 가져오지 않음
-        if(!cols.length){ showToast('매칭되는 필드가 없습니다','error'); return; }
+        var cols=[];
+        if(hasHeader){
+          header.forEach(function(h,ci){ var n=nm(h); if(!n) return; var m=labelMap[n];
+            if(m){ cols.push({key:m.key,label:String(h).trim(),base:m.base,ci:ci,isNew:false}); }
+            else { var k=String(h).trim().toUpperCase(); cols.push({key:k,label:k,base:false,ci:ci,isNew:true}); } });
+        } else {
+          BASE.forEach(function(b,bi){ cols.push({key:b.key,label:b.label,base:true,ci:bi,isNew:false}); });
+        }
+        var news=cols.filter(function(c){return c.isNew;});
+        if(news.length){ if(!(await uiConfirm('엑셀에 기존에 없던 열이 있습니다: '+news.map(function(c){return c.label;}).join(', ')+'\n새 열로 만들까요?\n[확인=새 열 생성 / 취소=이 열들은 가져오지 않음]'))){ cols=cols.filter(function(c){return !c.isNew;}); } }
+        if(!cols.length){ showToast('가져올 열이 없습니다','error'); return; }
         // [필수] UPC(O) 열 — 신규/중복은 오직 UPC(O)로만 검증
         if(!cols.some(function(c){ return isUpcOCol(c); })){ showToast('Invalid data — a "UPC(O)" column is required.','error'); return; }
         var start = hasHeader?1:0;
@@ -3647,30 +3543,20 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           cols.forEach(function(col){ var v=String(c[col.ci]==null?'':c[col.ci]).trim(); if(col.base){ row[fieldOf(col.key)]=v; } else { row.extra[col.key]=v; } });
           rows.push(row); }
         if(!rows.length){ showToast('가져올 행이 없습니다','error'); return; }
-        // [MSRP 가격 자동적용] ON이면 COST에 마진 적용해 MSRP 채워 가져오기
-        // [조건1] COST 열이 없으면 MSRP 가격 적용 X · [조건2] SRP는 COST가 있어도 자동적용 X (엑셀 값 그대로)
+        // [불러오기 평균마진] 스위치 ON이면 COST에 마진 적용해 MSRP 채워 가져오기
         if(__pick.applyMargin){
-          var eaC=null, spC=null, srpC=null;
-          cols.forEach(function(c){ if(isEaPriceCol(c)) eaC=c; if(isSalesPriceCol(c)) spC=c; if(isSrpCol(c)) srpC=c; });
-          if(!eaC){ showToast('COST 열이 없어 MSRP 가격 자동적용을 건너뜁니다 — 원본 그대로 가져옵니다','error'); }
-          else if(!spC){ showToast('MSRP 열이 없어 가격 자동적용을 건너뜁니다 — 원본 그대로 가져옵니다','error'); }
+          var eaC=null, spC=null;
+          cols.forEach(function(c){ if(isEaPriceCol(c)) eaC=c; if(isSalesPriceCol(c)) spC=c; });
+          if(!eaC){ showToast('COST 열이 없어 평균마진을 적용할 수 없습니다 — 원본 그대로 가져옵니다','error'); }
+          else if(!spC){ showToast('MSRP 열이 없어 평균마진을 적용할 수 없습니다 — 원본 그대로 가져옵니다','error'); }
           else {
-            // [조건5] MSRP / SRP에 이미 가격이 있으면 영문 확인 팝업 (Apply=덮어쓰기 / Cancel=기존 가격 유지)
-            var __hitMsrp=0, __hitSrp=0;
-            rows.forEach(function(r){
-              if(String(getVal(r, spC.key)||'').trim()!=='') __hitMsrp++;
-              if(srpC && String(getVal(r, srpC.key)||'').trim()!=='') __hitSrp++;
-            });
-            var updatePrice=true;
-            if(__hitMsrp||__hitSrp){ updatePrice = (await askPriceUpdate({msrp:__hitMsrp, srp:__hitSrp}))==='apply'; }
-            var nAuto=0, nKept=0;
-            rows.forEach(function(r){
-              var had=String(getVal(r, spC.key)||'').trim()!=='';
-              if(!updatePrice && had){ nKept++; return; }          // 기존 가격 유지
-              var p=priceFromMargin(getVal(r, eaC.key), __pick.margin, []);   // COST 없으면 '' → 적용 안 함
-              if(p!==''){ setValOn(r, spC.key, p); nAuto++; }
-            });
-            showToast('MSRP 자동적용 '+nAuto+'건 (마진 '+__pick.margin+'%)'+(nKept?(' · 기존 가격 유지 '+nKept+'건'):''),'success');
+            var anyMsrp = rows.some(function(r){ return String(getVal(r, spC.key)||'').trim()!==''; });
+            var mode='apply';
+            if(anyMsrp){ mode = await askMarginOverwrite(); if(mode==='cancel') return; }
+            if(mode==='apply'){
+              rows.forEach(function(r){ var p=priceFromMargin(getVal(r, eaC.key), __pick.margin, []); if(p!==''){ setValOn(r, spC.key, p); } });
+            }
+            // mode==='asis' → 원본 그대로 (아무것도 안 함)
           }
         }
         // 가져온 열 + 현재 레이아웃 병합
@@ -3689,8 +3575,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(!newRows.length && !dupRows.length){ showToast('가져올 데이터가 없습니다','error'); return; }
         if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; }
         renderTabs();
-        showToast('신규 '+newRows.length+'건 · 중복 '+dupRows.length+'건'+(__skipped.length?(' · 매칭 안 된 열 '+__skipped.length+'개 무시'):'')+' — 각 리스트에서 확인 후 업데이트하세요','success');
-        if(__skipped.length) setTimeout(function(){ showToast('가져오지 않은 엑셀 열: '+__skipped.join(', '),'error'); }, 2700);
+        showToast('신규 '+newRows.length+'건 · 중복 '+dupRows.length+'건 — 각 리스트에서 확인 후 업데이트하세요','success');
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
     reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
@@ -3721,9 +3606,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 
   // ===== 돌아가기 / 검색 =====
   // 돌아가기: 편집 모드면 편집만 종료(페이지 유지), 아니면 이전 화면으로 이동
-  // 돌아가기 — 직전 페이지가 형제 앱(UPC/PLU 매니저·OCR)이면 history.back() 시 서로 오가는 문제가 있어 홈으로 직행
-  function __fromSiblingApp(){ try{ var f=String(document.referrer||'').split('?')[0].split('#')[0]; return /(upc-list-manager|plu-list-manager|upc-list-convert-ocr)\.html$/i.test(f); }catch(e){ return false; } }
-  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1 && !__fromSiblingApp()){ history.back(); } else { window.location.href='index.html'; } }
+  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
   $('pluBackBtn').onclick=goBack;
   var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=function(){ window.location.href='plu-list-manager.html'; };
   var __goOcr=$('pluGoOcr'); if(__goOcr) __goOcr.onclick=function(){ window.location.href='upc-list-convert-ocr.html'; };
