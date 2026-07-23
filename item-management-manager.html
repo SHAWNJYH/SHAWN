@@ -93,12 +93,12 @@
   /* 매장 업로드 그리드 */
   /* 화면 분할 — 왼쪽은 업로드 박스 크기만큼, 오른쪽(상품검색)이 나머지 전부 */
   .ia-split{ display:flex; align-items:flex-start; gap:22px; }
-  .ia-left{ flex:0 0 auto; width:calc(186px * 2 + 10px); }   /* 업로드 박스 2개 가로 */
+  .ia-left{ flex:0 0 auto; width:212px; }   /* 업로드 박스 세로 한 줄 */
   .ia-right{ flex:1 1 0; min-width:0; }
   .ia-left .ia-sec{ margin-bottom:20px; }
   /* 업로드 박스: 왼쪽에서 가로로 나열 */
-  .st-grid{ display:grid; grid-template-columns:repeat(2, 186px); gap:10px; }   /* 가로 2개 매장씩 */
-  #imBox{ grid-template-columns:186px; }   /* ITEM MASTER — 매장 박스와 동일 크기 */
+  .st-grid{ display:grid; grid-template-columns:1fr; gap:9px; }   /* 세로 한 줄 */
+  #imBox{ grid-template-columns:1fr; }   /* ITEM MASTER — 매장 박스와 동일 폭 */
   @media(max-width:1180px){
     .ia-split{ flex-direction:column; }
     .ia-left{ width:100%; }
@@ -268,7 +268,7 @@
 
     <!-- 매장별 엑셀 업로드 -->
     <div class="ia-sec">
-      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">기간/부서별 매출순 상품 집계</span><span class="ia-sec-sub" id="stCount"></span></div>
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">MART ITEM LIST</span><span class="ia-sec-sub" id="stCount"></span></div>
       <div class="st-grid" id="stGrid"></div>
     </div>
 
