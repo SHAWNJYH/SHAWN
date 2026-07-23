@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<!-- THE SHAWN WITH EGMM BY CLAUDE -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SALES DATA UPLOADER · THE SHAWN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#fafaf7; --bg-elev:#ffffff; --bg-elev-2:#f3f3ee; --border:#e5e5e0; --border-bright:#c8c8c0;
+    --text:#1a1a1d; --text-dim:#6b6b72; --text-faint:#9a9aa0; --accent:#1a1a1d; --accent-warm:#c9a961; --accent-soft:#f0eee5;
+    --ok:#2c7a4b; --ok-soft:#eaf6ee; --warn:#b06a00; --warn-soft:#fff4e2; --bad:#c0392b; --bad-soft:#fdecea;
+    --mono:'Pretendard','Malgun Gothic','맑은 고딕',system-ui,sans-serif;
+    --radius:14px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--mono); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }
+  body{ min-height:100vh; }
+
+  /* 상단 바 */
+  .top{ position:sticky; top:0; z-index:40; background:var(--bg-elev); border-bottom:1.5px solid var(--border); }
+  .top-in{ max-width:1180px; margin:0 auto; padding:15px 24px; display:flex; align-items:center; gap:16px; }
+  .brand .eyebrow{ font-size:10.5px; font-weight:800; letter-spacing:.2em; color:var(--accent-warm); text-transform:uppercase; }
+  .brand .title{ font-size:18px; font-weight:800; letter-spacing:.02em; margin-top:1px; }
+  .top-spacer{ flex:1; }
+  .gh-state{ display:flex; align-items:center; gap:8px; font-size:12px; font-weight:800; color:var(--text-dim); }
+  .gh-dot{ width:8px; height:8px; border-radius:50%; background:var(--text-faint); }
+  .gh-dot.ok{ background:var(--ok); }
+  .gh-dot.bad{ background:var(--bad); }
+  .gh-cfg-btn{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:10px; padding:8px 13px; font-size:12.5px; font-weight:800; cursor:pointer; transition:all .15s; }
+  .gh-cfg-btn:hover{ border-color:var(--accent-warm); color:var(--text); }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:26px 24px 60px; }
+
+  /* 단계 안내 */
+  .steps{ display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
+  .step{ flex:1 1 0; min-width:200px; border:1.5px solid var(--border); border-radius:12px; background:var(--bg-elev); padding:13px 15px; }
+  .step .n{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:7px; background:var(--accent-soft); color:var(--accent-warm); font-weight:800; font-size:12px; margin-bottom:7px; }
+  .step .t{ font-size:13px; font-weight:800; }
+  .step .d{ font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.55; }
+
+  .sec{ margin-bottom:26px; }
+  .sec-head{ display:flex; align-items:center; gap:9px; margin:0 2px 13px; }
+  .sec-tick{ width:9px; height:9px; border-radius:3px; background:var(--accent-warm); }
+  .sec-name{ font-size:15px; font-weight:800; letter-spacing:.02em; }
+  .sec-sub{ font-size:12px; font-weight:700; color:var(--text-faint); }
+  .sec-actions{ margin-left:auto; display:flex; gap:8px; }
+
+  /* 매장 그리드 */
+  .st-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(232px,1fr)); gap:12px; }
+  .st-card{ position:relative; border:1.5px solid var(--border); border-radius:12px; background:var(--bg-elev); padding:14px; transition:border-color .15s, box-shadow .15s; }
+  .st-card.has{ border-color:var(--border-bright); }
+  .st-card.drag{ border-color:var(--accent-warm); box-shadow:0 0 0 3px var(--accent-soft); }
+  .st-card .st-nm{ font-size:13.5px; font-weight:800; display:flex; align-items:center; gap:7px; }
+  .st-card .dotk{ width:8px; height:8px; border-radius:50%; background:var(--text-faint); }
+  .st-card.has .dotk{ background:var(--ok); }
+  .st-meta{ font-size:11.5px; color:var(--text-dim); margin-top:7px; min-height:16px; line-height:1.5; }
+  .st-meta .warn{ color:var(--warn); font-weight:800; }
+  .st-actions{ display:flex; gap:6px; margin-top:11px; }
+  .st-btn{ flex:1; border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:8px; padding:6px 0; font-size:11.5px; font-weight:800; cursor:pointer; transition:all .12s; }
+  .st-btn:hover{ border-color:var(--accent-warm); color:var(--text); }
+  .st-btn.rm:hover{ border-color:var(--bad); color:var(--bad); }
+  .st-drop{ position:absolute; inset:0; border-radius:12px; background:rgba(201,169,97,.08); border:2px dashed var(--accent-warm); display:none; align-items:center; justify-content:center; font-size:12.5px; font-weight:800; color:var(--warn); pointer-events:none; }
+  .st-card.drag .st-drop{ display:flex; }
+
+  /* 버튼 */
+  .btn{ border:1.5px solid var(--border); background:var(--bg); color:var(--text); border-radius:10px; padding:9px 16px; font-size:13px; font-weight:800; cursor:pointer; transition:all .15s; font-family:inherit; }
+  .btn:hover{ border-color:var(--accent-warm); }
+  .btn:active{ transform:translateY(1px); }
+  .btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.primary:hover{ background:#000; }
+  .btn.warm{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .btn.warm:hover{ filter:brightness(1.05); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+  .btn.sm{ padding:7px 12px; font-size:12px; }
+
+  /* 빌드 패널 */
+  .build{ border:1.5px solid var(--border); border-radius:var(--radius); background:var(--bg-elev); padding:20px; }
+  .build-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .build-stat{ display:flex; flex-direction:column; gap:2px; padding-right:18px; border-right:1px solid var(--border); }
+  .build-stat:last-of-type{ border-right:none; }
+  .build-stat .v{ font-size:22px; font-weight:800; letter-spacing:-.01em; }
+  .build-stat .l{ font-size:11px; font-weight:800; color:var(--text-faint); letter-spacing:.04em; }
+  .build-actions{ margin-left:auto; display:flex; gap:9px; }
+  .build-note{ font-size:12px; color:var(--text-dim); margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); line-height:1.6; }
+
+  /* 모달 */
+  .ov{ position:fixed; inset:0; background:rgba(20,20,22,.5); z-index:100; display:none; align-items:center; justify-content:center; padding:20px; }
+  .ov.show{ display:flex; }
+  .ov-card{ background:var(--bg-elev); border-radius:16px; width:100%; max-width:480px; max-height:88vh; overflow:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .ov-head{ display:flex; align-items:center; gap:10px; padding:18px 20px; border-bottom:1.5px solid var(--border); }
+  .ov-head h3{ font-size:15px; font-weight:800; }
+  .ov-x{ margin-left:auto; border:none; background:var(--bg-elev-2); width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:15px; color:var(--text-dim); }
+  .ov-body{ padding:20px; }
+  .fld{ margin-bottom:15px; }
+  .fld label{ display:block; font-size:12px; font-weight:800; color:var(--text-dim); margin-bottom:6px; }
+  .fld input{ width:100%; border:1.5px solid var(--border); background:var(--bg); border-radius:10px; padding:10px 13px; font-size:13px; font-family:inherit; color:var(--text); }
+  .fld input:focus{ outline:none; border-color:var(--accent-warm); background:#fff; }
+  .fld .hint{ font-size:11px; color:var(--text-faint); margin-top:5px; line-height:1.5; }
+  .fld .hint a{ color:var(--accent-warm); font-weight:800; }
+  .ov-foot{ display:flex; gap:9px; padding:16px 20px; border-top:1.5px solid var(--border); }
+  .ov-foot .btn{ flex:1; }
+
+  /* 토스트 */
+  .toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:var(--accent); color:#fff; padding:12px 20px; border-radius:11px; font-size:13px; font-weight:800; z-index:200; opacity:0; transition:all .25s; pointer-events:none; max-width:90vw; text-align:center; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* 진행 오버레이 */
+  .prog{ position:fixed; inset:0; background:rgba(250,250,247,.85); z-index:150; display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
+  .prog.show{ display:flex; }
+  .prog .spin{ width:40px; height:40px; border:4px solid var(--border); border-top-color:var(--accent-warm); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .prog .msg{ font-size:14px; font-weight:800; color:var(--text-dim); }
+
+  @media(max-width:640px){
+    .top-in,.wrap{ padding-left:16px; padding-right:16px; }
+    .build-row{ gap:10px; }
+    .build-actions{ margin-left:0; width:100%; }
+    .build-actions .btn{ flex:1; }
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="top-in">
+      <div class="brand">
+        <div class="eyebrow">THE SHAWN · H-MART</div>
+        <div class="title">매장 판매데이터 업로더</div>
+      </div>
+      <div class="top-spacer"></div>
+      <div class="gh-state"><span class="gh-dot" id="ghDot"></span><span id="ghStateText">GitHub 미설정</span></div>
+      <button class="gh-cfg-btn" id="ghCfgBtn" type="button">⚙ GitHub 설정</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div class="t">매장별 엑셀 올리기</div><div class="d">상품명·판매날짜·수량·금액이 담긴 매장 엑셀을 각 칸에 올립니다.</div></div>
+      <div class="step"><span class="n">2</span><div class="t">판매데이터 파일 만들기</div><div class="d">모든 매장을 상품별 최신값으로 묶어 파일 하나로 만듭니다.</div></div>
+      <div class="step"><span class="n">3</span><div class="t">GitHub에 올리기</div><div class="d">버튼 한 번으로 GitHub에 저장 — 검색 화면이 이 파일을 불러옵니다.</div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-head">
+        <span class="sec-tick"></span><span class="sec-name">매장별 판매 엑셀</span><span class="sec-sub" id="stCount"></span>
+        <span class="sec-actions">
+          <button class="btn sm" id="addStoreBtn" type="button">＋ 매장 추가</button>
+          <button class="btn sm" id="clearAllBtn" type="button">전체 비우기</button>
+        </span>
+      </div>
+      <div class="st-grid" id="stGrid"></div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+    </div>
+
+    <div class="sec">
+      <div class="sec-head"><span class="sec-tick"></span><span class="sec-name">판매데이터 파일</span><span class="sec-sub">상품별 최신값 · 검색용</span></div>
+      <div class="build">
+        <div class="build-row">
+          <div class="build-stat"><span class="v" id="statStores">0</span><span class="l">매장</span></div>
+          <div class="build-stat"><span class="v" id="statProducts">0</span><span class="l">상품</span></div>
+          <div class="build-stat"><span class="v" id="statSize">0 KB</span><span class="l">예상 파일크기</span></div>
+          <div class="build-actions">
+            <button class="btn" id="downloadBtn" type="button">⬇ 파일로 저장</button>
+            <button class="btn warm" id="uploadBtn" type="button">⬆ GitHub에 올리기</button>
+          </div>
+        </div>
+        <div class="build-note" id="buildNote">매장 엑셀을 올리면 여기에서 판매데이터 파일을 만들 수 있습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GitHub 설정 모달 -->
+  <div class="ov" id="ghOv">
+    <div class="ov-card">
+      <div class="ov-head"><h3>⚙ GitHub 설정</h3><button class="ov-x" id="ghOvX" type="button">✕</button></div>
+      <div class="ov-body">
+        <div class="fld">
+          <label>저장소 (owner/repo)</label>
+          <input type="text" id="ghRepo" placeholder="예: myname/sales-data" autocomplete="off">
+          <div class="hint">GitHub 사용자명 / 저장소 이름. 저장소는 미리 만들어 두세요.</div>
+        </div>
+        <div class="fld">
+          <label>파일 경로</label>
+          <input type="text" id="ghPath" placeholder="예: data/sales.json" autocomplete="off">
+          <div class="hint">저장소 안에 저장될 파일 경로. 검색 화면도 이 경로를 불러옵니다.</div>
+        </div>
+        <div class="fld">
+          <label>브랜치</label>
+          <input type="text" id="ghBranch" placeholder="main" autocomplete="off">
+        </div>
+        <div class="fld">
+          <label>액세스 토큰 (Personal Access Token)</label>
+          <input type="password" id="ghToken" placeholder="ghp_… 또는 github_pat_…" autocomplete="off">
+          <div class="hint">
+            <b>이 기기 브라우저에만</b> 저장됩니다(서버로 전송 안 함). <code>contents</code> 쓰기 권한이 있는 Fine-grained 토큰을 쓰세요.
+            <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">토큰 만들기 ↗</a>
+          </div>
+        </div>
+      </div>
+      <div class="ov-foot">
+        <button class="btn" id="ghTest" type="button">연결 확인</button>
+        <button class="btn primary" id="ghSave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="prog" id="prog"><div class="spin"></div><div class="msg" id="progMsg">처리 중…</div></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   매장 판매데이터 업로더 — 로컬 HTML
+   · 매장별 엑셀(상품명·판매날짜 포함) → IndexedDB 저장
+   · 상품별 최신값으로 집계 → JSON 파일 하나
+   · GitHub API 로 커밋 (검색용 ANALYZE 가 raw 로 불러감)
+   ============================================================ */
+  var $=function(id){ return document.getElementById(id); };
+
+  /* 매장 목록 — ITEM ANALYZE 와 동일하게 맞춤 (추가 가능) */
+  var DEFAULT_STORES=['TACOMA','FEDERAL WAY','BELLEVUE','LYNNWOOD','REDMOND','BALLARD','MELLOW WAY','DISTRICT H','M2M','G-MART'];
+  var STORES=DEFAULT_STORES.slice();
+
+  var datasets={};   // store -> { store, fileName, uploadedAt, rowCount, agg:{ upcKey -> {name,code,cost,srp,qty,amt,camt,date} } }
+  var SALES_FILE_VER=1;
+
+  /* ===== 유틸 ===== */
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function num(v){ if(v==null||v==='') return null; if(typeof v==='number') return v; var s=String(v).replace(/[$,\s]/g,''); if(!s) return null; var n=parseFloat(s); return isNaN(n)?null:n; }
+  function upcKey(v){ var s=String(v==null?'':v).trim(); if(!s) return ''; var dg=s.replace(/\D/g,''); if(dg){ dg=dg.replace(/^0+/,''); return dg||'0'; } return s.toUpperCase().replace(/[\s\-_.]/g,''); }
+  function parseDate(v){ if(v==null||v==='') return null; if(v instanceof Date) return v.getTime(); if(typeof v==='number'){ if(v>20000&&v<80000) return Math.round((v-25569)*86400000); return null; } var t=Date.parse(String(v)); return isNaN(t)?null:t; }
+  function ymd(ms){ if(!ms) return ''; var d=new Date(ms); var p=function(x){return (x<10?'0':'')+x;}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+  function fmtBytes(n){ if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; return (n/1048576).toFixed(2)+' MB'; }
+
+  var tT=null;
+  function toast(m){ var e=$('toast'); e.textContent=m; e.classList.add('show'); if(tT) clearTimeout(tT); tT=setTimeout(function(){ e.classList.remove('show'); },2200); }
+  function showProg(m){ $('progMsg').textContent=m||'처리 중…'; $('prog').classList.add('show'); }
+  function hideProg(){ $('prog').classList.remove('show'); }
+
+  /* ===== IndexedDB ===== */
+  var DB='sales-uploader', OS='stores', _db=null;
+  function idb(){ return new Promise(function(res,rej){ if(_db) return res(_db); var r=indexedDB.open(DB,1);
+    r.onupgradeneeded=function(){ var d=r.result; if(!d.objectStoreNames.contains(OS)) d.createObjectStore(OS); };
+    r.onsuccess=function(){ _db=r.result; res(_db); }; r.onerror=function(){ rej(r.error); }; }); }
+  function idbPut(k,v){ return idb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction(OS,'readwrite'); tx.objectStore(OS).put(v,k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+  function idbDel(k){ return idb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction(OS,'readwrite'); tx.objectStore(OS).delete(k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+  function idbAll(){ return idb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction(OS,'readonly'); var out={}; var c=tx.objectStore(OS).openCursor();
+    c.onsuccess=function(e){ var cur=e.target.result; if(cur){ out[cur.key]=cur.value; cur.continue(); } else res(out); }; c.onerror=function(){ rej(c.error); }; }); }); }
+  function idbClear(){ return idb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction(OS,'readwrite'); tx.objectStore(OS).clear(); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+
+  /* ===== 엑셀 헤더 → 역할 자동 추정 =====
+     상품명 / UPC / ITEM CODE / 판매날짜 / 수량 / 판매금액 / 원가금액 / COST / SRP */
+  function guessRole(header){
+    var h=String(header||'').trim().toUpperCase().replace(/[\s_\-.]/g,'');
+    if(/^UPC|BARCODE|바코드/.test(h)) return 'upc';
+    if(/ITEMCODE|^PLU$|SKU|상품코드|품목코드/.test(h)) return 'code';
+    if(/DESC|상품명|품명|NAME|제품명/.test(h)) return 'name';
+    if(/DATE|판매일|일자|날짜/.test(h)) return 'date';
+    if(/QTY|수량|판매수량|QUANTITY/.test(h)) return 'qty';
+    if(/SRPTOTAL|판매금액|매출액|매출|SALESAMT|AMOUNT|SALES$/.test(h)) return 'amount';
+    if(/COSTTOTAL|원가금액|COSTAMT/.test(h)) return 'cost_amount';
+    if(/^COST$|원가/.test(h)) return 'cost';
+    if(/^SRP$|MSRP|판매가|소비자가/.test(h)) return 'srp';
+    return '';
+  }
+
+  /* 엑셀 원본 rows → 상품별 집계 (같은 UPC 는 가장 최근 판매일 데이터만 유지) */
+  function aggregateRows(rawRows){
+    if(!rawRows.length) return { agg:{}, rowCount:0, roles:{} };
+    var headers=Object.keys(rawRows[0]||{});
+    var roleCol={};   // role -> 헤더명
+    headers.forEach(function(hh){ var r=guessRole(hh); if(r && !roleCol[r]) roleCol[r]=hh; });
+    var upcH=roleCol.upc, codeH=roleCol.code, nameH=roleCol.name, dateH=roleCol.date,
+        qtyH=roleCol.qty, amtH=roleCol.amount, camtH=roleCol.cost_amount, costH=roleCol.cost, srpH=roleCol.srp;
+    var agg={}, n=0;
+    rawRows.forEach(function(r){
+      var upc = upcH ? upcKey(r[upcH]) : '';
+      var code = codeH ? String(r[codeH]==null?'':r[codeH]).trim() : '';
+      // 식별키: UPC 우선, 없으면 코드
+      var key = upc ? upc : (code ? ('C:'+code.toUpperCase()) : '');
+      if(!key) return;
+      n++;
+      var name = nameH ? String(r[nameH]==null?'':r[nameH]).trim() : '';
+      var date = dateH ? (parseDate(r[dateH])||0) : 0;
+      var qty = qtyH ? num(r[qtyH]) : null;
+      var amt = amtH ? num(r[amtH]) : null;
+      var camt = camtH ? num(r[camtH]) : null;
+      var cost = costH ? num(r[costH]) : null;
+      var srp = srpH ? num(r[srpH]) : null;
+      var e=agg[key];
+      if(!e){ e={ upc:upc, code:code, name:name, cost:null, srp:null, qty:0, amt:0, camt:0, hasAmt:false, hasCamt:false, hasQty:false, date:0 }; agg[key]=e; }
+      // 같은 날이면 누적, 더 최근 날이면 갱신 후 그 날 기준으로 새로 누적
+      if(date > e.date){ e.date=date; e.qty=0; e.amt=0; e.camt=0; e.hasAmt=false; e.hasCamt=false; e.hasQty=false; }
+      if(date >= e.date || e.date===0){
+        if(qty!=null){ e.qty+=qty; e.hasQty=true; }
+        if(amt!=null){ e.amt+=amt; e.hasAmt=true; }
+        if(camt!=null){ e.camt+=camt; e.hasCamt=true; }
+        if(cost!=null) e.cost=cost;
+        if(srp!=null) e.srp=srp;
+        if(name && !e.name) e.name=name;
+        if(code && !e.code) e.code=code;
+        if(upc && !e.upc) e.upc=upc;
+      }
+    });
+    return { agg:agg, rowCount:n, roles:roleCol };
+  }
+
+  /* ===== 엑셀 읽기 ===== */
+  function readWorkbook(buf){
+    var wb=XLSX.read(new Uint8Array(buf), {type:'array', cellDates:true});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(ws, {defval:''});
+  }
+  function commitStore(store, fileName, rawRows){
+    var res=aggregateRows(rawRows);
+    var prodN=Object.keys(res.agg).length;
+    if(!prodN){ toast(store+': 인식할 수 있는 상품이 없습니다 (UPC·상품명 확인)'); return; }
+    var ds={ store:store, fileName:fileName, uploadedAt:Date.now(), rowCount:res.rowCount, prodCount:prodN, roles:res.roles, agg:res.agg };
+    idbPut(store, ds).then(function(){ datasets[store]=ds; render(); toast(store+' — 상품 '+prodN.toLocaleString('en-US')+'개 반영'); })
+      .catch(function(){ toast('저장 실패 (저장공간 부족일 수 있음)'); });
+  }
+  function handleFile(store, file){
+    if(!file) return;
+    showProg(store+' 읽는 중…');
+    var rd=new FileReader();
+    rd.onload=function(){ try{ var rows=readWorkbook(rd.result); commitStore(store, file.name, rows); }catch(err){ toast('엑셀을 읽을 수 없습니다'); } hideProg(); };
+    rd.onerror=function(){ toast('파일 읽기 실패'); hideProg(); };
+    rd.readAsArrayBuffer(file);
+  }
+
+  /* ===== 렌더 ===== */
+  function render(){
+    var n=Object.keys(datasets).filter(function(k){ return datasets[k]&&datasets[k].agg; }).length;
+    $('stCount').textContent=n+' / '+STORES.length+' 매장';
+    $('stGrid').innerHTML=STORES.map(function(s){
+      var ds=datasets[s], has=ds&&ds.agg;
+      var meta = has ? (ds.prodCount.toLocaleString('en-US')+'개 상품 · '+ymd(ds.uploadedAt)) : '엑셀 없음';
+      if(has && (!ds.roles || (!ds.roles.upc && !ds.roles.name))) meta='<span class="warn">⚠ UPC·상품명 열 확인</span>';
+      return '<div class="st-card'+(has?' has':'')+'" data-store="'+esc(s)+'">'+
+        '<div class="st-drop">↓ 여기에 놓기</div>'+
+        '<div class="st-nm"><span class="dotk"></span>'+esc(s)+'</div>'+
+        '<div class="st-meta">'+meta+'</div>'+
+        '<div class="st-actions">'+
+          '<button class="st-btn up" data-up="'+esc(s)+'">'+(has?'다시 올리기':'엑셀 올리기')+'</button>'+
+          (has?'<button class="st-btn rm" data-rm="'+esc(s)+'">삭제</button>':'')+
+        '</div>'+
+      '</div>';
+    }).join('');
+    bindStoreCards();
+    updateBuildStats();
+  }
+  function bindStoreCards(){
+    var pendingStore=null;
+    $('stGrid').querySelectorAll('[data-up]').forEach(function(b){ b.onclick=function(){ pendingStore=b.getAttribute('data-up'); var fi=$('fileInput'); fi.onchange=function(){ var f=fi.files&&fi.files[0]; try{fi.value='';}catch(e){} if(f&&pendingStore) handleFile(pendingStore, f); }; fi.click(); }; });
+    $('stGrid').querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ var s=b.getAttribute('data-rm'); if(!confirm(s+' 데이터를 삭제할까요?')) return; idbDel(s).then(function(){ delete datasets[s]; render(); toast(s+' 삭제됨'); }); }; });
+    $('stGrid').querySelectorAll('.st-card').forEach(function(card){
+      var s=card.getAttribute('data-store');
+      card.addEventListener('dragover', function(e){ e.preventDefault(); card.classList.add('drag'); });
+      card.addEventListener('dragleave', function(){ card.classList.remove('drag'); });
+      card.addEventListener('drop', function(e){ e.preventDefault(); card.classList.remove('drag'); var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) handleFile(s, f); });
+    });
+  }
+
+  /* ===== 판매데이터 파일 빌드 (상품별 최신값) =====
+     검색용 ANALYZE 가 바로 쓰도록: products[UPC/코드키] = { name, code, upc, s:{ STORE:{cost,srp,qty,amt,camt,date} } } */
+  function buildPayload(){
+    var storesWith=STORES.filter(function(s){ return datasets[s]&&datasets[s].agg&&Object.keys(datasets[s].agg).length; });
+    var products={};
+    storesWith.forEach(function(s){
+      var agg=datasets[s].agg;
+      Object.keys(agg).forEach(function(key){
+        var e=agg[key];
+        var p=products[key];
+        if(!p){ p={ name:e.name||'', code:e.code||'', upc:e.upc||'', s:{} }; products[key]=p; }
+        if(!p.name && e.name) p.name=e.name;
+        if(!p.code && e.code) p.code=e.code;
+        if(!p.upc && e.upc) p.upc=e.upc;
+        // 매장별 값 — 소수점 2자리 반올림해 용량 절약
+        var r2=function(x){ return x==null?null:Math.round(x*100)/100; };
+        p.s[s]={
+          cost: r2(e.cost), srp: r2(e.srp),
+          qty: e.hasQty? (Math.round(e.qty*100)/100) : null,
+          amt: e.hasAmt? r2(e.amt) : null,
+          camt: e.hasCamt? r2(e.camt) : null,
+          date: e.date||0
+        };
+      });
+    });
+    return { _type:'sales-data', ver:SALES_FILE_VER, updatedAt:Date.now(), stores:storesWith, products:products };
+  }
+  var _lastJson='', _lastStats={stores:0,products:0,size:0};
+  function updateBuildStats(){
+    var storesWith=STORES.filter(function(s){ return datasets[s]&&datasets[s].agg&&Object.keys(datasets[s].agg).length; });
+    if(!storesWith.length){ _lastStats={stores:0,products:0,size:0}; _lastJson='';
+      $('statStores').textContent='0'; $('statProducts').textContent='0'; $('statSize').textContent='0 KB';
+      $('downloadBtn').disabled=true; $('uploadBtn').disabled=true;
+      $('buildNote').textContent='매장 엑셀을 올리면 여기에서 판매데이터 파일을 만들 수 있습니다.';
+      return;
+    }
+    var payload=buildPayload();
+    var json=JSON.stringify(payload);
+    _lastJson=json; _lastStats={ stores:storesWith.length, products:Object.keys(payload.products).length, size:json.length };
+    $('statStores').textContent=_lastStats.stores;
+    $('statProducts').textContent=_lastStats.products.toLocaleString('en-US');
+    $('statSize').textContent=fmtBytes(_lastStats.size);
+    $('downloadBtn').disabled=false; $('uploadBtn').disabled=false;
+    var warn='';
+    if(_lastStats.size > 90*1048576) warn=' <span style="color:var(--bad);font-weight:800;">⚠ GitHub 100MB 제한에 근접 — 기간을 줄이거나 매장을 나누세요</span>';
+    else if(_lastStats.size > 40*1048576) warn=' <span style="color:var(--warn);font-weight:800;">파일이 큽니다 — 불러오기가 느릴 수 있습니다</span>';
+    $('buildNote').innerHTML='상품별 최신 판매일 기준으로 묶었습니다. 같은 상품이 여러 매장·여러 날에 있어도 각 매장의 가장 최근 값만 남습니다.'+warn;
+  }
+
+  function downloadFile(){
+    if(!_lastJson){ toast('먼저 매장 엑셀을 올리세요'); return; }
+    var blob=new Blob([_lastJson], {type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='sales-data_'+ymd(Date.now())+'.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    toast('파일 저장 완료 ('+fmtBytes(_lastJson.length)+')');
+  }
+
+  /* ===== GitHub 설정 (localStorage) ===== */
+  var GH_LS='sales-uploader-gh';
+  function ghCfg(){ try{ return JSON.parse(localStorage.getItem(GH_LS)||'{}'); }catch(e){ return {}; } }
+  function ghSave(cfg){ try{ localStorage.setItem(GH_LS, JSON.stringify(cfg)); }catch(e){} }
+  function ghConfigured(){ var c=ghCfg(); return !!(c.repo && c.path && c.token); }
+  function updateGhState(){
+    var c=ghCfg(), dot=$('ghDot'), tx=$('ghStateText');
+    dot.classList.remove('ok','bad');
+    if(ghConfigured()){ dot.classList.add('ok'); tx.textContent=c.repo+' · '+c.path; }
+    else{ tx.textContent='GitHub 미설정'; }
+  }
+  function openGh(){ var c=ghCfg(); $('ghRepo').value=c.repo||''; $('ghPath').value=c.path||''; $('ghBranch').value=c.branch||'main'; $('ghToken').value=c.token||''; $('ghOv').classList.add('show'); }
+  function closeGh(){ $('ghOv').classList.remove('show'); }
+  function readGhForm(){ return { repo:$('ghRepo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,''), path:$('ghPath').value.trim().replace(/^\/+/,''), branch:$('ghBranch').value.trim()||'main', token:$('ghToken').value.trim() }; }
+
+  /* GitHub API — 파일 존재 확인(SHA) → 생성/갱신 */
+  function ghApiBase(c){ return 'https://api.github.com/repos/'+c.repo+'/contents/'+encodeURIComponent(c.path).replace(/%2F/g,'/'); }
+  function ghGetSha(c){
+    return fetch(ghApiBase(c)+'?ref='+encodeURIComponent(c.branch), { headers:{ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' } })
+      .then(function(r){ if(r.status===404) return null; if(!r.ok) throw new Error('GET '+r.status); return r.json().then(function(j){ return j.sha; }); });
+  }
+  function b64EncodeUtf8(str){
+    // UTF-8 안전 base64
+    var bytes=new TextEncoder().encode(str);
+    var bin=''; var CH=0x8000;
+    for(var i=0;i<bytes.length;i+=CH){ bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+CH)); }
+    return btoa(bin);
+  }
+  function ghUpload(){
+    if(!_lastJson){ toast('먼저 매장 엑셀을 올리세요'); return; }
+    var c=ghCfg();
+    if(!ghConfigured()){ toast('GitHub 설정을 먼저 완료하세요'); openGh(); return; }
+    if(_lastJson.length > 95*1048576){ toast('파일이 GitHub 100MB 제한을 넘습니다'); return; }
+    showProg('GitHub 에 올리는 중…');
+    var content=b64EncodeUtf8(_lastJson);
+    ghGetSha(c).then(function(sha){
+      var body={ message:'sales-data update '+ymd(Date.now())+' ('+_lastStats.products+' products)', content:content, branch:c.branch };
+      if(sha) body.sha=sha;
+      return fetch(ghApiBase(c), { method:'PUT', headers:{ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+    }).then(function(r){
+      return r.ok ? r.json().then(function(j){ return {ok:true,j:j}; }) : r.text().then(function(t){ return {ok:false,status:r.status,text:t}; });
+    }).then(function(res){
+      hideProg();
+      if(res.ok){
+        var raw='https://raw.githubusercontent.com/'+c.repo+'/'+c.branch+'/'+c.path;
+        toast('GitHub 업로드 완료 ✓');
+        $('buildNote').innerHTML='✓ 방금 GitHub 에 올렸습니다. 검색 화면에서 불러올 주소:<br><code style="font-size:11px;word-break:break-all;">'+esc(raw)+'</code>';
+      } else {
+        var msg='업로드 실패 ('+res.status+')';
+        if(res.status===401||res.status===403) msg='업로드 실패 — 토큰 권한 확인 ('+res.status+')';
+        else if(res.status===404) msg='업로드 실패 — 저장소/경로 확인 (404)';
+        else if(res.status===409) msg='업로드 실패 — 충돌, 다시 시도하세요 (409)';
+        toast(msg);
+      }
+    }).catch(function(err){ hideProg(); toast('업로드 실패 — 네트워크/설정 확인'); });
+  }
+  function ghTest(){
+    var c=readGhForm();
+    if(!c.repo||!c.path||!c.token){ toast('저장소·경로·토큰을 모두 입력하세요'); return; }
+    showProg('연결 확인 중…');
+    fetch('https://api.github.com/repos/'+c.repo, { headers:{ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' } })
+      .then(function(r){ hideProg();
+        if(r.ok) toast('연결 확인 ✓ 저장소 접근 가능');
+        else if(r.status===404) toast('저장소를 찾을 수 없습니다 (이름·권한 확인)');
+        else if(r.status===401) toast('토큰이 유효하지 않습니다');
+        else toast('연결 실패 ('+r.status+')');
+      }).catch(function(){ hideProg(); toast('연결 실패 — 네트워크 확인'); });
+  }
+
+  /* ===== 매장 추가 ===== */
+  function addStore(){
+    var name=prompt('추가할 매장 이름을 입력하세요 (검색 화면의 매장명과 똑같이):');
+    if(name==null) return; name=name.trim().toUpperCase(); if(!name) return;
+    if(STORES.indexOf(name)>=0){ toast('이미 있는 매장입니다'); return; }
+    STORES.push(name); try{ localStorage.setItem('sales-uploader-stores', JSON.stringify(STORES)); }catch(e){}
+    render(); toast(name+' 추가됨');
+  }
+
+  /* ===== 부팅 ===== */
+  (function boot(){
+    try{ var extra=JSON.parse(localStorage.getItem('sales-uploader-stores')||'null'); if(Array.isArray(extra)&&extra.length) STORES=extra; }catch(e){}
+    $('ghCfgBtn').onclick=openGh;
+    $('ghOvX').onclick=closeGh;
+    $('ghOv').onclick=function(e){ if(e.target && e.target.id==='ghOv') closeGh(); };
+    $('ghTest').onclick=ghTest;
+    $('ghSave').onclick=function(){ var c=readGhForm(); if(!c.repo||!c.path){ toast('저장소와 경로는 필수입니다'); return; } ghSave(c); updateGhState(); closeGh(); toast('GitHub 설정 저장됨'); };
+    $('addStoreBtn').onclick=addStore;
+    $('clearAllBtn').onclick=function(){ if(!confirm('모든 매장 데이터를 비울까요?')) return; idbClear().then(function(){ datasets={}; render(); toast('전체 비움'); }); };
+    $('downloadBtn').onclick=downloadFile;
+    $('uploadBtn').onclick=ghUpload;
+    updateGhState();
+    idbAll().then(function(all){ datasets=all||{}; render(); }).catch(function(){ render(); });
+  })();
+</script>
+</body>
+</html>

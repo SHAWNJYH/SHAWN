@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>EGMM · THE SHAWN</title>
+<title>MART · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   :root {
@@ -2589,13 +2589,13 @@
 <div id="egmmMenu">
  <div class="egmm-masthead">
    <div class="egmm-eyebrow">운영 콘솔 · Operations</div>
-   <div class="egmm-wordmark">EGMM<span class="dot">.</span></div>
+   <div class="egmm-wordmark">MART<span class="dot">.</span></div>
    <div class="egmm-rule"></div>
  </div>
  <div class="egmm-cards">
   <!-- 박스 1: EGMM -->
   <div class="egmm-card">
-    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">EGMM</span></div>
+    <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">MART</span></div>
 
     <div class="egmm-section-title">ITEM LIST</div>
     <button class="egmm-menu-btn" id="egmmPluListBtn"><span class="egmm-menu-label">PLU LIST</span><span class="egmm-menu-arrow">→</span></button>
@@ -2607,9 +2607,6 @@
 
     <div class="egmm-section-title gap">SCHEDULE</div>
     <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label">CALENDAR</span><span class="egmm-menu-arrow">→</span></button>
-
-    <div class="egmm-section-title gap">MANAGER</div>
-    <button class="egmm-menu-btn" id="egmmStoreManagerBtn"><span class="egmm-menu-label">STORE MANAGER</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
   <!-- 박스 2: ODP -->
@@ -2626,14 +2623,15 @@
     <button class="egmm-menu-btn" id="egmmToolsBtn"><span class="egmm-menu-label">TOOLS</span><span class="egmm-menu-arrow">→</span></button>
   </div>
 
-  <!-- 박스: ADVERTISING -->
-  <!-- 박스: ADVERTISING + REQUEST (한 세로 열) -->
+  <!-- 박스: MANAGER + REQUEST (한 세로 열) -->
   <div class="egmm-card-col">
     <div class="egmm-card">
-      <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ADVERTISING</span></div>
+      <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">MANAGER</span></div>
 
-      <div class="egmm-section-title">광고</div>
-      <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label">광고상품 관리</span><span class="egmm-menu-arrow">→</span></button>
+      <div class="egmm-section-title">관리</div>
+      <button class="egmm-menu-btn" id="egmmStoreManagerBtn"><span class="egmm-menu-label">STORE MANAGER</span><span class="egmm-menu-arrow">→</span></button>
+      <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label">광고상품관리</span><span class="egmm-menu-arrow">→</span></button>
+      <button class="egmm-menu-btn" id="egmmItemMgmtBtn"><span class="egmm-menu-label">ITEM MANAGEMENT</span><span class="egmm-menu-arrow">→</span></button>
     </div>
 
     <!-- 박스: REQUEST -->
@@ -2693,7 +2691,7 @@
   <div class="egmm-sub-screen">
     <div class="egmm-sub-top">
       <h1>📦 ITEM CODE 보기</h1>
-      <button class="egmm-sub-back" id="itemBackBtn">← EGMM</button>
+      <button class="egmm-sub-back" id="itemBackBtn">← MART</button>
     </div>
     <div class="egmm-placeholder">
       <div class="egmm-placeholder-ico">📦</div>
@@ -2708,7 +2706,7 @@
   <div class="egmm-sub-screen">
     <div class="egmm-sub-top">
       <h1>📋 상품명 등록 가이드</h1>
-      <button class="egmm-sub-back" id="guideBackBtn">← EGMM</button>
+      <button class="egmm-sub-back" id="guideBackBtn">← MART</button>
     </div>
     <div class="guide-body" id="guideBody"></div>
   </div>
@@ -2719,7 +2717,7 @@
   <div class="egmm-sub-screen">
     <div class="egmm-sub-top">
       <h1>🗂️ HANA INSERT GUIDE</h1>
-      <button class="egmm-sub-back" id="hanaBackBtn">← EGMM</button>
+      <button class="egmm-sub-back" id="hanaBackBtn">← MART</button>
     </div>
     <div class="hana-note">필드에 마우스를 올리면 값·설명이 표시됩니다. 가이드 전용 화면이며, 추후 UPC 관리 메뉴와 연결해 이 양식으로 EXPORT할 예정입니다.</div>
     <div class="hana-grid" id="hanaGrid"></div>
@@ -2730,7 +2728,7 @@
 <div id="odpDash">
   <div class="odp-top">
     <h1>ODP 작업용</h1>
-    <button class="egmm-sub-back" id="odpLogoutBtn">← EGMM</button>
+    <button class="egmm-sub-back" id="odpLogoutBtn">← MART</button>
   </div>
   <div class="odp-grid">
 
@@ -3161,6 +3159,7 @@
   var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ window.location.href = 'egmm-calendar.html'; };
   var __smBtn=$('egmmStoreManagerBtn'); if(__smBtn) __smBtn.onclick = function(){ window.location.href = 'store-manager.html'; };
   var __adBtn=$('egmmAdManageBtn'); if(__adBtn) __adBtn.onclick = function(){ window.location.href = 'advertising.html'; };
+  var __imBtn=$('egmmItemMgmtBtn'); if(__imBtn) __imBtn.onclick = function(){ window.location.href = 'item-management-manager.html'; };
   $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
