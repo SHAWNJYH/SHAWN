@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>ITEM MANAGEMENT · 관리 · THE SHAWN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script type="module">
@@ -57,6 +58,68 @@
   .ia-sec-tick{ width:9px; height:9px; border-radius:3px; background:var(--accent-warm); }
   .ia-sec-name{ font-size:15px; font-weight:800; letter-spacing:.03em; }
   .ia-sec-sub{ font-size:12px; font-weight:700; color:var(--text-faint); }
+
+  /* ===== MART DATA UPLOAD 팝업 ===== */
+  .mdu-open{ font-size:11.5px; font-weight:800; color:#fff; background:var(--accent-warm); border:1.5px solid var(--accent-warm); border-radius:9px; padding:6px 12px; cursor:pointer; transition:filter .12s; }
+  .mdu-open:hover{ filter:brightness(1.06); }
+  .mdu-ov{ position:fixed; inset:0; background:rgba(20,20,22,.55); z-index:150; display:none; align-items:center; justify-content:center; padding:22px; }
+  .mdu-ov.show{ display:flex; }
+  .mdu-card{ background:var(--bg); border-radius:16px; width:100%; max-width:1180px; height:92vh; display:flex; flex-direction:column; box-shadow:0 24px 70px rgba(0,0,0,.34); overflow:hidden; }
+  .mdu-head{ display:flex; align-items:center; gap:12px; padding:15px 20px; background:var(--bg-elev); border-bottom:1.5px solid var(--border); }
+  .mdu-head .t{ font-size:15.5px; font-weight:800; }
+  .mdu-head .s{ font-size:11.5px; font-weight:700; color:var(--text-faint); }
+  .mdu-x{ margin-left:auto; border:none; background:var(--bg-elev-2); width:30px; height:30px; border-radius:9px; cursor:pointer; color:var(--text-dim); font-size:15px; }
+  .mdu-body{ flex:1; overflow:auto; padding:20px; }
+  .mdu-foot{ display:flex; align-items:center; gap:9px; padding:14px 20px; background:var(--bg-elev); border-top:1.5px solid var(--border); }
+  .mdu-foot .info{ font-size:11.5px; font-weight:700; color:var(--text-dim); margin-right:auto; }
+  .mdu-btn{ font-size:12.5px; font-weight:800; border-radius:10px; padding:9px 18px; cursor:pointer; font-family:inherit; border:1.5px solid var(--border); background:var(--bg); color:var(--text); transition:all .13s; }
+  .mdu-btn:hover{ border-color:var(--accent-warm); }
+  .mdu-btn.primary{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .mdu-btn.warm{ background:var(--accent-warm); color:#fff; border-color:var(--accent-warm); }
+  .mdu-btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+  .mdu-sec{ margin-bottom:20px; }
+  .mdu-sh{ display:flex; align-items:center; gap:9px; margin:0 2px 11px; }
+  .mdu-tick{ width:9px; height:9px; border-radius:3px; background:var(--accent-warm); }
+  .mdu-sn{ font-size:14px; font-weight:800; }
+  .mdu-ss{ font-size:11.5px; font-weight:700; color:var(--text-faint); }
+  .mdu-hint{ border:1.5px solid var(--border); border-radius:12px; background:var(--bg-elev-2); padding:11px 13px; font-size:11.5px; color:var(--text-dim); line-height:1.75; }
+  .mdu-hint b{ color:var(--text); }
+  .mdu-opt{ display:flex; align-items:center; gap:13px; flex-wrap:wrap; margin-bottom:11px; }
+  .mdu-opt label{ display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; color:var(--text-dim); }
+  .mdu-opt select{ border:1.5px solid var(--border); background:var(--bg-elev); border-radius:8px; padding:5px 9px; font-size:12px; font-family:inherit; color:var(--text); font-weight:700; }
+  .mdu-opt select:focus{ outline:none; border-color:var(--accent-warm); }
+  .mdu-drop{ border:2px dashed var(--border-bright,#c8c8c0); border-radius:13px; background:var(--bg-elev); padding:22px 18px; text-align:center; cursor:pointer; transition:all .15s; }
+  .mdu-drop:hover,.mdu-drop.over{ border-color:var(--accent-warm); background:var(--accent-soft); }
+  .mdu-drop .t{ font-size:13px; font-weight:800; }
+  .mdu-drop .s{ font-size:11px; color:var(--text-dim); margin-top:4px; line-height:1.55; }
+  .mdu-bar{ height:7px; background:var(--bg-elev-2); border-radius:99px; overflow:hidden; margin-top:10px; display:none; }
+  .mdu-bar.on{ display:block; }
+  .mdu-bar i{ display:block; height:100%; width:0; background:var(--accent-warm); transition:width .2s; }
+  .mdu-log{ font-size:11.5px; font-weight:800; color:var(--text-dim); margin-top:6px; min-height:15px; }
+  .mdu-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(212px,1fr)); gap:9px; }
+  .mdu-c{ border:1.5px solid var(--border); border-radius:11px; background:var(--bg-elev); padding:11px 12px; }
+  .mdu-c.has{ border-color:var(--accent-warm); }
+  .mdu-c .n{ font-size:12.5px; font-weight:800; display:flex; align-items:center; gap:6px; }
+  .mdu-c .d{ width:7px; height:7px; border-radius:50%; background:var(--text-faint); }
+  .mdu-c.has .d{ background:var(--ok,#2c7a4b); }
+  .mdu-c .m{ font-size:10.5px; color:var(--text-dim); margin-top:5px; line-height:1.5; min-height:14px; }
+  .mdu-c .rm{ width:100%; margin-top:7px; border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:7px; padding:4px 0; font-size:10.5px; font-weight:800; cursor:pointer; }
+  .mdu-c .rm:hover{ border-color:#c0392b; color:#c0392b; }
+  .mdu-res{ border:1.5px solid var(--border); border-radius:13px; background:var(--bg-elev); padding:16px; }
+  .mdu-stats{ display:flex; flex-wrap:wrap; row-gap:11px; }
+  .mdu-st{ padding-right:18px; margin-right:18px; border-right:1px solid var(--border); }
+  .mdu-st:last-child{ border-right:none; }
+  .mdu-st .v{ font-size:19px; font-weight:800; letter-spacing:-.01em; }
+  .mdu-st .l{ font-size:10px; font-weight:800; color:var(--text-faint); letter-spacing:.04em; }
+  .mdu-note{ font-size:11.5px; color:var(--text-dim); margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); line-height:1.7; }
+  .mdu-tbl{ max-height:270px; overflow:auto; border:1px solid var(--border); border-radius:10px; margin-top:12px; }
+  .mdu-tbl table{ width:100%; border-collapse:collapse; font-size:11px; }
+  .mdu-tbl th{ position:sticky; top:0; background:var(--bg-elev-2); text-align:left; font-weight:800; color:var(--text-dim); border-bottom:1.5px solid var(--border); padding:6px 7px; font-size:10px; white-space:nowrap; z-index:2; }
+  .mdu-tbl td{ border-bottom:1px solid var(--border); padding:5px 7px; white-space:nowrap; }
+  .mdu-mono{ font-variant-numeric:tabular-nums; }
+  .mdu-multi{ color:var(--warn,#b06a00); font-weight:800; }
+
   /* 판매데이터 발행 */
   .pub-head-btns{ margin-left:auto; }
   .pub-mini{ font-size:11px; font-weight:800; color:var(--text-dim); background:var(--bg); border:1.5px solid var(--border); border-radius:8px; padding:5px 10px; cursor:pointer; transition:all .12s; }
@@ -268,7 +331,9 @@
 
     <!-- 매장별 엑셀 업로드 -->
     <div class="ia-sec">
-      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">MART ITEM LIST</span><span class="ia-sec-sub" id="stCount"></span></div>
+      <div class="ia-sec-head"><span class="ia-sec-tick"></span><span class="ia-sec-name">MART ITEM LIST</span><span class="ia-sec-sub" id="stCount"></span>
+        <span style="margin-left:auto;"><button class="mdu-open" id="mduOpenBtn" type="button">⬆ MART DATA UPLOAD</button></span>
+      </div>
       <div class="st-grid" id="stGrid"></div>
     </div>
 
@@ -371,6 +436,94 @@
 
 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
 <input type="file" id="imFile" accept=".xlsx,.xls,.csv" style="display:none;">
+<div class="mdu-ov" id="mduOv">
+  <div class="mdu-card">
+    <div class="mdu-head">
+      <div><div class="t">MART DATA UPLOAD</div><div class="s">POS 판매파일 → 날짜별·상품별 집계</div></div>
+      <button class="mdu-x" id="mduX" type="button">✕</button>
+    </div>
+    <div class="mdu-body">
+      <div class="mdu-sec">
+        <div class="mdu-hint">
+          POS 판매파일을 올리면 <b>브라우저 안에서</b> 처리합니다 — 파일이 서버로 올라가지 않습니다.
+          <b>엑셀(여러 시트)</b>과 <b>탭·쉼표 구분 텍스트</b>를 모두 읽으며, 엑셀은 <b>모든 시트</b>를 합쳐 집계합니다.
+          헤더가 한 칸 밀려 있어(<code>B1</code>부터) 헤더는 건너뛰고 <b>열 위치</b>로 읽습니다.
+        </div>
+      </div>
+
+      <div class="mdu-sec">
+        <div class="mdu-sh"><span class="mdu-tick"></span><span class="mdu-sn">판매파일 올리기</span><span class="mdu-ss">.xlsx / .xls / .txt / .tsv / .csv</span></div>
+        <div class="mdu-opt">
+          <label>매장 <select id="mduStore"></select></label>
+          <label>문자 인코딩 <select id="mduEnc"><option value="auto">자동 감지</option><option value="utf-8">UTF-8</option><option value="euc-kr">EUC-KR (CP949)</option></select></label>
+          <label>헤더 줄 <select id="mduHdr"><option value="auto">자동 (첫 줄이 필드명이면 건너뜀)</option><option value="1">1줄 건너뜀</option><option value="0">건너뛰지 않음</option></select></label>
+        </div>
+        <div class="mdu-drop" id="mduDrop">
+          <div class="t">판매파일을 여기에 놓거나 클릭해서 선택</div>
+          <div class="s">Receipt No. · Seq · Date · Time · UPC · Description · Description2 · Cat · Group · Qty · Unit · Price · Amount · Tax · Customer# · Cashier ID</div>
+        </div>
+        <input type="file" id="mduFile" style="display:none;">
+        <div class="mdu-bar" id="mduBar"><i id="mduBarI"></i></div>
+        <div class="mdu-log" id="mduLog"></div>
+      </div>
+
+      <div class="mdu-sec" id="mduInspect" style="display:none;">
+        <div class="mdu-sh"><span class="mdu-tick"></span><span class="mdu-sn">파일 구조 확인</span><span class="mdu-ss" id="mduInspSub"></span>
+          <span style="margin-left:auto;display:flex;gap:7px;">
+            <button class="mdu-btn" style="padding:6px 11px;font-size:11.5px;" id="mduResetMap" type="button">열 연결 기본값</button>
+            <button class="mdu-btn primary" style="padding:6px 12px;font-size:11.5px;" id="mduRun" type="button">이 설정으로 집계</button>
+          </span>
+        </div>
+        <div class="mdu-hint" style="margin-bottom:11px;">아래는 파일에서 <b>실제로 읽은 값</b>입니다. 열이 밀려 보이면 <b>열 연결</b>을 바로잡은 뒤 집계하세요.<span id="mduSheetInfo"></span></div>
+        <div class="mdu-opt" id="mduMapRow"></div>
+        <div class="mdu-tbl" style="max-height:230px;"><table><thead id="mduRawHead"></thead><tbody id="mduRawBody"></tbody></table></div>
+      </div>
+
+      <div class="mdu-sec">
+        <div class="mdu-sh"><span class="mdu-tick"></span><span class="mdu-sn">COST 파일 (선택)</span><span class="mdu-ss">UPC 로 매칭해 COST 를 채웁니다</span></div>
+        <div class="mdu-drop" id="mduDropCost" style="padding:15px;">
+          <div class="t" style="font-size:12.5px;">COST 파일을 여기에 놓거나 클릭</div>
+          <div class="s">UPC 와 COST 열이 있으면 됩니다</div>
+        </div>
+        <input type="file" id="mduFileCost" style="display:none;">
+      </div>
+
+      <div class="mdu-sec">
+        <div class="mdu-sh"><span class="mdu-tick"></span><span class="mdu-sn">이번에 집계한 매장</span><span class="mdu-ss" id="mduStCount"></span></div>
+        <div class="mdu-grid" id="mduGrid"></div>
+      </div>
+
+      <div class="mdu-sec">
+        <div class="mdu-sh"><span class="mdu-tick"></span><span class="mdu-sn">결과 · 용량</span><span class="mdu-ss">날짜별 · 상품별</span></div>
+        <div class="mdu-res">
+          <div class="mdu-stats">
+            <div class="mdu-st"><div class="v" id="mduVStores">0</div><div class="l">매장</div></div>
+            <div class="mdu-st"><div class="v" id="mduVItems">0</div><div class="l">상품</div></div>
+            <div class="mdu-st"><div class="v" id="mduVDates">0</div><div class="l">날짜</div></div>
+            <div class="mdu-st"><div class="v" id="mduVRecs">0</div><div class="l">날짜×상품</div></div>
+            <div class="mdu-st"><div class="v" id="mduVSize">0 KB</div><div class="l">JSON 크기</div></div>
+            <div class="mdu-st"><div class="v" id="mduVGz">—</div><div class="l">압축 시</div></div>
+          </div>
+          <div class="mdu-note" id="mduNote">판매파일을 올리면 집계 결과가 여기에 표시됩니다.</div>
+          <div class="mdu-tbl" id="mduPvWrap" style="display:none;">
+            <table><thead><tr><th>날짜</th><th>UPC/PLU</th><th>ENG DESC</th><th>KOR DESC</th><th>단위</th><th>판매량</th><th>단가(SRP)</th><th>판매금액</th><th>COST</th></tr></thead><tbody id="mduPvBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="mdu-sec">
+        <div class="mdu-sh"><span class="mdu-tick"></span><span class="mdu-sn">저장된 데이터</span><span class="mdu-ss">로컬 · GitHub</span></div>
+        <div class="mdu-hint" id="mduSaved">확인 중…</div>
+      </div>
+    </div>
+    <div class="mdu-foot">
+      <span class="info" id="mduFootInfo"></span>
+      <button class="mdu-btn" id="mduCancel" type="button">취소</button>
+      <button class="mdu-btn primary" id="mduSaveLocal" type="button" disabled>💾 저장 (로컬)</button>
+      <button class="mdu-btn warm" id="mduSaveGh" type="button" disabled>☁ GITHUB 에 저장</button>
+    </div>
+  </div>
+</div>
 <div class="gh-ov" id="ghOv">
   <div class="gh-card">
     <div class="gh-head">⚙ GitHub 설정<button class="gh-x" id="ghOvX" type="button">✕</button></div>
@@ -1662,6 +1815,476 @@
   function startCfg(){ subscribeFieldCfg(); subscribeMaster(); subscribeMatch(); }
   if(window.iaCfgFb) startCfg(); else window.addEventListener('iacfg-ready', startCfg);
 })();
+</script>
+<script>
+/* ==========================================================================
+   MART DATA UPLOAD — 팝업 업로더 (독립 스코프)
+   · POS 판매파일(엑셀 다중시트 / 탭·쉼표 텍스트) → 날짜별·상품별 집계
+   · 저장(로컬 IndexedDB) · GitHub(.js 파일) — 둘 다 "날짜 단위 전체 교체" 병합
+     같은 날짜가 새로 올라오면 그 날짜 데이터는 통째로 바뀐다 (덧붙이지 않음)
+   ========================================================================== */
+(function(){
+  "use strict";
+  var $=function(i){ return document.getElementById(i); };
+  function T(m){ if(typeof toast==='function') toast(m); }
+  function esc2(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function fmtB(n){ if(n==null) return '—'; if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; if(n<1073741824) return (n/1048576).toFixed(1)+' MB'; return (n/1073741824).toFixed(2)+' GB'; }
+  function nnum(v){ if(v==null) return null; var s=String(v).replace(/[$,\s"]/g,''); if(!s||s==='-') return null; var n=parseFloat(s); return isNaN(n)?null:n; }
+  function ukey(v){ var s=String(v==null?'':v).trim().replace(/^"|"$/g,''); if(!s) return ''; var d=s.replace(/\D/g,''); if(d){ d=d.replace(/^0+/,''); return d||'0'; } return s.toUpperCase(); }
+  function normDate(v){
+    var s=String(v==null?'':v).trim().replace(/^"|"$/g,''); if(!s) return '';
+    var m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+    if(m) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+    m=s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+    if(m){ var y=m[3].length===2?('20'+m[3]):m[3]; return y+'-'+('0'+m[1]).slice(-2)+'-'+('0'+m[2]).slice(-2); }
+    m=s.match(/^(\d{8})$/); if(m) return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+    var t=Date.parse(s);
+    if(!isNaN(t)){ var d=new Date(t), p=function(x){ return (x<10?'0':'')+x; }; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+    return '';
+  }
+  function ymdNow(){ var d=new Date(), p=function(x){ return (x<10?'0':'')+x; }; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+  function COL(i){ var s=''; i=i+1; while(i>0){ var m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26); } return s; }
+
+  var MAPDEF={ date:2, upc:4, eng:5, kor:6, qty:9, unit:10, price:11, tax:13 };
+  var MAP=Object.assign({}, MAPDEF);
+  var MAPLABEL={ date:'날짜(C)', upc:'UPC/PLU(E)', eng:'ENG DESC(F)', kor:'KOR DESC(G)', qty:'판매량(J)', unit:'단위(K)', price:'단가 SRP(L)', tax:'Tax(N)' };
+
+  var STORES_U = (typeof STORES!=='undefined' && STORES.length) ? STORES.slice()
+    : ['TACOMA','FEDERAL WAY','BELLEVUE','LYNNWOOD','REDMOND','BALLARD','MELLOW WAY','DISTRICT H','M2M','G-MART'];
+
+  var RESULT={};      // 이번 세션 집계: store -> { dates:[], items:Map, ... }
+  var COSTMAP=null;
+  var PEND=null;
+
+  /* ===== IndexedDB (저장된 판매데이터) ===== */
+  var SDB='mart-sales', SOS='stores', _sdb=null;
+  function sidb(){ return new Promise(function(res,rej){ if(_sdb) return res(_sdb);
+    var r=indexedDB.open(SDB,1);
+    r.onupgradeneeded=function(){ var d=r.result; if(!d.objectStoreNames.contains(SOS)) d.createObjectStore(SOS); };
+    r.onsuccess=function(){ _sdb=r.result; res(_sdb); }; r.onerror=function(){ rej(r.error); }; }); }
+  function sPut(k,v){ return sidb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction(SOS,'readwrite'); tx.objectStore(SOS).put(v,k); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+  function sAll(){ return sidb().then(function(d){ return new Promise(function(res,rej){ var tx=d.transaction(SOS,'readonly'); var out={}; var c=tx.objectStore(SOS).openCursor();
+    c.onsuccess=function(e){ var cur=e.target.result; if(cur){ out[cur.key]=cur.value; cur.continue(); } else res(out); }; c.onerror=function(){ rej(c.error); }; }); }); }
+
+  /* ===== 인코딩 · 파일 판별 ===== */
+  async function detectEnc(file){
+    var b=new Uint8Array(await file.slice(0, Math.min(262144,file.size)).arrayBuffer());
+    if(b.length>=3 && b[0]===0xEF && b[1]===0xBB && b[2]===0xBF) return 'utf-8';
+    try{ var t=new TextDecoder('utf-8',{fatal:false}).decode(b); var bad=(t.match(/\uFFFD/g)||[]).length;
+      return (bad > t.length*0.0005) ? 'euc-kr' : 'utf-8'; }catch(e){ return 'euc-kr'; }
+  }
+  async function isExcel(file){
+    if(/\.(xlsx|xlsm|xlsb|xls)$/i.test(file.name||'')) return true;
+    var b=new Uint8Array(await file.slice(0,8).arrayBuffer());
+    if(b[0]===0x50 && b[1]===0x4B) return true;
+    if(b[0]===0xD0 && b[1]===0xCF && b[2]===0x11 && b[3]===0xE0) return true;
+    return false;
+  }
+  function readExcelAll(buf){
+    var wb=XLSX.read(new Uint8Array(buf), {type:'array', cellDates:true, raw:false});
+    var sheets=[];
+    wb.SheetNames.forEach(function(nm){ var ws=wb.Sheets[nm]; if(!ws) return;
+      var aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false,raw:false});
+      if(aoa.length) sheets.push({ name:nm, rows:aoa }); });
+    return sheets;
+  }
+  async function sampleText(file, enc, n){
+    var encoding=(enc==='auto')? await detectEnc(file) : enc;
+    var buf=await file.slice(0, Math.min(1048576,file.size)).arrayBuffer();
+    var lines=new TextDecoder(encoding,{fatal:false}).decode(buf).split(/\r?\n/).slice(0,n||12);
+    return { encoding:encoding, rows:lines.filter(Boolean).map(function(L){ var c=L.split('\t'); if(c.length<3) c=L.split(','); return c; }) };
+  }
+  function looksHeader(cells){ var j=cells.join(' ').toLowerCase(); return /receipt/.test(j) || (/upc/.test(j)&&/qty/.test(j)) || /cashier/.test(j); }
+
+  /* ===== 집계기 ===== */
+  function makeAgg(hdrMode){
+    var dateIdx={}, dates=[], items=new Map(), lineNo=0, used=0, skipped=0, hdrDone=(hdrMode==='0');
+    function addCells(c){
+      if(!c||!c.length) return;
+      lineNo++;
+      if(!hdrDone){ hdrDone=true; if(hdrMode==='1'||(hdrMode==='auto'&&looksHeader(c))) return; }
+      var upc=ukey(c[MAP.upc]); if(!upc){ skipped++; return; }
+      var date=normDate(c[MAP.date]); if(!date){ skipped++; return; }
+      var qty=nnum(c[MAP.qty]); if(qty==null) qty=0;
+      var price=nnum(c[MAP.price]);
+      var di=dateIdx[date]; if(di===undefined){ di=dates.length; dateIdx[date]=di; dates.push(date); }
+      var it=items.get(upc);
+      if(!it){ it={ e:String(c[MAP.eng]==null?'':c[MAP.eng]).trim(), k:String(c[MAP.kor]==null?'':c[MAP.kor]).trim(),
+                    u:String(c[MAP.unit]==null?'':c[MAP.unit]).trim().toUpperCase(), t:String(c[MAP.tax]==null?'':c[MAP.tax]).trim(), d:new Map() };
+              items.set(upc,it); }
+      else { if(!it.e&&c[MAP.eng]) it.e=String(c[MAP.eng]).trim();
+             if(!it.k&&c[MAP.kor]) it.k=String(c[MAP.kor]).trim();
+             if(!it.u&&c[MAP.unit]) it.u=String(c[MAP.unit]).trim().toUpperCase(); }
+      var rec=it.d.get(di);
+      if(!rec){ rec={ q:0,a:0,p1:null,q1:0,pm:null }; it.d.set(di,rec); }
+      rec.q+=qty;
+      if(price!=null){
+        rec.a+=qty*price;
+        if(rec.p1==null) rec.p1=price;
+        if(!rec.pm){ if(price===rec.p1){ rec.q1+=qty; } else { rec.pm=new Map(); rec.pm.set(rec.p1,rec.q1); rec.pm.set(price,qty); } }
+        else rec.pm.set(price,(rec.pm.get(price)||0)+qty);
+      }
+      used++;
+    }
+    return { addCells:addCells,
+      addLine:function(L){ if(!L) return; var c=L.split('\t'); if(c.length<3) c=L.split(','); addCells(c); },
+      resetHeader:function(){ hdrDone=(hdrMode==='0'); },
+      done:function(){ return { dates:dates, items:items, lines:lineNo, used:used, skipped:skipped }; } };
+  }
+  var CHUNK=8*1048576;
+  async function procText(file, enc, hdrMode, onProg){
+    var encoding=(enc==='auto')? await detectEnc(file) : enc;
+    var dec=new TextDecoder(encoding,{fatal:false});
+    var agg=makeAgg(hdrMode), off=0, tail='';
+    while(off<file.size){
+      var buf=await file.slice(off, Math.min(off+CHUNK,file.size)).arrayBuffer();
+      var text=tail+dec.decode(buf,{stream:true});
+      var lines=text.split(/\r?\n/); tail=lines.pop();
+      for(var i=0;i<lines.length;i++) agg.addLine(lines[i]);
+      off+=CHUNK;
+      var st=agg.done(); if(onProg) onProg(Math.min(off/file.size,1), st.lines, st.used);
+      await new Promise(function(r){ setTimeout(r,0); });
+    }
+    if(tail) agg.addLine(tail);
+    var r=agg.done(); r.encoding=encoding; return r;
+  }
+  async function procExcel(sheets, hdrMode, onProg){
+    var agg=makeAgg(hdrMode), total=0, seen=0;
+    sheets.forEach(function(s){ total+=s.rows.length; });
+    for(var si=0;si<sheets.length;si++){
+      var rows=sheets[si].rows; agg.resetHeader();
+      for(var i=0;i<rows.length;i++){
+        agg.addCells(rows[i]); seen++;
+        if((seen & 8191)===0){ var st=agg.done(); if(onProg) onProg(seen/total, st.lines, st.used); await new Promise(function(r){ setTimeout(r,0); }); }
+      }
+    }
+    var r=agg.done(); r.encoding='xlsx'; return r;
+  }
+
+  function priceLabel(rec){
+    if(rec.p1==null) return '';
+    if(!rec.pm||rec.pm.size<=1) return '$'+rec.p1.toFixed(2);
+    var arr=Array.from(rec.pm.entries()).sort(function(a,b){ return (b[1]-a[1])||(b[0]-a[0]); });
+    return '$'+arr[0][0].toFixed(2)+'('+arr.slice(1).map(function(x){ return x[0].toFixed(2); }).join(', ')+')';
+  }
+  function pricesOf(rec){
+    if(!rec.pm||rec.pm.size<=1) return null;
+    return Array.from(rec.pm.entries()).sort(function(a,b){ return (b[1]-a[1])||(b[0]-a[0]); }).map(function(x){ return Math.round(x[0]*100)/100; });
+  }
+
+  /* ===== 세션 집계 → 저장 구조 (날짜를 문자열 키로) ===== */
+  function toStoreData(R){
+    var items={};
+    R.items.forEach(function(it, upc){
+      var d={};
+      it.d.forEach(function(rec, di){
+        var o={ q:Math.round(rec.q*1000)/1000, a:Math.round(rec.a*100)/100, p:(rec.p1==null?null:Math.round(rec.p1*100)/100) };
+        var ps=pricesOf(rec); if(ps) o.ps=ps;
+        d[R.dates[di]]=o;
+      });
+      var o2={ e:it.e, k:it.k, n:it.u, d:d };
+      if(it.t) o2.t=it.t;
+      if(COSTMAP && COSTMAP[upc]!=null) o2.c=COSTMAP[upc];
+      items[upc]=o2;
+    });
+    return { items:items, dates:R.dates.slice().sort(), updatedAt:Date.now(), src:R.srcName||'' };
+  }
+  /* ★ 날짜 단위 전체 교체 병합 — 새로 올라온 날짜는 기존 것을 버리고 통째로 바꾼다 */
+  function mergeStore(prev, next){
+    if(!prev || !prev.items) return next;
+    var newDates={}; (next.dates||[]).forEach(function(d){ newDates[d]=1; });
+    var items={};
+    // 1) 기존 항목에서 "새 날짜"에 해당하는 기록을 제거
+    Object.keys(prev.items).forEach(function(upc){
+      var it=prev.items[upc], d={};
+      Object.keys(it.d||{}).forEach(function(dt){ if(!newDates[dt]) d[dt]=it.d[dt]; });
+      if(Object.keys(d).length) items[upc]=Object.assign({}, it, { d:d });
+    });
+    // 2) 새 데이터 넣기
+    Object.keys(next.items).forEach(function(upc){
+      var nit=next.items[upc];
+      if(!items[upc]) items[upc]=Object.assign({}, nit, { d:Object.assign({}, nit.d) });
+      else {
+        var cur=items[upc];
+        cur.e=nit.e||cur.e; cur.k=nit.k||cur.k; cur.n=nit.n||cur.n;
+        if(nit.t) cur.t=nit.t;
+        if(nit.c!=null) cur.c=nit.c;
+        Object.keys(nit.d).forEach(function(dt){ cur.d[dt]=nit.d[dt]; });
+      }
+    });
+    var dset={};
+    Object.keys(items).forEach(function(u){ Object.keys(items[u].d).forEach(function(dt){ dset[dt]=1; }); });
+    return { items:items, dates:Object.keys(dset).sort(), updatedAt:Date.now(), src:next.src||prev.src||'' };
+  }
+
+  /* ===== 화면 ===== */
+  function renderInspect(){
+    if(!PEND){ $('mduInspect').style.display='none'; return; }
+    $('mduInspect').style.display='';
+    var rows=PEND.sample||[], maxc=16;
+    rows.forEach(function(r){ if(r.length>maxc) maxc=r.length; });
+    var h=rows.length?rows[0]:[];
+    var th='<tr><th style="width:30px;">#</th>';
+    for(var i=0;i<maxc;i++){ var nm=String(h[i]==null?'':h[i]).trim();
+      th+='<th>'+COL(i)+(nm?('<br><span style="font-weight:600;color:var(--text-faint);">'+esc2(nm.slice(0,12))+'</span>'):'')+'</th>'; }
+    $('mduRawHead').innerHTML=th+'</tr>';
+    var body='';
+    rows.slice(0,7).forEach(function(r,ri){
+      body+='<tr><td class="mdu-mono" style="color:var(--text-faint);">'+(ri+1)+'</td>';
+      for(var i=0;i<maxc;i++){
+        var hit=Object.keys(MAP).some(function(k){ return MAP[k]===i; });
+        body+='<td'+(hit?' style="background:var(--accent-soft);font-weight:700;"':'')+'>'+esc2(String(r[i]==null?'':r[i]).slice(0,16))+'</td>';
+      }
+      body+='</tr>';
+    });
+    $('mduRawBody').innerHTML=body;
+    var opts=''; for(var j=0;j<maxc;j++) opts+='<option value="'+j+'">'+COL(j)+'</option>';
+    $('mduMapRow').innerHTML=Object.keys(MAPLABEL).map(function(k){
+      return '<label>'+MAPLABEL[k]+' <select data-map="'+k+'">'+opts+'</select></label>'; }).join('');
+    Array.prototype.forEach.call($('mduMapRow').querySelectorAll('[data-map]'), function(sel){
+      var k=sel.getAttribute('data-map'); sel.value=String(MAP[k]);
+      sel.onchange=function(){ MAP[k]=parseInt(sel.value,10); renderInspect(); }; });
+    $('mduInspSub').textContent = PEND.kind==='xlsx' ? (PEND.sheets.length+'개 시트 · '+PEND.totalRows.toLocaleString('en-US')+'줄') : ('텍스트 · '+(PEND.encoding||''));
+    $('mduSheetInfo').innerHTML = (PEND.kind==='xlsx'&&PEND.sheets.length)
+      ? '<br>시트: <b>'+PEND.sheets.map(function(x){ return esc2(x.name)+' ('+x.rows.length.toLocaleString('en-US')+'줄)'; }).join(' · ')+'</b> — 모두 합쳐 집계합니다.' : '';
+  }
+  function renderGrid(){
+    $('mduStCount').textContent=Object.keys(RESULT).length+' / '+STORES_U.length+' 매장';
+    $('mduGrid').innerHTML=STORES_U.map(function(s){
+      var R=RESULT[s], has=!!R;
+      var m=has? (R.items.size.toLocaleString('en-US')+'개 상품 · '+R.dates.length+'일<br>'+R.lines.toLocaleString('en-US')+'줄'+(R.sheetCount?(' · 시트 '+R.sheetCount):'')) : '이번에 집계 안 함';
+      return '<div class="mdu-c'+(has?' has':'')+'"><div class="n"><span class="d"></span>'+esc2(s)+'</div><div class="m">'+m+'</div>'+
+        (has?'<button class="rm" data-rm="'+esc2(s)+'">이번 집계에서 빼기</button>':'')+'</div>';
+    }).join('');
+    Array.prototype.forEach.call($('mduGrid').querySelectorAll('[data-rm]'), function(b){
+      b.onclick=function(){ delete RESULT[b.getAttribute('data-rm')]; renderGrid(); refreshRes(); }; });
+  }
+  var _json='';
+  function buildPayload(){
+    var out={ _type:'mart-sales', ver:1, updatedAt:Date.now(), stores:{} };
+    Object.keys(RESULT).forEach(function(s){ out.stores[s]=toStoreData(RESULT[s]); });
+    return out;
+  }
+  function refreshRes(){
+    var st=Object.keys(RESULT);
+    var can=st.length>0;
+    $('mduSaveLocal').disabled=!can; $('mduSaveGh').disabled=!can;
+    if(!can){ _json='';
+      ['mduVStores','mduVItems','mduVDates','mduVRecs'].forEach(function(i){ $(i).textContent='0'; });
+      $('mduVSize').textContent='0 KB'; $('mduVGz').textContent='—';
+      $('mduNote').textContent='판매파일을 올리면 집계 결과가 여기에 표시됩니다.';
+      $('mduPvWrap').style.display='none'; $('mduFootInfo').textContent=''; return; }
+    var payload=buildPayload(); _json=JSON.stringify(payload);
+    var nI=0,nR=0,nD=0,src=0;
+    st.forEach(function(s){ var R=RESULT[s]; nI+=R.items.size; if(R.dates.length>nD) nD=R.dates.length; src+=(R.srcSize||0);
+      R.items.forEach(function(it){ nR+=it.d.size; }); });
+    $('mduVStores').textContent=st.length;
+    $('mduVItems').textContent=nI.toLocaleString('en-US');
+    $('mduVDates').textContent=nD.toLocaleString('en-US');
+    $('mduVRecs').textContent=nR.toLocaleString('en-US');
+    $('mduVSize').textContent=fmtB(_json.length);
+    var allDates={}; st.forEach(function(s){ RESULT[s].dates.forEach(function(d){ allDates[d]=1; }); });
+    var ds=Object.keys(allDates).sort();
+    $('mduNote').innerHTML='원본 '+fmtB(src)+' → 집계 <b>'+fmtB(_json.length)+'</b> · 대상 날짜 <b>'+ds.length+'일</b>'+
+      (ds.length?(' ('+ds[0]+(ds.length>1?(' ~ '+ds[ds.length-1]):'')+')'):'')+
+      '<br><b style="color:var(--warn);">저장하면 위 날짜의 기존 데이터는 통째로 교체됩니다.</b>';
+    $('mduFootInfo').textContent=st.length+'개 매장 · '+ds.length+'일 · '+fmtB(_json.length);
+    estGz(); renderPv();
+  }
+  async function gzip(str){ var cs=new CompressionStream('gzip'); return await new Response(new Blob([str]).stream().pipeThrough(cs)).blob(); }
+  async function estGz(){ if(!_json){ $('mduVGz').textContent='—'; return; }
+    if(typeof CompressionStream==='undefined'){ $('mduVGz').textContent='≈'+fmtB(Math.round(_json.length*0.18)); return; }
+    try{ $('mduVGz').textContent=fmtB((await gzip(_json)).size); }catch(e){ $('mduVGz').textContent='≈'+fmtB(Math.round(_json.length*0.18)); } }
+  function renderPv(){
+    var rows=[], LIMIT=200, stop=false;
+    Object.keys(RESULT).forEach(function(s){ if(stop) return; var R=RESULT[s];
+      R.items.forEach(function(it,upc){ if(stop) return;
+        it.d.forEach(function(rec,di){ if(stop) return;
+          rows.push({ date:R.dates[di], upc:upc, e:it.e, k:it.k, u:it.u, q:rec.q, p:priceLabel(rec),
+                      multi:!!(rec.pm&&rec.pm.size>1), a:rec.a, c:(COSTMAP&&COSTMAP[upc]!=null)?COSTMAP[upc]:null });
+          if(rows.length>=LIMIT) stop=true; }); }); });
+    rows.sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); });
+    $('mduPvBody').innerHTML=rows.map(function(r){
+      return '<tr><td class="mdu-mono">'+esc2(r.date)+'</td><td class="mdu-mono">'+esc2(r.upc)+'</td><td>'+esc2(r.e)+'</td><td>'+esc2(r.k)+'</td><td>'+esc2(r.u)+'</td>'+
+        '<td class="mdu-mono">'+(Math.round(r.q*1000)/1000).toLocaleString('en-US')+'</td>'+
+        '<td class="mdu-mono'+(r.multi?' mdu-multi':'')+'">'+esc2(r.p)+'</td>'+
+        '<td class="mdu-mono">$'+(Math.round(r.a*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'+
+        '<td class="mdu-mono">'+(r.c==null?'—':('$'+r.c.toFixed(2)))+'</td></tr>'; }).join('');
+    $('mduPvWrap').style.display=rows.length?'block':'none';
+  }
+  async function renderSaved(){
+    try{
+      var all=await sAll(); var ks=Object.keys(all);
+      if(!ks.length){ $('mduSaved').innerHTML='로컬에 저장된 판매데이터가 없습니다.'; return; }
+      var html=ks.map(function(k){ var v=all[k]||{};
+        var ds=(v.dates||[]); var n=Object.keys(v.items||{}).length;
+        return '<b>'+esc2(k)+'</b> — 상품 '+n.toLocaleString('en-US')+'개 · '+ds.length+'일'+(ds.length?(' ('+ds[0]+' ~ '+ds[ds.length-1]+')'):''); }).join('<br>');
+      $('mduSaved').innerHTML=html;
+    }catch(e){ $('mduSaved').textContent='저장된 데이터를 읽을 수 없습니다.'; }
+  }
+
+  /* ===== 파일 처리 ===== */
+  var busy=false;
+  async function onFile(file){
+    if(busy){ T('처리 중입니다'); return; }
+    if(!$('mduStore').value){ T('매장을 먼저 선택하세요'); return; }
+    $('mduLog').textContent='파일 확인 중…';
+    try{
+      if(await isExcel(file)){
+        if(typeof XLSX==='undefined'){ T('엑셀 라이브러리를 불러오지 못했습니다'); $('mduLog').textContent=''; return; }
+        $('mduLog').textContent='엑셀 여는 중… (시트 읽기)';
+        await new Promise(function(r){ setTimeout(r,30); });
+        var sheets=readExcelAll(await file.arrayBuffer());
+        if(!sheets.length){ T('시트를 찾을 수 없습니다'); $('mduLog').textContent=''; return; }
+        var total=0; sheets.forEach(function(x){ total+=x.rows.length; });
+        PEND={ file:file, kind:'xlsx', sheets:sheets, totalRows:total, sample:sheets[0].rows.slice(0,12) };
+        $('mduLog').textContent='시트 '+sheets.length+'개 · '+total.toLocaleString('en-US')+'줄 — 아래에서 열 연결을 확인하세요';
+      } else {
+        var sm=await sampleText(file, $('mduEnc').value, 12);
+        PEND={ file:file, kind:'text', sheets:[], totalRows:0, sample:sm.rows, encoding:sm.encoding };
+        $('mduLog').textContent='텍스트 ('+sm.encoding+') — 아래에서 열 연결을 확인하세요';
+      }
+      renderInspect();
+    }catch(e){ $('mduLog').textContent=''; T('파일을 열 수 없습니다'); }
+  }
+  async function runAgg(){
+    if(!PEND){ T('먼저 파일을 올리세요'); return; }
+    if(busy){ T('처리 중입니다'); return; }
+    var store=$('mduStore').value; if(!store){ T('매장을 선택하세요'); return; }
+    busy=true; $('mduBar').classList.add('on'); $('mduBarI').style.width='0%';
+    try{
+      var prog=function(p,l,u){ $('mduBarI').style.width=(p*100).toFixed(1)+'%';
+        $('mduLog').textContent='집계 중… '+(p*100).toFixed(1)+'%  ·  '+l.toLocaleString('en-US')+'줄  ·  '+u.toLocaleString('en-US')+'건'; };
+      var r = (PEND.kind==='xlsx') ? await procExcel(PEND.sheets, $('mduHdr').value, prog)
+                                   : await procText(PEND.file, $('mduEnc').value, $('mduHdr').value, prog);
+      r.store=store; r.srcName=PEND.file.name; r.srcSize=PEND.file.size;
+      if(PEND.kind==='xlsx') r.sheetCount=PEND.sheets.length;
+      if(!r.used) T('집계된 줄이 없습니다 — 열 연결을 확인하세요');
+      RESULT[store]=r;
+      $('mduLog').textContent='완료 · '+r.lines.toLocaleString('en-US')+'줄 읽음 · '+r.used.toLocaleString('en-US')+'건 집계'+
+        (r.skipped?(' · '+r.skipped.toLocaleString('en-US')+'줄 건너뜀'):'');
+      renderGrid(); refreshRes();
+      T(store+' 집계 완료 — 상품 '+r.items.size.toLocaleString('en-US')+'개');
+    }catch(e){ $('mduLog').textContent=''; T('집계 실패 — 열 연결을 확인하세요'); }
+    $('mduBar').classList.remove('on'); busy=false;
+  }
+  async function onCost(file){
+    try{
+      var enc=await detectEnc(file);
+      var text=new TextDecoder(enc,{fatal:false}).decode(await file.arrayBuffer());
+      var map={}, n=0, first=true;
+      text.split(/\r?\n/).forEach(function(L){
+        if(!L) return;
+        var c=L.split('\t'); if(c.length<2) c=L.split(',');
+        if(first){ first=false; var j=c.join(' ').toLowerCase(); if(/upc/.test(j)&&/cost/.test(j)) return; }
+        var upc='', cost=null;
+        for(var i=0;i<c.length;i++){ var k=ukey(c[i]); if(k&&k.length>=4){ upc=k; break; } }
+        for(var j2=c.length-1;j2>=0;j2--){ var v=nnum(c[j2]); if(v!=null&&v>0&&v<100000){ cost=v; break; } }
+        if(upc&&cost!=null){ map[upc]=Math.round(cost*100)/100; n++; }
+      });
+      if(!n){ T('COST 파일에서 UPC·COST 를 찾지 못했습니다'); return; }
+      COSTMAP=map; refreshRes(); T('COST '+n.toLocaleString('en-US')+'건 매칭됨');
+    }catch(e){ T('COST 파일을 읽을 수 없습니다'); }
+  }
+
+  /* ===== 저장 ===== */
+  async function saveLocal(){
+    var st=Object.keys(RESULT); if(!st.length){ T('저장할 집계가 없습니다'); return; }
+    try{
+      var prevAll=await sAll();
+      for(var i=0;i<st.length;i++){
+        var s=st[i];
+        var merged=mergeStore(prevAll[s], toStoreData(RESULT[s]));
+        await sPut(s, merged);
+      }
+      await renderSaved();
+      T(st.length+'개 매장 로컬 저장 완료 (해당 날짜 교체)');
+    }catch(e){ T('로컬 저장 실패 — 저장공간을 확인하세요'); }
+  }
+  /* GitHub — .js 파일로 저장 (검색이 이 파일을 불러 씀) */
+  var GH_LS='item-mgr-gh';
+  function ghCfg2(){ try{ return JSON.parse(localStorage.getItem(GH_LS)||'{}'); }catch(e){ return {}; } }
+  function salesPath(c){
+    var p=(c.salesPath||'').trim();
+    if(p) return p.replace(/^\/+/,'');
+    var base=(c.path||'data/sales.json').replace(/\.json$/i,'');
+    return base.replace(/[^\/]+$/, 'mart-sales.js');
+  }
+  function ghApi(c, path){ return 'https://api.github.com/repos/'+c.repo+'/contents/'+encodeURIComponent(path).replace(/%2F/g,'/'); }
+  function b64(str){ var b=new TextEncoder().encode(str), bin='', CH=0x8000;
+    for(var i=0;i<b.length;i+=CH) bin+=String.fromCharCode.apply(null,b.subarray(i,i+CH)); return btoa(bin); }
+  function unb64(s){ var bin=atob(s.replace(/\s/g,'')); var b=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i); return new TextDecoder('utf-8').decode(b); }
+  function parseJsFile(text){
+    var i=text.indexOf('{'), j=text.lastIndexOf('}');
+    if(i<0||j<=i) return null;
+    try{ return JSON.parse(text.slice(i,j+1)); }catch(e){ return null; }
+  }
+  async function saveGithub(){
+    var st=Object.keys(RESULT); if(!st.length){ T('저장할 집계가 없습니다'); return; }
+    var c=ghCfg2();
+    if(!c.repo||!c.token){ T('GitHub 설정을 먼저 완료하세요 (⚙ GitHub 설정)'); return; }
+    var path=salesPath(c), branch=c.branch||'main';
+    $('mduFootInfo').textContent='GitHub 확인 중…';
+    try{
+      // 기존 파일 읽기 → 병합
+      var sha=null, prev=null;
+      var r0=await fetch(ghApi(c,path)+'?ref='+encodeURIComponent(branch), { headers:{ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' } });
+      if(r0.ok){ var j0=await r0.json(); sha=j0.sha; if(j0.content) prev=parseJsFile(unb64(j0.content)); }
+      else if(r0.status!==404){ throw new Error('GET '+r0.status); }
+      var out = (prev && prev.stores) ? prev : { _type:'mart-sales', ver:1, stores:{} };
+      st.forEach(function(s){ out.stores[s]=mergeStore(out.stores[s], toStoreData(RESULT[s])); });
+      out.updatedAt=Date.now();
+      var js='/* MART SALES DATA — '+ymdNow()+' · 자동 생성 */\nwindow.MART_SALES = '+JSON.stringify(out)+';\n';
+      if(js.length>95*1048576){ T('파일이 GitHub 100MB 제한을 넘습니다'); $('mduFootInfo').textContent=''; return; }
+      $('mduFootInfo').textContent='GitHub 에 올리는 중… ('+fmtB(js.length)+')';
+      var body={ message:'mart-sales '+ymdNow()+' ('+st.join(', ')+')', content:b64(js), branch:branch };
+      if(sha) body.sha=sha;
+      var r1=await fetch(ghApi(c,path), { method:'PUT', headers:{ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' }, body:JSON.stringify(body) });
+      if(!r1.ok){
+        var m='GitHub 저장 실패 ('+r1.status+')';
+        if(r1.status===401||r1.status===403) m='GitHub 저장 실패 — 토큰 권한 확인';
+        else if(r1.status===404) m='GitHub 저장 실패 — 저장소/경로 확인';
+        T(m); $('mduFootInfo').textContent=''; return;
+      }
+      var raw='https://raw.githubusercontent.com/'+c.repo+'/'+branch+'/'+path;
+      T('GitHub 저장 완료 ✓');
+      $('mduFootInfo').textContent='';
+      $('mduSaved').innerHTML='✓ GitHub 저장됨 · '+fmtB(js.length)+'<br><code style="font-size:10px;">'+esc2(raw)+'</code>';
+    }catch(e){ T('GitHub 저장 실패 — 네트워크/설정 확인'); $('mduFootInfo').textContent=''; }
+  }
+
+  /* ===== 열기/닫기 ===== */
+  function open(){
+    $('mduStore').innerHTML=STORES_U.map(function(s){ return '<option value="'+esc2(s)+'">'+esc2(s)+'</option>'; }).join('');
+    $('mduOv').classList.add('show');
+    renderGrid(); refreshRes(); renderSaved();
+  }
+  function close(){ $('mduOv').classList.remove('show'); }
+
+  function wireDrop(dropId, inputId, fn){
+    var d=$(dropId), f=$(inputId);
+    d.onclick=function(){ f.value=''; f.click(); };
+    f.onchange=function(){ var file=f.files&&f.files[0]; if(file) fn(file); };
+    d.addEventListener('dragover', function(e){ e.preventDefault(); d.classList.add('over'); });
+    d.addEventListener('dragleave', function(){ d.classList.remove('over'); });
+    d.addEventListener('drop', function(e){ e.preventDefault(); d.classList.remove('over');
+      var file=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(file) fn(file); });
+  }
+  var ob=$('mduOpenBtn'); if(ob) ob.onclick=open;
+  var xb=$('mduX'); if(xb) xb.onclick=close;
+  var cb=$('mduCancel'); if(cb) cb.onclick=function(){ close(); };
+  var ov=$('mduOv'); if(ov) ov.onclick=function(e){ if(e.target&&e.target.id==='mduOv') close(); };
+  var rb=$('mduRun'); if(rb) rb.onclick=runAgg;
+  var mb=$('mduResetMap'); if(mb) mb.onclick=function(){ MAP=Object.assign({},MAPDEF); renderInspect(); T('열 연결 기본값으로'); };
+  var sl=$('mduSaveLocal'); if(sl) sl.onclick=saveLocal;
+  var sg=$('mduSaveGh'); if(sg) sg.onclick=saveGithub;
+  if($('mduDrop')) wireDrop('mduDrop','mduFile', onFile);
+  if($('mduDropCost')) wireDrop('mduDropCost','mduFileCost', onCost);
+
+  window.MartDataUpload={ open:open, close:close, _merge:mergeStore, _toStoreData:toStoreData, _result:function(){ return RESULT; } };
+})();
+
 </script>
 </body>
 </html>
