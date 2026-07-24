@@ -965,7 +965,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 삭제 복원(undo) 버퍼 — 전체삭제/선택삭제 직전의 해당 중간 카테고리 저장본을 1회 보관
   var __deleteUndo=null;
   // 계산 복원(한 단계): MSRP 쪽(SALES/MARGIN)·SRP 쪽(SRP/MARGIN(SRP)) 각각 마지막 1회
-  var __calcUndo={ msrp:null, srp:null };
+  var __calcUndo={ msrp:null, srp:null, xfer:null };
   function snapCalc(side, cols){ if(!work) return; cols=cols.filter(Boolean); __calcUndo[side]={ cols:cols, rows: work.map(function(r){ return cols.map(function(c){ return getCellVal(r,c); }); }) }; }
   function restoreCalc(side, label){
     if(!editMode||!work){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
@@ -2682,6 +2682,26 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       showToast('SRP 끝자리 '+n+'건 변경'+(cfg.srpEndings.length?' (.'+cfg.srpEndings.map(function(e){return ('0'+e).slice(-2);}).join('/.')+')':' (.09~.99 중 가장 가까운)'),'success');
     }
   }
+  // MSRP↔SRP 가격·마진 전송. dir: 'm2s'(MSRP→SRP) | 's2m'(SRP→MSRP). 값이 있는 행만 복사, CANCEL로 직전 상태 복원.
+  function applyPriceTransfer(dir){
+    if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
+    var msrp=findColBy(isSalesPriceCol), mg=findColBy(isMarginCol);
+    var srp=findColBy(isSrpCol), sm=findColBy(isSrpMarginCol);
+    var srcP, srcM, dstP, dstM, nm;
+    if(dir==='m2s'){ srcP=msrp; srcM=mg; dstP=srp; dstM=sm; nm='MSRP → SRP'; }
+    else { srcP=srp; srcM=sm; dstP=msrp; dstM=mg; nm='SRP → MSRP'; }
+    if(!srcP){ showToast((dir==='m2s'?'MSRP':'SRP')+' 열을 찾을 수 없습니다','error'); return; }
+    if(!dstP){ showToast((dir==='m2s'?'SRP':'MSRP')+' 열을 찾을 수 없습니다','error'); return; }
+    snapCalc('xfer', [dstP, dstM]);
+    var n=0;
+    (work||[]).forEach(function(row){
+      var pv=getCellVal(row,srcP);
+      if(String(pv==null?'':pv).trim()!==''){ setCellVal(row,dstP,pv); n++; }
+      if(srcM&&dstM){ var mv=getCellVal(row,srcM); if(String(mv==null?'':mv).trim()!=='') setCellVal(row,dstM,mv); }
+    });
+    markDirty(); renderContent();
+    showToast(nm+' 적용 '+n+'건 완료 (가격·마진)','success');
+  }
   // ===== 데이터 변환 팝업 =====
   function openDataConvModal(){
     if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
@@ -2696,7 +2716,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     wrap.innerHTML='<div class="pcm-overlay" id="dcvOverlay"><div class="pcm-modal" style="max-width:600px;">'+
       '<div class="pcm-head">🔧 데이터 변환 <small style="font-weight:600;color:#9a9aa0;margin-left:6px;">'+escapeHtml(cat)+' › '+escapeHtml(sub)+'</small><button class="pcm-x" id="dcvClose" type="button">✕</button></div>'+
       '<div class="pcm-body" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 18px;">'+
-        '<div class="dcv-row"><button class="plu-tool-btn" id="dcvUpcBtn" type="button" style="background:var(--accent-soft);border-color:var(--accent-warm);color:var(--text);">🔄 UPC(O) → UPC(C) 변환</button></div>'+
+        '<div class="dcv-row">'+
+          '<button class="plu-tool-btn" id="dcvUpcBtn" type="button" style="background:var(--accent-soft);border-color:var(--accent-warm);color:var(--text);">🔄 UPC(O) → UPC(C) 변환</button>'+
+          '<button class="plu-tool-btn" id="dcvM2sBtn" type="button" title="MSRP 가격과 마진을 SRP · SRP(%)에 복사 적용">➡ MSRP → SRP 적용</button>'+
+          '<button class="plu-tool-btn" id="dcvS2mBtn" type="button" title="SRP 가격과 SRP(%)를 MSRP · MARGIN에 복사 적용">⬅ SRP → MSRP 적용</button>'+
+          '<button class="plu-tool-btn dcv-restore" id="dcvXferCancel" type="button" title="마지막 적용(MSRP↔SRP)을 직전 상태로 복원">✖ CANCEL</button>'+
+        '</div>'+
         '<div class="dcv-title">MSRP(권장판매가)</div>'+
         '<div class="dcv-group">'+
           '<div class="dcv-line">'+
@@ -2735,6 +2760,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<div><b>평균 마진 버튼(스위치)</b> : ON 상태 + 평균 마진 입력 시, MSRP(SRP)를 마진 대비 가격으로 변경</div>'+
           '<div class="sub">↳ 끝자리 금액이 선택되어 있을 경우 해당 끝자리로 가격이 변경(마진 비율도 변경)</div>'+
           '<div><b>끝자리 0.x9 버튼</b> : 모든 금액의 끝자리를 0.x9로 변경 (예: 2.38 → 2.39, 1.00 → 0.99)</div>'+
+          '<div><b>MSRP → SRP 적용</b> : MSRP 가격·마진을 SRP · SRP(%)에 복사 (값이 있는 행만)</div>'+
+          '<div><b>SRP → MSRP 적용</b> : SRP 가격·SRP(%)를 MSRP · MARGIN에 복사 (값이 있는 행만)</div>'+
+          '<div class="sub">↳ CANCEL : 마지막 적용을 직전 상태로 복원</div>'+
         '</div>'+
       '</div>'+
     '</div></div>';
@@ -2765,6 +2793,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     refresh();
 
     $('dcvUpcBtn').onclick=function(){ recalcAllUpc(); };
+    $('dcvM2sBtn').onclick=function(){ applyPriceTransfer('m2s'); };
+    $('dcvS2mBtn').onclick=function(){ applyPriceTransfer('s2m'); };
+    $('dcvXferCancel').onclick=function(){ restoreCalc('xfer','MSRP↔SRP 적용'); };
     $('dcvSalesSw').onchange=function(){ setSalesCfg(cat,sub,{salesOn:$('dcvSalesSw').checked}); refresh(); };
     $('dcvMargin').onchange=function(){ var v=Number($('dcvMargin').value); if(!isFinite(v)||v<0) v=0; if(v>99) v=99; setSalesCfg(cat,sub,{margin:v}); refresh(); };
     Array.prototype.forEach.call($('dcvOverlay').querySelectorAll('.dcv-msrp-end'), function(b){
