@@ -78,6 +78,7 @@
     font-family: var(--mono);
     min-height: 100vh;
     overflow-x: hidden;
+    overflow-x: clip; /* hidden은 크롬에서 position:sticky를 무력화 — clip은 가로 넘침만 자르고 sticky 유지 */
     -webkit-font-smoothing: antialiased;
   }
 
