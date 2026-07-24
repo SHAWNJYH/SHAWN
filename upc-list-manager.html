@@ -108,9 +108,9 @@
 
   /* 공통 상단 바 (모든 메뉴 동일) */
   .page-topbar {
-    position: relative; z-index: 1;
+    position: sticky; top: 0; z-index: 110; background: var(--bg);
     margin: 0 auto;
-    padding: 28px 32px 0;
+    padding: 28px 32px 6px;
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
   .page-title { font-family: var(--serif); font-weight: 700; font-size: 20px; line-height: 1.1; color: var(--text); }
@@ -183,7 +183,7 @@
   .plu-list-text { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
 
   /* 분류 칩: 표 위쪽 가로 배치(표 박스 폭 이내) */
-  .plu-cat-top { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; max-width: 100%; }
+  .plu-cat-top { display: grid; grid-template-columns: repeat(21, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; max-width: 100%; position: sticky; top: calc(var(--topbarH, 64px) + var(--subbarH, 48px)); z-index: 90; background: var(--bg); padding-bottom: 2px; }
   .plu-cat-top:empty { display: none; }
   .plu-cat-chip {
     width: 100%; border: 1.5px solid var(--border); background: var(--bg-elev); color: var(--text-dim);
@@ -329,7 +329,7 @@
 
   .plu-table-wrap {
     border: 1.5px solid var(--border); border-radius: 14px; overflow: auto;
-    max-height: calc(48px + 20 * 33px); background: var(--bg-elev);
+    max-height: 70vh; background: var(--bg-elev);
     transform: translateZ(0); will-change: scroll-position;
   }
   .plu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -359,7 +359,7 @@
   .plu-table td { word-break: break-word; overflow-wrap: anywhere; vertical-align: top; }
   .plu-table td:not(.plu-c-no):not(.plu-c-check):not(.plu-c-photo):not(.plu-c-local):not(.plu-c-organic) { max-width: 130px; }
   .plu-screen-row { display: flex; align-items: flex-start; gap: 14px; }
-  .plu-bars-col { width: 100%; }
+  .plu-bars-col { width: 100%; position: sticky; top: var(--topbarH, 64px); z-index: 100; background: var(--bg); }
   #pluContent { flex: 1 1 auto; min-width: 0; }
   .plu-photo-panel { flex: 0 0 150px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; position: sticky; top: 16px; align-self: flex-start; }
   .page-topbar .plu-tabs { margin-bottom: 0; margin-left: 28px; flex: 0 1 auto; }
@@ -494,7 +494,6 @@
     .plu-c-eng, .plu-c-cat,
     .plu-table thead th:nth-child(5),
     .plu-table thead th:nth-child(6) { display: none; }
-    .plu-table-wrap { max-height: calc(38px + 20 * 33px); }
   }
   @media (max-width: 760px) {
     .egmm-sub-screen { padding: 16px 12px 40px; }
@@ -1811,7 +1810,32 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(needCsv){ $('pluTbody').innerHTML='<tr><td class="plu-no-result">불러오는 중...</td></tr>'; loadCsv().then(buildList).catch(function(){ $('pluTbody').innerHTML='<tr><td class="plu-no-result">데이터가 없습니다.</td></tr>'; }); }
     else { buildList(); }
     renderNewList(); renderDupList();
+    fitTableWrap();
   }
+
+  // ===== 리스트 높이를 화면 크기에 맞춤 + 카테고리 구역 sticky 높이 변수 갱신 =====
+  function fitTableWrap(){
+    try{
+      var tb=document.querySelector('.page-topbar');
+      var sb=document.querySelector('.plu-bars-col');
+      var rootS=document.documentElement.style;
+      if(tb) rootS.setProperty('--topbarH', tb.offsetHeight+'px');
+      if(sb) rootS.setProperty('--subbarH', sb.offsetHeight+'px');
+      var w=document.querySelector('#pluContent .plu-table-wrap');
+      if(!w) return;
+      var h=window.innerHeight - w.getBoundingClientRect().top - 20;
+      if(h<240) h=240;
+      w.style.maxHeight=h+'px';
+    }catch(e){}
+  }
+  window.addEventListener('resize', function(){ fitTableWrap(); });
+  // 카테고리 탭 수 변화(구역 높이 변화) 자동 감지
+  (function(){
+    if(typeof ResizeObserver==='undefined') return;
+    var ro=new ResizeObserver(function(){ fitTableWrap(); });
+    var tb=document.querySelector('.page-topbar'); if(tb) ro.observe(tb);
+    var sb=document.querySelector('.plu-bars-col'); if(sb) ro.observe(sb);
+  })();
 
   // ===== IMPORT: 신규(NEW LIST) / 중복(중복된 LIST) 미리보기 =====
   var newImportRows=null, newImportLay=null, newImportTarget=null;
@@ -3642,6 +3666,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ var EC=exportColsFor(); var aoa=[EC.map(function(c){return c.label;})]; rows.forEach(function(r){ aoa.push(EC.map(function(c){ return exportCell(r,c); })); }); if(typeof XLSX==='undefined'){showToast('엑셀 모듈 오류','error');return;} var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, EC, aoa.length); applyExportFormats(ws, EC, aoa.length); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'search'); XLSX.writeFile(wb,'검색결과('+ymd6()+').xlsx'); };
       var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(rows); };
       var qe2=$('pluQuickExp'); if(qe2) qe2.onclick=function(){ exportVisibleNow(rows); };
+      fitTableWrap();
     };
     if(!cloudLoaded){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCloud().then(run); }
     else if(cloud['청과']===undefined && !csvRows){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCsv().then(run).catch(run); }
