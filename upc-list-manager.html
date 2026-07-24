@@ -967,7 +967,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 삭제 복원(undo) 버퍼 — 전체삭제/선택삭제 직전의 해당 중간 카테고리 저장본을 1회 보관
   var __deleteUndo=null;
   // 계산 복원(한 단계): MSRP 쪽(SALES/MARGIN)·SRP 쪽(SRP/MARGIN(SRP)) 각각 마지막 1회
-  var __calcUndo={ msrp:null, srp:null, xfer:null };
+  var __calcUndo={ msrp:null, srp:null, xfer:null, pos:null };
   function snapCalc(side, cols){ if(!work) return; cols=cols.filter(Boolean); __calcUndo[side]={ cols:cols, rows: work.map(function(r){ return cols.map(function(c){ return getCellVal(r,c); }); }) }; }
   function restoreCalc(side, label){
     if(!editMode||!work){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
@@ -2717,6 +2717,25 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       showToast('SRP 끝자리 '+n+'건 변경'+(cfg.srpEndings.length?' (.'+cfg.srpEndings.map(function(e){return ('0'+e).slice(-2);}).join('/.')+')':' (.09~.99 중 가장 가까운)'),'success');
     }
   }
+  // POS DESC 일괄 생성. 기존 자동 생성 규칙(__posAutoGen: BRAND 3자리+')'+ENG DESC, UNIT SIZE·UOM 반영) 그대로 사용.
+  // fillOnly: true면 POS DESC가 빈 행만 채움. CANCEL로 직전 상태 복원.
+  function applyPosDesc(fillOnly){
+    if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
+    if(typeof window.__posAutoGen!=='function'){ showToast('POS DESC 생성기를 사용할 수 없습니다','error'); return; }
+    var pd=findColBy(function(c){ var s=String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,' ').trim(); return s==='POS DESC'; });
+    if(!pd){ showToast('POS DESC 열을 찾을 수 없습니다','error'); return; }
+    snapCalc('pos', [pd]);
+    var hasVal=function(v){ return String(v==null?'':v).trim()!==''; };
+    var n=0, skip=0;
+    (work||[]).forEach(function(row){
+      if(fillOnly && hasVal(getCellVal(row,pd))) return;
+      var v=window.__posAutoGen(row);
+      if(v===''){ skip++; return; }   // BRAND(ENG) 없으면 생성 불가
+      setCellVal(row,pd,v); row.__posAuto=v; n++;
+    });
+    markDirty(); renderContent();
+    showToast('POS DESC '+(fillOnly?'빈 곳 채우기 ':'전체 적용 ')+n+'건 완료'+(skip?' · BRAND(ENG) 없음 '+skip+'건 제외':''),'success');
+  }
   // MSRP↔SRP 가격·마진 전송. dir: 'm2s'(MSRP→SRP) | 's2m'(SRP→MSRP). fillOnly: true면 대상이 빈 곳만 채움. CANCEL로 직전 상태 복원.
   function applyPriceTransfer(dir, fillOnly){
     if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
@@ -2767,6 +2786,15 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
             '<button class="plu-tool-btn dcv-restore" id="dcvXferCancel" type="button" title="마지막 적용(MSRP↔SRP)을 직전 상태로 복원">✖ CANCEL</button>'+
           '</div>'+
         '</div>'+
+        '<div class="dcv-title">POS DESC 생성</div>'+
+        '<div class="dcv-group">'+
+          '<div class="dcv-line dcv-xfer-line">'+
+            '<span class="dcv-lbl dcv-xfer-lbl">🏷 POS DESC</span>'+
+            '<button class="plu-tool-btn" id="dcvPosAllBtn" type="button" title="BRAND(ENG)·ENG DESC·UNIT SIZE·UOM 규칙으로 모든 행의 POS DESC를 새로 생성 (기존 값 덮어씀)">전체 적용</button>'+
+            '<button class="plu-tool-btn" id="dcvPosFillBtn" type="button" title="POS DESC가 비어 있는 행만 자동 생성 규칙으로 채움 (기존 값 유지)">빈 곳만 채우기</button>'+
+            '<button class="plu-tool-btn dcv-restore" id="dcvPosCancel" type="button" title="마지막 POS DESC 적용을 직전 상태로 복원">✖ CANCEL</button>'+
+          '</div>'+
+        '</div>'+
         '<div class="dcv-title">MSRP(권장판매가)</div>'+
         '<div class="dcv-group">'+
           '<div class="dcv-line">'+
@@ -2806,6 +2834,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<div class="sub">↳ 끝자리 금액이 선택되어 있을 경우 해당 끝자리로 가격이 변경(마진 비율도 변경)</div>'+
           '<div><b>끝자리 0.x9 버튼</b> : 모든 금액의 끝자리를 0.x9로 변경 (예: 2.38 → 2.39, 1.00 → 0.99)</div>'+
           '<div><b>MSRP → SRP / SRP → MSRP</b> : 가격·마진을 반대편에 복사</div>'+
+          '<div><b>POS DESC 생성</b> : BRAND(ENG) 3자리+&#41;+ENG DESC 규칙으로 생성 (UNIT SIZE·UOM 있으면 반영)</div>'+
           '<div class="sub">↳ 전체 적용 = 기존 값 덮어씀 · 빈 곳만 채우기 = 비어 있는 칸만 채움 · CANCEL = 마지막 적용 복원</div>'+
         '</div>'+
       '</div>'+
@@ -2841,6 +2870,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('dcvM2sFillBtn').onclick=function(){ applyPriceTransfer('m2s', true); };
     $('dcvS2mBtn').onclick=function(){ applyPriceTransfer('s2m'); };
     $('dcvS2mFillBtn').onclick=function(){ applyPriceTransfer('s2m', true); };
+    $('dcvPosAllBtn').onclick=function(){ applyPosDesc(); };
+    $('dcvPosFillBtn').onclick=function(){ applyPosDesc(true); };
+    $('dcvPosCancel').onclick=function(){ restoreCalc('pos','POS DESC 적용'); };
     $('dcvXferCancel').onclick=function(){ restoreCalc('xfer','MSRP↔SRP 적용'); };
     $('dcvSalesSw').onchange=function(){ setSalesCfg(cat,sub,{salesOn:$('dcvSalesSw').checked}); refresh(); };
     $('dcvMargin').onchange=function(){ var v=Number($('dcvMargin').value); if(!isFinite(v)||v<0) v=0; if(v>99) v=99; setSalesCfg(cat,sub,{margin:v}); refresh(); };
