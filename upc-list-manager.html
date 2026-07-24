@@ -104,7 +104,7 @@
   }
 
   /* 화면 레이아웃 (EGMM 하위 화면과 동일) */
-  .egmm-screen { min-height: 100vh; position: relative; z-index: 1; }
+  .egmm-screen { min-height: calc(100vh - var(--topbarH, 64px)); position: relative; z-index: 1; }
   .egmm-sub-screen { margin: 0 auto; padding: 8px 32px 48px; }
 
   /* 공통 상단 바 (모든 메뉴 동일) */
