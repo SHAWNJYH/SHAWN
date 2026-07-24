@@ -2717,24 +2717,25 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       showToast('SRP 끝자리 '+n+'건 변경'+(cfg.srpEndings.length?' (.'+cfg.srpEndings.map(function(e){return ('0'+e).slice(-2);}).join('/.')+')':' (.09~.99 중 가장 가까운)'),'success');
     }
   }
-  // POS DESC 일괄 생성. 기존 자동 생성 규칙(__posAutoGen: BRAND 3자리+')'+ENG DESC, UNIT SIZE·UOM 반영) 그대로 사용.
+  // POS DESC 일괄 생성. 편집 진입 시 자동 채움과 100% 동일한 경로(__posFillAllEmpty/__posFillAllForce)를 재사용.
   // fillOnly: true면 POS DESC가 빈 행만 채움. CANCEL로 직전 상태 복원.
+  var __posUndoSnap=null;
   function applyPosDesc(fillOnly){
     if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
-    if(typeof window.__posAutoGen!=='function'){ showToast('POS DESC 생성기를 사용할 수 없습니다','error'); return; }
-    var pd=findColBy(function(c){ var s=String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,' ').trim(); return s==='POS DESC'; });
-    if(!pd){ showToast('POS DESC 열을 찾을 수 없습니다','error'); return; }
-    snapCalc('pos', [pd]);
-    var hasVal=function(v){ return String(v==null?'':v).trim()!==''; };
-    var n=0, skip=0;
-    (work||[]).forEach(function(row){
-      if(fillOnly && hasVal(getCellVal(row,pd))) return;
-      var v=window.__posAutoGen(row);
-      if(v===''){ skip++; return; }   // BRAND(ENG) 없으면 생성 불가
-      setCellVal(row,pd,v); row.__posAuto=v; n++;
-    });
+    var fill=fillOnly?window.__posFillAllEmpty:window.__posFillAllForce;
+    if(typeof fill!=='function'||typeof window.__posSnapshot!=='function'){ showToast('POS DESC 생성기를 사용할 수 없습니다 — 편집 화면을 새로고침해주세요','error'); return; }
+    __posUndoSnap=window.__posSnapshot();
+    var n=fill();
     markDirty(); renderContent();
-    showToast('POS DESC '+(fillOnly?'빈 곳 채우기 ':'전체 적용 ')+n+'건 완료'+(skip?' · BRAND(ENG) 없음 '+skip+'건 제외':''),'success');
+    if(n>0) showToast('POS DESC '+(fillOnly?'빈 곳 채우기 ':'전체 적용 ')+n+'건 완료','success');
+    else showToast('생성된 항목이 없습니다 — BRAND(ENG) 값이 있는지 확인해주세요','error');
+  }
+  function cancelPosDesc(){
+    if(!editMode){ showToast('편집(✎ 수정) 상태에서 사용하세요','error'); return; }
+    if(!__posUndoSnap){ showToast('복원할 POS DESC 적용 내역이 없습니다','error'); return; }
+    var n=(typeof window.__posRestore==='function')?window.__posRestore(__posUndoSnap):0;
+    __posUndoSnap=null; markDirty(); renderContent();
+    showToast('POS DESC '+n+'건을 적용 직전 상태로 복원했습니다','success');
   }
   // MSRP↔SRP 가격·마진 전송. dir: 'm2s'(MSRP→SRP) | 's2m'(SRP→MSRP). fillOnly: true면 대상이 빈 곳만 채움. CANCEL로 직전 상태 복원.
   function applyPriceTransfer(dir, fillOnly){
@@ -2872,7 +2873,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('dcvS2mFillBtn').onclick=function(){ applyPriceTransfer('s2m', true); };
     $('dcvPosAllBtn').onclick=function(){ applyPosDesc(); };
     $('dcvPosFillBtn').onclick=function(){ applyPosDesc(true); };
-    $('dcvPosCancel').onclick=function(){ restoreCalc('pos','POS DESC 적용'); };
+    $('dcvPosCancel').onclick=function(){ cancelPosDesc(); };
     $('dcvXferCancel').onclick=function(){ restoreCalc('xfer','MSRP↔SRP 적용'); };
     $('dcvSalesSw').onchange=function(){ setSalesCfg(cat,sub,{salesOn:$('dcvSalesSw').checked}); refresh(); };
     $('dcvMargin').onchange=function(){ var v=Number($('dcvMargin').value); if(!isFinite(v)||v<0) v=0; if(v>99) v=99; setSalesCfg(cat,sub,{margin:v}); refresh(); };
@@ -3290,6 +3291,15 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         for(var i=0;i<work.length;i++){ var r=work[i]; if(!r) continue; if(__gv(r,'POS DESC')===''){ var v=window.__posAutoGen(r); if(v!==''){ __sv(r,'POS DESC',v); r.__posAuto=v; n++; } } }
         return n;
       };
+      // 전체 적용: 기존 값 유무와 관계없이 자동 생성 규칙으로 덮어씀 (데이터 변환 팝업에서 사용)
+      window.__posFillAllForce=function(){
+        if(!work) return 0; var n=0;
+        for(var i=0;i<work.length;i++){ var r=work[i]; if(!r) continue; var v=window.__posAutoGen(r); if(v!==''){ __sv(r,'POS DESC',v); r.__posAuto=v; n++; } }
+        return n;
+      };
+      // POS DESC 스냅샷/복원 (데이터 변환 CANCEL용) — __gv/__sv와 동일한 라벨 정규화 접근
+      window.__posSnapshot=function(){ if(!work) return null; return work.map(function(r){ return __gv(r,'POS DESC'); }); };
+      window.__posRestore=function(snap){ if(!work||!snap) return 0; var n=0; work.forEach(function(r,i){ if(snap[i]!==undefined){ __sv(r,'POS DESC',snap[i]); delete r.__posAuto; n++; } }); return n; };
       var __POS_SRC={'BRAND(ENG)':1,'BRAND':1,'ENG DESC':1,'UNIT SIZE':1,'UOM':1};
       tb.addEventListener('input',function(e){ var t=e.target; if(!t.classList||!t.classList.contains('plu-edit-input'))return; var idx=parseInt(t.getAttribute('data-idx'),10); var key=t.getAttribute('data-key'); var base=t.getAttribute('data-base')==='1'; // 영어 소문자 → 대문자 자동 변환 (커서 유지)
         if(/[a-z]/.test(t.value)){ var __ss=t.selectionStart,__se=t.selectionEnd; t.value=t.value.toUpperCase(); try{ t.setSelectionRange(__ss,__se); }catch(e2){} }
