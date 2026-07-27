@@ -2439,6 +2439,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var ru=String(getVal(r,uoCol.key)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
       var eu=String(getVal(ex,uoCol.key)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
       var nm=String(getVal(ex,k.eng)||getVal(ex,k.kor)||'');
+      var oldP=k.ea?fmtPrice(getVal(ex,k.ea)):'', newP=k.ea?fmtPrice(getVal(r,k.ea)):'';
+      var pDiff=(k.ea && priceNum(getVal(ex,k.ea))!==priceNum(getVal(r,k.ea)));
+      var pCell=pDiff
+        ? '<td style="white-space:nowrap;"><span class="pc-old">'+escapeHtml(oldP||'-')+'</span> → <span class="pc-new">'+escapeHtml(newP||'-')+'</span></td>'
+        : '<td style="white-space:nowrap;color:var(--text-dim);">'+escapeHtml(oldP||'-')+'</td>';
       var tlbl=(cf.type==='A')?'UPC 동일·CODE 다름':'CODE 동일·UPC 다름';
       var tsty=(cf.type==='A')
         ? 'background:#e8f0fe;color:#1e40af;border:1px solid #bcd0f5;'
@@ -2448,7 +2453,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         '<td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;'+tsty+'">'+escapeHtml(tlbl)+'</span></td>'+
         '<td'+hi(ru,eu)+'>'+escapeHtml(ru)+'</td><td'+hi(ri,ei)+'>'+escapeHtml(ri)+'</td>'+
         '<td'+hi(ru,eu)+'>'+escapeHtml(eu)+'</td><td'+hi(ri,ei)+'>'+escapeHtml(ei)+'</td>'+
-        '<td>'+escapeHtml(nm)+'</td>'+
+        '<td>'+escapeHtml(nm)+'</td>'+pCell+
         '<td><select class="dcf-act" data-i="'+i+'" style="font-family:var(--mono);font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-elev);color:var(--text);">'+
           '<option value="keep" selected>보존</option><option value="replace">교체</option><option value="both">둘다</option>'+
         '</select></td>'+
@@ -2465,7 +2470,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<button class="plu-tool-btn" id="dcfAllRep" type="button">전체 교체</button>'+
           '<button class="plu-tool-btn" id="dcfAllBoth" type="button">전체 둘다</button>'+
         '</div>'+
-        '<table class="pcm-table"><thead><tr><th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th><th>기존 CODE</th><th>기존 상품명</th><th>처리</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
+        '<table class="pcm-table"><thead><tr><th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th><th>기존 CODE</th><th>기존 상품명</th><th>COST (기존→가져온)</th><th>처리</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
       '</div>'+
       '<div class="pcm-foot"><button class="plu-tool-btn" id="dcfCancel" type="button">취소 (전체 보존)</button><button class="plu-tool-btn newlist-update" id="dcfApply" type="button">선택대로 적용</button></div>'+
     '</div></div>';
