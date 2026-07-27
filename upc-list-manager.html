@@ -2440,7 +2440,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('dcfApply').onclick=async function(){
       var acts={}; document.querySelectorAll('#dcfOverlay .dcf-act').forEach(function(sel){ acts[parseInt(sel.getAttribute('data-i'),10)]=sel.value; });
       var dataCols=lay.filter(function(c){ if(!c) return false; return String(c.key||'').toUpperCase().indexOf('__')!==0; });
-      var nRep=0, nBoth=0, nKeep=0, now=Date.now(), histRecs=[];
+      var __dcfg=getSalesCfg(cat,sub);
+      var nRep=0, nBoth=0, nKeep=0, now=Date.now(), histRecs=[], priceChanges=[];
       conflicts.forEach(function(cf,i){
         var act=acts[i]||'keep';
         var r=cf.row, ex=cf.exist;
@@ -2449,11 +2450,20 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         histRecs.push({ ts:now, cat:cat, sub:sub, uo:ru, ic:ri, exuo:eu, exic:ei,
           eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), act:(act==='replace'?'교체':(act==='both'?'둘다':'보존')) });
         if(act==='replace'){
+          var oldEA=k.ea?getVal(ex,k.ea):'';
           dataCols.forEach(function(col){
             var nv=getVal(r,col.key);
             if(col.type==='check'||col.type==='rcheck'){ var pv=parseCheckVal(nv); if(pv===null){ setValOn(ex,col.key,''); } else { setValOn(ex,col.key,pv?'O':''); } return; }
             setValOn(ex, col.key, nv==null?'':nv);
           });
+          // 가격 변경 감지 — 기존 중복 업데이트(applyDupImport)와 동일 처리: $ 마커·가격변경 이력·모달
+          var newEA=k.ea?getVal(ex,k.ea):'';
+          if(k.ea && priceNum(oldEA)!==priceNum(newEA)){
+            priceChanges.push({ uo:String(getVal(ex,uoCol.key)||''), eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), oldp:fmtPrice(oldEA), newp:fmtPrice(newEA) });
+            if(!ex.extra) ex.extra={}; ex.extra['__PRICEUPD']=String(now);
+            if(__dcfg.importMarginOn){ var __spCol=findInLay(lay,isSalesPriceCol);
+              if(__spCol){ var __sv2=priceFromMargin(newEA, __dcfg.importMargin, []); if(__sv2!==''){ setValOn(ex, __spCol.key, __sv2); } } }
+          }
           nRep++;
         } else if(act==='both'){
           if(!newImportRows){ newImportRows=[]; newImportLay=lay; newImportTarget={cat:cat, sub:sub}; }
@@ -2463,8 +2473,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       addHist('dup', histRecs);
       close();
       if(nRep>0){ try{ await saveCat(cat, rowsFor(cat), layoutByCat[cat]||lay, truncLenByCat[cat]); }catch(e){ showToast('저장 중 오류가 발생했습니다','error'); } }
+      if(priceChanges.length) addHist('price', priceChanges.map(function(c){ return { ts:now, cat:cat, sub:sub, uo:c.uo, eng:c.eng, kor:c.kor, oldp:c.oldp, newp:c.newp }; }));
       renderTabs();
       showToast('충돌 처리 완료 — 교체 '+nRep+' · 둘다(NEW LIST 추가) '+nBoth+' · 보존 '+nKeep,'success');
+      if(priceChanges.length) showPriceChangeModal(priceChanges);
     };
   }
   // 가격 변경 결과 모달
