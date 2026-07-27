@@ -272,6 +272,8 @@
   #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
   #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
   #pluExportMenuOv .pcm-body { padding:0 !important; background:#fbfaf7; }
+  #dcfOverlay .pcm-modal { max-width:min(1360px, 97vw); max-height:96vh; }
+  #dcfOverlay .pcm-table th, #dcfOverlay .pcm-table td { padding:6px 8px; font-size:12px; }
   #pluExportMenuOv .pcm-modal { max-height:96vh; }
   #pluExportMenuOv .em-sec { padding:10px 16px; gap:7px; }
   #pluExportMenuOv .em-cat-wrap { gap:8px; padding:10px 12px; }
@@ -2393,6 +2395,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     dupImportRows.forEach(function(nr){
       var v=k.uo?String(getVal(nr,k.uo)||'').replace(/\s+/g,''):''; if(!v||!byUo[v]) return;
       var tgt=byUo[v];
+      var __pcolsD=priceColsOf(lay);
+      var __oldValsD={}; __pcolsD.forEach(function(c){ __oldValsD[c.key]=getVal(tgt,c.key); });
       var oldEA=k.ea?getVal(tgt,k.ea):'';
       var touched=false;
       dataCols.forEach(function(col){
@@ -2410,10 +2414,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(!touched) return;                                    // 실제 변경 없으면 건너뜀
       updated++;
       var newEA=k.ea?getVal(tgt,k.ea):'';
-      // 가격이 실제로 바뀐 경우에만 '가격 변경'으로 기록/표시 (체크 등만 바뀌면 가격 변경 아님)
-      var priceChanged = !!k.ea && (priceNum(oldEA)!==priceNum(newEA));
+      // 가격이 실제로 바뀐 경우에만 '가격 변경'으로 기록/표시 — COST·MSRP·SRP 등 모든 가격 열 비교
+      var __diffsD=priceDiffs(__oldValsD, tgt, __pcolsD, function(m,c){return m[c.key];}, function(row,c){return getVal(row,c.key);});
+      var priceChanged = __diffsD.length>0;
       if(priceChanged){
-        changes.push({ uo:String(getVal(tgt,k.uo)||''), eng:String(getVal(tgt,k.eng)||''), kor:String(getVal(tgt,k.kor)||''), oldp:fmtPrice(oldEA), newp:fmtPrice(newEA) });
+        changes.push({ uo:String(getVal(tgt,k.uo)||''), eng:String(getVal(tgt,k.eng)||''), kor:String(getVal(tgt,k.kor)||''), oldp:priceDiffLabel(__diffsD,'old'), newp:priceDiffLabel(__diffsD,'new') });
         if(!tgt.extra) tgt.extra={}; tgt.extra['__PRICEUPD']=String(now);
         // COST 변경 시 MSRP를 불러오기 평균마진으로 재계산 (불러오기 스위치 ON일 때만 · 끝자리 없음)
         if(__dcfg.importMarginOn){ var __spCol=findInLay(lay,isSalesPriceCol);
@@ -2430,6 +2435,28 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       else showToast(updated+'건 업데이트 완료 (가격 변경 없음)','success');
     }
   }
+  // 레이아웃의 모든 가격 계열 열(COST·MSRP·SRP 및 price 포맷 열) 수집
+  function priceColsOf(lay){
+    var seen={}, out=[];
+    (lay||[]).forEach(function(c){
+      if(!c) return; var K=String(c.key||'').toUpperCase();
+      if(K.indexOf('__')===0 || seen[K]) return;
+      if(isPriceCol(c) || c.fmt==='price'){ seen[K]=1; out.push(c); }
+    });
+    return out;
+  }
+  // 두 행(값 맵) 사이 가격 차이 목록 [{col,oldp,newp}]
+  function priceDiffs(oldRow, newRow, pcols, getOld, getNew){
+    var d=[];
+    (pcols||[]).forEach(function(c){
+      var o=getOld(oldRow,c), n=getNew(newRow,c);
+      if(priceNum(o)!==priceNum(n)) d.push({ col:c, oldp:fmtPrice(o), newp:fmtPrice(n) });
+    });
+    return d;
+  }
+  function priceDiffLabel(diffs, side){
+    return diffs.map(function(d){ return d.col.label+' '+((side==='old'?d.oldp:d.newp)||'-'); }).join(' · ');
+  }
   // UPC/ITEM CODE 충돌 팝업: 항목별 보존/교체/둘다 선택 → 적용
   function showDupConflictModal(conflicts, cat, sub, lay, uoCol, icCol){
     var old=$('dcfOverlay'); if(old) old.remove();
@@ -2439,11 +2466,17 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var ru=String(getVal(r,uoCol.key)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
       var eu=String(getVal(ex,uoCol.key)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
       var nm=String(getVal(ex,k.eng)||getVal(ex,k.kor)||'');
-      var oldP=k.ea?fmtPrice(getVal(ex,k.ea)):'', newP=k.ea?fmtPrice(getVal(r,k.ea)):'';
-      var pDiff=(k.ea && priceNum(getVal(ex,k.ea))!==priceNum(getVal(r,k.ea)));
-      var pCell=pDiff
-        ? '<td style="white-space:nowrap;"><span class="pc-old">'+escapeHtml(oldP||'-')+'</span> → <span class="pc-new">'+escapeHtml(newP||'-')+'</span></td>'
-        : '<td style="white-space:nowrap;color:var(--text-dim);">'+escapeHtml(oldP||'-')+'</td>';
+      var __pc=priceColsOf(lay);
+      var __d=priceDiffs(ex, r, __pc, function(row,c){return getVal(row,c.key);}, function(row,c){return getVal(row,c.key);});
+      var pCell;
+      if(__d.length){
+        pCell='<td style="white-space:nowrap;">'+__d.map(function(d){
+          return escapeHtml(d.col.label)+' <span class="pc-old">'+escapeHtml(d.oldp||'-')+'</span>→<span class="pc-new">'+escapeHtml(d.newp||'-')+'</span>';
+        }).join('<br>')+'</td>';
+      } else {
+        var curC=k.ea?fmtPrice(getVal(ex,k.ea)):'';
+        pCell='<td style="white-space:nowrap;color:var(--text-dim);">'+escapeHtml(curC||'-')+'</td>';
+      }
       var tlbl=(cf.type==='A')?'UPC 동일·CODE 다름':'CODE 동일·UPC 다름';
       var tsty=(cf.type==='A')
         ? 'background:#e8f0fe;color:#1e40af;border:1px solid #bcd0f5;'
@@ -2470,7 +2503,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<button class="plu-tool-btn" id="dcfAllRep" type="button">전체 교체</button>'+
           '<button class="plu-tool-btn" id="dcfAllBoth" type="button">전체 둘다</button>'+
         '</div>'+
-        '<table class="pcm-table"><thead><tr><th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th><th>기존 CODE</th><th>기존 상품명</th><th>COST (기존→가져온)</th><th>처리</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
+        '<table class="pcm-table"><thead><tr><th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th><th>기존 CODE</th><th>기존 상품명</th><th>가격 (기존→가져온)</th><th>처리</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
       '</div>'+
       '<div class="pcm-foot"><button class="plu-tool-btn" id="dcfCancel" type="button">취소 (전체 보존)</button><button class="plu-tool-btn newlist-update" id="dcfApply" type="button">선택대로 적용</button></div>'+
     '</div></div>';
@@ -2494,18 +2527,21 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         histRecs.push({ ts:now, cat:cat, sub:sub, uo:ru, ic:ri, exuo:eu, exic:ei,
           eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), act:(act==='replace'?'교체':(act==='both'?'둘다':'보존')) });
         if(act==='replace'){
+          var __pcols=priceColsOf(lay);
+          var __oldVals={}; __pcols.forEach(function(c){ __oldVals[c.key]=getVal(ex,c.key); });
           var oldEA=k.ea?getVal(ex,k.ea):'';
           dataCols.forEach(function(col){
             var nv=getVal(r,col.key);
             if(col.type==='check'||col.type==='rcheck'){ var pv=parseCheckVal(nv); if(pv===null){ setValOn(ex,col.key,''); } else { setValOn(ex,col.key,pv?'O':''); } return; }
             setValOn(ex, col.key, nv==null?'':nv);
           });
-          // 가격 변경 감지 — 기존 중복 업데이트(applyDupImport)와 동일 처리: $ 마커·가격변경 이력·모달
-          var newEA=k.ea?getVal(ex,k.ea):'';
-          if(k.ea && priceNum(oldEA)!==priceNum(newEA)){
-            priceChanges.push({ uo:String(getVal(ex,uoCol.key)||''), eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), oldp:fmtPrice(oldEA), newp:fmtPrice(newEA) });
+          // 가격 변경 감지 — COST·MSRP·SRP 등 모든 가격 열을 비교: 하나라도 바뀌면 $ 마커·이력·모달
+          var __diffs=priceDiffs(__oldVals, ex, __pcols, function(m,c){return m[c.key];}, function(row,c){return getVal(row,c.key);});
+          if(__diffs.length){
+            priceChanges.push({ uo:String(getVal(ex,uoCol.key)||''), eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), oldp:priceDiffLabel(__diffs,'old'), newp:priceDiffLabel(__diffs,'new') });
             if(!ex.extra) ex.extra={}; ex.extra['__PRICEUPD']=String(now);
-            if(__dcfg.importMarginOn){ var __spCol=findInLay(lay,isSalesPriceCol);
+            var newEA=k.ea?getVal(ex,k.ea):'';
+            if(__dcfg.importMarginOn && k.ea && priceNum(oldEA)!==priceNum(newEA)){ var __spCol=findInLay(lay,isSalesPriceCol);
               if(__spCol){ var __sv2=priceFromMargin(newEA, __dcfg.importMargin, []); if(__sv2!==''){ setValOn(ex, __spCol.key, __sv2); } } }
           }
           nRep++;
