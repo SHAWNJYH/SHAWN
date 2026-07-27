@@ -1942,7 +1942,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var box=$('pluDupListWrap'); if(!box) return;
     if(!dupImportRows || !dupImportRows.length || !dupImportTarget || dupImportTarget.cat!==curCat() || dupImportTarget.sub!==curSub()){ box.innerHTML=''; return; }
     box.innerHTML=
-      '<div class="newlist-bar duplist-bar"><span class="newlist-title">♻ 중복된 LIST <em>'+dupImportRows.length+'개</em> <small>(이미 있는 UPC(O))</small></span>'+
+      '<div class="newlist-bar duplist-bar"><span class="newlist-title">♻ 변경된 LIST <em>'+dupImportRows.length+'개</em> <small>(UPC·ITEM CODE 동일 — 값 변경)</small></span>'+
       '<span class="newlist-btns"><button class="plu-tool-btn newlist-update" id="dupUpdateBtn">⬆ 업데이트</button><button class="plu-tool-btn" id="dupTrimBtn" title="기존 COST와 차이가 $0.5 이하인 항목을 중복 리스트에서 제거">➖ $0.5 이하 제거</button><button class="plu-tool-btn" id="dupExportBtn">⬇ EXPORT</button><button class="plu-tool-btn" id="dupCancelBtn">✕ 취소</button></span></div>'+
       '<div class="newlist-wrap">'+impRowsHTML(dupImportRows, dupImportLay)+'</div>';
     $('dupUpdateBtn').onclick=applyDupImport;
@@ -3970,6 +3970,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         // UPC(O) 기준 신규/중복 분리
         var uoCol=null; for(var li=0;li<lay.length;li++){ if(isUpcOCol(lay[li])){ uoCol=lay[li]; break; } }
         if(!uoCol){ showToast('Invalid data — a "UPC(O)" column is required.','error'); return; }
+        // ===== 분류 조건 (고정 규칙) =====
+        // 1. UPC·ITEM CODE 모두 기존과 안 겹침            → 새로운 아이템 (NEW LIST)
+        // 2. UPC 동일 · ITEM CODE 동일 (값/가격 변경)      → 변경 아이템 (변경된 LIST)
+        // 3. UPC 동일 · ITEM CODE 다름                    → 충돌 A — 보존/교체 선택
+        // 4. UPC 다름 · ITEM CODE 동일                    → 충돌 B — 보존/교체 선택
+        // ※ UPC 비교는 UPC(O)·UPC(C) 양쪽 값 통합(형태 무관), 선행0·공백·소수점 꼬리 무시
         var icCol=findInLay(lay, isItemCodeColG);
         var ucCol=findInLay(lay, isUpcCCol);   // UPC는 UPC끼리: UPC(O)·UPC(C) 어느 형태로 와도 매칭
         var byIc={};
@@ -3996,7 +4002,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(!newRows.length && !dupRows.length && !conflicts.length){ showToast('가져올 데이터가 없습니다','error'); return; }
         if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; }
         renderTabs();
-        showToast('신규 '+newRows.length+'건 · 중복 '+dupRows.length+'건'+(conflicts.length?(' · 충돌 '+conflicts.length+'건'):'')+' — 각 리스트에서 확인 후 업데이트하세요','success');
+        showToast('새로운 아이템 '+newRows.length+'건 · 변경 아이템 '+dupRows.length+'건'+(conflicts.length?(' · 충돌 '+conflicts.length+'건'):'')+' — 각 리스트에서 확인 후 업데이트하세요','success');
         if(conflicts.length) showDupConflictModal(conflicts, cat, __sub, lay, uoCol, icCol);
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
