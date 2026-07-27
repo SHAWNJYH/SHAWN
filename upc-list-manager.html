@@ -2254,20 +2254,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // UPC/ITEM CODE 비교용 정규화 키: 공백 제거 + 소수점 꼬리(.0) 제거 + 선행 0 제거
   // (엑셀이 UPC를 숫자로 읽어 선행 0이 사라지거나 4011.0 형태가 되어도 동일 상품으로 매칭)
   function upcKey(v){ var s=String(v==null?'':v).replace(/\s+/g,''); s=s.replace(/\.0+$/,''); var t=s.replace(/^0+/,''); return t!==''?t:s; }
-  // UPC 통합 인덱스: 각 행의 UPC(O)·UPC(C) 값을 모두 키로 등록 — 파일 UPC가 어느 형태(원본/변환)여도 동일 상품으로 매칭
-  function buildUpcIndex(rows, uoCol, ucCol){
-    var m={};
-    (rows||[]).forEach(function(r){
-      [uoCol,ucCol].forEach(function(c){ if(!c) return; var v=upcKey(getVal(r,c.key)); if(v && !m[v]) m[v]=r; });
-    });
-    return m;
-  }
-  // import 행의 UPC(O)→UPC(C) 순으로 통합 인덱스 조회
-  function findByUpc(m, r, uoCol, ucCol){
-    var v=upcKey(getVal(r,uoCol.key)); if(v && m[v]) return m[v];
-    if(ucCol){ var v2=upcKey(getVal(r,ucCol.key)); if(v2 && m[v2]) return m[v2]; }
-    return null;
-  }
   // ITEM CODE 열 판별 (전역) — 정확 매칭: 'ITEM CODE'만 (ITEMCODE1 등 유사 필드 제외)
   function isItemCodeColG(c){ var s=String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,''); return s==='ITEMCODE'; }
   // 뷰 모드 중복 행 마킹(같은 UPC(O) 또는 같은 ITEM CODE 공유)
@@ -2386,11 +2372,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var cat=dupImportTarget.cat, sub=dupImportTarget.sub;
     var lay=dupImportLay||curLayout(); var k=dupKeys(lay);
     if(!k.ea){ showToast('COST 열이 없습니다','error'); return; }
-    var __ucColS=findInLay(lay, isUpcCCol);
-    var byUpcS=buildUpcIndex((rowsFor(cat)||[]).filter(function(r){return rowSub(cat,r)===sub;}), k.uo?{key:k.uo}:null, __ucColS);
+    var byUo={}; (rowsFor(cat)||[]).filter(function(r){return rowSub(cat,r)===sub;}).forEach(function(r){ var v=k.uo?upcKey(getVal(r,k.uo)):''; if(v && !byUo[v]) byUo[v]=r; });
     var before=dupImportRows.length;
     dupImportRows=dupImportRows.filter(function(nr){
-      var old=k.uo?findByUpc(byUpcS, nr, {key:k.uo}, __ucColS):null; if(!old) return true;
+      var old=k.uo?(byUo[upcKey(getVal(nr,k.uo))]||null):null; if(!old) return true;
       var op=priceNum(getVal(old,k.ea)), np=priceNum(getVal(nr,k.ea));
       if(op==null||np==null) return true;
       return Math.abs(np-op) > 0.5;   // 0.5 초과만 남기고, 이하 차이는 제거
@@ -2408,13 +2393,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var __dcfg=getSalesCfg(cat,sub);
     if(!(await uiConfirm(dupImportRows.length+'개 중복 아이템을 가져온 값으로 업데이트할까요?\n(비어있는 필드는 기존 값을 유지하고, 내용이 있는 필드만 덮어씁니다)'))) return;
     var existing=(rowsFor(cat)||[]).filter(function(r){ return rowSub(cat,r)===sub; }).map(copyRow);
-    var __ucColA=findInLay(lay, isUpcCCol);
-    var byUpcA=buildUpcIndex(existing, k.uo?{key:k.uo}:null, __ucColA);
+    var byUo={}; existing.forEach(function(r){ var v=k.uo?upcKey(getVal(r,k.uo)):''; if(v && !byUo[v]) byUo[v]=r; });
     // 업데이트 대상 열: 메타·UPC(O)(검증키) 제외 (체크 열 포함)
     var dataCols=lay.filter(function(c){ if(!c) return false; if(isUpcOCol(c)) return false; return String(c.key||'').toUpperCase().indexOf('__')!==0; });
     var changes=[], updated=0, now=Date.now();
     dupImportRows.forEach(function(nr){
-      var tgt=k.uo?findByUpc(byUpcA, nr, {key:k.uo}, __ucColA):null; if(!tgt) return;
+      var tgt=k.uo?(byUo[upcKey(getVal(nr,k.uo))]||null):null; if(!tgt) return;
       var __pcolsD=priceColsOf(lay);
       var __oldValsD={}; __pcolsD.forEach(function(c){ __oldValsD[c.key]=getVal(tgt,c.key); });
       var oldEA=k.ea?getVal(tgt,k.ea):'';
@@ -2479,13 +2463,14 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return diffs.map(function(d){ return d.col.label+' '+((side==='old'?d.oldp:d.newp)||'-'); }).join(' · ');
   }
   // UPC/ITEM CODE 충돌 팝업: 항목별 보존/교체/둘다 선택 → 적용
-  function showDupConflictModal(conflicts, cat, sub, lay, uoCol, icCol){
+  function showDupConflictModal(conflicts, cat, sub, lay, uoCol, icCol, ucCol){
     var old=$('dcfOverlay'); if(old) old.remove();
     var k=dupKeys(lay);
     var rowsH=conflicts.map(function(cf,i){
       var r=cf.row, ex=cf.exist;
       var ru=String(getVal(r,uoCol.key)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
       var eu=String(getVal(ex,uoCol.key)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
+      var euc=ucCol?String(getVal(ex,ucCol.key)||''):'';
       var nm=String(getVal(ex,k.eng)||getVal(ex,k.kor)||'');
       var __pc=priceColsOf(lay);
       var __d=priceDiffs(ex, r, __pc, function(row,c){return getVal(row,c.key);}, function(row,c){return getVal(row,c.key);});
@@ -2506,7 +2491,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       return '<tr>'+
         '<td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;'+tsty+'">'+escapeHtml(tlbl)+'</span></td>'+
         '<td'+hi(ru,eu)+'>'+escapeHtml(ru)+'</td><td'+hi(ri,ei)+'>'+escapeHtml(ri)+'</td>'+
-        '<td'+hi(ru,eu)+'>'+escapeHtml(eu)+'</td><td'+hi(ri,ei)+'>'+escapeHtml(ei)+'</td>'+
+        '<td'+hi(ru,eu)+'>'+escapeHtml(eu)+'</td>'+
+        (ucCol?('<td style="color:var(--text-dim);">'+escapeHtml(euc)+'</td>'):'')+
+        '<td'+hi(ri,ei)+'>'+escapeHtml(ei)+'</td>'+
         '<td>'+escapeHtml(nm)+'</td>'+pCell+
         '<td><select class="dcf-act" data-i="'+i+'" style="font-family:var(--mono);font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-elev);color:var(--text);">'+
           '<option value="keep" selected>보존</option><option value="replace">교체</option><option value="both">둘다</option>'+
@@ -2524,7 +2511,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<button class="plu-tool-btn" id="dcfAllRep" type="button">전체 교체</button>'+
           '<button class="plu-tool-btn" id="dcfAllBoth" type="button">전체 둘다</button>'+
         '</div>'+
-        '<table class="pcm-table"><thead><tr><th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th><th>기존 CODE</th><th>기존 상품명</th><th>가격 (기존→가져온)</th><th>처리</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
+        '<table class="pcm-table"><thead><tr>'+'<th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th>'+(ucCol?'<th>기존 UPC(C)</th>':'')+'<th>기존 CODE</th><th>기존 상품명</th><th>가격 (기존→가져온)</th><th>처리</th>'+'</tr></thead><tbody>'+rowsH+'</tbody></table>'+
       '</div>'+
       '<div class="pcm-foot"><button class="plu-tool-btn" id="dcfCancel" type="button">취소 (전체 보존)</button><button class="plu-tool-btn newlist-update" id="dcfApply" type="button">선택대로 적용</button></div>'+
     '</div></div>';
@@ -3975,20 +3962,20 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         // 2. UPC 동일 · ITEM CODE 동일 (값/가격 변경)      → 변경 아이템 (변경된 LIST)
         // 3. UPC 동일 · ITEM CODE 다름                    → 충돌 A — 보존/교체 선택
         // 4. UPC 다름 · ITEM CODE 동일                    → 충돌 B — 보존/교체 선택
-        // ※ UPC 비교는 UPC(O)·UPC(C) 양쪽 값 통합(형태 무관), 선행0·공백·소수점 꼬리 무시
+        // ※ UPC 비교는 UPC(O)끼리만. UPC(C)는 매칭(검색)에서 완전 제외. 선행0·공백·소수점 꼬리 무시
         var icCol=findInLay(lay, isItemCodeColG);
-        var ucCol=findInLay(lay, isUpcCCol);   // UPC는 UPC끼리: UPC(O)·UPC(C) 어느 형태로 와도 매칭
-        var byIc={};
-        var byUpc=buildUpcIndex(rowsFor(cat)||[], uoCol, ucCol);
+        var ucCol=findInLay(lay, isUpcCCol);   // 팝업 표시용으로만 사용 (매칭에는 미사용)
+        var byUo={}, byIc={};
         (rowsFor(cat)||[]).forEach(function(r){
+          var v=upcKey(getVal(r,uoCol.key)); if(v && !byUo[v]) byUo[v]=r;
           if(icCol){ var ic=upcKey(getVal(r,icCol.key)); if(ic && !byIc[ic]) byIc[ic]=r; }
         });
         var newRows=[], dupRows=[], conflicts=[], blank=0;
         rows.forEach(function(r){
           var v=upcKey(getVal(r,uoCol.key));
           var ric=icCol?upcKey(getVal(r,icCol.key)):'';
-          if(!v && !(ucCol && upcKey(getVal(r,ucCol.key)))){ blank++; newRows.push(r); return; }
-          var ex=findByUpc(byUpc, r, uoCol, ucCol);
+          if(!v){ blank++; newRows.push(r); return; }
+          var ex=byUo[v]||null;
           if(ex){
             var eic=icCol?upcKey(getVal(ex,icCol.key)):'';
             if(icCol && ric && eic && ric!==eic){ conflicts.push({row:r, exist:ex, type:'A'}); return; }
@@ -4003,7 +3990,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; }
         renderTabs();
         showToast('새로운 아이템 '+newRows.length+'건 · 변경 아이템 '+dupRows.length+'건'+(conflicts.length?(' · 충돌 '+conflicts.length+'건'):'')+' — 각 리스트에서 확인 후 업데이트하세요','success');
-        if(conflicts.length) showDupConflictModal(conflicts, cat, __sub, lay, uoCol, icCol);
+        if(conflicts.length) showDupConflictModal(conflicts, cat, __sub, lay, uoCol, icCol, ucCol);
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
     reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
