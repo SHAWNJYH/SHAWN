@@ -2254,11 +2254,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // UPC 비교 열 선택: 반드시 정확히 'UPC'라는 필드만. 없으면 'UPC(O)' 정확 일치, 그것도 없으면 기존 느슨 판별 폴백.
   // (UPC 필드는 오직 UPC 필드끼리만 비교 — 다른 어떤 열도 비교에 쓰지 않음)
   function pickUpcCol(lay){
-    var N=function(c){ return String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,''); };
-    var exact=findInLay(lay, function(c){ return N(c)==='UPC'; });
-    if(exact) return exact;
-    var exactO=findInLay(lay, function(c){ return N(c)==='UPC(O)'; });
-    if(exactO) return exactO;
+    var NN=function(x){ return String(x==null?'':x).toUpperCase().replace(/\s+/g,''); };
+    // 1순위: 화면에 'UPC'로 보이는 필드(label) — 사용자가 UPC라고 부르는 바로 그 필드
+    var byLabel=findInLay(lay, function(c){ return c && NN(c.label)==='UPC'; });
+    if(byLabel) return byLabel;
+    // 2순위: 내부 key가 정확히 'UPC'
+    var byKey=findInLay(lay, function(c){ return c && NN(c.key)==='UPC'; });
+    if(byKey) return byKey;
+    // 3순위: 'UPC(O)' (타 카테고리 호환)
+    var oCol=findInLay(lay, function(c){ return c && (NN(c.key)==='UPC(O)' || NN(c.label)==='UPC(O)'); });
+    if(oCol) return oCol;
     return findInLay(lay, isUpcOCol);
   }
   // UPC/ITEM CODE 비교용 정규화 키: 공백 제거 + 소수점 꼬리(.0) 제거 + 선행 0 제거
@@ -2473,14 +2478,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return diffs.map(function(d){ return d.col.label+' '+((side==='old'?d.oldp:d.newp)||'-'); }).join(' · ');
   }
   // UPC/ITEM CODE 충돌 팝업: 항목별 보존/교체/둘다 선택 → 적용
-  function showDupConflictModal(conflicts, cat, sub, lay, uoCol, icCol, ucCol){
+  function showDupConflictModal(conflicts, cat, sub, lay, uoCol, icCol){
     var old=$('dcfOverlay'); if(old) old.remove();
     var k=dupKeys(lay);
     var rowsH=conflicts.map(function(cf,i){
       var r=cf.row, ex=cf.exist;
       var ru=String(getVal(r,uoCol.key)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
       var eu=String(getVal(ex,uoCol.key)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
-      var euc=ucCol?String(getVal(ex,ucCol.key)||''):'';
       var nm=String(getVal(ex,k.eng)||getVal(ex,k.kor)||'');
       var __pc=priceColsOf(lay);
       var __d=priceDiffs(ex, r, __pc, function(row,c){return getVal(row,c.key);}, function(row,c){return getVal(row,c.key);});
@@ -2502,7 +2506,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         '<td><span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;'+tsty+'">'+escapeHtml(tlbl)+'</span></td>'+
         '<td'+hi(ru,eu)+'>'+escapeHtml(ru)+'</td><td'+hi(ri,ei)+'>'+escapeHtml(ri)+'</td>'+
         '<td'+hi(ru,eu)+'>'+escapeHtml(eu)+'</td>'+
-        (ucCol?('<td style="color:var(--text-dim);">'+escapeHtml(euc)+'</td>'):'')+
         '<td'+hi(ri,ei)+'>'+escapeHtml(ei)+'</td>'+
         '<td>'+escapeHtml(nm)+'</td>'+pCell+
         '<td><select class="dcf-act" data-i="'+i+'" style="font-family:var(--mono);font-size:12px;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg-elev);color:var(--text);">'+
@@ -2521,7 +2524,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           '<button class="plu-tool-btn" id="dcfAllRep" type="button">전체 교체</button>'+
           '<button class="plu-tool-btn" id="dcfAllBoth" type="button">전체 둘다</button>'+
         '</div>'+
-        '<table class="pcm-table"><thead><tr>'+'<th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th>'+(ucCol?'<th>기존 UPC(C)</th>':'')+'<th>기존 CODE</th><th>기존 상품명</th><th>가격 (기존→가져온)</th><th>처리</th>'+'</tr></thead><tbody>'+rowsH+'</tbody></table>'+
+        '<table class="pcm-table"><thead><tr><th>충돌 유형</th><th>가져온 UPC</th><th>가져온 CODE</th><th>기존 UPC</th><th>기존 CODE</th><th>기존 상품명</th><th>가격 (기존→가져온)</th><th>처리</th></tr></thead><tbody>'+rowsH+'</tbody></table>'+
       '</div>'+
       '<div class="pcm-foot"><button class="plu-tool-btn" id="dcfCancel" type="button">취소 (전체 보존)</button><button class="plu-tool-btn newlist-update" id="dcfApply" type="button">선택대로 적용</button></div>'+
     '</div></div>';
@@ -3974,7 +3977,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         // 4. UPC 다름 · ITEM CODE 동일                    → 충돌 B — 보존/교체 선택
         // ※ UPC 비교는 UPC(O)끼리만. UPC(C)는 매칭(검색)에서 완전 제외. 선행0·공백·소수점 꼬리 무시
         var icCol=findInLay(lay, isItemCodeColG);
-        var ucCol=findInLay(lay, isUpcCCol);   // 팝업 표시용으로만 사용 (매칭에는 미사용)
         var byUo={}, byIc={};
         (rowsFor(cat)||[]).forEach(function(r){
           var v=upcKey(getVal(r,uoCol.key)); if(v && !byUo[v]) byUo[v]=r;
@@ -4000,7 +4002,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; }
         renderTabs();
         showToast('새로운 아이템 '+newRows.length+'건 · 변경 아이템 '+dupRows.length+'건'+(conflicts.length?(' · 충돌 '+conflicts.length+'건'):'')+' — 각 리스트에서 확인 후 업데이트하세요','success');
-        if(conflicts.length) showDupConflictModal(conflicts, cat, __sub, lay, uoCol, icCol, ucCol);
+        if(conflicts.length) showDupConflictModal(conflicts, cat, __sub, lay, uoCol, icCol);
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
     reader.onerror=function(){ showToast('파일을 읽지 못했습니다','error'); };
