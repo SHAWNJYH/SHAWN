@@ -1554,33 +1554,41 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
 
   // ===== 리스트 높이를 화면 크기에 맞춤 + 카테고리 구역 sticky 높이 변수 갱신 =====
+  // 성능: 측정→쓰기 1패스로 강제 리플로우 최소화, 값이 같으면 스타일 변경 생략(옵저버 루프 차단)
+  var __fitLast={ tb:-1, sb:-1, mh:-1 };
   function fitTableWrap(){
     try{
       var tb=document.querySelector('.page-topbar');
       var sb=document.querySelector('.plu-bars-col');
-      var rootS=document.documentElement.style;
-      if(tb) rootS.setProperty('--topbarH', tb.offsetHeight+'px');
-      if(sb) rootS.setProperty('--subbarH', sb.offsetHeight+'px');
       var w=document.querySelector('#pluContent .plu-table-wrap');
+      // 1) 읽기 단계 (한 번에)
+      var tbH=tb?tb.offsetHeight:0, sbH=sb?sb.offsetHeight:0;
+      var top=w?w.getBoundingClientRect().top:0;
+      // 2) 쓰기 단계 — 변경된 값만
+      var rootS=document.documentElement.style;
+      if(tb && tbH!==__fitLast.tb){ rootS.setProperty('--topbarH', tbH+'px'); __fitLast.tb=tbH; }
+      if(sb && sbH!==__fitLast.sb){ rootS.setProperty('--subbarH', sbH+'px'); __fitLast.sb=sbH; }
       if(!w) return;
-      var h=window.innerHeight - w.getBoundingClientRect().top - 20;
+      var h=window.innerHeight - top - 20;
       if(h<240) h=240;
-      w.style.maxHeight=h+'px';
-      // 2차 보정: 하단 여백·NEW LIST 등으로 페이지가 뷰포트를 넘치면 그만큼 리스트를 줄여
-      // 페이지 스크롤을 제거 → 테이블이 카테고리 구역 뒤로 밀려 필드명(thead)이 가려지는 것 방지
+      if(h!==__fitLast.mh){ w.style.maxHeight=h+'px'; __fitLast.mh=h; }
+      // 3) 2차 보정(페이지 넘침 제거)도 같은 프레임 다음 rAF 1회로 병합
       requestAnimationFrame(function(){
         try{
           var ov=document.documentElement.scrollHeight - window.innerHeight;
-          if(ov>0){ var nh=h-ov; if(nh<240) nh=240; w.style.maxHeight=nh+'px'; }
+          if(ov>0){ var nh=h-ov; if(nh<240) nh=240; if(nh!==__fitLast.mh){ w.style.maxHeight=nh+'px'; __fitLast.mh=nh; } }
         }catch(e){}
       });
     }catch(e){}
   }
-  window.addEventListener('resize', function(){ fitTableWrap(); });
-  // 카테고리 탭 수 변화(구역 높이 변화) 자동 감지
+  // 리사이즈 드래그 중에는 실행하지 않고, 멈춘 뒤 1회만 실행 (디바운스)
+  var __fitTimer=null;
+  function fitTableWrapDebounced(){ if(__fitTimer) clearTimeout(__fitTimer); __fitTimer=setTimeout(function(){ __fitTimer=null; fitTableWrap(); }, 120); }
+  window.addEventListener('resize', fitTableWrapDebounced);
+  // 카테고리 탭 수 변화(구역 높이 변화) 자동 감지 — 디바운스 공유
   (function(){
     if(typeof ResizeObserver==='undefined') return;
-    var ro=new ResizeObserver(function(){ fitTableWrap(); });
+    var ro=new ResizeObserver(fitTableWrapDebounced);
     var tb=document.querySelector('.page-topbar'); if(tb) ro.observe(tb);
     var sb=document.querySelector('.plu-bars-col'); if(sb) ro.observe(sb);
   })();
