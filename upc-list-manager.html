@@ -2251,6 +2251,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     $('histClear').onclick=async function(){ var kinds=isAll?['new','price']:[kind]; for(var i=0;i<kinds.length;i++){ var k=kinds[i]; saveHist(k, []); try{ await clearAllMarks(k); }catch(e){} } open={}; refresh(); };
   }
   // 레이아웃에서 UPC(O)/EA PRICE/ENG/KOR 키 찾기
+  // UPC 비교 열 선택: 반드시 정확히 'UPC'라는 필드만. 없으면 'UPC(O)' 정확 일치, 그것도 없으면 기존 느슨 판별 폴백.
+  // (UPC 필드는 오직 UPC 필드끼리만 비교 — 다른 어떤 열도 비교에 쓰지 않음)
+  function pickUpcCol(lay){
+    var N=function(c){ return String((c&&(c.key||c.label))||'').toUpperCase().replace(/\s+/g,''); };
+    var exact=findInLay(lay, function(c){ return N(c)==='UPC'; });
+    if(exact) return exact;
+    var exactO=findInLay(lay, function(c){ return N(c)==='UPC(O)'; });
+    if(exactO) return exactO;
+    return findInLay(lay, isUpcOCol);
+  }
   // UPC/ITEM CODE 비교용 정규화 키: 공백 제거 + 소수점 꼬리(.0) 제거 + 선행 0 제거
   // (엑셀이 UPC를 숫자로 읽어 선행 0이 사라지거나 4011.0 형태가 되어도 동일 상품으로 매칭)
   function upcKey(v){ var s=String(v==null?'':v).replace(/\s+/g,''); s=s.replace(/\.0+$/,''); var t=s.replace(/^0+/,''); return t!==''?t:s; }
@@ -2274,7 +2284,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(d) __dupViewMark.add(r);
     });
   }
-  function dupKeys(lay){ var k={uo:null,ea:null,eng:null,kor:null}; (lay||[]).forEach(function(c){ if(isUpcOCol(c))k.uo=c.key; if(isEaPriceCol(c))k.ea=c.key; var L=String(c.key||c.label||'').toUpperCase(); if(!k.eng && /ENG/.test(L))k.eng=c.key; if(!k.kor && (/KOR/.test(L)||/한글/.test(L)))k.kor=c.key; }); if(!k.eng)k.eng='ENG'; if(!k.kor)k.kor='KOR'; return k; }
+  function dupKeys(lay){ var k={uo:null,ea:null,eng:null,kor:null}; var up=pickUpcCol(lay); if(up)k.uo=up.key; (lay||[]).forEach(function(c){ if(isEaPriceCol(c))k.ea=c.key; var L=String(c.key||c.label||'').toUpperCase(); if(!k.eng && /ENG/.test(L))k.eng=c.key; if(!k.kor && (/KOR/.test(L)||/한글/.test(L)))k.kor=c.key; }); if(!k.eng)k.eng='ENG'; if(!k.kor)k.kor='KOR'; return k; }
   // 레이아웃에서 조건에 맞는 열 객체 찾기
   function findInLay(lay, pred){ for(var i=0;i<(lay||[]).length;i++){ if(pred(lay[i])) return lay[i]; } return null; }
   // 체크 열 값 해석: 빈칸=null(정보없음·건너뜀) / X·N·0·OFF·- =false / 그 외 비어있지 않으면=true
@@ -3923,8 +3933,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var news=cols.filter(function(c){return c.isNew;});
         if(news.length){ if(!(await uiConfirm('엑셀에 기존에 없던 열이 있습니다: '+news.map(function(c){return c.label;}).join(', ')+'\n새 열로 만들까요?\n[확인=새 열 생성 / 취소=이 열들은 가져오지 않음]'))){ cols=cols.filter(function(c){return !c.isNew;}); } }
         if(!cols.length){ showToast('가져올 열이 없습니다','error'); return; }
-        // [필수] UPC(O) 열 — 신규/중복은 오직 UPC(O)로만 검증
-        if(!cols.some(function(c){ return isUpcOCol(c); })){ showToast('Invalid data — a "UPC(O)" column is required.','error'); return; }
+        // [필수] UPC 열 — 신규/중복은 오직 UPC 필드로만 검증 (정확 명칭 우선)
+        if(!pickUpcCol(cols)){ showToast('Invalid data — a "UPC" column is required.','error'); return; }
         var start = hasHeader?1:0;
         var rows=[];
         for(var i=start;i<aoa.length;i++){ var c=aoa[i]; if(!c) continue;
@@ -3954,9 +3964,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         cols.forEach(function(c){ var K=String(c.key).toUpperCase(); if(!have[K]){ ex.push({key:K,label:c.label||K,hidden:false,type:'text'}); have[K]=1; } });
         ex=orderEndCols(ex);
         var lay=normLayout(ex);
-        // UPC(O) 기준 신규/중복 분리
-        var uoCol=null; for(var li=0;li<lay.length;li++){ if(isUpcOCol(lay[li])){ uoCol=lay[li]; break; } }
-        if(!uoCol){ showToast('Invalid data — a "UPC(O)" column is required.','error'); return; }
+        // UPC 기준 신규/중복 분리 — 반드시 정확한 'UPC' 필드끼리만 비교
+        var uoCol=pickUpcCol(lay);
+        if(!uoCol){ showToast('Invalid data — a "UPC" column is required.','error'); return; }
         // ===== 분류 조건 (고정 규칙) =====
         // 1. UPC·ITEM CODE 모두 기존과 안 겹침            → 새로운 아이템 (NEW LIST)
         // 2. UPC 동일 · ITEM CODE 동일 (값/가격 변경)      → 변경 아이템 (변경된 LIST)
