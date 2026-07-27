@@ -2551,9 +2551,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var dataCols=lay.filter(function(c){ if(!c) return false; return String(c.key||'').toUpperCase().indexOf('__')!==0; });
       var __dcfg=getSalesCfg(cat,sub);
       var nRep=0, nBoth=0, nKeep=0, now=Date.now(), histRecs=[], priceChanges=[];
+      // 적용 시점 라이브 행 재조회 인덱스 — 다른 업데이트(변경 LIST 등)로 cloud 배열이 교체됐어도 안전
+      var __live=rowsFor(cat)||[];
+      var __liveByUo={}, __liveByIc={};
+      __live.forEach(function(lr){
+        var lv=upcKey(upcValForMatch(lr,uoCol)); if(lv && !__liveByUo[lv]) __liveByUo[lv]=lr;
+        if(icCol){ var lic=upcKey(getVal(lr,icCol.key)); if(lic && !__liveByIc[lic]) __liveByIc[lic]=lr; }
+      });
+      var nMiss=0;
       conflicts.forEach(function(cf,i){
         var act=acts[i]||'keep';
         var r=cf.row, ex=cf.exist;
+        // 스냅샷 참조(ex) 대신 라이브 행으로 교체: A형=UPC로, B형=ITEM CODE로 재조회
+        var liveEx=(cf.type==='A') ? (__liveByUo[upcKey(upcValForMatch(ex,uoCol))]||null)
+                                   : (icCol ? (__liveByIc[upcKey(getVal(ex,icCol.key))]||null) : null);
+        if(liveEx) ex=liveEx;
+        else if(act==='replace'){ nMiss++; act='keep'; }   // 라이브 행 소실(삭제 등) → 교체 불가, 보존 처리
         var ru=String(upcValForMatch(r,uoCol)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
         var eu=String(upcValForMatch(ex,uoCol)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
         histRecs.push({ ts:now, cat:cat, sub:sub, uo:ru, ic:ri, exuo:eu, exic:ei,
@@ -2587,7 +2600,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(nRep>0){ try{ await saveCat(cat, rowsFor(cat), layoutByCat[cat]||lay, truncLenByCat[cat]); }catch(e){ showToast('저장 중 오류가 발생했습니다','error'); } }
       if(priceChanges.length) addHist('price', priceChanges.map(function(c){ return { ts:now, cat:cat, sub:sub, uo:c.uo, eng:c.eng, kor:c.kor, oldp:c.oldp, newp:c.newp }; }));
       renderTabs();
-      showToast('충돌 처리 완료 — 교체 '+nRep+' · 둘다(NEW LIST 추가) '+nBoth+' · 보존 '+nKeep,'success');
+      showToast('충돌 처리 완료 — 교체 '+nRep+' · 둘다(NEW LIST 추가) '+nBoth+' · 보존 '+nKeep+(nMiss?(' · 대상 소실 '+nMiss):''),'success');
       if(priceChanges.length) showPriceChangeModal(priceChanges);
     };
   }
