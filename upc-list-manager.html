@@ -248,7 +248,7 @@
   .em-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .em-allbtn { border:1.5px solid var(--border); background:var(--bg-elev); color:var(--text-dim); border-radius:999px; padding:5px 14px; font-family:var(--mono); font-size:12px; font-weight:700; cursor:pointer; transition:all .12s; }
   .em-allbtn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
-  .em-cfg-list { display:grid; grid-template-columns:repeat(4, 1fr); gap:2px 14px; padding:14px 16px; border:1px solid var(--border); border-radius:14px; background:var(--bg-elev); }
+  .em-cfg-list { display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:2px 12px; padding:14px 16px; border:1px solid var(--border); border-radius:14px; background:var(--bg-elev); }
   .em-cfg-item { display:flex; align-items:center; gap:7px; padding:5px 4px; font-size:13px; cursor:pointer; color:var(--text); border:none; background:transparent; transition:color .12s; user-select:none; }
   .em-cfg-item:hover { color:#1a1a1d; }
   .em-cfg-item:has(input:checked) { font-weight:700; color:#8a6d2b; }
@@ -267,7 +267,7 @@
   .em-export-cta:disabled { opacity:.45; cursor:not-allowed; filter:none; }
   .em-back-btn { flex:1; border:1.5px solid var(--border); border-radius:12px; padding:14px 0; font-family:var(--mono); font-size:14px; font-weight:800; cursor:pointer; background:var(--bg-elev); color:var(--text-dim); transition:all .12s; }
   .em-back-btn:hover { border-color:var(--accent-warm); color:var(--text); background:var(--accent-soft); }
-  #pluExportMenuOv .pcm-modal { max-width:760px; border-radius:18px; }
+  #pluExportMenuOv .pcm-modal { max-width:min(1180px, 96vw); border-radius:18px; }
   #pluExportMenuOv .pcm-head { background:linear-gradient(135deg,#1f1d1a,#3a352e); color:#fff; border-bottom:none; font-size:18px; padding:18px 22px; }
   #pluExportMenuOv .pcm-head .pcm-x { color:#fff; opacity:.75; }
   #pluExportMenuOv .pcm-head .pcm-x:hover { opacity:1; }
@@ -3627,8 +3627,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
             '<button class="em-allbtn em-go" data-mode="stws" type="button" style="border-radius:10px;padding:9px 14px;">EXPORT(STWS)</button>'+
           '</div></div>'+
         '</div>') : '';
-      var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+(startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
-      return '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
+      var foot = '<div class="em-foot"><button class="em-export-cta" id="emDoExp">⬇ EXPORT</button>'+
+        '<button class="em-export-cta" id="emFullExp" type="button" title="현재 선택된 카테고리의 모든 중간 카테고리 데이터를, 숨겨진 필드·내보내기 체크와 무관하게 전체 필드로 내보냅니다" style="background:#1e40af;border-color:#1e40af;">⬇ EXPORT (FULL DATA)</button>'+
+        (startList?'<button class="em-back-btn" id="emAdminBack" type="button">← 뒤로</button>':'')+'</div>';
+      return '<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:12px;align-items:start;">'+catSec+cfgSec+'</div>'+catExpSec+listSec+foot;
     }
     // 리스트 화면 HTML
     var emEntryMap={};
@@ -3651,6 +3653,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var catAll=$('emCatAll'); if(catAll) catAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cat-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; }); catAll.textContent=allOn?'전체 선택':'전체 해제'; };
       var fldAll=$('emFldAll'); if(fldAll) fldAll.onclick=function(){ var cs=document.querySelectorAll('#'+ov+' .em-cfg-col'); var allOn=Array.prototype.every.call(cs,function(c){return c.checked;}); Array.prototype.forEach.call(cs,function(c){ c.checked=!allOn; c.onchange&&c.onchange(); }); fldAll.textContent=allOn?'전체 선택':'전체 해제'; };
       var de=$('emDoExp'); if(de) de.onclick=function(){ var list=[]; document.querySelectorAll('#'+ov+' .em-cat-col:checked').forEach(function(c){ var ti=parseInt(c.getAttribute('data-ti'),10); var si=parseInt(c.getAttribute('data-si'),10); var t=PLU_TABS[ti]; if(t&&t.subs&&t.subs[si]!=null) list.push({big:t.label, sub:t.subs[si]}); }); exportSelectedCats(list); };
+      var fe=$('emFullExp'); if(fe) fe.onclick=function(){ exportFullData(curCat()); };
       document.querySelectorAll('#'+ov+' .em-go').forEach(function(b){ b.onclick=function(){ showList(b.getAttribute('data-mode')); }; });
       // EXPORT 카테고리(HANA 등) 형식으로 현재 데이터 내보내기
       var goBtn=$('emCatExp');
@@ -3689,6 +3692,39 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     showHome();
   }
   // 선택한 중간 카테고리들을 시트별로 묶어 한 파일로 내보내기
+  // FULL DATA 내보내기: 해당 상위 카테고리의 모든 중간 카테고리 데이터를 전체 필드(숨김·내보내기 체크 무관, 메타 제외)로 출력
+  function exportFullData(cat){
+    if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
+    var tab=null; for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===cat){ tab=PLU_TABS[i]; break; } }
+    if(!tab){ showToast('카테고리를 찾을 수 없습니다','error'); return; }
+    var lay=withStdChecks(cat, layoutByCat[cat]||defaultLayout([]));
+    var cols=(lay||[]).filter(function(c){ return c && String(c.key||'').toUpperCase().indexOf('__')!==0; })
+      .map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
+    if(!cols.length){ showToast('내보낼 필드가 없습니다','error'); return; }
+    var wb=XLSX.utils.book_new(); var used={}, made=0;
+    function addSheet(name, rows){
+      rows=rows.slice().sort(byPluAsc);
+      var aoa=[cols.map(function(c){return c.label;})];
+      rows.forEach(function(r){ aoa.push(cols.map(function(c){ return exportCell(r,c); })); });
+      var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length); applyExportFormats(ws, cols, aoa.length);
+      var nm=String(name).replace(/[\\\/\?\*\[\]:]/g,' ').trim().substring(0,28)||('sheet'+(made+1));
+      var base=nm,k=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++k)); } used[nm]=1;
+      XLSX.utils.book_append_sheet(wb, ws, nm); made++;
+    }
+    var subs=tab.subs||[];
+    if(subs.length){
+      subs.forEach(function(sb){
+        var rows=(rowsFor(cat)||[]).filter(function(r){ return rowSub(cat,r)===sb; });
+        if(rows.length) addSheet(sb, rows);
+      });
+    } else {
+      var rows=rowsFor(cat)||[]; if(rows.length) addSheet(cat, rows);
+    }
+    if(!made){ showToast('내보낼 데이터가 없습니다','error'); return; }
+    var fname=(cat+'-FULLDATA('+ymd6()+').xlsx').replace(/[\\\/\?\*\[\]:]/g,'_');
+    XLSX.writeFile(wb, fname);
+    showToast(cat+' 전체 데이터 · 전체 필드('+cols.length+'개) 내보내기 완료','success');
+  }
   function exportSelectedCats(list){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈을 불러오지 못했습니다','error'); return; }
     if(!list.length){ showToast('카테고리를 선택하세요','error'); return; }
