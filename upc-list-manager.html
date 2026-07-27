@@ -2266,6 +2266,15 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(oCol) return oCol;
     return findInLay(lay, isUpcOCol);
   }
+  // [매칭 전용] UPC 값 읽기 — 화면에 보이는 값과 동일하게 해석 (getVal → UPC(O) 별칭 폴백).
+  // UPC(C) 계열 별칭은 여기서 절대 사용하지 않음: UPC 필드는 UPC 필드끼리만 비교.
+  function upcValForMatch(r, col){
+    if(!r||!col) return '';
+    var v=getVal(r,col.key);
+    if(String(v==null?'':v).trim()!=='') return v;
+    var a=__findAltVal(r,__UPCO_ALIAS,col.key);
+    return a;
+  }
   // UPC/ITEM CODE 비교용 정규화 키: 공백 제거 + 소수점 꼬리(.0) 제거 + 선행 0 제거
   // (엑셀이 UPC를 숫자로 읽어 선행 0이 사라지거나 4011.0 형태가 되어도 동일 상품으로 매칭)
   function upcKey(v){ var s=String(v==null?'':v).replace(/\s+/g,''); s=s.replace(/\.0+$/,''); var t=s.replace(/^0+/,''); return t!==''?t:s; }
@@ -2276,16 +2285,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function computeDupView(rows, lay){
     __dupViewMark=(typeof WeakSet!=='undefined')?new WeakSet():null;
     if(!__dupViewMark||!rows||!rows.length) return;
-    var uoC=findInLay(lay,isUpcOCol), icC=findInLay(lay,isItemCodeColG);
+    var uoC=pickUpcCol(lay), icC=findInLay(lay,isItemCodeColG);
     var cu={}, ci={};
     rows.forEach(function(r){
-      if(uoC){ var u=String(getVal(r,uoC.key)||'').replace(/\s+/g,''); if(u) cu[u]=(cu[u]||0)+1; }
-      if(icC){ var ic=String(getVal(r,icC.key)||'').replace(/\s+/g,''); if(ic) ci[ic]=(ci[ic]||0)+1; }
+      if(uoC){ var u=upcKey(upcValForMatch(r,uoC)); if(u) cu[u]=(cu[u]||0)+1; }
+      if(icC){ var ic=upcKey(getVal(r,icC.key)); if(ic) ci[ic]=(ci[ic]||0)+1; }
     });
     rows.forEach(function(r){
       var d=false;
-      if(uoC){ var u=String(getVal(r,uoC.key)||'').replace(/\s+/g,''); if(u&&cu[u]>1) d=true; }
-      if(!d&&icC){ var ic=String(getVal(r,icC.key)||'').replace(/\s+/g,''); if(ic&&ci[ic]>1) d=true; }
+      if(uoC){ var u=upcKey(upcValForMatch(r,uoC)); if(u&&cu[u]>1) d=true; }
+      if(!d&&icC){ var ic=upcKey(getVal(r,icC.key)); if(ic&&ci[ic]>1) d=true; }
       if(d) __dupViewMark.add(r);
     });
   }
@@ -2387,10 +2396,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var cat=dupImportTarget.cat, sub=dupImportTarget.sub;
     var lay=dupImportLay||curLayout(); var k=dupKeys(lay);
     if(!k.ea){ showToast('COST 열이 없습니다','error'); return; }
-    var byUo={}; (rowsFor(cat)||[]).filter(function(r){return rowSub(cat,r)===sub;}).forEach(function(r){ var v=k.uo?upcKey(getVal(r,k.uo)):''; if(v && !byUo[v]) byUo[v]=r; });
+    var __uoColS=k.uo?{key:k.uo}:null;
+    var byUo={}; (rowsFor(cat)||[]).filter(function(r){return rowSub(cat,r)===sub;}).forEach(function(r){ var v=__uoColS?upcKey(upcValForMatch(r,__uoColS)):''; if(v && !byUo[v]) byUo[v]=r; });
     var before=dupImportRows.length;
     dupImportRows=dupImportRows.filter(function(nr){
-      var old=k.uo?(byUo[upcKey(getVal(nr,k.uo))]||null):null; if(!old) return true;
+      var old=__uoColS?(byUo[upcKey(upcValForMatch(nr,__uoColS))]||null):null; if(!old) return true;
       var op=priceNum(getVal(old,k.ea)), np=priceNum(getVal(nr,k.ea));
       if(op==null||np==null) return true;
       return Math.abs(np-op) > 0.5;   // 0.5 초과만 남기고, 이하 차이는 제거
@@ -2408,12 +2418,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var __dcfg=getSalesCfg(cat,sub);
     if(!(await uiConfirm(dupImportRows.length+'개 중복 아이템을 가져온 값으로 업데이트할까요?\n(비어있는 필드는 기존 값을 유지하고, 내용이 있는 필드만 덮어씁니다)'))) return;
     var existing=(rowsFor(cat)||[]).filter(function(r){ return rowSub(cat,r)===sub; }).map(copyRow);
-    var byUo={}; existing.forEach(function(r){ var v=k.uo?upcKey(getVal(r,k.uo)):''; if(v && !byUo[v]) byUo[v]=r; });
+    var __uoColA=k.uo?{key:k.uo}:null;
+    var byUo={}; existing.forEach(function(r){ var v=__uoColA?upcKey(upcValForMatch(r,__uoColA)):''; if(v && !byUo[v]) byUo[v]=r; });
     // 업데이트 대상 열: 메타·UPC(O)(검증키) 제외 (체크 열 포함)
     var dataCols=lay.filter(function(c){ if(!c) return false; if(isUpcOCol(c)) return false; return String(c.key||'').toUpperCase().indexOf('__')!==0; });
     var changes=[], updated=0, now=Date.now();
     dupImportRows.forEach(function(nr){
-      var tgt=k.uo?(byUo[upcKey(getVal(nr,k.uo))]||null):null; if(!tgt) return;
+      var tgt=__uoColA?(byUo[upcKey(upcValForMatch(nr,__uoColA))]||null):null; if(!tgt) return;
       var __pcolsD=priceColsOf(lay);
       var __oldValsD={}; __pcolsD.forEach(function(c){ __oldValsD[c.key]=getVal(tgt,c.key); });
       var oldEA=k.ea?getVal(tgt,k.ea):'';
@@ -2483,8 +2494,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var k=dupKeys(lay);
     var rowsH=conflicts.map(function(cf,i){
       var r=cf.row, ex=cf.exist;
-      var ru=String(getVal(r,uoCol.key)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
-      var eu=String(getVal(ex,uoCol.key)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
+      var ru=String(upcValForMatch(r,uoCol)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
+      var eu=String(upcValForMatch(ex,uoCol)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
       var nm=String(getVal(ex,k.eng)||getVal(ex,k.kor)||'');
       var __pc=priceColsOf(lay);
       var __d=priceDiffs(ex, r, __pc, function(row,c){return getVal(row,c.key);}, function(row,c){return getVal(row,c.key);});
@@ -2543,8 +2554,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       conflicts.forEach(function(cf,i){
         var act=acts[i]||'keep';
         var r=cf.row, ex=cf.exist;
-        var ru=String(getVal(r,uoCol.key)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
-        var eu=String(getVal(ex,uoCol.key)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
+        var ru=String(upcValForMatch(r,uoCol)||''), ri=icCol?String(getVal(r,icCol.key)||''):'';
+        var eu=String(upcValForMatch(ex,uoCol)||''), ei=icCol?String(getVal(ex,icCol.key)||''):'';
         histRecs.push({ ts:now, cat:cat, sub:sub, uo:ru, ic:ri, exuo:eu, exic:ei,
           eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), act:(act==='replace'?'교체':(act==='both'?'둘다':'보존')) });
         if(act==='replace'){
@@ -3979,12 +3990,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var icCol=findInLay(lay, isItemCodeColG);
         var byUo={}, byIc={};
         (rowsFor(cat)||[]).forEach(function(r){
-          var v=upcKey(getVal(r,uoCol.key)); if(v && !byUo[v]) byUo[v]=r;
+          var v=upcKey(upcValForMatch(r,uoCol)); if(v && !byUo[v]) byUo[v]=r;
           if(icCol){ var ic=upcKey(getVal(r,icCol.key)); if(ic && !byIc[ic]) byIc[ic]=r; }
         });
         var newRows=[], dupRows=[], conflicts=[], blank=0;
         rows.forEach(function(r){
-          var v=upcKey(getVal(r,uoCol.key));
+          var v=upcKey(upcValForMatch(r,uoCol));
           var ric=icCol?upcKey(getVal(r,icCol.key)):'';
           if(!v){ blank++; newRows.push(r); return; }
           var ex=byUo[v]||null;
