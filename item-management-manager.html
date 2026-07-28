@@ -546,7 +546,7 @@
 
   /* ===== 게이트 ===== */
   function gateUser(){ try{ return JSON.parse(sessionStorage.getItem('analyzeUser')||localStorage.getItem('analyzeUser')||'null'); }catch(e){ return null; } }
-  function gateOn(){ try{ return sessionStorage.getItem('analyzeGate')==='1' || localStorage.getItem('analyzeAutoLogin')==='1'; }catch(e){ return false; } }
+  function gateOn(){ try{ return sessionStorage.getItem('analyzeGate')==='1' || localStorage.getItem('analyzeAutoLogin')==='1' || sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1' || localStorage.getItem('unifiedLogin')==='1'; }catch(e){ return false; } }   // EGMM 로그인 세션도 인정
   (function(){ if(!gateOn()){ location.replace('index.html'); return; } var u=gateUser(); $('iaUser').innerHTML=u&&u.name?('<b>'+esc(u.name)+'</b> 님'):''; })();
 
   /* ===== 상수 ===== */
