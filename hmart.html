@@ -120,9 +120,9 @@
   .egmm-card-tick { width: 5px; height: 15px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
   .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 17px; letter-spacing: .03em; color: var(--text); }
 
-  .egmm-section-title { font-size: 10px; font-weight: 800; letter-spacing: .16em; color: var(--text-faint);
-    text-transform: uppercase; margin: 0 2px 8px; }
-  .egmm-section-title.gap { margin-top: 14px; }
+  .egmm-menu-btn .mlab { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.15; }
+  .egmm-menu-btn .mlab small { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
+  .egmm-menu-btn.active .mlab small { color: var(--text); opacity: .75; }
 
   .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
     background: var(--bg); border: 1px solid var(--border); color: var(--text);
@@ -342,41 +342,34 @@
       <div class="egmm-card">
         <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">H-MART</span></div>
 
-        <div class="egmm-section-title">PLU / UPC / ITEM CODE</div>
-        <button class="egmm-menu-btn" id="hmartToListBtn"><span>PLU LIST</span><span class="egmm-menu-arrow">→</span></button>
-        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span>UPC / ITEM CODE LOOKUP</span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToListBtn"><span class="mlab">PLU LIST<small>PLU 리스트</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC / ITEM CODE LOOKUP<small>UPC / 아이템 코드 조회</small></span><span class="egmm-menu-arrow">→</span></button>
 
-        <div class="egmm-section-title gap">MEMORIZE</div>
-        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span>PLU MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span class="mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span><span class="egmm-menu-arrow">→</span></button>
 
-        <div class="egmm-section-title gap">ADVERTISING</div>
-        <button class="egmm-menu-btn" id="hmartAdViewBtn"><span>광고상품 보기</span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartAdViewBtn"><span class="mlab">AD ITEMS<small>광고상품 보기</small></span><span class="egmm-menu-arrow">→</span></button>
 
-        <div class="egmm-section-title gap">ITEM</div>
-        <button class="egmm-menu-btn" id="hmartNewItemBtn"><span>신상품 보기</span><span class="hm-req-dot" id="hmNewDot"></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartNewItemBtn"><span class="mlab">NEW ITEMS<small>신상품 보기</small></span><span class="hm-req-dot" id="hmNewDot"></span><span class="egmm-menu-arrow">→</span></button>
       </div>
 
       <!-- 카드: REQUEST -->
       <div class="egmm-card">
         <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
 
-        <div class="egmm-section-title">DELI</div>
-        <button class="egmm-menu-btn" id="hmartDeliBtn"><span>DELI REQUEST</span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartDeliBtn"><span class="mlab">DELI REQUEST<small>델리 PLU 요청</small></span><span class="egmm-menu-arrow">→</span></button>
 
-        <div class="egmm-section-title gap">RESULT</div>
-        <button class="egmm-menu-btn" id="hmReqViewBtn"><span>VIEW REQUEST</span><span class="hm-req-dot" id="hmReqDot"></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmReqViewBtn"><span class="mlab">VIEW REQUEST<small>요청 결과 보기</small></span><span class="hm-req-dot" id="hmReqDot"></span><span class="egmm-menu-arrow">→</span></button>
       </div>
 
       <!-- 카드 2: GUIDE -->
       <div class="egmm-card">
         <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">GUIDE</span></div>
 
-        <div class="egmm-section-title">GUIDE</div>
-        <button class="egmm-menu-btn soon" data-soon="1"><span>PRODUCT NAME MAKER</span><span class="egmm-soon">SOON</span></button>
-        <button class="egmm-menu-btn soon" data-soon="1"><span>DELI MANAGEMENT</span><span class="egmm-soon">SOON</span></button>
-        <button class="egmm-menu-btn soon" data-soon="1"><span>EBT</span><span class="egmm-soon">SOON</span></button>
-        <button class="egmm-menu-btn soon" data-soon="1"><span>TAX</span><span class="egmm-soon">SOON</span></button>
-        <button class="egmm-menu-btn soon" data-soon="1"><span>HARD LIQUOR</span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span class="mlab">PRODUCT NAME MAKER<small>상품명 생성기</small></span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span class="mlab">DELI MANAGEMENT<small>델리 관리</small></span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span class="mlab">EBT<small>EBT 안내</small></span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span class="mlab">TAX<small>세금 안내</small></span><span class="egmm-soon">SOON</span></button>
+        <button class="egmm-menu-btn soon" data-soon="1"><span class="mlab">HARD LIQUOR<small>주류 안내</small></span><span class="egmm-soon">SOON</span></button>
       </div>
     </div>
     </aside>
