@@ -609,7 +609,7 @@
         var st=d.createElement('style');
         st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}'
           +'.page-topbar .plu-tabs{margin-left:0 !important;}'
-          +'.page-topbar{padding-left:16px !important;}';
+          +'.page-topbar{padding-left:32px !important;}';   /* 중간 카테고리(32px)와 세로 시작선 일치 */
         (d.head||d.documentElement).appendChild(st);
       }catch(e){}
     });
