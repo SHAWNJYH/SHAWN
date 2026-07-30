@@ -223,8 +223,12 @@
   .toast.success { background: var(--success); }
 </style>
 <script type="module">
+  // (압축 데이터 해제용)
+</script>
+<script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -236,7 +240,7 @@
   };
   const app = initializeApp(firebaseConfig);
   window.firebaseDb = getFirestore(app);
-  window.firebaseFns = { doc, getDoc };
+  window.firebaseFns = { doc, getDoc, getDocs, collection };
   window.dispatchEvent(new Event('plu-firebase-ready'));
 </script>
 </head>
@@ -398,24 +402,52 @@
     if (r.extra) { for (let i = 0; i < names.length; i++) { const want = String(names[i]).toLowerCase(); for (const k in r.extra) { if (String(k).toLowerCase() === want) { const v = r.extra[k]; if (v != null && String(v).trim() !== '') return String(v).trim(); } } } }
     return '';
   }
-  // Firebase plu-list/PRODUCE 문서에서 과일/야채 데이터 읽기
+  // Firebase plu-list에서 PRODUCE 데이터 읽기 — 최신 저장 구조(압축·청크 문서) 및 구식(단일 rows) 모두 지원
+  function __qB64ToU8(b64){ const bin=atob(b64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+  function __qRowsOf(d){ try{ if(d && d.comp && typeof pako!=='undefined'){ return JSON.parse(pako.ungzip(__qB64ToU8(d.data),{to:'string'})); } }catch(e){} return (d && Array.isArray(d.rows))?d.rows:[]; }
+  function __qMapRows(rows){
+    return rows.map(r => ({
+      plu: pickField(r, ['plu', 'PLU']),
+      eng: pickField(r, ['eng', 'ENG', 'ENG DESC', 'ENGLISH', '영문명']),
+      kor: pickField(r, ['kor', 'KOR', 'KOR DESC', 'KOREAN', '한글명']),
+      localPlu: pickField(r, ['local', 'LOCAL', '로컬']),
+      organic: pickField(r, ['organic', 'ORGANIC', '유기농']),
+      cateKor: '', cateEng: '', origin: pickField(r, ['origin', 'ORIGIN', '원산지']), itemCode: '', cateNo: ''
+    }));
+  }
   async function loadFromFirebase() {
     await fbReady();
     if (!window.firebaseFns || !window.firebaseDb) return null;
+    const fns = window.firebaseFns;
+    // 1) 구식: 단일 문서 rows
     try {
-      const fns = window.firebaseFns;
       const snap = await fns.getDoc(fns.doc(window.firebaseDb, 'plu-list', 'PRODUCE'));
       if (snap && snap.exists()) {
         const d = snap.data() || {};
-        if (Array.isArray(d.rows) && d.rows.length) {
-          return d.rows.map(r => ({
-            plu: pickField(r, ['plu', 'PLU']),
-            eng: pickField(r, ['eng', 'ENG', 'ENG DESC', 'ENGLISH', '영문명']),
-            kor: pickField(r, ['kor', 'KOR', 'KOR DESC', 'KOREAN', '한글명']),
-            localPlu: pickField(r, ['local', 'LOCAL', '로컬']),
-            organic: pickField(r, ['organic', 'ORGANIC', '유기농']),
-            cateKor: '', cateEng: '', origin: pickField(r, ['origin', 'ORIGIN', '원산지']), itemCode: '', cateNo: ''
-          }));
+        const rows = __qRowsOf(d);
+        if (rows.length) return __qMapRows(rows);
+      }
+    } catch (e) { /* 폴백 */ }
+    // 2) 최신: 청크 문서(parent 필드 또는 'PRODUCE__cN' id) 병합
+    try {
+      if (fns.getDocs && fns.collection) {
+        const qs = await fns.getDocs(fns.collection(window.firebaseDb, 'plu-list'));
+        const chunks = [];
+        qs.forEach(ds => {
+          const id = ds.id, d = ds.data() || {};
+          if (d.parent === 'PRODUCE') {
+            chunks.push({ sub: (d.sub != null ? String(d.sub) : ''), ci: (typeof d.ci === 'number' ? d.ci : 0), rows: __qRowsOf(d) });
+          } else {
+            const mc = /^(.*)__c(\d+)$/.exec(id);
+            if (mc && mc[1] === 'PRODUCE') chunks.push({ sub: '', ci: parseInt(mc[2], 10), rows: __qRowsOf(d) });
+          }
+        });
+        if (chunks.length) {
+          const bySub = {}, subOrder = [];
+          chunks.forEach(c => { if (!(c.sub in bySub)) { bySub[c.sub] = []; subOrder.push(c.sub); } bySub[c.sub].push(c); });
+          let rows = [];
+          subOrder.forEach(sn => { bySub[sn].sort((a, b) => a.ci - b.ci).forEach(c => { rows = rows.concat(c.rows); }); });
+          if (rows.length) return __qMapRows(rows);
         }
       }
     } catch (e) { /* 폴백 */ }

@@ -607,7 +607,9 @@
       try{
         var d=f.contentDocument; if(!d) return;
         var st=d.createElement('style');
-        st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}';
+        st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}'
+          +'.page-topbar .plu-tabs{margin-left:0 !important;}'
+          +'.page-topbar{padding-left:16px !important;}';
         (d.head||d.documentElement).appendChild(st);
       }catch(e){}
     });
