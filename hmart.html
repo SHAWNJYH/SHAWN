@@ -56,12 +56,41 @@
   }
 
   /* ===== H-MART 런처 홈 (EGMM 스타일 정제 리디자인) ===== */
+  html, body { height: 100%; }
+  body { overflow: hidden; }
   .hm-home {
-    position: relative; z-index: 1; min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
-    padding: clamp(30px, 6vh, 72px) 24px 56px;
+    position: relative; z-index: 1; height: 100vh;
+    display: flex; flex-direction: column;
     background: radial-gradient(125% 85% at 50% -12%, #ffffff 0%, var(--bg) 46%, #f1efe6 100%);
   }
+  /* ── 상단바 ── */
+  .hm-topbar { flex: 0 0 62px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; background: var(--bg-elev); border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 14px rgba(26,26,29,.05); }
+  .hm-topbar-brand { display: flex; align-items: baseline; gap: 14px; }
+  .hm-topbar .hm-wordmark { font-size: 26px; letter-spacing: .02em; }
+  .hm-topbar .hm-substore { font-size: 15px; margin: 0; }
+  .hm-topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .hm-topbar .hm-fab { position: static; box-shadow: none; }
+  .hm-top-msg { position: relative; display: inline-flex; align-items: center; gap: 7px;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 9px 15px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: border-color .15s, color .15s, transform .12s; }
+  .hm-top-msg:hover { border-color: var(--accent-warm); color: var(--text); }
+  .hm-top-msg:active { transform: scale(.97); }
+  .hm-top-msg.alarm { border-color: #c0392b; color: #c0392b; }
+  .hm-top-msg.alarm .hm-chat-alarm-dot { display: inline-block; }
+  /* ── 본문: 사이드바 + 콘텐츠 ── */
+  .hm-body { flex: 1; display: grid; grid-template-columns: 288px 1fr; min-height: 0; }
+  .hm-side { min-height: 0; overflow-y: auto; padding: 14px 12px 20px; border-right: 1px solid var(--border);
+    background: linear-gradient(180deg, #fbfaf6, var(--bg)); }
+  .hm-main { min-height: 0; position: relative; background: var(--bg); }
+  .hm-frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+  .hm-welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .hm-welcome-eyebrow { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .22em; color: var(--text-dim); }
+  .hm-welcome-mark { font-size: 58px; font-weight: 900; letter-spacing: .01em; color: var(--text); }
+  .hm-welcome-mark .dot { color: var(--accent-warm, #c9a961); }
+  .hm-welcome-sub { font-size: 15px; color: var(--text-dim); }
 
   /* 마스트헤드 */
   .hm-masthead { text-align: center; margin-bottom: clamp(26px, 4.5vh, 46px); max-width: 760px; }
@@ -76,9 +105,8 @@
     background: linear-gradient(90deg, transparent, var(--accent-warm) 20%, var(--accent-warm) 80%, transparent); opacity: .75; }
 
   /* 도메인 패널 */
-  .hm-cards { display: flex; gap: 14px; align-items: flex-start; justify-content: center;
-    width: 100%; max-width: 1180px; flex-wrap: wrap; }
-  .egmm-card { flex: 1 1 250px; min-width: 220px; max-width: 300px; background: var(--bg-elev);
+  .hm-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .egmm-card { width: 100%; box-sizing: border-box; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 14px; padding: 16px 15px 13px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
     opacity: 0; transform: translateY(14px); animation: hmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
@@ -88,6 +116,7 @@
 
   .egmm-card-head { display: flex; align-items: center; gap: 9px; padding-bottom: 10px; margin-bottom: 12px;
     border-bottom: 1px solid var(--border); }
+  .egmm-menu-btn.active { border-color: var(--accent-warm, #c9a961); background: var(--accent-soft, #f0eee5); color: var(--text); font-weight: 800; }
   .egmm-card-tick { width: 5px; height: 15px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
   .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 17px; letter-spacing: .03em; color: var(--text); }
 
@@ -292,16 +321,22 @@
   }catch(e){ location.replace('index.html'); }
 })();
 </script>
-  <button class="hm-fab" id="hmLogoutFab" type="button" title="로그아웃">👤 <b id="hmFabStore"></b></button>
-
   <div class="hm-home">
-    <div class="hm-masthead">
-      <div class="hm-eyebrow">매장 콘솔 · STORE OPERATIONS</div>
-      <div class="hm-wordmark">H-MART<span class="dot">.</span></div>
-      <div class="hm-substore" id="hmStoreSuffix"></div>
-      <div class="hm-rule"></div>
-    </div>
+    <!-- 상단바: H-MART + 매장명 / 우측 메시지·로그아웃 -->
+    <header class="hm-topbar">
+      <div class="hm-topbar-brand">
+        <div class="hm-wordmark">H-MART<span class="dot">.</span></div>
+        <div class="hm-substore" id="hmStoreSuffix"></div>
+      </div>
+      <div class="hm-topbar-actions">
+        <button class="hm-top-msg" id="hmMsgOpenBtn" type="button">💬 메시지<span class="hm-chat-alarm-dot"></span></button>
+        <button class="hm-fab" id="hmLogoutFab" type="button" title="로그아웃">👤 <b id="hmFabStore"></b></button>
+      </div>
+    </header>
 
+    <div class="hm-body">
+    <!-- 왼쪽 사이드바 -->
+    <aside class="hm-side">
     <div class="hm-cards">
       <!-- 카드 1: H-MART -->
       <div class="egmm-card">
@@ -344,9 +379,21 @@
         <button class="egmm-menu-btn soon" data-soon="1"><span>HARD LIQUOR</span><span class="egmm-soon">SOON</span></button>
       </div>
     </div>
+    </aside>
 
-    <!-- EGMM 메시지 (하단) -->
-    <div class="hm-msg-wrap">
+    <!-- 오른쪽 콘텐츠 화면 -->
+    <main class="hm-main">
+      <div class="hm-welcome" id="hmWelcome">
+        <div class="hm-welcome-eyebrow">매장 콘솔 · STORE OPERATIONS</div>
+        <div class="hm-welcome-mark">H-MART<span class="dot">.</span></div>
+        <div class="hm-welcome-sub">왼쪽 메뉴에서 기능을 선택하세요</div>
+      </div>
+      <iframe class="hm-frame" id="hmFrame" src="about:blank" title="content" style="display:none"></iframe>
+    </main>
+    </div><!-- /.hm-body -->
+
+    <!-- EGMM 메시지 팝업 (상단 💬 버튼) -->
+    <div class="hm-msg-wrap" id="hmChatPop">
       <div class="hm-chat-card">
         <div class="hm-chat-head" id="hmChatHead"><span>💬 EGMM 메시지</span><span class="hm-chat-alarm-dot"></span><span class="hm-msg-live">● LIVE</span></div>
         <div class="hm-chat-body" id="hmChatBody"></div>
@@ -363,7 +410,11 @@
 
 <style>
   /* EGMM 메시지 */
-  .hm-msg-wrap { width: 100%; max-width: 1080px; margin: 26px auto 0; }
+  /* 메시지 팝업 (상단 버튼) — 투명 오버레이: iframe 위 클릭도 받아 바깥 클릭 닫기 동작 */
+  #hmChatPop { position: fixed; inset: 0; z-index: 130; display: none; background: rgba(26,26,29,.06); }
+  #hmChatPop.show { display: block; }
+  #hmChatPop .hm-chat-card { position: absolute; top: 70px; right: 16px; width: 430px; max-width: calc(100vw - 32px);
+    box-shadow: 0 18px 48px rgba(26,26,29,.22); }
   .hm-msg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 760px){ .hm-msg-grid { grid-template-columns: 1fr; } }
   .hm-msg-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; }
@@ -380,7 +431,7 @@
   .hm-msg-body { font-size: 14px; color: var(--text); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
   .hm-msg-empty { font-size: 13px; color: var(--text-dim); padding: 14px 4px; text-align: center; }
   /* 대화형 채팅 */
-  .hm-msg-wrap { max-width: 720px; }
+
   .hm-chat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
   .hm-chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 800; font-size: 15px; color: var(--text); }
   .hm-chat-head .hm-msg-live { margin-left: auto; }
@@ -520,11 +571,21 @@
   function refreshDot(){ var d=$('hmReqDot'), b=$('hmReqViewBtn'); if(!d||!b) return; if(newApprovals>0){ d.textContent=newApprovals; d.style.display='inline-flex'; b.classList.add('hm-alarm'); } else { d.textContent=''; d.style.display='none'; b.classList.remove('hm-alarm'); } }
 
   // 네비게이션
-  $('hmartToListBtn').onclick = function(){ window.location.href = 'plu-list-store.html'; };
-  $('hmartToUpcBtn').onclick = function(){ window.location.href = 'upc-list-store.html'; };
-  $('hmartToQuizBtn').onclick = function(){ window.location.href = 'plu-quiz.html'; };
-  $('hmartAdViewBtn').onclick = function(){ var w=window.open('advertising.html?mode=view','adview','width=1120,height=860'); if(!w) window.location.href='advertising.html?mode=view'; };
-  $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); var w=window.open('advertising.html?mode=newitem','newitemview','width=1180,height=860'); if(!w) window.location.href='advertising.html?mode=newitem'; };
+  // 중첩 방지: 하위 페이지의 '돌아가기'로 iframe 안에 hmart가 다시 열리면 전체 화면으로 복귀
+  try{ if(window.top!==window.self){ window.top.location.href=window.location.href; } }catch(e){}
+  // 왼쪽 메뉴 → 오른쪽 화면(iframe) 표시. 기능 페이지 자체는 기존 그대로.
+  function openInFrame(url, btn){
+    var f=$('hmFrame'), w=$('hmWelcome');
+    if(w) w.style.display='none';
+    if(f){ f.style.display='block'; if(f.getAttribute('src')!==url) f.src=url; }
+    Array.prototype.forEach.call(document.querySelectorAll('.hm-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
+    if(btn) btn.classList.add('active');
+  }
+  $('hmartToListBtn').onclick = function(){ openInFrame('plu-list-store.html', this); };
+  $('hmartToUpcBtn').onclick = function(){ openInFrame('upc-list-store.html', this); };
+  $('hmartToQuizBtn').onclick = function(){ openInFrame('plu-quiz.html', this); };
+  $('hmartAdViewBtn').onclick = function(){ openInFrame('advertising.html?mode=view', this); };
+  $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('advertising.html?mode=newitem', this); };
   ready(watchNewItems);
   Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){ b.onclick = function(){}; });
 
@@ -653,9 +714,24 @@
     }catch(e){}
   }
   var head=$('hmChatHead');
-  function alarmOn(){ if(head) head.classList.add('alarm'); }
-  function alarmOff(){ if(head) head.classList.remove('alarm'); }
-  ['click','focusin'].forEach(function(ev){ var w=document.querySelector('.hm-msg-wrap'); if(w) w.addEventListener(ev, alarmOff); });
+  function alarmOn(){ if(head) head.classList.add('alarm'); var mb=$('hmMsgOpenBtn'); if(mb) mb.classList.add('alarm'); }
+  function alarmOff(){ if(head) head.classList.remove('alarm'); var mb=$('hmMsgOpenBtn'); if(mb) mb.classList.remove('alarm'); }
+  // 상단 💬 버튼: 메시지 팝업 열기/닫기
+  (function(){
+    var pop=$('hmChatPop'), btn=$('hmMsgOpenBtn');
+    if(!pop||!btn) return;
+    btn.onclick=function(e){
+      e.stopPropagation();
+      var opening=!pop.classList.contains('show');
+      pop.classList.toggle('show');
+      if(opening){ alarmOff(); var b=$('hmChatBody'); if(b) b.scrollTop=b.scrollHeight; }
+    };
+    // 오버레이(카드 밖) 클릭 시 닫기 — iframe 위 클릭도 오버레이가 받음
+    pop.addEventListener('click', function(e){
+      alarmOff();
+      if(e.target===pop) pop.classList.remove('show');
+    });
+  })();
 
   function sendMsg(){
     var store=activeStore();
