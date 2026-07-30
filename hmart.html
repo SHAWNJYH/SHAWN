@@ -91,6 +91,21 @@
   .hm-welcome-mark { font-size: 58px; font-weight: 900; letter-spacing: .01em; color: var(--text); }
   .hm-welcome-mark .dot { color: var(--accent-warm, #c9a961); }
   .hm-welcome-sub { font-size: 15px; color: var(--text-dim); }
+  /* 로그아웃 확인 팝업 */
+  .hm-logout-ov { position: fixed; inset: 0; z-index: 140; display: none; align-items: center; justify-content: center;
+    background: rgba(26,26,29,.34); backdrop-filter: blur(2px); }
+  .hm-logout-ov.show { display: flex; }
+  .hm-logout-modal { width: 340px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 22px 18px; box-shadow: 0 24px 64px rgba(26,26,29,.28); text-align: center; }
+  .hm-logout-title { font-weight: 900; font-size: 17px; color: var(--text); margin-bottom: 10px; }
+  .hm-logout-text { font-size: 14px; color: var(--text-dim); margin-bottom: 18px; }
+  .hm-logout-text b { color: var(--text); letter-spacing: .04em; }
+  .hm-logout-btns { display: flex; gap: 10px; }
+  .hm-lo-btn { flex: 1; padding: 11px 0; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text-dim); font-family: var(--mono); font-size: 14px; font-weight: 800; cursor: pointer; }
+  .hm-lo-btn:hover { border-color: var(--accent-warm); color: var(--text); }
+  .hm-lo-btn.danger { background: #b04141; border-color: #b04141; color: #fff; }
+  .hm-lo-btn.danger:hover { background: #983434; border-color: #983434; color: #fff; }
 
   /* 마스트헤드 */
   .hm-masthead { text-align: center; margin-bottom: clamp(26px, 4.5vh, 46px); max-width: 760px; }
@@ -340,10 +355,10 @@
     <div class="hm-cards">
       <!-- 카드 1: H-MART -->
       <div class="egmm-card">
-        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">H-MART</span></div>
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ITEMS</span></div>
 
-        <button class="egmm-menu-btn" id="hmartToListBtn"><span class="mlab">PLU LIST<small>PLU 리스트</small></span><span class="egmm-menu-arrow">→</span></button>
-        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC / ITEM CODE LOOKUP<small>UPC / 아이템 코드 조회</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToListBtn"><span class="mlab">PLU ITEM LIST<small>PLU 아이템 리스트</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC ITEM LIST<small>UPC 아이템 리스트</small></span><span class="egmm-menu-arrow">→</span></button>
 
         <button class="egmm-menu-btn" id="hmartToQuizBtn"><span class="mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span><span class="egmm-menu-arrow">→</span></button>
 
@@ -399,6 +414,17 @@
       </div>
     </div>
     <div class="hm-lightbox" id="hmLightbox"><img id="hmLightboxImg" src="" alt=""></div>
+    <!-- 로그아웃 확인 팝업 -->
+    <div class="hm-logout-ov" id="hmLogoutOv">
+      <div class="hm-logout-modal">
+        <div class="hm-logout-title">👤 로그아웃</div>
+        <div class="hm-logout-text"><b id="hmLoStore"></b> 계정에서 로그아웃할까요?</div>
+        <div class="hm-logout-btns">
+          <button class="hm-lo-btn" id="hmLoCancel" type="button">취소</button>
+          <button class="hm-lo-btn danger" id="hmLoOk" type="button">로그아웃</button>
+        </div>
+      </div>
+    </div>
   </div>
 
 <style>
@@ -574,6 +600,18 @@
     Array.prototype.forEach.call(document.querySelectorAll('.hm-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
     if(btn) btn.classList.add('active');
   }
+  // iframe 안 페이지의 자체 타이틀·하단 로그아웃 버튼 숨김 (왼쪽 메뉴·상단 로그아웃과 중복 방지)
+  (function(){
+    var f=$('hmFrame'); if(!f) return;
+    f.addEventListener('load', function(){
+      try{
+        var d=f.contentDocument; if(!d) return;
+        var st=d.createElement('style');
+        st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}';
+        (d.head||d.documentElement).appendChild(st);
+      }catch(e){}
+    });
+  })();
   $('hmartToListBtn').onclick = function(){ openInFrame('plu-list-store.html', this); };
   $('hmartToUpcBtn').onclick = function(){ openInFrame('upc-list-store.html', this); };
   $('hmartToQuizBtn').onclick = function(){ openInFrame('plu-quiz.html', this); };
@@ -583,14 +621,23 @@
   Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){ b.onclick = function(){}; });
 
   // 로그아웃 → 세션 정리 후 INDEX
-  $('hmLogoutFab').onclick = function(){
-    if(!confirm('로그아웃할까요?')) return;
+  // 로그아웃 확인 팝업
+  function doLogout(){
     try{ if(window.__endAccessLog) window.__endAccessLog(); }catch(e){}
     try{ localStorage.removeItem('theShawnStore'); }catch(e){}
     try{ localStorage.removeItem('theShawnUpcStore'); }catch(e){}
     try{ localStorage.removeItem('hmartAutoLogin'); }catch(e){}
     window.location.href = 'index.html';
+  }
+  $('hmLogoutFab').onclick = function(){
+    var ov=$('hmLogoutOv'); if(ov){ $('hmLoStore').textContent=(localStorage.getItem('theShawnStore')||''); ov.classList.add('show'); }
   };
+  (function(){
+    var ov=$('hmLogoutOv'); if(!ov) return;
+    $('hmLoCancel').onclick=function(){ ov.classList.remove('show'); };
+    $('hmLoOk').onclick=function(){ ov.classList.remove('show'); doLogout(); };
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); });
+  })();
 
   // ===== PLU REQUEST (DELI) — plu-requests 컬렉션 =====
   var REQ_COL='plu-requests';
