@@ -504,10 +504,14 @@
   function rebuildDocId(){ DOCID={}; PLU_TABS.forEach(function(t){ DOCID[t.label]=t.doc||t.label; }); }
   rebuildDocId();
   function labelOf(docId){ for(var k in DOCID){ if(DOCID[k]===docId) return k; } return docId; }
+  var __lastTabsSig='';
   function applyTabs(tabs){
     if(!tabs||!tabs.length) return;
     var clean=[]; tabs.forEach(function(t){ if(t&&t.label){ clean.push({label:String(t.label), doc:String(t.doc||t.label), subs:(t.subs||[]).map(String)}); } });
     if(!clean.length) return;
+    var __sig=JSON.stringify(clean);
+    if(__sig===__lastTabsSig) return;   // 동일 구성 스냅샷(재연결·타 설정 저장 등)엔 재렌더 안 함 — 검색 중 리스트 리셋 방지
+    __lastTabsSig=__sig;
     PLU_TABS=clean; rebuildDocId();
     if(pluBig>=PLU_TABS.length) pluBig=0;
     var subs=PLU_TABS[pluBig].subs||[]; if(pluSub>=subs.length) pluSub=0;
@@ -1315,7 +1319,7 @@
       var hr=$('pluHideRes'); if(hr) hr.onchange=function(e){ pluHideReserve=e.target.checked; renderSearch(term); };
     };
     if(!cloudLoaded){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCloud().then(run); }
-    else if(cloud['청과']===undefined && !csvRows){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCsv().then(run).catch(run); }
+    else if(curCat()==='청과' && cloud['청과']===undefined && !csvRows){ el.innerHTML='<div class="plu-list-text">불러오는 중...</div>'; loadCsv().then(run).catch(run); }   // CSV 폴백은 청과 카테고리일 때만 — 그 외 카테고리 검색 시 리스트가 '불러오는 중...'으로 사라지는 버그 수정
     else run();
   }
 
