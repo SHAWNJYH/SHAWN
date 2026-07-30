@@ -81,8 +81,8 @@
   .hm-top-msg.alarm { border-color: #c0392b; color: #c0392b; }
   .hm-top-msg.alarm .hm-chat-alarm-dot { display: inline-block; }
   /* ── 본문: 사이드바 + 콘텐츠 ── */
-  .hm-body { flex: 1; display: grid; grid-template-columns: 288px 1fr; min-height: 0; }
-  .hm-side { min-height: 0; overflow-y: auto; padding: 14px 12px 20px; border-right: 1px solid var(--border);
+  .hm-body { flex: 1; display: grid; grid-template-columns: 172px 1fr; min-height: 0; }
+  .hm-side { min-height: 0; overflow-y: auto; padding: 12px 8px 16px; border-right: 1px solid var(--border);
     background: linear-gradient(180deg, #fbfaf6, var(--bg)); }
   .hm-main { min-height: 0; position: relative; background: var(--bg); }
   .hm-frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
@@ -131,18 +131,18 @@
 
   .egmm-card-head { display: flex; align-items: center; gap: 9px; padding-bottom: 10px; margin-bottom: 12px;
     border-bottom: 1px solid var(--border); }
-  .egmm-menu-btn.active { border-color: var(--accent-warm, #c9a961); background: var(--accent-soft, #f0eee5); color: var(--text); font-weight: 800; }
+  .egmm-menu-btn.active, .egmm-menu-btn.active:hover { border-color: #c0392b !important; box-shadow: 0 0 0 1px #c0392b inset; background: var(--accent-soft, #f0eee5); color: var(--text); font-weight: 800; }
   .egmm-card-tick { width: 5px; height: 15px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
-  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 17px; letter-spacing: .03em; color: var(--text); }
+  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 15px; letter-spacing: .03em; color: var(--text); }
 
   .egmm-menu-btn .mlab { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.15; }
-  .egmm-menu-btn .mlab small { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
+  .egmm-menu-btn .mlab small { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
   .egmm-menu-btn.active .mlab small { color: var(--text); opacity: .75; }
 
   .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
     background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 11px 13px; border-radius: 10px; font-family: var(--mono);
-    font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 7px; text-align: left;
+    padding: 9px 10px; border-radius: 9px; font-family: var(--mono);
+    font-size: 12px; font-weight: 700; cursor: pointer; margin-bottom: 6px; text-align: left;
     overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
   .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
     background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
@@ -341,7 +341,6 @@
     <header class="hm-topbar">
       <div class="hm-topbar-brand">
         <div class="hm-wordmark">H-MART<span class="dot">.</span></div>
-        <div class="hm-substore" id="hmStoreSuffix"></div>
       </div>
       <div class="hm-topbar-actions">
         <button class="hm-top-msg" id="hmMsgOpenBtn" type="button">💬 메시지<span class="hm-chat-alarm-dot"></span></button>
@@ -357,23 +356,23 @@
       <div class="egmm-card">
         <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ITEMS</span></div>
 
-        <button class="egmm-menu-btn" id="hmartToListBtn"><span class="mlab">PLU ITEM LIST<small>PLU 아이템 리스트</small></span><span class="egmm-menu-arrow">→</span></button>
-        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC ITEM LIST<small>UPC 아이템 리스트</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToListBtn"><span class="mlab">PLU ITEM LIST<small>PLU 아이템 리스트</small></span></button>
+        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC ITEM LIST<small>UPC 아이템 리스트</small></span></button>
 
-        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span class="mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span class="mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
 
-        <button class="egmm-menu-btn" id="hmartAdViewBtn"><span class="mlab">AD ITEMS<small>광고상품 보기</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartAdViewBtn"><span class="mlab">AD ITEMS<small>광고상품 보기</small></span></button>
 
-        <button class="egmm-menu-btn" id="hmartNewItemBtn"><span class="mlab">NEW ITEMS<small>신상품 보기</small></span><span class="hm-req-dot" id="hmNewDot"></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartNewItemBtn"><span class="mlab">NEW ITEMS<small>신상품 보기</small></span><span class="hm-req-dot" id="hmNewDot"></span></button>
       </div>
 
       <!-- 카드: REQUEST -->
       <div class="egmm-card">
         <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
 
-        <button class="egmm-menu-btn" id="hmartDeliBtn"><span class="mlab">DELI REQUEST<small>델리 PLU 요청</small></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmartDeliBtn"><span class="mlab">DELI REQUEST<small>델리 PLU 요청</small></span></button>
 
-        <button class="egmm-menu-btn" id="hmReqViewBtn"><span class="mlab">VIEW REQUEST<small>요청 결과 보기</small></span><span class="hm-req-dot" id="hmReqDot"></span><span class="egmm-menu-arrow">→</span></button>
+        <button class="egmm-menu-btn" id="hmReqViewBtn"><span class="mlab">VIEW REQUEST<small>요청 결과 보기</small></span><span class="hm-req-dot" id="hmReqDot"></span></button>
       </div>
 
       <!-- 카드 2: GUIDE -->
