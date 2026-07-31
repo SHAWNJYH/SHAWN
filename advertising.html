@@ -311,7 +311,7 @@
       while(rec.etcFile.length && rec.etcFile[rec.etcFile.length-1]==='') rec.etcFile.pop();
       if(upcs.length){ rec.upc=upcs[0]; }
       else { rec.upc='X'; noUpc++; }
-      rec.etc=mergeEtc(rec.etcFile, upcs.slice(1));
+      rec.etc=rec.etcFile.slice();   // ETC는 광고 엑셀 파일 값만 사용
       if(rec.etc.length>maxEtc) maxEtc=rec.etc.length;
       items.push(rec);
     }
@@ -532,7 +532,7 @@
     curList.forEach(function(it){
       var upcs=masterIndex[E.normKey(it.itemcode)]||[]; var before=it.upc;
       if(upcs.length){ it.upc=upcs[0]; } else { it.upc='X'; }
-      it.etc=mergeEtc(it.etcFile||[], upcs.slice(1));
+      it.etc=(it.etcFile||it.etc||[]).slice();   // ETC(파일 값) 보존 — 마스터 UPC로 덮지 않음
       if(it.etc.length>maxEtc) maxEtc=it.etc.length;
       if(it.upc!==before) changed++;
     });
