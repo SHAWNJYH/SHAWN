@@ -289,17 +289,30 @@
     for(k in extra){ if(!base[k]) base[k]=[]; extra[k].forEach(function(u){ if(base[k].indexOf(u)<0){ base[k].push(u); added++; } }); }
     return added;
   }
+  // 파일 ETC(위치 유지) + 마스터 추가 UPC 병합
+  function mergeEtc(fileEtc, extras){
+    var out=(fileEtc||[]).slice();
+    (extras||[]).forEach(function(u){ u=String(u||'').trim(); if(u && out.indexOf(u)<0) out.push(u); });
+    return out;
+  }
   // 광고상품 매칭: UPC 없으면 'X' 로 유지
   function buildAdList(adAOA, itemIndex, adMap){
     var header=adAOA[0]||[]; var ci=resolveColIndex(header, adMap.itemcode);
     if(ci<0) return {error:'광고상품 ITEMCODE 열을 찾을 수 없습니다'};
     var di=resolveColIndex(header, adMap.desc), coi=resolveColIndex(header, adMap.cost), si=resolveColIndex(header, adMap.srp);
+    // 업로드 파일의 ETC 열 자동 매칭 (ETC / ETC #1 / ETC#2 / ETC 2 등)
+    var etcIdx=[]; header.forEach(function(h,idx){ var t=String(h||'').trim(); if(/^ETC\b/i.test(t)) etcIdx.push({idx:idx, n:(parseInt((t.match(/\d+/)||['0'])[0],10)||0)}); });
+    etcIdx.sort(function(a,b){ return a.n-b.n || a.idx-b.idx; });
     var items=[], maxEtc=0, noUpc=0;
     for(var r=1;r<adAOA.length;r++){ var row=adAOA[r]||[]; var rawCode=norm(row[ci]); var code=normKey(rawCode); if(!code) continue;
       var upcs=itemIndex[code]||[];
       var rec={ itemcode:rawCode, desc:(di>=0?norm(row[di]):''), cost:(coi>=0?norm(row[coi]):''), srp:(si>=0?norm(row[si]):''), etc:[] };
-      if(upcs.length){ rec.upc=upcs[0]; rec.etc=upcs.slice(1); if(rec.etc.length>maxEtc) maxEtc=rec.etc.length; }
+      rec.etcFile=etcIdx.map(function(x){ return norm(row[x.idx]); });
+      while(rec.etcFile.length && rec.etcFile[rec.etcFile.length-1]==='') rec.etcFile.pop();
+      if(upcs.length){ rec.upc=upcs[0]; }
       else { rec.upc='X'; noUpc++; }
+      rec.etc=mergeEtc(rec.etcFile, upcs.slice(1));
+      if(rec.etc.length>maxEtc) maxEtc=rec.etc.length;
       items.push(rec);
     }
     return {items:items, maxEtc:maxEtc, noUpc:noUpc};
@@ -518,8 +531,9 @@
     var maxEtc=0, changed=0;
     curList.forEach(function(it){
       var upcs=masterIndex[E.normKey(it.itemcode)]||[]; var before=it.upc;
-      if(upcs.length){ it.upc=upcs[0]; it.etc=upcs.slice(1); if(it.etc.length>maxEtc) maxEtc=it.etc.length; }
-      else { it.upc='X'; it.etc=[]; }
+      if(upcs.length){ it.upc=upcs[0]; } else { it.upc='X'; }
+      it.etc=mergeEtc(it.etcFile||[], upcs.slice(1));
+      if(it.etc.length>maxEtc) maxEtc=it.etc.length;
       if(it.upc!==before) changed++;
     });
     curMaxEtc=maxEtc; updateAdCount(); renderPreview(curList, curMaxEtc, curTitle||'미리보기'); saveDraft();
@@ -607,12 +621,13 @@
   function manualAdd(){
     var etc=[]; Array.prototype.forEach.call($('mfEtc').querySelectorAll('.mf-etc'), function(inp){ etc.push(norm(inp.value)); });
     while(etc.length && etc[etc.length-1]==='') etc.pop();
+    var etcFile=etc.slice();   // 수동 입력 ETC도 재매칭 시 보존
     var upc=norm($('mfUpc').value);
     var code=norm($('mfCode').value);
     if(upc && !code){ var c=upcToCode(upc); if(c) code=c; }
     if(code && !upc){ var u=codeToUpc(code); if(u) upc=u; }
     var desc=norm($('mfDesc').value); if(!desc){ desc=descLookup(code, upc); }
-    var item={ upc: upc||'X', itemcode:code, desc:desc, cost:money2($('mfCost').value), srp:money2($('mfSrp').value), etc:etc };
+    var item={ upc: upc||'X', itemcode:code, desc:desc, cost:money2($('mfCost').value), srp:money2($('mfSrp').value), etc:etc, etcFile:etcFile };
     if(!item.itemcode && !item.desc){ toast('ITEMCODE 또는 DESC 중 하나는 입력하세요'); return; }
     curList.push(item);
     afterListChange();   // 목록·미리보기 갱신 + 등록 버튼 반짝임
