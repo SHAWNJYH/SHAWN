@@ -16,7 +16,7 @@
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ background:var(--bg); color:var(--text); font-family:var(--mono); -webkit-font-smoothing:antialiased; }
-  .wrap{ max-width:1180px; margin:0 auto; padding:22px 20px 60px; }
+  .wrap{ max-width:1400px; margin:0 auto; padding:22px 20px 60px; }
 
   .ad-top{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:18px 22px; border-radius:18px;
     background:linear-gradient(135deg,#1f1d1a,#2c2823); color:#fff; box-shadow:0 14px 40px rgba(20,18,15,.18); margin-bottom:20px; }
@@ -553,6 +553,7 @@
     $('ovAdd').classList.add('show');
   }
   function previewTableHTML(list, maxEtc){
+    maxEtc=Math.max(maxEtc||0, 2);
     var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
     var head='<thead><tr><th>#</th><th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th>'+etcH+'</tr></thead>';
     var rows=list.map(function(it,i){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc); var etcT=''; for(var e=0;e<maxEtc;e++){ etcT+='<td>'+esc((it.etc&&it.etc[e])||'')+'</td>'; }
@@ -591,7 +592,7 @@
     if(!hasBaseList()){ needUploadWarn(); return; }
     ['mfUpc','mfCode','mfDesc','mfCost','mfSrp'].forEach(function(id){ var el=$(id); if(el) el.value=''; });
     var st=$('mfStatus'); if(st) st.textContent='';
-    var n=Math.max(1, curMaxEtc||0), h='';
+    var n=Math.max(2, curMaxEtc||0), h='';
     for(var e=0;e<n;e++) h+='<input class="mf-etc" placeholder="ETC #'+(e+1)+'">';
     $('mfEtc').innerHTML=h;
     // 자동 매칭 · 금액 포맷 이벤트(한 번만)
@@ -690,16 +691,17 @@
     $('previewTitle').textContent=title||'미리보기';
     var box=$('previewBox');
     if(!list||!list.length){ box.innerHTML='<div class="empty">표시할 광고상품이 없습니다.</div>'; return; }
-    maxEtc=maxEtc||0; var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
-    var head='<thead><tr><th class="no">#</th><th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th>'+etcH+'<th>BARCODE</th></tr></thead>';
+    maxEtc=Math.max(maxEtc||0, 2);   // ETC #1·#2 상시 표시
+    var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
+    var head='<thead><tr><th class="no">#</th><th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th><th>BARCODE</th>'+etcH+'</tr></thead>';
     var rows=list.map(function(it,i){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc);
       var etcT=''; for(var e=0;e<maxEtc;e++){ etcT+='<td class="etc">'+esc((it.etc&&it.etc[e])||'')+'</td>'; }
       return '<tr><td>'+(i+1)+'</td>'+
         '<td class="upc'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td>'+
         '<td class="code">'+esc(it.itemcode||'')+'</td>'+
         '<td class="desc" title="'+esc(it.desc||'')+'">'+esc(it.desc||'')+'</td>'+
-        '<td>'+esc(it.cost||'')+'</td><td>'+esc(it.srp||'')+'</td>'+etcT+
-        '<td>'+(isX?'<span style="color:#c83a3a;font-weight:800">—</span>':barcodeSVG(it.upc))+'</td></tr>';
+        '<td>'+esc(it.cost||'')+'</td><td>'+esc(it.srp||'')+'</td>'+
+        '<td>'+(isX?'<span style="color:#c83a3a;font-weight:800">—</span>':barcodeSVG(it.upc))+'</td>'+etcT+'</tr>';
     }).join('');
     box.innerHTML='<table class="adt">'+head+'<tbody>'+rows+'</tbody></table>';
   }
@@ -819,7 +821,7 @@
       curList.forEach(function(it){ aoa.push([(it.upc||'X'),it.itemcode||'',it.korDesc||'',it.engDesc||'',it.cost||'',it.unit||'']); });
       sheet='NEWITEM'; name=(curTitle||'NEW_ITEM')+'.xlsx';
     } else {
-      var maxEtc=0; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });
+      var maxEtc=2; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });   // ETC #1·#2 항상 출력
       var head=['UPC','ITEMCODE','DESC','COST','SRP']; for(var e=1;e<=maxEtc;e++) head.push('ETC #'+e);
       aoa=[head]; curList.forEach(function(it){ var r=[(it.upc||'X'),it.itemcode||'',it.desc||'',it.cost||'',it.srp||'']; for(var e=0;e<maxEtc;e++) r.push((it.etc&&it.etc[e])||''); aoa.push(r); });
       sheet='AD'; name=(curTitle||'AD_LIST')+'.xlsx';
@@ -834,11 +836,11 @@
       body=curList.map(function(it){ var isX=(!it.upc);
         return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.korDesc||'')+'</td><td class="l">'+esc(it.engDesc||'')+'</td><td>'+esc(niCost(it.cost))+'</td><td>'+esc(it.unit||'')+'</td><td>'+(isX?'—':barcodeSVG(it.upc))+'</td></tr>'; }).join('');
     } else {
-      var maxEtc=0; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });
+      var maxEtc=2; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });   // ETC #1·#2 항상 출력
       var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
-      head='<th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th>'+etcH+'<th>BARCODE</th>';
+      head='<th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th><th>BARCODE</th>'+etcH;
       body=curList.map(function(it){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc); var etcT=''; for(var e=0;e<maxEtc;e++) etcT+='<td>'+esc((it.etc&&it.etc[e])||'')+'</td>';
-        return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.desc||'')+'</td><td>'+esc(it.cost||'')+'</td><td>'+esc(it.srp||'')+'</td>'+etcT+'<td>'+(isX?'—':barcodeSVG(it.upc))+'</td></tr>'; }).join('');
+        return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.desc||'')+'</td><td>'+esc(it.cost||'')+'</td><td>'+esc(it.srp||'')+'</td><td>'+(isX?'—':barcodeSVG(it.upc))+'</td>'+etcT+'</tr>'; }).join('');
     }
     var css='body{font-family:Arial,sans-serif;margin:14px;color:#1a1a1d}h1{font-size:16px;margin:0 0 10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:4px 6px;text-align:center}thead th{background:#1f1d1a;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.u{font-weight:700;color:#1d4ed8}td.u.x{color:#c83a3a}td.l{text-align:left}svg{display:block;margin:0 auto}@page{margin:10mm}';
     var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titleTxt)+'</title><style>'+css+'</style></head><body><h1>'+esc(titleTxt)+' ('+curList.length+'개)</h1>'+
