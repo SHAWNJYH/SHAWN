@@ -122,27 +122,29 @@
   /* 도메인 패널 */
   .hm-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; }
   .egmm-card { width: 100%; box-sizing: border-box; background: var(--bg-elev);
-    border: 1px solid var(--border); border-radius: 14px; padding: 16px 15px 13px;
+    border: 1px solid var(--border); border-radius: 12px; padding: 11px 11px 9px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
     opacity: 0; transform: translateY(14px); animation: hmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
   .egmm-card:nth-child(1) { animation-delay: .05s; }
   .egmm-card:nth-child(2) { animation-delay: .15s; }
   @keyframes hmRise { to { opacity: 1; transform: none; } }
 
-  .egmm-card-head { display: flex; align-items: center; gap: 9px; padding-bottom: 10px; margin-bottom: 12px;
+  .egmm-card-head { display: flex; align-items: center; gap: 8px; padding-bottom: 7px; margin-bottom: 8px;
     border-bottom: 1px solid var(--border); }
   .egmm-menu-btn.active, .egmm-menu-btn.active:hover { border-color: #c0392b !important; box-shadow: 0 0 0 1px #c0392b inset; background: var(--accent-soft, #f0eee5); color: var(--text); font-weight: 800; }
   .egmm-card-tick { width: 5px; height: 15px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
   .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 15px; letter-spacing: .03em; color: var(--text); }
 
-  .egmm-menu-btn .mlab { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; line-height: 1.15; }
+  .egmm-menu-btn .mlab { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; line-height: 1.15;
+    min-width: 0; width: 100%; word-break: keep-all; overflow-wrap: anywhere; }
   .egmm-menu-btn .mlab small { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
   .egmm-menu-btn.active .mlab small { color: var(--text); opacity: .75; }
 
   .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
     background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 9px 10px; border-radius: 9px; font-family: var(--mono);
-    font-size: 12px; font-weight: 700; cursor: pointer; margin-bottom: 6px; text-align: left;
+    padding: 7px 9px; border-radius: 8px; font-family: var(--mono);
+    font-size: 12px; font-weight: 700; cursor: pointer; margin-bottom: 5px; text-align: left;
+    overflow: hidden;
     overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
   .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
     background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
@@ -592,27 +594,35 @@
   // 중첩 방지: 하위 페이지의 '돌아가기'로 iframe 안에 hmart가 다시 열리면 전체 화면으로 복귀
   try{ if(window.top!==window.self){ window.top.location.href=window.location.href; } }catch(e){}
   // 왼쪽 메뉴 → 오른쪽 화면(iframe) 표시. 기능 페이지 자체는 기존 그대로.
+  // iframe 안 페이지의 자체 타이틀·하단 로그아웃 버튼 숨김 (왼쪽 메뉴·상단 로그아웃과 중복 방지)
+  function __trimFrame(f){
+    try{
+      var d=f.contentDocument; if(!d) return;
+      var st=d.createElement('style');
+      st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}'
+        +'.page-topbar .plu-tabs{margin-left:0 !important;}'
+        +'.page-topbar{padding-left:32px !important;}';   /* 중간 카테고리(32px)와 세로 시작선 일치 */
+      (d.head||d.documentElement).appendChild(st);
+    }catch(e){}
+  }
+  // 메뉴별 iframe을 유지(캐시): PLU↔UPC 전환 시 다시 불러오지 않고 즉시 표시
+  var __frames={};
   function openInFrame(url, btn){
-    var f=$('hmFrame'), w=$('hmWelcome');
-    if(w) w.style.display='none';
-    if(f){ f.style.display='block'; if(f.getAttribute('src')!==url) f.src=url; }
+    var w=$('hmWelcome'); if(w) w.style.display='none';
+    var base=$('hmFrame'); if(base){ base.style.display='none'; }
+    for(var k in __frames){ __frames[k].style.display='none'; }
+    var f=__frames[url];
+    if(!f){
+      f=document.createElement('iframe');
+      f.className='hm-frame'; f.title='content'; f.src=url;
+      f.addEventListener('load', function(){ __trimFrame(f); });
+      var host=document.querySelector('.hm-main'); if(host) host.appendChild(f);
+      __frames[url]=f;
+    }
+    f.style.display='block';
     Array.prototype.forEach.call(document.querySelectorAll('.hm-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
     if(btn) btn.classList.add('active');
   }
-  // iframe 안 페이지의 자체 타이틀·하단 로그아웃 버튼 숨김 (왼쪽 메뉴·상단 로그아웃과 중복 방지)
-  (function(){
-    var f=$('hmFrame'); if(!f) return;
-    f.addEventListener('load', function(){
-      try{
-        var d=f.contentDocument; if(!d) return;
-        var st=d.createElement('style');
-        st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}'
-          +'.page-topbar .plu-tabs{margin-left:0 !important;}'
-          +'.page-topbar{padding-left:32px !important;}';   /* 중간 카테고리(32px)와 세로 시작선 일치 */
-        (d.head||d.documentElement).appendChild(st);
-      }catch(e){}
-    });
-  })();
   $('hmartToListBtn').onclick = function(){ openInFrame('plu-list-store.html', this); };
   $('hmartToUpcBtn').onclick = function(){ openInFrame('upc-list-store.html', this); };
   $('hmartToQuizBtn').onclick = function(){ openInFrame('plu-quiz.html', this); };
