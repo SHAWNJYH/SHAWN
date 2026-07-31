@@ -42,7 +42,7 @@
   button,input,select{ font-family:var(--mono); }
 
   .ia-top{ position:sticky; top:0; z-index:30; background:var(--bg-elev); border-bottom:1.5px solid var(--border); }
-  .ia-top-in{ max-width:1280px; margin:0 auto; display:flex; align-items:center; gap:14px; padding:14px 24px; }
+  .ia-top-in{ max-width:1480px; margin:0 auto; display:flex; align-items:center; gap:14px; padding:14px 24px; }
   .ia-back{ border:1.5px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:10px; padding:8px 12px; font-size:13px; font-weight:800; cursor:pointer; transition:all .15s; }
   .ia-back:hover{ border-color:var(--accent-warm); color:var(--text); }
   .ia-brand{ display:flex; flex-direction:column; line-height:1.2; }
@@ -52,7 +52,7 @@
   .ia-user{ font-size:13px; font-weight:700; color:var(--text-dim); }
   .ia-user b{ color:var(--text); }
 
-  .ia-wrap{ max-width:1880px; margin:0 auto; padding:24px 24px 100px; }
+  .ia-wrap{ max-width:1480px; margin:0 auto; padding:24px 24px 100px; }
   .ia-sec{ margin-bottom:28px; }
   .ia-sec-head{ display:flex; align-items:center; gap:9px; margin:0 2px 14px; }
   .ia-sec-tick{ width:9px; height:9px; border-radius:3px; background:var(--accent-warm); }
@@ -309,7 +309,6 @@
 <body>
 <div class="ia-top">
   <div class="ia-top-in">
-    <button class="ia-back" id="iaBack" type="button">← H-MART</button>
     <div class="ia-brand"><span class="eyebrow">H-MART · 관리</span><span class="title">ITEM MANAGEMENT</span></div>
     <div class="ia-spacer"></div>
     <button class="ia-back" id="iaFieldsBtn" type="button" title="ITEM ANALYZE 필드 추가/수정">⚙ 필드 추가/수정</button>
@@ -436,6 +435,36 @@
 
 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none;">
 <input type="file" id="imFile" accept=".xlsx,.xls,.csv" style="display:none;">
+<input type="file" id="imAddFile" accept=".xlsx,.xls,.csv" style="display:none;">
+
+<!-- ITEM MASTER 추가 — ITEM CODE 충돌 확인 모달 -->
+<div class="gh-ov" id="imcOv">
+  <div class="gh-card" style="max-width:720px;">
+    <div class="gh-head">⚠ 같은 UPC · 다른 ITEM CODE<button class="gh-x" id="imcX" type="button">✕</button></div>
+    <div class="gh-body">
+      <div style="font-size:12.5px;color:var(--text-dim);line-height:1.7;margin-bottom:12px;">
+        아래 상품은 <b>UPC 는 같은데 ITEM CODE 가 다릅니다</b>. 추가하면 파일의 ITEM CODE 로 바뀝니다.<br>
+        (빈 필드 채우기·신규 추가는 이미 반영되었고, 여기서는 ITEM CODE 가 다른 것만 물어봅니다.)
+      </div>
+      <div style="font-size:11px;font-weight:800;color:var(--text-dim);margin-bottom:5px;" id="imcCount"></div>
+      <div style="border:1px solid var(--border);border-radius:10px;overflow:auto;max-height:44vh;">
+        <table class="mdu-tbl-t" style="width:100%;border-collapse:collapse;font-size:11.5px;">
+          <thead><tr>
+            <th style="position:sticky;top:0;background:var(--bg-elev-2);text-align:left;padding:7px 9px;border-bottom:1.5px solid var(--border);font-size:10.5px;">UPC</th>
+            <th style="position:sticky;top:0;background:var(--bg-elev-2);text-align:left;padding:7px 9px;border-bottom:1.5px solid var(--border);font-size:10.5px;">상품명</th>
+            <th style="position:sticky;top:0;background:var(--bg-elev-2);text-align:left;padding:7px 9px;border-bottom:1.5px solid var(--border);font-size:10.5px;">기존 CODE</th>
+            <th style="position:sticky;top:0;background:var(--bg-elev-2);text-align:left;padding:7px 9px;border-bottom:1.5px solid var(--border);font-size:10.5px;">파일 CODE</th>
+          </tr></thead>
+          <tbody id="imcBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="gh-foot">
+      <button id="imcCancel" type="button">취소 (변경 안 함)</button>
+      <button class="primary" id="imcApply" type="button">이대로 추가</button>
+    </div>
+  </div>
+</div>
 <div class="mdu-ov" id="mduOv">
   <div class="mdu-card">
     <div class="mdu-head">
@@ -1253,6 +1282,139 @@
     fr.onerror=function(){ toast('파일 읽기 실패'); };
     fr.readAsArrayBuffer(file);
   }
+  /* ===== ITEM MASTER 추가(병합) — 요구 ④~⑩ =====
+     · 신규 UPC → 추가
+     · 같은 UPC + 빈 필드(KOR/ENG/COST/UNIT QTY/SIZE/CODE 등) → 파일 값으로 채움 (묻지 않음, ⑦⑧⑨)
+     · 같은 UPC + ITEM CODE 가 다름 → 리스트로 보여주고 추가/취소 (⑥⑩) */
+  var _imcPending=null;   // 충돌 확정 대기 { merged, conflicts, addCount, fillCount, fileName, mappedCount }
+  function imRoleKey(role){ var f=IM_FIELDS.filter(function(x){ return x.role===role; })[0]; return f?f.key:null; }
+  function imUpcKeyName(){ return imRoleKey('upc') || 'UPC'; }
+  function imCodeKeyName(){
+    // ITEM CODE 우선순위: role==='code' → 키 이름에 CODE/ITEM CODE → PLU
+    var byRole=IM_FIELDS.filter(function(f){ return f.role==='code'; })[0];
+    if(byRole) return byRole.key;
+    var byName=IM_FIELDS.filter(function(f){ return /ITEM ?CODE|^CODE$/i.test(f.key); })[0];
+    if(byName) return byName.key;
+    var plu=IM_FIELDS.filter(function(f){ return /^PLU$/i.test(f.key); })[0];
+    return plu?plu.key:null;
+  }
+  function imUpcNorm(v){ var s=String(v==null?'':v).trim(); if(!s) return ''; var d=s.replace(/\D/g,''); if(d){ d=d.replace(/^0+/,''); return d||'0'; } return s.toUpperCase().replace(/[\s\-_.]/g,''); }
+  function isEmptyVal(v){ return v==null || String(v).trim()===''; }
+
+  function handleMasterAddFile(file){
+    if(!file) return;
+    var nm=(file.name||'').toLowerCase();
+    if(!/\.(xlsx|xls|csv)$/.test(nm)){ toast('엑셀/CSV 파일만 업로드할 수 있습니다'); return; }
+    if(typeof XLSX==='undefined'){ toast('엑셀 라이브러리 로드 실패 — 새로고침'); return; }
+    if(!imMaster || !imMaster.rows || !imMaster.rows.length){ toast('기존 ITEM MASTER 가 없습니다 — 먼저 업로드하세요'); return; }
+    var fr=new FileReader();
+    fr.onload=function(ev){
+      try{
+        var wb=XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+        var ws=wb.Sheets[wb.SheetNames[0]];
+        var aoa=XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:''});
+        var parsed=sheetToRows(aoa);
+        if(!parsed.rows.length){ toast('빈 파일이거나 읽을 수 없습니다'); return; }
+        var map=masterMap(parsed.headers);
+        var mapped=IM_FIELDS.filter(function(f){ return map[f.key]; });
+        if(!mapped.length){ toast('ITEM MASTER 매칭이 없습니다 — IMPORT 설정에서 연결하세요'); return; }
+        var upcKey=imUpcKeyName();
+        if(!map[upcKey]){ toast('추가 파일에 UPC 열이 없습니다'); return; }
+        // 파일 행 → 필드 객체
+        var fileRows=parsed.rows.map(function(r){
+          var o={};
+          IM_FIELDS.forEach(function(f){ var col=map[f.key]; var raw=(col?r[col]:''); var fn=f.fn||'none';
+            if(fn==='eng') o[f.key]=splitDesc(raw).eng;
+            else if(fn==='kor') o[f.key]=splitDesc(raw).kor;
+            else if(f.role==='cost'||f.role==='srp'||f.role==='price'){ var v=num(raw); o[f.key]=(v==null?'':v); }
+            else o[f.key]=(raw==null?'':String(raw)).trim();
+          });
+          return o;
+        }).filter(function(o){ return !isEmptyVal(o[upcKey]); });
+        if(!fileRows.length){ toast('추가 파일에 UPC 가 있는 행이 없습니다'); return; }
+        mergeMasterRows(fileRows, map, file.name, mapped.length);
+      }catch(err){ toast('엑셀 파싱 실패 — 형식 확인'); }
+    };
+    fr.onerror=function(){ toast('파일 읽기 실패'); };
+    fr.readAsArrayBuffer(file);
+  }
+
+  function mergeMasterRows(fileRows, map, fileName, mappedCount){
+    var upcKey=imUpcKeyName(), codeKey=imCodeKeyName();
+    // 기존 마스터를 UPC 로 인덱싱 (복사본에서 작업)
+    var rows=imMaster.rows.map(function(r){ return Object.assign({}, r); });
+    var byUpc={};
+    rows.forEach(function(r, i){ var u=imUpcNorm(r[upcKey]); if(u) byUpc[u]=i; });
+    // 파일에서 같은 UPC 가 여러 번이면 첫 유효값 우선으로 합침
+    var fileByUpc={};
+    fileRows.forEach(function(fr){ var u=imUpcNorm(fr[upcKey]); if(!u) return;
+      if(!fileByUpc[u]) fileByUpc[u]=fr;
+      else { var cur=fileByUpc[u]; IM_FIELDS.forEach(function(f){ if(isEmptyVal(cur[f.key]) && !isEmptyVal(fr[f.key])) cur[f.key]=fr[f.key]; }); } });
+
+    var addCount=0, fillCount=0, conflicts=[];
+    // 파일이 실제로 값을 제공하는 필드만 채움 대상으로 (매핑된 필드)
+    var fillFields=IM_FIELDS.filter(function(f){ return map[f.key] && f.key!==upcKey; });
+
+    Object.keys(fileByUpc).forEach(function(u){
+      var fr=fileByUpc[u];
+      var idx=byUpc[u];
+      if(idx===undefined){
+        // ① 신규 UPC → 추가
+        var nr={}; IM_FIELDS.forEach(function(f){ nr[f.key]=(fr[f.key]==null?'':fr[f.key]); });
+        rows.push(nr); byUpc[u]=rows.length-1; addCount++;
+        return;
+      }
+      var ex=rows[idx];
+      // ⑦⑧⑨ 빈 필드 채우기 (묻지 않음)
+      fillFields.forEach(function(f){
+        if(f.key===codeKey) return;   // CODE 는 아래에서 별도 판정
+        if(isEmptyVal(ex[f.key]) && !isEmptyVal(fr[f.key])){ ex[f.key]=fr[f.key]; fillCount++; }
+      });
+      // ⑥⑩ ITEM CODE 판정
+      if(codeKey){
+        var exC=String(ex[codeKey]==null?'':ex[codeKey]).trim();
+        var frC=String(fr[codeKey]==null?'':fr[codeKey]).trim();
+        if(isEmptyVal(exC) && !isEmptyVal(frC)){ ex[codeKey]=frC; fillCount++; }        // 기존 CODE 비어있으면 채움(질문X)
+        else if(!isEmptyVal(frC) && exC!==frC){                                          // 서로 다르면 → 리스트
+          conflicts.push({ idx:idx, upc:String(ex[upcKey]||u),
+            name:(ex[imRoleKey('name')]||ex['KOR DESC']||ex['ENG DESC']||fr['KOR DESC']||fr['ENG DESC']||''),
+            oldCode:exC, newCode:frC });
+        }
+      }
+    });
+
+    // 충돌 없으면 바로 저장
+    if(!conflicts.length){
+      finalizeMasterMerge(rows, fileName, mappedCount, addCount, fillCount, 0);
+      return;
+    }
+    // 충돌 있으면 모달로 확인 (⑥⑩)
+    _imcPending={ rows:rows, conflicts:conflicts, fileName:fileName, mappedCount:mappedCount, addCount:addCount, fillCount:fillCount, codeKey:codeKey };
+    openImcModal(conflicts);
+  }
+
+  function openImcModal(conflicts){
+    $('imcCount').textContent=conflicts.length+'개 상품의 ITEM CODE 가 다릅니다';
+    $('imcBody').innerHTML=conflicts.map(function(c){
+      return '<tr>'+
+        '<td class="mono" style="padding:6px 9px;border-bottom:1px solid var(--border);">'+esc(c.upc)+'</td>'+
+        '<td style="padding:6px 9px;border-bottom:1px solid var(--border);">'+esc(c.name||'')+'</td>'+
+        '<td style="padding:6px 9px;border-bottom:1px solid var(--border);color:var(--text-dim);">'+esc(c.oldCode)+'</td>'+
+        '<td class="mono" style="padding:6px 9px;border-bottom:1px solid var(--border);font-weight:800;color:var(--accent-warm);">'+esc(c.newCode)+'</td>'+
+      '</tr>';
+    }).join('');
+    $('imcOv').classList.add('show');
+  }
+  function closeImcModal(){ $('imcOv').classList.remove('show'); }
+
+  function finalizeMasterMerge(rows, fileName, mappedCount, addCount, fillCount, codeChanged){
+    saveMaster(fileName, rows, mappedCount);
+    var parts=[];
+    if(addCount) parts.push('신규 '+addCount+'개');
+    if(fillCount) parts.push('빈 필드 '+fillCount+'건 채움');
+    if(codeChanged) parts.push('ITEM CODE '+codeChanged+'개 변경');
+    setTimeout(function(){ toast('ITEM MASTER 추가 완료'+(parts.length?(' · '+parts.join(' · ')):'')); }, 300);
+  }
   async function saveMaster(fileName, rows, mappedCount){
     var fb=window.iaCfgFb; if(!fb||!fb.setDoc){ toast('저장 실패 (연결 확인)'); return; }
     var chunks=Math.ceil(rows.length/IM_CHUNK);
@@ -1322,10 +1484,12 @@
       '<div class="st-meta">'+meta+'</div>'+
       '<div class="st-actions">'+
         (has?'':'<button class="st-up" id="imUp" type="button">엑셀 업로드</button>')+
+        (has?'<button class="st-up" id="imAdd" type="button">＋ 추가</button>':'')+
         (has?'<button class="st-fix" id="imDown" type="button">다운로드</button>':'')+
         (has?'<button class="st-rm" id="imRm" type="button">삭제</button>':'')+
       '</div></div>';
     if($('imUp')) $('imUp').onclick=function(){ var fi=$('imFile'); fi.value=''; fi.click(); };
+    if($('imAdd')) $('imAdd').onclick=function(){ var fi=$('imAddFile'); fi.value=''; fi.click(); };
     if($('imDown')) $('imDown').onclick=downloadMaster;
     if($('imRm')) $('imRm').onclick=removeMaster;
     var card=box.querySelector('.st-card');
@@ -1575,7 +1739,25 @@
   }
 
   /* ===== 배선 ===== */
-  $('iaBack').onclick=function(){ location.href='index.html'; };
+  if($('iaBack')) $('iaBack').onclick=function(){ location.href='index.html'; };
+  if($('imAddFile')) $('imAddFile').onchange=function(e){ var f=e.target.files&&e.target.files[0]; if(f) handleMasterAddFile(f); };
+  if($('imcX')) $('imcX').onclick=closeImcModal;
+  if($('imcCancel')) $('imcCancel').onclick=function(){
+    // 취소 = ITEM CODE 는 그대로, 신규/빈필드 채우기는 이미 반영된 rows 로 저장
+    if(_imcPending){ finalizeMasterMerge(_imcPending.rows, _imcPending.fileName, _imcPending.mappedCount, _imcPending.addCount, _imcPending.fillCount, 0); _imcPending=null; }
+    closeImcModal();
+  };
+  if($('imcApply')) $('imcApply').onclick=function(){
+    if(_imcPending){
+      // ITEM CODE 를 파일 값으로 적용
+      var ck=_imcPending.codeKey;
+      _imcPending.conflicts.forEach(function(c){ _imcPending.rows[c.idx][ck]=c.newCode; });
+      finalizeMasterMerge(_imcPending.rows, _imcPending.fileName, _imcPending.mappedCount, _imcPending.addCount, _imcPending.fillCount, _imcPending.conflicts.length);
+      _imcPending=null;
+    }
+    closeImcModal();
+  };
+  if($('imcOv')) $('imcOv').onclick=function(e){ if(e.target&&e.target.id==='imcOv') closeImcModal(); };
   $('srName').addEventListener('input', function(){ lastMode='name'; renderSugg((this.value||'').trim()); });
   $('srUpc').addEventListener('input', function(){ lastMode='upc'; });
   $('srCode').addEventListener('input', function(){ lastMode='code'; });
