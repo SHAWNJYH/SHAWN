@@ -2322,8 +2322,8 @@
     opacity: .75; }
 
   /* 도메인 패널 */
-  .egmm-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-  .egmm-card-col { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .egmm-cards { display: flex; flex-direction: column; gap: 9px; width: 100%; }
+  .egmm-card-col { display: flex; flex-direction: column; gap: 9px; width: 100%; }
   .egmm-card-col .egmm-card { flex: 1 1 auto; max-width: none; min-width: 0; width: 100%; }
   /* 매장 메시지 */
   /* 매장 메시지 팝업 — 투명 오버레이 (iframe 위 클릭도 받아 닫기) */
@@ -2663,14 +2663,11 @@
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">MART</span></div>
 
-    <div class="egmm-section-title">ITEM LIST</div>
     <button class="egmm-menu-btn" id="egmmPluListBtn"><span class="egmm-menu-label mlab">PLU LIST<small>PLU 리스트</small></span></button>
     <button class="egmm-menu-btn" id="egmmUpcListBtn"><span class="egmm-menu-label mlab">UPC LIST / ITEM CODE<small>UPC 아이템 리스트</small></span></button>
 
-    <div class="egmm-section-title gap">MEMORIZE</div>
     <button class="egmm-menu-btn" id="egmmPluMemorizeBtn"><span class="egmm-menu-label mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
 
-    <div class="egmm-section-title gap">SCHEDULE</div>
     <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label mlab">CALENDAR<small>캘린더</small></span></button>
   </div>
 
@@ -2678,13 +2675,9 @@
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ODP</span></div>
 
-    <div class="egmm-section-title">CONVERT</div>
     <button class="egmm-menu-btn" id="egmmOcrBtn"><span class="egmm-menu-label mlab">OCR<small>문서 인식</small></span></button>
 
-    <div class="egmm-section-title gap">INSERT GUIDE</div>
-    <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label mlab">HANA<small>HANA 가이드</small></span></button>
 
-    <div class="egmm-section-title gap">TOOLS</div>
     <button class="egmm-menu-btn" id="egmmToolsBtn"><span class="egmm-menu-label mlab">TOOLS<small>도구 모음</small></span></button>
   </div>
 
@@ -2695,7 +2688,6 @@
     
       <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
 
-      <div class="egmm-section-title">DELI</div>
       <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label mlab">REQUEST CONFIRMATION<small>요청 확인</small></span><span class="egmm-req-count" id="deliReqCount"></span></button>
     </div>
   </div>
@@ -2703,13 +2695,12 @@
   <!-- 박스 3: GUIDE -->
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">GUIDE</span></div>
+    <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label mlab">HANA<small>HANA 가이드</small></span></button>
 
-    <div class="egmm-section-title">TAX</div>
     <button class="egmm-menu-btn" id="egmmTaxBtn"><span class="egmm-menu-label mlab">TAX<small>세금 안내</small></span></button>
     <button class="egmm-menu-btn" id="egmmEbtBtn"><span class="egmm-menu-label mlab">EBT<small>EBT 안내</small></span></button>
     <button class="egmm-menu-btn" id="egmmHardLiquorBtn"><span class="egmm-menu-label mlab">HARD LIQUOR<small>주류 안내</small></span></button>
 
-    <div class="egmm-section-title gap">GUIDE</div>
     <button class="egmm-menu-btn" id="egmmProductNameMakerBtn"><span class="egmm-menu-label mlab">PRODUCT NAME MAKER<small>상품명 생성기</small></span></button>
     <button class="egmm-menu-btn" id="egmmDeliMgmtBtn"><span class="egmm-menu-label mlab">DELI MANAGEMENT<small>델리 관리</small></span></button>
   </div>
@@ -3285,6 +3276,12 @@
     });
     document.getElementById('egMgrX').onclick=function(){ big.classList.remove('show'); };
     big.addEventListener('click', function(e){ if(e.target===big) big.classList.remove('show'); });
+    // 공용 대형 팝업 오픈 (도구 모음 등)
+    window.__egBigPop=function(url){
+      var f=document.getElementById('egMgrFrame');
+      if(f.getAttribute('src')!==url) f.src=url;
+      big.classList.add('show');
+    };
   })();
   // 처음으로: 확인 팝업
   (function(){
@@ -3301,7 +3298,7 @@
   $('itemBackBtn').onclick = showMenu;
   $('guideBackBtn').onclick = showMenu;
   $('egmmHanaBtn').onclick = showHana;
-  var __toolsBtn=$('egmmToolsBtn'); if(__toolsBtn) __toolsBtn.onclick = function(){ window.open('egmm-tools.html', 'egmmTools', 'width=1280,height=900,menubar=no,toolbar=no,location=no'); };
+  var __toolsBtn=$('egmmToolsBtn'); if(__toolsBtn) __toolsBtn.onclick = function(){ if(window.__egBigPop){ window.__egBigPop('egmm-tools.html'); } };
   $('hanaBackBtn').onclick = showMenu;
 
   // 진입 시 EGMM 메뉴 표시
