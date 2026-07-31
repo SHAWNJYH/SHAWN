@@ -1299,6 +1299,10 @@
     return plu?plu.key:null;
   }
   function imUpcNorm(v){ var s=String(v==null?'':v).trim(); if(!s) return ''; var d=s.replace(/\D/g,''); if(d){ d=d.replace(/^0+/,''); return d||'0'; } return s.toUpperCase().replace(/[\s\-_.]/g,''); }
+  /* UPC 판정 — 원본 숫자가 6자리 이하이면 UPC 아님(PLU 등). 앞자리 0 포함 실제 자릿수로 판정 */
+  var UPC_MIN_DIGITS=7;
+  function imUpcDigits(v){ return String(v==null?'':v).replace(/\D/g,''); }
+  function isValidUpc(v){ var d=imUpcDigits(v); return d.length>=UPC_MIN_DIGITS; }
   function isEmptyVal(v){ return v==null || String(v).trim()===''; }
 
   function handleMasterAddFile(file){
@@ -1332,15 +1336,24 @@
           return o;
         }).filter(function(o){ return !isEmptyVal(o[upcKey]); });
         if(!fileRows.length){ toast('추가 파일에 UPC 가 있는 행이 없습니다'); return; }
-        mergeMasterRows(fileRows, map, file.name, mapped.length);
+        // ★ 6자리 이하 UPC 제외 — UPC 가 아님(PLU 등)
+        var totalRows=fileRows.length;
+        fileRows=fileRows.filter(function(o){ return isValidUpc(o[upcKey]); });
+        var dropped=totalRows-fileRows.length;
+        if(!fileRows.length){ toast('추가할 수 있는 UPC 가 없습니다 (모두 6자리 이하 — UPC 아님)'); return; }
+        if(dropped) toast(dropped+'개 행 제외 (6자리 이하 UPC — UPC 아님)');
+        mergeMasterRows(fileRows, map, file.name, mapped.length, dropped);
       }catch(err){ toast('엑셀 파싱 실패 — 형식 확인'); }
     };
     fr.onerror=function(){ toast('파일 읽기 실패'); };
     fr.readAsArrayBuffer(file);
   }
 
-  function mergeMasterRows(fileRows, map, fileName, mappedCount){
+  function mergeMasterRows(fileRows, map, fileName, mappedCount, droppedShort){
     var upcKey=imUpcKeyName(), codeKey=imCodeKeyName();
+    droppedShort=droppedShort||0;
+    // 안전장치: 6자리 이하 UPC 는 여기서도 한 번 더 제외 (신규 추가 금지)
+    fileRows=fileRows.filter(function(o){ return isValidUpc(o[upcKey]); });
     // 기존 마스터를 UPC 로 인덱싱 (복사본에서 작업)
     var rows=imMaster.rows.map(function(r){ return Object.assign({}, r); });
     var byUpc={};
