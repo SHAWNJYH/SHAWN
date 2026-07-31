@@ -1465,7 +1465,7 @@
         var exC=String(ex[codeKey]==null?'':ex[codeKey]).trim();
         var frC=String(fr[codeKey]==null?'':fr[codeKey]).trim();
         if(isEmptyVal(exC) && !isEmptyVal(frC)){ ex[codeKey]=frC; fillCount++; }        // 기존 CODE 비어있으면 채움(질문X)
-        else if(!isEmptyVal(frC) && exC!==frC){                                          // 서로 다르면 → 리스트
+        else if(!isEmptyVal(frC) && exC.toUpperCase()!==frC.toUpperCase()){              // 대소문자 무시하고 다르면 → 리스트
           conflicts.push({ idx:idx, upc:String(ex[upcKey]||u),
             name:(ex[imRoleKey('name')]||ex['KOR DESC']||ex['ENG DESC']||fr['KOR DESC']||fr['ENG DESC']||''),
             oldCode:exC, newCode:frC });
