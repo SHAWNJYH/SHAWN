@@ -118,8 +118,8 @@
   .dash-top .stockbox { width: 640px; flex: 0 0 auto; display: flex; flex-direction: column; }
   /* Meat Stock: 자체 스크롤 없이 내용만큼 카드가 늘어남 */
   .stock-scroll { overflow: visible; flex: 1; }
-  /* v3.2: 열 추가(Amount)로 7열 — 카드 폭을 넓히지 않고 안에 다 들어가도록 컴팩트하게 */
-  #tblStock th, #tblStock td { padding: 4px 6px; font-size: 12px; height: 26px; }
+  /* 열 추가로 8열 — 카드 폭을 넓히지 않고 안에 다 들어가도록 컴팩트하게 */
+  #tblStock th, #tblStock td { padding: 4px 5px; font-size: 12px; height: 26px; }
   #tblStock thead th { font-size: 11px; white-space: normal; line-height: 1.25; }
   #tblStock th.lbl { width: 96px; }
   #tblStock .itm-input { width: 100%; }
@@ -426,11 +426,12 @@
               <tr>
                 <th class="lbl" rowspan="2">Item#</th>
                 <th colspan="5">On hand stock</th>
-                <th style="background:#e0e7ff;color:#3730a3">Inventory for 4 Weeks</th>
+                <th colspan="2" style="background:#e0e7ff;color:#3730a3">Inventory for 4 Weeks</th>
               </tr>
               <tr>
                 <th>Box</th><th>Lbs</th><th>Latest Cost</th><th>Amount</th><th>Latest Date</th>
-                <th style="background:#e0e7ff;color:#3730a3">Avg cost for 4 weeks</th>
+                <th style="background:#e0e7ff;color:#3730a3">AVG COST(4W)</th>
+                <th style="background:#e0e7ff;color:#3730a3">AMOUNT(4W)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -1387,10 +1388,10 @@ function computeDashboard(){
      - Total 행 : Box·Lbs 합계  =SUM(B28:B40), =SUM(C28:C40)                          */
   const from30 = iso(addDays(t,-30)), toDay = iso(t);
   const S=[];
-  const ST={box:0, lbs:0, amt:0};                                    // v3.2: Amount 합계 추가
+  const ST={box:0, lbs:0, amt:0, amt4w:0};                           // + AMOUNT(4W) 합계
   for (let i=0;i<STOCK_ROWS;i++){
     const code = DB.stockItems[i];
-    let row = {code, box:null, lbs:null, lst:null, amt:null, ldate:null, moc:null};
+    let row = {code, box:null, lbs:null, lst:null, amt:null, ldate:null, moc:null, amt4w:null};
     if (code && code.trim().length){
       const c = code.trim().toLowerCase();
       const entries = DB.stock.filter(r => String(r.item).trim().toLowerCase()===c);
@@ -1406,8 +1407,10 @@ function computeDashboard(){
       const mo = entries.filter(r=>r.date>=from30 && r.date<=toDay); // 최근 30일
       const wSum = mo.reduce((a,r)=>a+(r.weight||0),0);              // Σ무게
       const wcSum = mo.reduce((a,r)=>a+(r.weight||0)*(r.cost||0),0); // Σ(무게×단가)
-      row.moc = wSum>0 ? wcSum/wSum : null;                          // 가중평균
+      row.moc = wSum>0 ? wcSum/wSum : null;                          // AVG COST(4W): 가중평균
+      row.amt4w = (row.lbs!==null && row.moc!==null) ? row.lbs*row.moc : null;  // AMOUNT(4W) = Lbs × AVG COST(4W)
       ST.box += row.box||0; ST.lbs += row.lbs||0; ST.amt += row.amt||0;   // v3.2: E41=SUM(E28:E40)
+      ST.amt4w += row.amt4w||0;                                      // AMOUNT(4W) 12줄 합계 → Total
     }
     S.push(row);
   }
@@ -1453,7 +1456,7 @@ function renderDashboard(){
   document.querySelector('#tblWeekly tbody').innerHTML =
     D.weeks.map((w,i)=>weekTr(w, i>=D.weeks.length-2)).join('')+d1+d2;
 
-  /* Meat Stock (v3.2: Amount 열 + Total에 Amount 합계) */
+  /* Meat Stock (Inventory 4W 2열: AVG COST(4W) + AMOUNT(4W)=Lbs×AVG) */
   let sh='';
   D.S.forEach((r,i)=>{
     const cells = (r.code && r.code.trim().length)
@@ -1461,11 +1464,13 @@ function renderDashboard(){
         +numCell(r.amt===null?'':r.amt,2)
         +'<td>'+(r.ldate?fmtMDY4(r.ldate):'')+'</td>'
         +numCell(r.moc===null?'':r.moc,2)
-      : '<td></td><td></td><td></td><td></td><td></td><td></td>';
+        +numCell(r.amt4w===null?'':r.amt4w,2)
+      : '<td></td><td></td><td></td><td></td><td></td><td></td><td></td>';
     sh += '<tr><td class="lbl" style="padding:2px 6px"><input class="itm-input" data-idx="'+i+'" value="'+esc(r.code)+'" placeholder="item#"></td>'+cells+'</tr>';
   });
-  /* v3.2: Total 행 — Box·Lbs 합계 + Amount 합계(=SUM(E28:E40)) */
-  sh += '<tr class="total"><td class="lbl">Total</td>'+numCell(D.ST.box,0)+numCell(D.ST.lbs,1)+'<td></td>'+numCell(D.ST.amt,2)+'<td></td><td></td></tr>';
+  /* Total 행 — Box·Lbs·Amount 합계 + AMOUNT(4W) 12줄 합계(2칸 병합, 나눌 필요 없음) */
+  sh += '<tr class="total"><td class="lbl">Total</td>'+numCell(D.ST.box,0)+numCell(D.ST.lbs,1)+'<td></td>'+numCell(D.ST.amt,2)+'<td></td>'
+      + '<td colspan="2" style="text-align:center">'+fmtAcct(D.ST.amt4w,2)+'</td></tr>';
   document.querySelector('#tblStock tbody').innerHTML = sh;
   document.querySelectorAll('#tblStock .itm-input').forEach(el=>{
     el.addEventListener('change', ()=>{
@@ -1770,7 +1775,7 @@ async function exportDashboardExcel(){
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('DASHBOARD', {views:[{showGridLines:false}]});
   ws.getColumn(1).width = 15;
-  for (let c=2;c<=17;c++) ws.getColumn(c).width = 12.5;
+  for (let c=2;c<=18;c++) ws.getColumn(c).width = 12.5;
 
   const ACCT = '#,##0.00;[Red](#,##0.00);"-"';
   const ACC0 = '#,##0;[Red](#,##0);"-"';
@@ -1826,13 +1831,13 @@ async function exportDashboardExcel(){
   C(tr+1,6,D.mDiff.s,{fmt:ACCT}); C(tr+1,7,D.mDiff.p,{fmt:ACCT});
   C(tr+1,8,D.mDiff.gp,{fmt:ACCT}); pcell(tr+1,9,D.mDiff.pc);
 
-  /* Meat Stock (모니터 화면처럼 우측 배치) — v3.2: Amount 열 + Total 합계 */
+  /* Meat Stock (모니터 화면처럼 우측 배치) — Inventory 4W 2열 */
   C(3,11,'Meat Stock',{b:1,h:'left',nob:1});
   ws.mergeCells(4,11,5,11); C(4,11,'Item#',{...TH, h:'left'});
   ws.mergeCells(4,12,4,16); C(4,12,'On hand stock',TH);
-  C(4,17,'Inventory for 4 Weeks',TOT);
+  ws.mergeCells(4,17,4,18); C(4,17,'Inventory for 4 Weeks',TOT);
   ['Box','Lbs','Latest Cost','Amount','Latest Date'].forEach((h,i)=>C(5,12+i,h,TH));
-  C(5,17,'Avg cost for 4 weeks',TOT);
+  C(5,17,'AVG COST(4W)',TOT); C(5,18,'AMOUNT(4W)',TOT);
   D.S.forEach((r,i)=>{
     const rw = 6+i;
     const has = r.code && r.code.trim().length;
@@ -1843,15 +1848,18 @@ async function exportDashboardExcel(){
     C(rw,15, has&&r.amt!==null?r.amt:null, {fmt:ACCT});
     C(rw,16, has&&r.ldate?fmtMDY4(r.ldate):null, {h:'center'});
     C(rw,17, has&&r.moc!==null?r.moc:null, {fmt:ACCT});
+    C(rw,18, has&&r.amt4w!==null?r.amt4w:null, {fmt:ACCT});
   });
-  /* v3.2: Total 행 (Box·Lbs·Amount 합계) */
+  /* Total 행 (Box·Lbs·Amount 합계 + AMOUNT(4W) 합계는 2칸 병합 1필드) */
   const strw = 6 + D.S.length;
   C(strw,11,'Total',{...LBL, fill:'FFF8FAFC'});
   C(strw,12,D.ST.box,{fmt:ACC0,b:1,fill:'FFF8FAFC'});
   C(strw,13,D.ST.lbs,{fmt:ACC1,b:1,fill:'FFF8FAFC'});
   C(strw,14,null,{});
   C(strw,15,D.ST.amt,{fmt:ACCT,b:1,fill:'FFF8FAFC'});
-  C(strw,16,null,{}); C(strw,17,null,{});
+  C(strw,16,null,{});
+  ws.mergeCells(strw,17,strw,18);
+  C(strw,17,D.ST.amt4w,{fmt:ACCT,b:1,fill:'FFF8FAFC',h:'center'});
 
   /* Compare with the previous week — v2.0: 4주 */
   C(19,1,'Compare with the previous week',{b:1,h:'left',nob:1});
