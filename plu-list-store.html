@@ -392,6 +392,10 @@
   .ld-track { height:10px; border-radius:999px; background:var(--bg); border:1px solid var(--border); overflow:hidden; }
   .ld-fill { height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#c9a961,#b04141); transition:width .25s ease; }
   .ld-pct { margin-top:10px; font-family:var(--mono); font-size:13px; font-weight:800; color:var(--text-dim); }
+
+  /* 메인(뷰모드) 돌아가기/BACK 숨김 — 편집모드 슬롯에서는 사용 */
+  .page-topbar #pluBackBtn { display:none !important; }
+  .edit-slot #pluBackBtn { display:inline-flex !important; }
 </style>
 <style>
   .plu-tools { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-bottom:10px; }
@@ -719,17 +723,34 @@
   function loadDone(){ if(__ldTimer){ clearInterval(__ldTimer); __ldTimer=null; }
     __ldSet(100); var o=document.getElementById('ldOv');
     setTimeout(function(){ if(o) o.classList.remove('show'); }, 260); }
+
+  /* ===== 로컬 캐시(IndexedDB): 즉시 표시 후 백그라운드로 최신 데이터 1회 갱신 ===== */
+  function __cdb(){ return new Promise(function(res,rej){ var r=indexedDB.open('egmm-cache',1);
+    r.onupgradeneeded=function(){ r.result.createObjectStore('snap'); };
+    r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
+  function __cacheGet(){ return __cdb().then(function(d){ return new Promise(function(res){ 
+    var t=d.transaction('snap','readonly').objectStore('snap').get('docs:'+COL);
+    t.onsuccess=function(){ res(t.result||null); }; t.onerror=function(){ res(null); } }); }).catch(function(){ return null; }); }
+  function __cacheSet(docs){ __cdb().then(function(d){ try{ d.transaction('snap','readwrite').objectStore('snap').put(docs,'docs:'+COL); }catch(e){} }).catch(function(){}); }
+  function __fakeSnap(docs){ return { forEach:function(cb){ docs.forEach(function(x){ cb({ id:x.id, data:function(){ return x.data; } }); }); } }; }
   async function loadCloud(){
     if(!window.firebaseFns){ return; }
+    var __fromCache=false;
     try{
-      loadShow();
-      var snap=await fns().getDocs(fns().collection(db(), COL));
-      loadStage(60);
-      applySnap(snap);
-      loadStage(82);
-    }catch(e){ cloud={}; layoutByCat={}; cloudLoaded=true; }
-    if(cloud['청과']===undefined){ try{ loadStage(86); await loadCsv(); }catch(e){} }
-    loadDone();
+      var __c=await __cacheGet();
+      if(__c && __c.length){ applySnap(__fakeSnap(__c)); __fromCache=true; }   // 캐시 즉시 표시(딜레이 없음)
+    }catch(e){}
+    try{
+      if(!__fromCache){ loadShow(); }
+      var snap=await fns().getDocs(fns().collection(db(), COL));   // 최신 데이터 1회 갱신
+      if(!__fromCache){ loadStage(62); }
+      var __docs=[]; snap.forEach(function(d){ __docs.push({id:d.id, data:d.data()}); });
+      __cacheSet(__docs);   // 캐시 저장 먼저 (렌더 예외와 무관하게 확보)
+      applySnap(__fakeSnap(__docs));
+      if(!__fromCache){ loadStage(96); }
+    }catch(e){ if(!__fromCache){ cloud={}; layoutByCat={}; cloudLoaded=true; } }
+    if(cloud['청과']===undefined){ try{ await loadCsv(); }catch(e){} }
+    if(!__fromCache){ loadDone(); }
   }
   function pluNumOf(r){ var n=parseInt(pluValOf(r),10); return isNaN(n)?Infinity:n; }
   function byPluAsc(a,b){ var na=pluNumOf(a), nb=pluNumOf(b); if(na!==nb) return na<nb?-1:1; return String(pluValOf(a)).localeCompare(String(pluValOf(b))); }
@@ -785,13 +806,20 @@
   // 실시간 구독: 매니저에서 저장하면 스토어에 즉시 반영(읽기 전용).
   var subscribed=false, unsub=null;
   function rerenderIfIdle(){ renderContent(); }
+  var __netApplied=false;
   function subscribe(){
     if(subscribed) return;
+    // [로컬 캐시] 접속 즉시 캐시로 먼저 표시(딜레이 제거) — 이후 실시간 스냅샷이 최신으로 갱신
+    if(!__netApplied && !cloudLoaded){
+      __cacheGet().then(function(__c){ if(__c && __c.length && !__netApplied && !cloudLoaded){ applySnap(__fakeSnap(__c)); rerenderIfIdle(); } });
+    }
     if(!window.firebaseFns || !window.firebaseFns.onSnapshot){ loadCloud().then(rerenderIfIdle); return; }
     subscribed=true;
     try{
       unsub=fns().onSnapshot(fns().collection(db(), COL), function(snap){
-        applySnap(snap);
+        var __docs=[]; snap.forEach(function(d){ __docs.push({id:d.id, data:d.data()}); });
+        __netApplied=true; __cacheSet(__docs);   // 실시간 수신마다 캐시 최신화 → 다음 접속 즉시 표시
+        applySnap(__fakeSnap(__docs));
         if(cloud['청과']===undefined && !csvRows){ loadCsv().then(rerenderIfIdle).catch(rerenderIfIdle); }
         else rerenderIfIdle();
       }, function(err){ subscribed=false; if(!cloudLoaded) loadCloud().then(rerenderIfIdle); });
@@ -1779,6 +1807,42 @@
   window.uiConfirm=function(msg){ return open('confirm',msg,''); };
   window.uiPrompt=function(msg,def){ return open('prompt',msg,def); };
 })();
+</script>
+<script>
+  /* ===== 필드 가로폭 고정: UPC 13자 · PLU/매장PLU 7자 · ITEM CODE 10자 · 가격류 6자 ===== */
+  (function(){
+    var STORES=['TACOMA','FEDERAL WAY','FEDERALWAY','BELLEVUE','LYNNWOOD','REDMOND','BALLARD','MELLOW WAY','DISTRICT H','DISTRICT-H','M2M','G-MART','UNIVERSITY'];
+    var IS_PLU=true;
+    function chOf(txt){
+      var t=String(txt||'').trim().toUpperCase();
+      if(!t) return 0;
+      if(t.indexOf('ITEM CODE')>=0||t.indexOf('ITEMCODE')>=0) return 10;
+      if(t.indexOf('UPC')>=0) return 13;
+      if(/MSRP|SRP|MARGIN|COST|PRICE/.test(t)) return 6;
+      if(STORES.indexOf(t)>=0) return IS_PLU?7:6;
+      if(/^PLU\b/.test(t)||t==='PLU') return 7;
+      return 0;
+    }
+    function apply(root){
+      (root||document).querySelectorAll('table').forEach(function(tb){
+        var head=tb.querySelector('tr'); if(!head) return;
+        var ths=head.children;
+        for(var i=0;i<ths.length;i++){
+          var w=chOf(ths[i].textContent);
+          if(!w) continue;
+          var px=(w+1)+'ch';
+          ths[i].style.width=px; ths[i].style.minWidth=px; ths[i].style.maxWidth=px;
+          ths[i].style.overflow='hidden'; ths[i].style.whiteSpace='nowrap'; ths[i].style.textOverflow='clip';
+          var rows=tb.rows;
+          for(var r=1;r<rows.length;r++){ var td=rows[r].children[i]; if(td){ td.style.maxWidth=px; td.style.overflow='hidden'; td.style.whiteSpace='nowrap'; td.style.textOverflow='clip'; } }
+        }
+      });
+    }
+    var __t=null;
+    var mo=new MutationObserver(function(){ if(__t) clearTimeout(__t); __t=setTimeout(function(){ try{ mo.disconnect(); apply(); }finally{ mo.observe(document.body,{childList:true,subtree:true}); } }, 300); });
+    function boot(){ apply(); mo.observe(document.body,{childList:true,subtree:true}); }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot, {once:true}); else boot();
+  })();
 </script>
 </body>
 </html>

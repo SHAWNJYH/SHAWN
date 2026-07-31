@@ -2296,6 +2296,15 @@
   .eg-ex-btn:hover { border-color: var(--accent-warm); color: var(--text); }
   .eg-ex-btn.danger { background: #b04141; border-color: #b04141; color: #fff; }
   .eg-ex-btn.danger:hover { background: #983434; border-color: #983434; color: #fff; }
+  /* MANAGER 대형 팝업 */
+  #egMgrPop { position: fixed; inset: 0; z-index: 150; display: none; background: rgba(26,26,29,.4); backdrop-filter: blur(2px); }
+  #egMgrPop.show { display: block; }
+  .eg-mgr-card { position: absolute; inset: 3vh 3vw; background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden; box-shadow: 0 28px 80px rgba(26,26,29,.35); display: flex; flex-direction: column; }
+  .eg-mgr-x { align-self: flex-end; margin: 8px 10px 6px; border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-dim); border-radius: 8px; padding: 6px 12px; font-family: var(--mono); font-size: 12px; font-weight: 800; cursor: pointer; }
+  .eg-mgr-x:hover { border-color: #c0392b; color: #c0392b; }
+  .eg-mgr-frame { flex: 1; width: 100%; border: 0; background: #fff; }
   #egmmMenu.active { display: flex; }
 
   /* 마스트헤드 */
@@ -2638,9 +2647,10 @@
  <!-- 상단바 -->
  <header class="eg-topbar">
    <div class="eg-topbar-brand">
-     <div class="egmm-wordmark">MART<span class="dot">.</span></div>
+     <div class="egmm-wordmark">EGMM<span class="dot">.</span></div>
    </div>
    <div class="eg-topbar-actions">
+     <button class="eg-top-msg" id="egManagerBtn" type="button">🗂 MANAGER</button>
      <button class="eg-top-msg" id="egMsgOpenBtn" type="button">💬 메시지<span class="egmm-chat-alarm-dot"></span></button>
      <button class="eg-top-exit" id="egmmExitBtn" type="button">← 처음으로</button>
    </div>
@@ -2659,7 +2669,6 @@
 
     <div class="egmm-section-title gap">MEMORIZE</div>
     <button class="egmm-menu-btn" id="egmmPluMemorizeBtn"><span class="egmm-menu-label mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
-    <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn"><span class="egmm-menu-label mlab">DELI MEMORIZE<small>델리 암기 연습</small></span></button>
 
     <div class="egmm-section-title gap">SCHEDULE</div>
     <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label mlab">CALENDAR<small>캘린더</small></span></button>
@@ -2682,16 +2691,8 @@
   <!-- 박스: MANAGER + REQUEST (한 세로 열) -->
   <div class="egmm-card-col">
     <div class="egmm-card">
-      <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">MANAGER</span></div>
-
-      <div class="egmm-section-title">관리</div>
-      <button class="egmm-menu-btn" id="egmmStoreManagerBtn"><span class="egmm-menu-label mlab">STORE MANAGER<small>매장 관리</small></span></button>
-      <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label mlab">AD MANAGE<small>광고상품 관리</small></span></button>
-      <button class="egmm-menu-btn" id="egmmItemMgmtBtn"><span class="egmm-menu-label mlab">ITEM MANAGEMENT<small>아이템 관리</small></span></button>
-    </div>
-
     <!-- 박스: REQUEST -->
-    <div class="egmm-card">
+    
       <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
 
       <div class="egmm-section-title">DELI</div>
@@ -2719,7 +2720,7 @@
  <main class="eg-main">
    <div class="eg-welcome" id="egWelcome">
      <div class="eg-welcome-eyebrow">운영 콘솔 · OPERATIONS</div>
-     <div class="eg-welcome-mark">MART<span class="dot">.</span></div>
+     <div class="eg-welcome-mark">EGMM<span class="dot">.</span></div>
      <div class="eg-welcome-sub">왼쪽 메뉴에서 기능을 선택하세요</div>
    </div>
  </main>
@@ -3253,9 +3254,38 @@
   var __ocrBtn=$('egmmOcrBtn'); if(__ocrBtn) __ocrBtn.onclick = function(){ openInFrame('upc-list-convert-ocr.html', this); };
   $('egmmPluListBtn').onclick = function(){ openInFrame('plu-list-manager.html', this); };
   var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ openInFrame('egmm-calendar.html', this); };
-  var __smBtn=$('egmmStoreManagerBtn'); if(__smBtn) __smBtn.onclick = function(){ openInFrame('store-manager.html', this); };
-  var __adBtn=$('egmmAdManageBtn'); if(__adBtn) __adBtn.onclick = function(){ openInFrame('advertising.html', this); };
-  var __imBtn=$('egmmItemMgmtBtn'); if(__imBtn) __imBtn.onclick = function(){ openInFrame('item-management-manager.html', this); };
+  // PLU MEMORIZE 활성화
+  var __pmBtn=$('egmmPluMemorizeBtn'); if(__pmBtn) __pmBtn.onclick = function(){ openInFrame('plu-quiz.html', this); };
+  // MANAGER: 상단 버튼 → 3종 선택 팝업 → 대형 팝업(iframe)으로 표시
+  (function(){
+    var sel=document.createElement('div');
+    sel.className='eg-exit-ov'; sel.id='egMgrSel';
+    sel.innerHTML='<div class="eg-exit-modal" style="width:380px">'
+      +'<div class="eg-exit-title">🗂 MANAGER</div>'
+      +'<div class="eg-exit-btns" style="flex-direction:column">'
+      +'<button class="eg-ex-btn" data-url="store-manager.html" type="button">STORE MANAGER<br><small style="font-weight:600;opacity:.7">매장 관리</small></button>'
+      +'<button class="eg-ex-btn" data-url="advertising.html" type="button">AD MANAGER<br><small style="font-weight:600;opacity:.7">광고상품 관리</small></button>'
+      +'<button class="eg-ex-btn" data-url="item-management-manager.html" type="button">ITEM MANAGEMENT<br><small style="font-weight:600;opacity:.7">아이템 관리</small></button>'
+      +'</div></div>';
+    document.body.appendChild(sel);
+    // 대형 팝업 (레이아웃 유지 최대 크기)
+    var big=document.createElement('div');
+    big.id='egMgrPop';
+    big.innerHTML='<div class="eg-mgr-card"><button class="eg-mgr-x" id="egMgrX" type="button">✕ 닫기</button><iframe class="eg-mgr-frame" id="egMgrFrame" src="about:blank" title="manager"></iframe></div>';
+    document.body.appendChild(big);
+    var mb=document.getElementById('egManagerBtn');
+    if(mb) mb.onclick=function(){ sel.classList.add('show'); };
+    sel.addEventListener('click', function(e){
+      if(e.target===sel){ sel.classList.remove('show'); return; }
+      var b=e.target.closest('button[data-url]'); if(!b) return;
+      sel.classList.remove('show');
+      var f=document.getElementById('egMgrFrame');
+      if(f.getAttribute('src')!==b.getAttribute('data-url')) f.src=b.getAttribute('data-url');
+      big.classList.add('show');
+    });
+    document.getElementById('egMgrX').onclick=function(){ big.classList.remove('show'); };
+    big.addEventListener('click', function(e){ if(e.target===big) big.classList.remove('show'); });
+  })();
   // 처음으로: 확인 팝업
   (function(){
     var ov=document.createElement('div');
