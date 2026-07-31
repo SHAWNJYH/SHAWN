@@ -127,7 +127,12 @@
   #tblStock th.lbl, #tblStock td.lbl { text-align: center; }
   #tblStock .itm-input { text-align: center; }
   #tblStock td:nth-child(2) { text-align: center; }
+  /* AMOUNT(4W)(8열) 가격만 BOLD */
+  #tblStock td:nth-child(8) { font-weight: 700; }
   .quick { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+  /* 대시보드 버튼(BACKUP/RESTORE/EXCEL/PDF/FULL SCREEN) 축소 —
+     nowrap+자동 너비라 글씨는 항상 한 줄, 박스 밖으로 넘치지 않음 */
+  .quick .btn { padding: 6px 14px; font-size: 11.5px; letter-spacing: .4px; }
   .quick .spacer { flex: 1; }
   .btn {
     border: none; border-radius: 7px; padding: 9px 26px; font-size: 13px; font-weight: 700;
@@ -1849,7 +1854,7 @@ async function exportDashboardExcel(){
     C(rw,15, has&&r.amt!==null?r.amt:null, {fmt:ACCT});
     C(rw,16, has&&r.ldate?fmtMDY4(r.ldate):null, {h:'center'});
     C(rw,17, has&&r.moc!==null?r.moc:null, {fmt:ACCT});
-    C(rw,18, has&&r.amt4w!==null?r.amt4w:null, {fmt:ACCT});
+    C(rw,18, has&&r.amt4w!==null?r.amt4w:null, {fmt:ACCT,b:1});
   });
   /* Total 행 (Box·Lbs·Amount 합계 + AMOUNT(4W) 합계는 2칸 병합 1필드) */
   const strw = 6 + D.S.length;
