@@ -2253,10 +2253,49 @@
   .egmm-screen.active { display: block; }
 
   /* ===== EGMM 런처 홈 (정제 리디자인) ===== */
-  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; overflow-y: auto;
-    flex-direction: column; align-items: center; justify-content: flex-start;
-    padding: clamp(28px, 6vh, 72px) 24px 52px;
+  #egmmMenu { display: none; position: fixed; inset: 0; z-index: 90; overflow: hidden;
+    flex-direction: column;
     background: radial-gradient(125% 85% at 50% -12%, #ffffff 0%, var(--bg) 44%, #f1efe6 100%); }
+  /* ── 상단바 ── */
+  .eg-topbar { flex: 0 0 62px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; background: var(--bg-elev); border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 14px rgba(26,26,29,.05); }
+  .eg-topbar .egmm-wordmark { font-size: 26px; letter-spacing: .02em; }
+  .eg-topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .eg-top-msg, .eg-top-exit { position: relative; display: inline-flex; align-items: center; gap: 7px;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 9px 15px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: border-color .15s, color .15s, transform .12s; }
+  .eg-top-msg:hover, .eg-top-exit:hover { border-color: var(--accent-warm); color: var(--text); }
+  .eg-top-msg:active, .eg-top-exit:active { transform: scale(.97); }
+  .eg-top-msg.alarm { border-color: #c0392b; color: #c0392b; }
+  .eg-top-msg .egmm-chat-alarm-dot { display: none; }
+  .eg-top-msg.alarm .egmm-chat-alarm-dot { display: inline-block; }
+  /* ── 본문: 사이드바 + 콘텐츠 ── */
+  .eg-body { flex: 1; display: grid; grid-template-columns: 230px 1fr; min-height: 0; }
+  .eg-side { min-height: 0; overflow-y: auto; padding: 12px 8px 16px; border-right: 1px solid var(--border);
+    background: linear-gradient(180deg, #fbfaf6, var(--bg)); }
+  .eg-main { min-height: 0; position: relative; background: var(--bg); }
+  .eg-frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; position: absolute; inset: 0; }
+  .eg-welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .eg-welcome-eyebrow { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .22em; color: var(--text-dim); }
+  .eg-welcome-mark { font-size: 58px; font-weight: 900; letter-spacing: .01em; color: var(--text); }
+  .eg-welcome-mark .dot { color: var(--accent-warm, #c9a961); }
+  .eg-welcome-sub { font-size: 15px; color: var(--text-dim); }
+  /* 처음으로 확인 팝업 */
+  .eg-exit-ov { position: fixed; inset: 0; z-index: 140; display: none; align-items: center; justify-content: center;
+    background: rgba(26,26,29,.34); backdrop-filter: blur(2px); }
+  .eg-exit-ov.show { display: flex; }
+  .eg-exit-modal { width: 340px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 22px 18px; box-shadow: 0 24px 64px rgba(26,26,29,.28); text-align: center; }
+  .eg-exit-title { font-weight: 900; font-size: 17px; color: var(--text); margin-bottom: 10px; }
+  .eg-exit-text { font-size: 14px; color: var(--text-dim); margin-bottom: 18px; }
+  .eg-exit-btns { display: flex; gap: 10px; }
+  .eg-ex-btn { flex: 1; padding: 11px 0; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text-dim); font-family: var(--mono); font-size: 14px; font-weight: 800; cursor: pointer; }
+  .eg-ex-btn:hover { border-color: var(--accent-warm); color: var(--text); }
+  .eg-ex-btn.danger { background: #b04141; border-color: #b04141; color: #fff; }
+  .eg-ex-btn.danger:hover { background: #983434; border-color: #983434; color: #fff; }
   #egmmMenu.active { display: flex; }
 
   /* 마스트헤드 */
@@ -2274,12 +2313,16 @@
     opacity: .75; }
 
   /* 도메인 패널 */
-  .egmm-cards { display: flex; gap: 16px; align-items: flex-start; justify-content: center;
-    width: 100%; max-width: 1300px; flex-wrap: wrap; }
-  .egmm-card-col { flex: 1 1 258px; min-width: 250px; max-width: 340px; display: flex; flex-direction: column; gap: 16px; }
+  .egmm-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .egmm-card-col { display: flex; flex-direction: column; gap: 12px; width: 100%; }
   .egmm-card-col .egmm-card { flex: 1 1 auto; max-width: none; min-width: 0; width: 100%; }
   /* 매장 메시지 */
-  .egmm-msg-wrap { width: 100%; max-width: 1300px; margin: 26px auto 0; }
+  /* 매장 메시지 팝업 — 투명 오버레이 (iframe 위 클릭도 받아 닫기) */
+  #egChatPop { position: fixed; inset: 0; z-index: 130; display: none; background: rgba(26,26,29,.06);
+    width: 100vw !important; max-width: none !important; margin: 0 !important; }
+  #egChatPop.show { display: block; }
+  #egChatPop .egmm-chat-card { position: absolute; top: 70px; right: 16px; width: 760px; max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 90px); box-shadow: 0 18px 48px rgba(26,26,29,.22); }
   .egmm-msg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 760px){ .egmm-msg-grid { grid-template-columns: 1fr; } }
   .egmm-msg-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; }
@@ -2343,8 +2386,8 @@
   .egmm-chat-text { flex: 1; min-height: 42px; max-height: 120px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: none; }
   .egmm-chat-send { flex: 0 0 auto; border: none; background: var(--accent-warm); color: #fff; border-radius: 10px; padding: 0 20px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
   .egmm-chat-send:active { transform: scale(.98); }
-  .egmm-card { flex: 1 1 258px; min-width: 250px; max-width: 340px; background: var(--bg-elev);
-    border: 1px solid var(--border); border-radius: 18px; padding: 24px 22px 20px;
+  .egmm-card { width: 100%; box-sizing: border-box; background: var(--bg-elev);
+    border: 1px solid var(--border); border-radius: 12px; padding: 11px 11px 9px;
     box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
     opacity: 0; transform: translateY(14px); animation: egmmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
   .egmm-card:nth-child(1) { animation-delay: .05s; }
@@ -2353,19 +2396,24 @@
   .egmm-card:nth-child(4) { animation-delay: .29s; }
   @keyframes egmmRise { to { opacity: 1; transform: none; } }
 
-  .egmm-card-head { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; margin-bottom: 16px;
+  .egmm-card-head { display: flex; align-items: center; gap: 8px; padding-bottom: 7px; margin-bottom: 8px;
     border-bottom: 1px solid var(--border); }
   .egmm-card-tick { width: 6px; height: 19px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
-  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 21px; letter-spacing: .03em; color: var(--text); }
+  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 15px; letter-spacing: .03em; color: var(--text); }
+  .egmm-menu-btn .mlab { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; line-height: 1.15;
+    min-width: 0; width: 100%; word-break: keep-all; overflow-wrap: anywhere; }
+  .egmm-menu-btn .mlab small { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
+  .egmm-menu-btn.active, .egmm-menu-btn.active:hover { border-color: #c0392b !important; box-shadow: 0 0 0 1px #c0392b inset; background: var(--accent-soft, #f0eee5); color: var(--text); font-weight: 800; }
+  .egmm-menu-btn.active .mlab small { color: var(--text); opacity: .75; }
 
   .egmm-section-title { font-size: 11px; font-weight: 800; letter-spacing: .16em; color: var(--text-faint);
     text-transform: uppercase; margin: 0 2px 10px; }
   .egmm-section-title.gap { margin-top: 20px; }
 
-  .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 12px;
+  .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
     background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 15px 16px; border-radius: 12px; font-family: var(--mono);
-    font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 9px; text-align: left;
+    padding: 7px 9px; border-radius: 8px; font-family: var(--mono);
+    font-size: 12px; font-weight: 700; cursor: pointer; margin-bottom: 5px; text-align: left;
     overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
   .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
     background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
@@ -2587,26 +2635,34 @@
 
 <!-- EGMM 메인 메뉴 -->
 <div id="egmmMenu">
- <div class="egmm-masthead">
-   <div class="egmm-eyebrow">운영 콘솔 · Operations</div>
-   <div class="egmm-wordmark">MART<span class="dot">.</span></div>
-   <div class="egmm-rule"></div>
- </div>
+ <!-- 상단바 -->
+ <header class="eg-topbar">
+   <div class="eg-topbar-brand">
+     <div class="egmm-wordmark">MART<span class="dot">.</span></div>
+   </div>
+   <div class="eg-topbar-actions">
+     <button class="eg-top-msg" id="egMsgOpenBtn" type="button">💬 메시지<span class="egmm-chat-alarm-dot"></span></button>
+     <button class="eg-top-exit" id="egmmExitBtn" type="button">← 처음으로</button>
+   </div>
+ </header>
+ <div class="eg-body">
+ <!-- 왼쪽 사이드바 -->
+ <aside class="eg-side">
  <div class="egmm-cards">
   <!-- 박스 1: EGMM -->
   <div class="egmm-card">
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">MART</span></div>
 
     <div class="egmm-section-title">ITEM LIST</div>
-    <button class="egmm-menu-btn" id="egmmPluListBtn"><span class="egmm-menu-label">PLU LIST</span><span class="egmm-menu-arrow">→</span></button>
-    <button class="egmm-menu-btn" id="egmmUpcListBtn"><span class="egmm-menu-label">UPC LIST / ITEM CODE</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmPluListBtn"><span class="egmm-menu-label mlab">PLU LIST<small>PLU 리스트</small></span></button>
+    <button class="egmm-menu-btn" id="egmmUpcListBtn"><span class="egmm-menu-label mlab">UPC LIST / ITEM CODE<small>UPC 아이템 리스트</small></span></button>
 
     <div class="egmm-section-title gap">MEMORIZE</div>
-    <button class="egmm-menu-btn" id="egmmPluMemorizeBtn"><span class="egmm-menu-label">PLU MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
-    <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn"><span class="egmm-menu-label">DELI MEMORIZE</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmPluMemorizeBtn"><span class="egmm-menu-label mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
+    <button class="egmm-menu-btn" id="egmmDeliMemorizeBtn"><span class="egmm-menu-label mlab">DELI MEMORIZE<small>델리 암기 연습</small></span></button>
 
     <div class="egmm-section-title gap">SCHEDULE</div>
-    <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label">CALENDAR</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label mlab">CALENDAR<small>캘린더</small></span></button>
   </div>
 
   <!-- 박스 2: ODP -->
@@ -2614,13 +2670,13 @@
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ODP</span></div>
 
     <div class="egmm-section-title">CONVERT</div>
-    <button class="egmm-menu-btn" id="egmmOcrBtn"><span class="egmm-menu-label">OCR</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmOcrBtn"><span class="egmm-menu-label mlab">OCR<small>문서 인식</small></span></button>
 
     <div class="egmm-section-title gap">INSERT GUIDE</div>
-    <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label">HANA</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmHanaBtn"><span class="egmm-menu-label mlab">HANA<small>HANA 가이드</small></span></button>
 
     <div class="egmm-section-title gap">TOOLS</div>
-    <button class="egmm-menu-btn" id="egmmToolsBtn"><span class="egmm-menu-label">TOOLS</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmToolsBtn"><span class="egmm-menu-label mlab">TOOLS<small>도구 모음</small></span></button>
   </div>
 
   <!-- 박스: MANAGER + REQUEST (한 세로 열) -->
@@ -2629,9 +2685,9 @@
       <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">MANAGER</span></div>
 
       <div class="egmm-section-title">관리</div>
-      <button class="egmm-menu-btn" id="egmmStoreManagerBtn"><span class="egmm-menu-label">STORE MANAGER</span><span class="egmm-menu-arrow">→</span></button>
-      <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label">광고상품관리</span><span class="egmm-menu-arrow">→</span></button>
-      <button class="egmm-menu-btn" id="egmmItemMgmtBtn"><span class="egmm-menu-label">ITEM MANAGEMENT</span><span class="egmm-menu-arrow">→</span></button>
+      <button class="egmm-menu-btn" id="egmmStoreManagerBtn"><span class="egmm-menu-label mlab">STORE MANAGER<small>매장 관리</small></span></button>
+      <button class="egmm-menu-btn" id="egmmAdManageBtn"><span class="egmm-menu-label mlab">AD MANAGE<small>광고상품 관리</small></span></button>
+      <button class="egmm-menu-btn" id="egmmItemMgmtBtn"><span class="egmm-menu-label mlab">ITEM MANAGEMENT<small>아이템 관리</small></span></button>
     </div>
 
     <!-- 박스: REQUEST -->
@@ -2639,7 +2695,7 @@
       <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
 
       <div class="egmm-section-title">DELI</div>
-      <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label">REQUEST CONFIRMATION</span><span class="egmm-req-count" id="deliReqCount"></span><span class="egmm-menu-arrow">→</span></button>
+      <button class="egmm-menu-btn" id="egmmDeliReqBtn"><span class="egmm-menu-label mlab">REQUEST CONFIRMATION<small>요청 확인</small></span><span class="egmm-req-count" id="deliReqCount"></span></button>
     </div>
   </div>
 
@@ -2648,18 +2704,29 @@
     <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">GUIDE</span></div>
 
     <div class="egmm-section-title">TAX</div>
-    <button class="egmm-menu-btn" id="egmmTaxBtn"><span class="egmm-menu-label">TAX</span><span class="egmm-menu-arrow">→</span></button>
-    <button class="egmm-menu-btn" id="egmmEbtBtn"><span class="egmm-menu-label">EBT</span><span class="egmm-menu-arrow">→</span></button>
-    <button class="egmm-menu-btn" id="egmmHardLiquorBtn"><span class="egmm-menu-label">HARD LIQUOR</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmTaxBtn"><span class="egmm-menu-label mlab">TAX<small>세금 안내</small></span></button>
+    <button class="egmm-menu-btn" id="egmmEbtBtn"><span class="egmm-menu-label mlab">EBT<small>EBT 안내</small></span></button>
+    <button class="egmm-menu-btn" id="egmmHardLiquorBtn"><span class="egmm-menu-label mlab">HARD LIQUOR<small>주류 안내</small></span></button>
 
     <div class="egmm-section-title gap">GUIDE</div>
-    <button class="egmm-menu-btn" id="egmmProductNameMakerBtn"><span class="egmm-menu-label">PRODUCT NAME MAKER</span><span class="egmm-menu-arrow">→</span></button>
-    <button class="egmm-menu-btn" id="egmmDeliMgmtBtn"><span class="egmm-menu-label">DELI MANAGEMENT</span><span class="egmm-menu-arrow">→</span></button>
+    <button class="egmm-menu-btn" id="egmmProductNameMakerBtn"><span class="egmm-menu-label mlab">PRODUCT NAME MAKER<small>상품명 생성기</small></span></button>
+    <button class="egmm-menu-btn" id="egmmDeliMgmtBtn"><span class="egmm-menu-label mlab">DELI MANAGEMENT<small>델리 관리</small></span></button>
   </div>
  </div>
+ </aside>
 
- <!-- 매장 메시지 (하단) -->
- <div class="egmm-msg-wrap" id="egmmMsgWrap">
+ <!-- 오른쪽 콘텐츠 화면 -->
+ <main class="eg-main">
+   <div class="eg-welcome" id="egWelcome">
+     <div class="eg-welcome-eyebrow">운영 콘솔 · OPERATIONS</div>
+     <div class="eg-welcome-mark">MART<span class="dot">.</span></div>
+     <div class="eg-welcome-sub">왼쪽 메뉴에서 기능을 선택하세요</div>
+   </div>
+ </main>
+ </div><!-- /.eg-body -->
+
+ <!-- 매장 메시지 팝업 (상단 💬 버튼) -->
+ <div class="egmm-msg-wrap" id="egChatPop">
    <div class="egmm-chat-card">
      <div class="egmm-chat-head" id="egmmChatHead">
        <span>💬 매장 메시지</span>
@@ -2683,7 +2750,6 @@
  </div>
  <div class="chat-lightbox" id="chatLightbox"><img id="chatLightboxImg" src="" alt=""></div>
 
- <button class="egmm-back-link" id="egmmExitBtn">← 처음으로</button>
 </div>
 
 <!-- ITEM CODE 보기 화면 -->
@@ -3153,14 +3219,54 @@
 
   // ----- 버튼 연결 -----
   // ITEM LIST / MEMORIZE / GUIDE 메뉴 버튼 — 링크는 추후 연결 예정
-  $('egmmUpcListBtn').onclick = function(){ window.location.href = 'upc-list-manager.html'; };
-  var __ocrBtn=$('egmmOcrBtn'); if(__ocrBtn) __ocrBtn.onclick = function(){ window.location.href = 'upc-list-convert-ocr.html'; };
-  $('egmmPluListBtn').onclick = function(){ window.location.href = 'plu-list-manager.html'; };
-  var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ window.location.href = 'egmm-calendar.html'; };
-  var __smBtn=$('egmmStoreManagerBtn'); if(__smBtn) __smBtn.onclick = function(){ window.location.href = 'store-manager.html'; };
-  var __adBtn=$('egmmAdManageBtn'); if(__adBtn) __adBtn.onclick = function(){ window.location.href = 'advertising.html'; };
-  var __imBtn=$('egmmItemMgmtBtn'); if(__imBtn) __imBtn.onclick = function(){ window.location.href = 'item-management-manager.html'; };
-  $('egmmExitBtn').onclick = () => { window.location.href = 'index.html'; };
+  // 중첩 방지: iframe 안에 egmm이 다시 열리면 전체 화면으로 복귀
+  try{ if(window.top!==window.self){ window.top.location.href=window.location.href; } }catch(e){}
+  // iframe 안 페이지의 자체 타이틀·하단 로그아웃 숨김
+  function __trimFrame(f){
+    try{
+      var d=f.contentDocument; if(!d) return;
+      var st=d.createElement('style');
+      st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}'
+        +'.page-topbar .plu-tabs{margin-left:0 !important;}'
+        +'.page-topbar{padding-left:32px !important;}';
+      (d.head||d.documentElement).appendChild(st);
+    }catch(e){}
+  }
+  // 메뉴별 iframe 유지(캐시): 전환 시 재로드 없음
+  var __frames={};
+  function openInFrame(url, btn){
+    var w=$('egWelcome'); if(w) w.style.display='none';
+    for(var k in __frames){ __frames[k].style.display='none'; }
+    var f=__frames[url];
+    if(!f){
+      f=document.createElement('iframe');
+      f.className='eg-frame'; f.title='content'; f.src=url;
+      f.addEventListener('load', function(){ __trimFrame(f); });
+      var host=document.querySelector('.eg-main'); if(host) host.appendChild(f);
+      __frames[url]=f;
+    }
+    f.style.display='block';
+    Array.prototype.forEach.call(document.querySelectorAll('.eg-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
+    if(btn) btn.classList.add('active');
+  }
+  $('egmmUpcListBtn').onclick = function(){ openInFrame('upc-list-manager.html', this); };
+  var __ocrBtn=$('egmmOcrBtn'); if(__ocrBtn) __ocrBtn.onclick = function(){ openInFrame('upc-list-convert-ocr.html', this); };
+  $('egmmPluListBtn').onclick = function(){ openInFrame('plu-list-manager.html', this); };
+  var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ openInFrame('egmm-calendar.html', this); };
+  var __smBtn=$('egmmStoreManagerBtn'); if(__smBtn) __smBtn.onclick = function(){ openInFrame('store-manager.html', this); };
+  var __adBtn=$('egmmAdManageBtn'); if(__adBtn) __adBtn.onclick = function(){ openInFrame('advertising.html', this); };
+  var __imBtn=$('egmmItemMgmtBtn'); if(__imBtn) __imBtn.onclick = function(){ openInFrame('item-management-manager.html', this); };
+  // 처음으로: 확인 팝업
+  (function(){
+    var ov=document.createElement('div');
+    ov.className='eg-exit-ov'; ov.id='egExitOv';
+    ov.innerHTML='<div class="eg-exit-modal"><div class="eg-exit-title">← 처음으로</div><div class="eg-exit-text">EGMM을 나가고 처음 화면으로 돌아갈까요?</div><div class="eg-exit-btns"><button class="eg-ex-btn" id="egExCancel" type="button">취소</button><button class="eg-ex-btn danger" id="egExOk" type="button">나가기</button></div></div>';
+    document.body.appendChild(ov);
+    $('egmmExitBtn').onclick = function(){ ov.classList.add('show'); };
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); });
+    document.getElementById('egExCancel').onclick=function(){ ov.classList.remove('show'); };
+    document.getElementById('egExOk').onclick=function(){ ov.classList.remove('show'); window.location.href='index.html'; };
+  })();
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
   $('guideBackBtn').onclick = showMenu;
@@ -3372,9 +3478,20 @@
   }
   // 알림 표시(깜빡임) — 대화창 클릭/입력 시 해제
   var head=$('egmmChatHead');
-  function alarmOn(){ if(head) head.classList.add('alarm'); }
-  function alarmOff(){ if(head) head.classList.remove('alarm'); }
-  ['click','focusin'].forEach(function(ev){ var w=document.querySelector('.egmm-msg-wrap'); if(w) w.addEventListener(ev, alarmOff); });
+  function alarmOn(){ if(head) head.classList.add('alarm'); var mb=document.getElementById('egMsgOpenBtn'); if(mb) mb.classList.add('alarm'); }
+  function alarmOff(){ if(head) head.classList.remove('alarm'); var mb=document.getElementById('egMsgOpenBtn'); if(mb) mb.classList.remove('alarm'); }
+  // 상단 💬 버튼: 메시지 팝업 열기/닫기 (오버레이 클릭 = 닫기)
+  (function(){
+    var pop=document.getElementById('egChatPop'), btn=document.getElementById('egMsgOpenBtn');
+    if(!pop||!btn) return;
+    btn.onclick=function(e){
+      e.stopPropagation();
+      var opening=!pop.classList.contains('show');
+      pop.classList.toggle('show');
+      if(opening){ alarmOff(); var b=document.getElementById('egmmChatBody'); if(b) b.scrollTop=b.scrollHeight; }
+    };
+    pop.addEventListener('click', function(e){ alarmOff(); if(e.target===pop) pop.classList.remove('show'); });
+  })();
 
   var curStore=STORES[0];           // 현재 선택 매장
   var unread={};                    // 매장별 안읽은 수신 개수(깜빡임용)
