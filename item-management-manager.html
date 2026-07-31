@@ -1305,6 +1305,78 @@
   function isValidUpc(v){ var d=imUpcDigits(v); return d.length>=UPC_MIN_DIGITS; }
   function isEmptyVal(v){ return v==null || String(v).trim()===''; }
 
+  /* ===== DESC 분해 파서 =====
+     하나의 DESC 문자열을 ENG/KOR + PACK QTY/UNIT QTY/UNIT SIZE/UNIT CODE 로 나눈다.
+     규칙:
+       1) () 와 그 안 내용 삭제 (괄호 쌍이 있을 때만)
+       2) 수량/용량 토큰(20/200G · 20/2/100G · 4LB)은 영문 또는 한글 맨 끝에 위치 → 뽑고 DESC 에서 삭제
+       3) 왼쪽 영어 = ENG, 오른쪽 한글 = KOR
+       4) 20/200G → UNIT QTY=20, UNIT SIZE=200, UNIT CODE=GR
+       5) 20/2/100G → PACK QTY=20, UNIT QTY=2, UNIT SIZE=100, UNIT CODE=GR
+       6) 4LB → UNIT SIZE=4, UNIT CODE=LB (QTY 없음)
+       7) 없으면 빈칸,   8) G→GR 만 변환(나머지 단위는 그대로) */
+  function parseDescFields(raw){
+    var out={ eng:'', kor:'', pack:'', uqty:'', size:'', code:'' };
+    var s=String(raw==null?'':raw).trim();
+    if(!s) return out;
+    // 1) 괄호 쌍 삭제
+    s=s.replace(/\([^()]*\)/g,' ').replace(/\s+/g,' ').trim();
+    // 2) 맨 끝 수량/용량 토큰 추출 — 숫자(/숫자)* + 단위문자
+    var m=s.match(/(\d+(?:\s*\/\s*\d+)*)\s*([A-Za-z]+)\s*$/);
+    if(m){
+      var nums=m[1].replace(/\s+/g,'').split('/').filter(function(x){ return x!==''; });
+      var code=m[2].toUpperCase();
+      if(code==='G') code='GR';                         // 8) G→GR 만
+      s=s.slice(0, m.index).trim();
+      if(nums.length===1){ out.size=nums[0]; out.code=code; }                         // 6) 4LB
+      else if(nums.length===2){ out.uqty=nums[0]; out.size=nums[1]; out.code=code; }   // 4) 20/200G
+      else if(nums.length>=3){ out.pack=nums[0]; out.uqty=nums[1]; out.size=nums[2]; out.code=code; } // 5) 20/2/100G
+    }
+    // 3) 영문(왼쪽) / 한글(오른쪽)
+    var km=s.match(/[\uAC00-\uD7A3\u3130-\u318F]/);
+    if(km){ out.eng=s.slice(0, km.index).replace(/[\s\/\-]+$/,'').trim(); out.kor=s.slice(km.index).replace(/^[\s\/\-]+/,'').trim(); }
+    else { out.eng=s.replace(/[\s\/\-]+$/,'').trim(); out.kor=''; }
+    return out;
+  }
+  function imFieldKeyByNames(names){
+    for(var i=0;i<names.length;i++){ var want=names[i].toUpperCase().replace(/\s+/g,'');
+      for(var j=0;j<IM_FIELDS.length;j++){ if(IM_FIELDS[j].key.toUpperCase().replace(/\s+/g,'')===want) return IM_FIELDS[j].key; } }
+    return null;
+  }
+  /* ENG/KOR 및 UNIT 필드가 비어 있으면 DESC 를 분해해 채운다.
+     실행 조건: ENG 또는 KOR 하나라도 비어 있을 때. 원본 DESC 는 '등록되지 않은 DESC 필드'(role 이 name 이 아닌 임의 DESC 열) 우선. */
+  function fillDescInto(rowObj){
+    var engK=imFieldKeyByNames(['ENG DESC','ENG','ENGLISH']);
+    var korK=imFieldKeyByNames(['KOR DESC','KOR','KOREAN']);
+    if(!engK && !korK) return false;
+    var engEmpty = engK ? isEmptyVal(rowObj[engK]) : true;
+    var korEmpty = korK ? isEmptyVal(rowObj[korK]) : true;
+    if(!engEmpty && !korEmpty) return false;             // 둘 다 차 있으면 건드리지 않음
+    // 분해 원본 찾기: 아직 등록 안 된 DESC 계열 필드(name 아닌 것) → 없으면 채워진 ENG/KOR 중 하나
+    var srcKey=null;
+    for(var i=0;i<IM_FIELDS.length;i++){ var f=IM_FIELDS[i];
+      if(f.key===engK || f.key===korK) continue;
+      if(/DESC|DESCRIPTION|상품명|품명|이름|NAME/i.test(f.key) && !isEmptyVal(rowObj[f.key])){ srcKey=f.key; break; } }
+    var src = srcKey ? rowObj[srcKey] : (engK && !isEmptyVal(rowObj[engK]) ? rowObj[engK] : (korK ? rowObj[korK] : ''));
+    if(isEmptyVal(src)) return false;
+    var d=parseDescFields(src);
+    var changed=false;
+    if(engK && isEmptyVal(rowObj[engK]) && d.eng){ rowObj[engK]=d.eng; changed=true; }
+    if(korK && isEmptyVal(rowObj[korK]) && d.kor){ rowObj[korK]=d.kor; changed=true; }
+    // UNIT 필드 — 있으면 채움 (8: 채워지면 DESC 의 수량/문구는 위에서 이미 제거됨)
+    var packK=imFieldKeyByNames(['PACK QTY','PACKQTY']);
+    var uqtyK=imFieldKeyByNames(['UNIT QTY','UNITQTY']);
+    var sizeK=imFieldKeyByNames(['UNIT SIZE','UNITSIZE','SIZE']);
+    var codeK=imFieldKeyByNames(['UNIT CODE','UNITCODE']);
+    if(packK && isEmptyVal(rowObj[packK]) && d.pack){ rowObj[packK]=d.pack; changed=true; }
+    if(uqtyK && isEmptyVal(rowObj[uqtyK]) && d.uqty){ rowObj[uqtyK]=d.uqty; changed=true; }
+    if(sizeK && isEmptyVal(rowObj[sizeK]) && d.size){ rowObj[sizeK]=d.size; changed=true; }
+    if(codeK && isEmptyVal(rowObj[codeK]) && d.code){ rowObj[codeK]=d.code; changed=true; }
+    // 분해 원본이 별도 DESC 필드였다면, 정리된 값으로 갱신(수량·괄호 제거 반영)
+    if(srcKey && changed){ var clean=(d.eng+(d.kor?(' '+d.kor):'')).trim(); if(clean) rowObj[srcKey]=clean; }
+    return changed;
+  }
+
   function handleMasterAddFile(file){
     if(!file) return;
     var nm=(file.name||'').toLowerCase();
@@ -1364,9 +1436,12 @@
       if(!fileByUpc[u]) fileByUpc[u]=fr;
       else { var cur=fileByUpc[u]; IM_FIELDS.forEach(function(f){ if(isEmptyVal(cur[f.key]) && !isEmptyVal(fr[f.key])) cur[f.key]=fr[f.key]; }); } });
 
-    var addCount=0, fillCount=0, conflicts=[];
+    var addCount=0, fillCount=0, conflicts=[], descCount=0;
     // 파일이 실제로 값을 제공하는 필드만 채움 대상으로 (매핑된 필드)
     var fillFields=IM_FIELDS.filter(function(f){ return map[f.key] && f.key!==upcKey; });
+
+    // ★ DESC 분해 — 파일 각 행에서 ENG/KOR 하나라도 비었으면 DESC 를 나눠 ENG/KOR/UNIT 채움
+    Object.keys(fileByUpc).forEach(function(u){ if(fillDescInto(fileByUpc[u])) descCount++; });
 
     Object.keys(fileByUpc).forEach(function(u){
       var fr=fileByUpc[u];
@@ -1383,6 +1458,8 @@
         if(f.key===codeKey) return;   // CODE 는 아래에서 별도 판정
         if(isEmptyVal(ex[f.key]) && !isEmptyVal(fr[f.key])){ ex[f.key]=fr[f.key]; fillCount++; }
       });
+      // ★ 기존 행도 ENG/KOR 하나라도 비었으면 DESC 분해로 채움
+      if(fillDescInto(ex)) descCount++;
       // ⑥⑩ ITEM CODE 판정
       if(codeKey){
         var exC=String(ex[codeKey]==null?'':ex[codeKey]).trim();
@@ -1398,11 +1475,11 @@
 
     // 충돌 없으면 바로 저장
     if(!conflicts.length){
-      finalizeMasterMerge(rows, fileName, mappedCount, addCount, fillCount, 0);
+      finalizeMasterMerge(rows, fileName, mappedCount, addCount, fillCount, 0, descCount);
       return;
     }
     // 충돌 있으면 모달로 확인 (⑥⑩)
-    _imcPending={ rows:rows, conflicts:conflicts, fileName:fileName, mappedCount:mappedCount, addCount:addCount, fillCount:fillCount, codeKey:codeKey };
+    _imcPending={ rows:rows, conflicts:conflicts, fileName:fileName, mappedCount:mappedCount, addCount:addCount, fillCount:fillCount, codeKey:codeKey, descCount:descCount };
     openImcModal(conflicts);
   }
 
@@ -1420,12 +1497,13 @@
   }
   function closeImcModal(){ $('imcOv').classList.remove('show'); }
 
-  function finalizeMasterMerge(rows, fileName, mappedCount, addCount, fillCount, codeChanged){
+  function finalizeMasterMerge(rows, fileName, mappedCount, addCount, fillCount, codeChanged, descCount){
     saveMaster(fileName, rows, mappedCount);
     var parts=[];
     if(addCount) parts.push('신규 '+addCount+'개');
     if(fillCount) parts.push('빈 필드 '+fillCount+'건 채움');
     if(codeChanged) parts.push('ITEM CODE '+codeChanged+'개 변경');
+    if(descCount) parts.push('DESC 분해 '+descCount+'건');
     setTimeout(function(){ toast('ITEM MASTER 추가 완료'+(parts.length?(' · '+parts.join(' · ')):'')); }, 300);
   }
   async function saveMaster(fileName, rows, mappedCount){
@@ -1757,7 +1835,7 @@
   if($('imcX')) $('imcX').onclick=closeImcModal;
   if($('imcCancel')) $('imcCancel').onclick=function(){
     // 취소 = ITEM CODE 는 그대로, 신규/빈필드 채우기는 이미 반영된 rows 로 저장
-    if(_imcPending){ finalizeMasterMerge(_imcPending.rows, _imcPending.fileName, _imcPending.mappedCount, _imcPending.addCount, _imcPending.fillCount, 0); _imcPending=null; }
+    if(_imcPending){ finalizeMasterMerge(_imcPending.rows, _imcPending.fileName, _imcPending.mappedCount, _imcPending.addCount, _imcPending.fillCount, 0, _imcPending.descCount); _imcPending=null; }
     closeImcModal();
   };
   if($('imcApply')) $('imcApply').onclick=function(){
@@ -1765,7 +1843,7 @@
       // ITEM CODE 를 파일 값으로 적용
       var ck=_imcPending.codeKey;
       _imcPending.conflicts.forEach(function(c){ _imcPending.rows[c.idx][ck]=c.newCode; });
-      finalizeMasterMerge(_imcPending.rows, _imcPending.fileName, _imcPending.mappedCount, _imcPending.addCount, _imcPending.fillCount, _imcPending.conflicts.length);
+      finalizeMasterMerge(_imcPending.rows, _imcPending.fileName, _imcPending.mappedCount, _imcPending.addCount, _imcPending.fillCount, _imcPending.conflicts.length, _imcPending.descCount);
       _imcPending=null;
     }
     closeImcModal();
