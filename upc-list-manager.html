@@ -211,6 +211,10 @@
     border-radius: 9px; font-family: var(--mono); font-size: 13px; background: var(--bg-elev); color: var(--text);
   }
   .plu-search:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
+  .plu-search-wrap { position: relative; display: flex; align-items: center; }
+  .plu-search-wrap .plu-search { width: 100%; padding-right: 34px; }
+  .plu-search-x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border: none; border-radius: 50%; background: var(--border, #e5e5e0); color: var(--text-dim, #6b6b72); font-size: 11px; font-weight: 800; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background .12s, color .12s; }
+  .plu-search-x:hover { background: var(--accent-warm, #c9a961); color: #fff; }
   .plu-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
   .plu-toggle input { width: 16px; height: 16px; cursor: pointer; }
   .plu-count { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-left: auto; white-space: nowrap; }
@@ -773,7 +777,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   <div class="plu-topright">
     <div class="plu-toolbar-slot" id="pluToolbarSlot"></div>
     <div class="plu-search-col" id="pluSearchTop">
-      <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·UPC 검색" autocomplete="off">
+      <div class="plu-search-wrap">
+        <input class="plu-search" id="pluSearch" type="text" placeholder="🔍 이름·UPC 검색" autocomplete="off">
+        <button class="plu-search-x" id="pluSearchX" type="button" title="검색 취소" aria-label="검색 취소" style="display:none;">✕</button>
+      </div>
     </div>
   </div>
   <input type="file" id="upcRestoreFile" accept="application/json,.json" style="display:none;">
@@ -1843,6 +1850,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     }
     return '<div class="plu-tools">'+
         '<button class="plu-tool-btn mainact" id="pluPrintBtn">🖨 인쇄</button>'+
+        '<button class="plu-tool-btn mainact" id="pluExportBtn">⬆ EXPORT</button>'+
         '<button class="plu-tool-btn mainact ni-btn'+((typeof __ocrHasData!=='undefined'&&__ocrHasData)?' ni-blink':'')+'" id="niBtn" title="UPC OCR 신규 아이템 가져오기">🆕 NEW ITEM</button>'+
         '<button class="plu-tool-btn plu-req-notify" id="pluReqNotify">🔔 PLU REQUEST <span id="pluReqNotifyCount">0</span></button>'+
       '</div>';
@@ -1869,6 +1877,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 검색박스·돌아가기 버튼 위치: 편집모드면 검색→데이터복원 옆, 돌아가기→저장 옆. 아니면 상단 원위치
   function placeFloatingControls(){
     var se=$('pluSearchTop'), bk=$('pluBackBtn');
+    var __xb=$('pluSearchX'); if(__xb) __xb.style.display=(pluSearchTerm && pluSearchTerm.trim())?'flex':'none';
     if(bk) bk.disabled=false;   // 돌아가기: 뷰모드=이전 화면 이동 / 편집모드=편집 종료 (항상 활성)
     if(editMode){
       var ss=$('editSearchSlot'), bs=$('editBackSlot');
@@ -3368,6 +3377,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var exp=$('pluExportBtn'); if(exp) exp.onclick=function(){ openExportMenu(); };
     var adm=$('pluAdminBtn'); if(adm) adm.onclick=function(){ openAdminModal(); };
     var pr=$('pluPrintBtn'); if(pr) pr.onclick=function(){ printList(); };
+    var ex=$('pluExportBtn'); if(ex) ex.onclick=function(){ exportVisibleNow(); };
     var qe=$('pluQuickExp'); if(qe) qe.onclick=function(){ exportVisibleNow(); };
     var nib=$('niBtn'); if(nib) nib.onclick=function(){ openNewItemImportPopup(); };
     if(typeof updateNiBlink==='function') updateNiBlink();
@@ -4092,7 +4102,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   var __goOther=$('pluGoOther'); if(__goOther) __goOther.onclick=function(){ window.location.href='plu-list-manager.html'; };
   var __goOcr=$('pluGoOcr'); if(__goOcr) __goOcr.onclick=function(){ window.location.href='upc-list-convert-ocr.html'; };
   // 이름·UPC 검색: 입력 시 180ms 디바운스로 전체 재렌더 빈도를 줄임(대량 데이터 성능)
-  var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
+  var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; var __xb=$('pluSearchX'); if(__xb) __xb.style.display=(e.target.value?'flex':'none'); if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
+  var __sx=$('pluSearchX'); if(__sx) __sx.onclick=function(){ clearSearch(); var __xb=$('pluSearchX'); if(__xb) __xb.style.display='none'; if(__searchTimer){ clearTimeout(__searchTimer); __searchTimer=null; } renderContent(); var s2=$('pluSearch'); if(s2) s2.focus(); };
 
   // ===== 중간 카테고리(sub) 단위 백업 / 복원 =====
   function backupSub(cat, sub){
