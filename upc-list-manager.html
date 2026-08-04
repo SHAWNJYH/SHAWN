@@ -17,7 +17,7 @@
   10. 편집 모드에는 별도 '수정ON' 버튼이 없다. 변경이 생기면 저장 버튼이 노란 바탕이 되고, 저장하면 사라진다. 편집 종료는 '돌아가기' 버튼(편집 중일 땐 페이지 이동 대신 편집만 종료).
   11. UPC 리스트 표의 헤더(열 제목) 높이(패딩)는 1.5배 크게 하되, 글자 크기는 원래대로 유지(데이터 행도 그대로).
   12. '전체삭제'는 현재 보고/편집 중인 중간 카테고리(sub)만 삭제한다(다른 카테고리는 영향 없음). 전체삭제·선택삭제 직전 상태는 1회 보관되어, 편집 모드 '↩ 데이터복원'으로 되돌릴 수 있다(편집 내용은 복원 대상이 아님).
-  15. 이력 EXPORT 파일명 = (신상품)NEWITEM / (가격변경)CHANGEPRODUCT _수량_상위_중간(yymmdd)[_HANARO/_HANA/_STWS]. 예) NEWITEM_1000_EGP_ARTBOX(260614). 이력 모달과 관리자 내보내기(신상품/가격변경 LIST)는 동일한 공통 로직(histGroupEntries·histFname)을 쓴다. 이력 EXPORT의 열 구성은 EXPORT 설정(exp)이 아니라 현재 화면에 보이는 필드 전체를 그대로 쓴다. 내보낼 행은 NO. 칸의 N/$ 마커(타임스탬프)가 이력 기록 시각과 같은 실제 행을 그대로 사용한다(행이 삭제된 경우에만 레코드로 합성).
+  15. 이력 EXPORT 파일명 = (신상품)NEWITEM / (가격변경)CHANGEPRODUCT _수량_상위_중간(yymmdd)[_HANARO/_HANA/_STWS]. 예) NEWITEM_1000_EGP_ARTBOX(260614). 이력 모달과 관리자 내보내기(신상품/가격변경 LIST)는 동일한 공통 로직(histGroupEntries·histFname)을 쓴다. 이력 EXPORT의 열 구성은 EXPORT 설정(exp)이 아니라 현재 화면에 보이는 필드 전체를 그대로 쓴다. NO. 칸의 N(신상품)·$(가격변경) 표시는 해당 이력을 삭제할 때까지 계속 유지되며, 이력 EXPORT는 그 마커가 붙은 실제 행을 그대로 내보낸다(행이 삭제된 경우에만 레코드로 합성).
   16. MSRP·MSRP(%)(구 MARGIN) 열은 헤더~데이터 행까지 옅은 파란 바탕 + 검정 글씨로 표시한다. MARGIN 열의 표시명은 MSRP(%)이며 내부 키는 MARGIN으로 유지되어 데이터변환의 MARGIN(MSRP) 계산과 그대로 연결된다.
   17. SRP(%) 열 = SRP 대비 마진. 노란 바탕 + 붉은 글씨. COST와 SRP로 calcMargin((SRP−COST)/SRP)을 스위치 무관 무조건 자동계산(편집 중 SRP/COST 변경·신규/가격변경 import 모두). MSRP 계열 로직과는 독립.
   18. 데이터변환에 SRP 계산(srpSalesOn·끝자리 .09~.99 2줄, 버튼없음)·SRP MARGIN(srpMarginOn, 버튼없음) 스위치 추가. SRP MARGIN ON: SRP 수정→SRP(%) 자동. SRP 계산 ON: SRP(%) 수정→SRP 가격 자동(=COST/(1−마진), 선택 끝자리로 보정, 미선택 시 마진만). 끝자리 보정으로 마진이 바뀌면 "끝자리 설정으로 인해 마진이 변경됩니다" 안내 후 보정 가격 기준으로 SRP(%) 재계산. MSRP(%) 수정→MSRP도 동일 방식(MSRP 끝자리). 전체삭제 후 편집모드 유지.
@@ -2276,9 +2276,14 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     records.forEach(function(rec){
       var kd=histRecKind(rec), ts=String(rec.ts==null?'':rec.ts).trim();
       var key=(FLAG[kd]&&ts)?(kd+'|'+ts):('solo|'+keyOrder.length);
-      if(!recsBy[key]){ recsBy[key]={kind:kd, recs:[]}; keyOrder.push(key); }
+      if(!recsBy[key]){
+        var tn=parseInt(ts,10);
+        recsBy[key]={kind:kd, ymd:((!isNaN(tn)&&tn>1e12)?fmtDateOnly(tn):''), recs:[]};
+        keyOrder.push(key);
+      }
       recsBy[key].recs.push(rec);
     });
+    // ① 마커 타임스탬프가 정확히 일치하는 행
     var rowsBy={};
     rows.forEach(function(row){
       for(var kd in FLAG){
@@ -2289,17 +2294,31 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     });
     var out=[], seen=[];
     var has=function(r){ return seen.indexOf(r)>=0; };
+    var take=function(r){ if(has(r)) return false; seen.push(r); out.push(r); return true; };
     keyOrder.forEach(function(key){
-      var g=recsBy[key], marked=rowsBy[key]||[];
-      marked.forEach(function(r){ if(!has(r)){ seen.push(r); out.push(r); } });
-      if(marked.length >= g.recs.length) return;   // 마커 행으로 전부 커버됨
-      var need=g.recs.length-marked.length, added=0;
+      var g=recsBy[key], marked=rowsBy[key]||[], got=0;
+      marked.forEach(function(r){ if(take(r)) got++; });
+      if(got >= g.recs.length) return;
+      // ② 타임스탬프가 어긋난 옛 이력 — 같은 날짜·같은 종류의 마커 행으로 보완
+      var fk=FLAG[g.kind];
+      if(fk && g.ymd){
+        for(var i=0;i<rows.length && got<g.recs.length;i++){
+          var row=rows[i]; if(has(row)) continue;
+          var v=String(getVal(row, fk)||'').trim(); if(!v) continue;
+          var t=parseInt(v,10); if(isNaN(t) || t<=1e12) continue;
+          if(fmtDateOnly(t)!==g.ymd) continue;
+          if(take(row)) got++;
+        }
+      }
+      if(got >= g.recs.length) return;
+      // ③ 마커가 없으면 UPC·품명으로 실제 행을 찾고, 그래도 없으면 레코드로 합성
+      var need=g.recs.length-got, added=0;
       g.recs.forEach(function(rec){
         var lr=histMatchRow(cat, rec, lay);
-        if(lr){ if(!has(lr)){ seen.push(lr); out.push(lr); } return; }
-        if(added>=need) return;                    // 마커 행이 이미 대신한 레코드
+        if(lr){ take(lr); return; }
+        if(added>=need) return;
         if(!String(rec.uo==null?'':rec.uo).trim() && !String(rec.eng==null?'':rec.eng).trim() && !String(rec.kor==null?'':rec.kor).trim()) return;
-        out.push(histLiveRow(cat, rec)); added++;  // 행이 사라진 경우만 레코드로 합성
+        out.push(histLiveRow(cat, rec)); added++;
       });
     });
     return out;
@@ -2456,10 +2475,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function findInLay(lay, pred){ for(var i=0;i<(lay||[]).length;i++){ if(pred(lay[i])) return lay[i]; } return null; }
   // 체크 열 값 해석: 빈칸=null(정보없음·건너뜀) / X·N·0·OFF·- =false / 그 외 비어있지 않으면=true
   function parseCheckVal(v){ var s=String(v==null?'':v).trim().toLowerCase(); if(s==='') return null; if(/^(x|n|no|false|f|0|off|✗|☐|-)$/.test(s)) return false; return true; }
-  // ===== N/$ 표시 1시간 만료 + 이력(NEW/PRICE CHANGE) =====
-  var MARK_TTL=3600000; // 1시간(ms)
+  // ===== N/$ 표시(이력 삭제 시까지 유지) + 이력(NEW/PRICE CHANGE) =====
   // 최근(TTL 내) 플래그 여부
-  function flagFresh(r, key){ var v=String(getVal(r,key)||''); if(!v) return false; var ts=parseInt(v,10); if(isNaN(ts)) return false; return (Date.now()-ts) < MARK_TTL; }
+  // N/$ 마커: 이력에서 삭제할 때까지 계속 표시(시간 만료 없음)
+  function flagFresh(r, key){ var v=String(getVal(r,key)||'').trim(); if(!v) return false; return !isNaN(parseInt(v,10)); }
   // 2자리 0채움
   function pad2(n){ return (n<10?'0':'')+n; }
   // 날짜(연-월-일) 형식
@@ -2504,19 +2523,41 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   async function clearMarksForRecords(kind, records){
     if(kind==='dup') return;
     if(!records || !records.length) return;
-    var flagKey = (kind==='new') ? '__NEWFLAG' : '__PRICEUPD';
     var byCat={};
     records.forEach(function(rec){ if(!rec || rec.cat==null) return; (byCat[rec.cat]=byCat[rec.cat]||[]).push(rec); });
     for(var cat in byCat){
       var rows=cloud[cat]; if(!rows || !rows.length) continue;
-      var lay=layoutByCat[cat]||defaultLayout([]); var k=dupKeys(lay); if(!k.uo) continue;
+      var lay=layoutByCat[cat]||defaultLayout([]);
       var changed=false;
-      byCat[cat].forEach(function(rec){
-        var uo=String(rec.uo||'').replace(/\s+/g,''); if(!uo) return;
+      // ① 마커 타임스탬프가 일치하는 행의 마커 제거 (N/$ ↔ 이력 1:1)
+      var recs=byCat[cat];
+      var tsSet={}, ymdSet={};
+      recs.forEach(function(rec){
+        var kd=histRecKind(rec); if(kd==='dup') return;
+        var fk=(kd==='new')?'__NEWFLAG':'__PRICEUPD';
+        var ts=String(rec.ts==null?'':rec.ts).trim(); if(!ts) return;
+        tsSet[fk+'|'+ts]=1;
+        var t=parseInt(ts,10); if(!isNaN(t)&&t>1e12) ymdSet[fk+'|'+fmtDateOnly(t)]=1;
+      });
+      rows.forEach(function(row){
+        ['__NEWFLAG','__PRICEUPD'].forEach(function(fk){
+          if(!row.extra || row.extra[fk]==null) return;
+          var v=String(row.extra[fk]).trim(); if(!v) return;
+          var t=parseInt(v,10);
+          var hit = tsSet[fk+'|'+v] || (!isNaN(t)&&t>1e12 && ymdSet[fk+'|'+fmtDateOnly(t)]);
+          if(hit){ delete row.extra[fk]; changed=true; }
+        });
+      });
+      // ② UPC로도 한번 더 (구버전 이력 · 별칭 키 인식)
+      var uoCol=histUpcCol(lay);
+      recs.forEach(function(rec){
+        var kd=histRecKind(rec); if(kd==='dup') return;
+        var fk=(kd==='new')?'__NEWFLAG':'__PRICEUPD';
+        var want=upcKey(rec.uo); if(!want) return;
         rows.forEach(function(row){
           if(rec.sub!=null && String(rec.sub)!=='' && rowSub(cat,row)!==rec.sub) return;
-          var rv=String(getVal(row,k.uo)||'').replace(/\s+/g,'');
-          if(rv===uo && row.extra && row.extra[flagKey]!=null){ delete row.extra[flagKey]; changed=true; }
+          if(upcKey(upcValForMatch(row,uoCol))!==want) return;
+          if(row.extra && row.extra[fk]!=null){ delete row.extra[fk]; changed=true; }
         });
       });
       if(changed){ try{ await saveCat(cat, rows, lay, truncLenByCat[cat]); }catch(e){} }
