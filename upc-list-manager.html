@@ -2007,7 +2007,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var now=Date.now();
     // 자동 채움 대상 열 (UPC(C) / SALES PRICE / MARGIN)
     var uoCol=findInLay(lay,isUpcOCol), ucCol=findInLay(lay,isUpcCCol), eaCol=findInLay(lay,isEaPriceCol), spCol=findInLay(lay,isSalesPriceCol), mgCol=findInLay(lay,isMarginCol), srpCol=findInLay(lay,isSrpCol), spMgCol=findInLay(lay,isSrpMarginCol);
-    var items=newImportRows.map(function(r){ return { uo:String(getVal(r,k.uo)||''), eng:String(getVal(r,k.eng)||''), kor:String(getVal(r,k.kor)||''), ea:fmtPrice(getVal(r,k.ea)) }; });
+    var items=newImportRows.map(function(r){ return { uo:String(upcValForMatch(r,{key:k.uo})||''), eng:String(getVal(r,k.eng)||''), kor:String(getVal(r,k.kor)||''), ea:fmtPrice(getVal(r,k.ea)) }; });
     var existing=(rowsFor(cat)||[]).filter(function(r){ return rowSub(cat,r)===sub; }).map(copyRow);
     var __ncfg=getSalesCfg(cat,sub);
     var add=newImportRows.map(function(r){
@@ -2064,16 +2064,59 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 이력용 UPC 열 (없으면 UPC(O) 가상 열 — 값 조회는 별칭 폴백으로 처리)
   function histUpcCol(lay){ return pickUpcCol(lay) || findInLay(lay, isUpcOCol) || {key:'UPC(O)',label:'UPC(O)',type:'text'}; }
   // 이력 레코드와 같은 UPC를 가진 실제 행 찾기 (같은 중간 카테고리 우선)
+  // 텍스트 비교 키(공백/대소문자 무시)
+  function histTxtKey(v){ return String(v==null?'':v).replace(/\s+/g,' ').trim().toUpperCase(); }
+  // 문자열에서 첫 숫자 추출 ('COST 1.50 · SRP 3.29' → 1.5)
+  function histNumOf(v){ var m=String(v==null?'':v).match(/-?\d+(?:\.\d+)?/); return m?parseFloat(m[0]):null; }
+  // 가격 변경 라벨('COST 1.50 · SRP 3.29')을 {열키:값} 으로 분해
+  function histPriceMap(lay, txt){
+    var out={}; if(txt==null||txt==='') return out;
+    String(txt).split(/[·|]/).forEach(function(seg){
+      var s=String(seg).trim(); if(!s) return;
+      var m=s.match(/^(.*?)\s*(-?\d+(?:\.\d+)?)\s*$/); if(!m) return;
+      var lbl=histTxtKey(m[1]), val=m[2]; if(!lbl) return;
+      (lay||[]).forEach(function(c){ if(!c) return; if(histTxtKey(c.label)===lbl || histTxtKey(c.key)===lbl) out[c.key]=val; });
+    });
+    return out;
+  }
   function histMatchRow(cat, rec, lay){
-    var want=upcKey(rec&&rec.uo); if(!want) return null;
-    var uoCol=histUpcCol(lay||histLayFor(cat));
-    var rows=rowsFor(cat)||[], anyRow=null;
-    for(var i=0;i<rows.length;i++){
-      if(upcKey(upcValForMatch(rows[i], uoCol))!==want) continue;
-      if(!anyRow) anyRow=rows[i];
-      if(rec.sub!=null && String(rec.sub)!=='' && rowSub(cat,rows[i])===rec.sub){ anyRow=rows[i]; break; }
+    if(!rec) return null;
+    lay=lay||histLayFor(cat);
+    var rows=rowsFor(cat)||[]; if(!rows.length) return null;
+    var uoCol=histUpcCol(lay);
+    var inSub=function(r){ return !(rec.sub!=null && String(rec.sub)!=='') || rowSub(cat,r)===rec.sub; };
+    var want=upcKey(rec.uo);
+    if(want){
+      var anyRow=null;
+      for(var i=0;i<rows.length;i++){
+        if(upcKey(upcValForMatch(rows[i], uoCol))!==want) continue;
+        if(!anyRow) anyRow=rows[i];
+        if(inSub(rows[i])){ anyRow=rows[i]; break; }
+      }
+      if(anyRow) return anyRow;
     }
-    return anyRow;
+    // UPC가 비어있거나(구버전 이력) 찾지 못한 경우 — ENG/KOR(+변경 가격)로 보조 매칭. 애매하면 매칭하지 않음.
+    var k=dupKeys(lay);
+    var re=histTxtKey(rec.eng), rk=histTxtKey(rec.kor);
+    if(!re && !rk) return null;
+    var pv=histNumOf((rec.ea!=null&&rec.ea!=='')?rec.ea:rec.newp);
+    function scan(onlySub, needBoth){
+      var best=null, bestScore=0, tie=false;
+      rows.forEach(function(r){
+        if(onlySub && !inSub(r)) return;
+        var e=histTxtKey(getVal(r,k.eng)), o=histTxtKey(getVal(r,k.kor));
+        var eHit=(!!re && e===re), kHit=(!!rk && o===rk);
+        if(needBoth && !(eHit && kHit)) return;
+        var sc=(eHit?2:0)+(kHit?2:0);
+        if(!sc) return;
+        if(pv!=null && k.ea){ var cv=histNumOf(getVal(r,k.ea)); if(cv!=null && Math.abs(cv-pv)<0.005) sc+=1; }
+        if(sc>bestScore){ bestScore=sc; best=r; tie=false; }
+        else if(sc===bestScore){ tie=true; }
+      });
+      return (best && !tie) ? best : null;
+    }
+    // ① 같은 중간 카테고리에서 찾고 ② 없으면 카테고리 전체에서 ENG·KOR 모두 일치하는 행만 허용
+    return scan(true,false) || ((re&&rk) ? scan(false,true) : null);
   }
   function histLiveRow(cat, rec){
     var lay = histLayFor(cat);
@@ -2098,11 +2141,18 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     function setIf(col, v){ if(col && v!=null && v!=='') ex[col.key]=v; }
     setIf(uoCol, rec.uo);
     setIf(findInLay(lay, isUpcCCol), (rec.uo!=null&&rec.uo!=='')?upcConvert(rec.uo):'');
-    var price = (rec.ea!=null&&rec.ea!=='')?rec.ea:(rec.newp||'');
+    // 가격 라벨('COST 1.50 · SRP 3.29')을 열별로 분해해 채움
+    var __pTxt=(rec.ea!=null&&rec.ea!=='')?rec.ea:(rec.newp||'');
+    var pm=histPriceMap(lay, __pTxt);
+    for(var pk in pm){ if(pm[pk]!=='') ex[pk]=pm[pk]; }
+    var price = (eaCol && ex[eaCol.key]!=null && ex[eaCol.key]!=='') ? ex[eaCol.key] : histNumOf(__pTxt);
+    if(price==null) price='';
     setIf(eaCol, price);
-    var sp2 = price?calcSalesPrice(price):'';
-    setIf(spCol, sp2);
-    if(mgCol && sp2!==''){ var mv2=calcMargin(sp2, price); if(mv2!=='') ex[mgCol.key]=mv2; }
+    if(spCol && (ex[spCol.key]==null || ex[spCol.key]==='')){
+      var sp2 = price!==''?calcSalesPrice(price):'';
+      setIf(spCol, sp2);
+      if(mgCol && sp2!=='' && (ex[mgCol.key]==null||ex[mgCol.key]==='')){ var mv2=calcMargin(sp2, price); if(mv2!=='') ex[mgCol.key]=mv2; }
+    }
     (lay||[]).forEach(function(c){ var L=String(c.key||c.label||'').toUpperCase(); if(/ENG/.test(L) && rec.eng) ex[c.key]=rec.eng; if((/KOR/.test(L)||/한글/.test(L)) && rec.kor) ex[c.key]=rec.kor; });
     return { extra: ex };
   }
@@ -2442,9 +2492,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       (rowsFor(cat)||[]).forEach(function(r){
         var sub=rowSub(cat,r);
         var nts=markTs(getVal(r,'__NEWFLAG'));
-        if(nts!==null){ var uo=String(getVal(r,k.uo)||''); var key=uo+'|'+nts; if(uo && !exN[key]){ addN.push({ts:nts,cat:cat,sub:sub,uo:uo,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),ea:fmtPrice(getVal(r,k.ea))}); exN[key]=1; } }
+        if(nts!==null){ var uo=String(upcValForMatch(r,{key:k.uo})||''); var key=uo+'|'+nts; if(uo && !exN[key]){ addN.push({ts:nts,cat:cat,sub:sub,uo:uo,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),ea:fmtPrice(getVal(r,k.ea))}); exN[key]=1; } }
         var pts=markTs(getVal(r,'__PRICEUPD'));
-        if(pts!==null){ var uo2=String(getVal(r,k.uo)||''); var key2=uo2+'|'+pts; if(uo2 && !exP[key2]){ addP.push({ts:pts,cat:cat,sub:sub,uo:uo2,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),oldp:'-',newp:fmtPrice(getVal(r,k.ea))}); exP[key2]=1; } }
+        if(pts!==null){ var uo2=String(upcValForMatch(r,{key:k.uo})||''); var key2=uo2+'|'+pts; if(uo2 && !exP[key2]){ addP.push({ts:pts,cat:cat,sub:sub,uo:uo2,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),oldp:'-',newp:fmtPrice(getVal(r,k.ea))}); exP[key2]=1; } }
       });
     });
     if(addN.length) addHist('new', addN);
@@ -2508,7 +2558,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var __diffsD=priceDiffs(__oldValsD, tgt, __pcolsD, function(m,c){return m[c.key];}, function(row,c){return getVal(row,c.key);});
       var priceChanged = __diffsD.length>0;
       if(priceChanged){
-        changes.push({ uo:String(getVal(tgt,k.uo)||''), eng:String(getVal(tgt,k.eng)||''), kor:String(getVal(tgt,k.kor)||''), oldp:priceDiffLabel(__diffsD,'old'), newp:priceDiffLabel(__diffsD,'new') });
+        changes.push({ uo:String(upcValForMatch(tgt,{key:k.uo})||''), eng:String(getVal(tgt,k.eng)||''), kor:String(getVal(tgt,k.kor)||''), oldp:priceDiffLabel(__diffsD,'old'), newp:priceDiffLabel(__diffsD,'new') });
         if(!tgt.extra) tgt.extra={}; tgt.extra['__PRICEUPD']=String(now);
         // COST 변경 시 MSRP를 불러오기 평균마진으로 재계산 (불러오기 스위치 ON일 때만 · 끝자리 없음)
         if(__dcfg.importMarginOn){ var __spCol=findInLay(lay,isSalesPriceCol);
@@ -2643,7 +2693,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           // 가격 변경 감지 — COST·MSRP·SRP 등 모든 가격 열을 비교: 하나라도 바뀌면 $ 마커·이력·모달
           var __diffs=priceDiffs(__oldVals, ex, __pcols, function(m,c){return m[c.key];}, function(row,c){return getVal(row,c.key);});
           if(__diffs.length){
-            priceChanges.push({ uo:String(getVal(ex,uoCol.key)||''), eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), oldp:priceDiffLabel(__diffs,'old'), newp:priceDiffLabel(__diffs,'new') });
+            priceChanges.push({ uo:String(upcValForMatch(ex,uoCol)||''), eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), oldp:priceDiffLabel(__diffs,'old'), newp:priceDiffLabel(__diffs,'new') });
             if(!ex.extra) ex.extra={}; ex.extra['__PRICEUPD']=String(now);
             var newEA=k.ea?getVal(ex,k.ea):'';
             if(__dcfg.importMarginOn && k.ea && priceNum(oldEA)!==priceNum(newEA)){ var __spCol=findInLay(lay,isSalesPriceCol);
