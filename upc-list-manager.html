@@ -1063,10 +1063,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 현재 적용 열 레이아웃(편집/보기)
   var __layCache=null, __visCache=null;
   // 레이아웃 캐시 무효화 — 열 변경·모드 전환·카테고리 전환 시 호출
-  function invalidateLayCache(){ __layCache=null; __visCache=null; }
+  function invalidateLayCache(){ __layCache=null; __visCache=null; __viewMeta=null; }
   function curLayout(){ if(__layCache) return __layCache; __layCache=applyMFSTY(editMode ? (workLayout||defaultLayout([])) : withStdChecks(curCat(), (layoutByCat[curCat()]&&layoutByCat[curCat()].length) ? layoutByCat[curCat()] : catDefaultLayout(curCat()))); return __layCache; }
   // 화면에 보이는 열 목록(캐시)
-  function visibleCols(){ if(__visCache) return __visCache; __visCache=curLayout().filter(function(c){return !c.hidden && !__MFDEL[String(c.key||'').toUpperCase()] && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); return __visCache; }
+  function visibleCols(){ if(__visCache) return __visCache; __visCache=curLayout().filter(function(c){return !c.hidden && !__MFDEL[String(c.key||'').toUpperCase()] && STD_CHECK_COLS.indexOf(String(c.key).toUpperCase())<0;}); __visCacheSig=__visCache.map(function(c){return c.key+'|'+(c.fmt||'')+'|'+(c.align||'')+'|'+(c.trunc||0)+'|'+(c.fg||'')+'|'+(c.bg||'');}).join(','); return __visCache; }
+  var __visCacheSig='', __viewMeta=null, __viewMetaSig='';
   // 행 객체 깊은 복사
   function copyRow(r){ var e={}; if(r&&r.extra){ for(var k in r.extra){ e[k]=r.extra[k]; } } var o={extra:e}; BASE.forEach(function(b){ o[b.field]=(r&&r[b.field])||''; }); o.sub=(r&&r.sub)||''; return o; }
 
@@ -1241,6 +1242,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
   var __tabScanSig='';
   function rerenderIfIdle(){ if(editMode) return;
+    // 인라인 셀 편집 중이면 전체 재렌더를 미룬다 (편집 input 파괴·깜빡임 방지)
+    if(typeof __veditActive!=='undefined' && __veditActive){ setTimeout(rerenderIfIdle, 400); return; }
+    // 방금 내가 저장한 스냅샷의 반향이면 전체 재렌더 생략 — 단, 행 수(시그니처)가 바뀌었으면 렌더한다(추가/삭제)
+    if(__selfWriteAt && (Date.now()-__selfWriteAt) < 2500){
+      var sig0=Object.keys(cloud||{}).map(function(c){return c+':'+((cloud[c]||[]).length);}).join('|');
+      if(sig0===__tabScanSig) return;   // 값만 바뀌고 행 수 동일 → 부분 갱신으로 충분, 전체 재렌더 생략
+    }
     // 마스터 필드 스타일(trunc 등)이 아직 안 왔으면 첫 렌더를 잠깐 미뤄 폭이 넓게→좁게 튀는 것 방지
     if(!__mfstyArrived){ if(!rerenderIfIdle.__waited){ rerenderIfIdle.__waited=true; setTimeout(function(){ rerenderIfIdle(); }, 350); return; } }
     var sig=Object.keys(cloud||{}).map(function(c){return c+':'+((cloud[c]||[]).length);}).join('|'); var ch=false; if(sig!==__tabScanSig){ __tabScanSig=sig; ch=ensureTabsFromData(); } if(ch){ renderTabs(); } else { renderContent(); } }
@@ -1705,9 +1713,47 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 사진 버튼 셀 HTML
   function photoCellHTML(r){ var p=pluValOf(r).trim().replace(/[^0-9A-Za-z_-]/g,''); return '<td class="plu-c-photo">'+(p?('<button class="plu-photo-btn" data-plu="'+p+'" type="button" title="사진보기">📷</button>'):'')+'</td>'; }
   // 보기 모드 행 HTML
+  // 보기 모드 열 메타 캐시 — 셀마다 반복되던 isPriceCol/isMarginCol/clsFor/colorStyle 등을 열당 1회만 계산
+  function buildViewMeta(v){
+    var TL=getTruncLen();
+    return v.map(function(c){
+      var isChk=(c.type==='check'||c.type==='rcheck');
+      var ing=isIngredientKey(c.key);
+      var mgn=(c.fmt==='margin'||isMarginCol(c));
+      var prc=(!mgn && (isPriceCol(c)||c.fmt==='price'));
+      var isNarrow=(isPriceCol(c)||isMarginCol(c));
+      var cls=clsFor(c.key);
+      var extra='';
+      extra+=(isRedCol(c)?' upc-c-red':'');
+      extra+=(isMarginCol(c)?' upc-c-green':'');
+      extra+=(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'');
+      extra+=(isSrpMarginCol(c)?' upc-c-srpp':'');
+      extra+=(isNarrow?' upc-c-narrow':'');
+      extra+=(c.align?(' align-'+c.align):'');
+      var prcCls='';
+      if(prc){ prcCls=' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':''); }
+      var mgnCls='';
+      if(mgn){ mgnCls=' upc-c-narrow'+(isMarginCol(c)?' upc-c-green':'')+(c.align?(' align-'+c.align):''); }
+      return { c:c, key:c.key, isChk:isChk, rcheck:(c.type==='rcheck'), ing:ing, mgn:mgn, prc:prc,
+        limit:(c.trunc>0)?c.trunc:(isNarrow?8:TL), cls:cls, extra:extra, prcCls:prcCls, mgnCls:mgnCls,
+        cstyle:colorStyle(c), isBase:(isBase(c.key)?'1':'0') };
+    });
+  }
   function viewRowHTML(r, rowIdx){
     var v=visibleCols();
-    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var __ve=' plu-vedit" data-vplu="'+escapeHtml(pluValOf(r))+'" data-vkey="'+escapeHtml(c.key)+'" data-vbase="'+(isBase(c.key)?'1':'0')+'" title="클릭하여 수정'; var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'||isMarginCol(c)){ var __mv=fmtMargin(getVal(r,c.key)); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+__ve+'"'+colorStyle(c)+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+__ve+'"'+colorStyle(c)+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+__ve+'"'+colorStyle(c)+'>'+sv+'</td>'; });
+    var sig=__visCacheSig||'';
+    if(!__viewMeta || __viewMetaSig!==sig){ __viewMeta=buildViewMeta(v); __viewMetaSig=sig; }
+    var meta=__viewMeta;
+    var plu=escapeHtml(pluValOf(r));
+    var cells=meta.map(function(m){
+      var c=m.c;
+      if(m.isChk){ var on=getVal(r,c.key); var cc=m.rcheck?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+plu+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; }
+      if(m.ing){ return ingredientCellHTML(r,c); }
+      var ve=' plu-vedit" data-vplu="'+plu+'" data-vkey="'+escapeHtml(c.key)+'" data-vbase="'+m.isBase+'" title="클릭하여 수정';
+      if(m.mgn){ var mv=fmtMargin(getVal(r,c.key)); var mvs=mv.length>m.limit?(mv.slice(0,m.limit)+'…'):mv; return '<td class="'+m.cls+m.mgnCls+ve+'"'+m.cstyle+'>'+escapeHtml(mvs)+'</td>'; }
+      if(m.prc){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>m.limit?(pv.slice(0,m.limit)+'…'):pv; return '<td class="'+m.cls+m.prcCls+m.extra+ve+'"'+m.cstyle+'>'+escapeHtml(pvs)+'</td>'; }
+      var fv=String(getDisp(r,c)||''); var sv=fv.length>m.limit?(escapeHtml(fv.slice(0,m.limit))+'…'):escapeHtml(fv); return '<td class="'+m.cls+m.extra+ve+'"'+m.cstyle+'>'+sv+'</td>';
+    });
     var isNewRow=flagFresh(r,'__NEWFLAG');
     var isPriceUpd=flagFresh(r,'__PRICEUPD');
     var mark=(isNewRow?'NEW':'')+(isPriceUpd?((isNewRow?' ':'')+'$'):'');
@@ -1718,8 +1764,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+dupCls+'">'+cells.join('')+photoCellHTML(r)+'</tr>';
   }
   var __chkSaveTimer=null, __chkSaveCat=null;
+  var __selfWriteAt=0;   // 내가 마지막으로 저장한 시각 — 자기 쓰기 반향 스냅샷의 불필요한 전체 재렌더 방지
   // 체크 변경 디바운스 저장 예약
-  function scheduleCheckSave(cat){ __chkSaveCat=cat; if(__chkSaveTimer) clearTimeout(__chkSaveTimer); __chkSaveTimer=setTimeout(function(){ var c=__chkSaveCat; __chkSaveTimer=null; if(!c) return; var rows=cloud[c]||[]; var lay=layoutByCat[c]||curLayout(); saveCat(c, rows, lay); }, 600); }
+  function scheduleCheckSave(cat){ __chkSaveCat=cat; if(__chkSaveTimer) clearTimeout(__chkSaveTimer); __chkSaveTimer=setTimeout(function(){ var c=__chkSaveCat; __chkSaveTimer=null; if(!c) return; var rows=cloud[c]||[]; var lay=layoutByCat[c]||curLayout(); __selfWriteAt=Date.now(); saveCat(c, rows, lay); }, 600); }
   // 보기 모드 체크 토글
   function toggleViewCheck(span){
     if(editMode) return;
@@ -1735,6 +1782,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   document.addEventListener('click', function(e){ var s=e.target.closest?e.target.closest('.pluchk-edit'):null; if(s) toggleViewCheck(s); });
 
   // ===== 보기 화면 인라인 셀 편집: 클릭 → input → blur 저장 (모든 필드) =====
+  // 단일 셀 표시값 HTML (viewRowHTML 의 셀 포맷과 동일 규칙)
+  function vCellDisplay(r, c, keyFallback){
+    if(!c){ var raw=String(getVal(r,keyFallback)||''); return escapeHtml(raw); }
+    var TL=getTruncLen();
+    var isNarrow=(isPriceCol(c)||isMarginCol(c));
+    var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL);
+    if(c.fmt==='margin'||isMarginCol(c)){ var mv=fmtMargin(getVal(r,c.key)); return escapeHtml(mv.length>limit?(mv.slice(0,limit)+'…'):mv); }
+    if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); return escapeHtml(pv.length>limit?(pv.slice(0,limit)+'…'):pv); }
+    var fv=String(getDisp(r,c)||''); return fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv);
+  }
   var __veditActive=false;
   function startCellEdit(td){
     if(editMode || __veditActive) return;
@@ -1758,8 +1815,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(saveIt && nv!==cur){
         if(isB){ row[fieldOf(key)]=nv; } else { if(!row.extra) row.extra={}; row.extra[key]=nv; __pendingText[__ckey(cat,plu,key)]=nv; }
         scheduleCheckSave(cat);
-        showToast('저장됨','success');
-        if(pluRender) pluRender(); else renderContent();
+        // 전체 재렌더 대신 이 셀만 갱신 (수천 행에서 즉각 반응)
+        var col=null, vc=visibleCols(); for(var ci=0;ci<vc.length;ci++){ if(vc[ci].key===key){ col=vc[ci]; break; } }
+        td.innerHTML = vCellDisplay(row, col, key);
       } else {
         td.innerHTML=oldHTML;
       }
