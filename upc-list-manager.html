@@ -495,7 +495,7 @@
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
   /* INGREDIENT 보기/수정 */
-  .plu-c-ing { font-size:13px; white-space:nowrap; }
+  .plu-c-ing { font-size:11px; white-space:nowrap; }
   .plu-ing-btn { border:1px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:6px; padding:1px 7px; font-family:var(--mono); font-size:11px; font-weight:700; cursor:pointer; margin-left:4px; vertical-align:middle; }
   .plu-ing-btn:hover { border-color:var(--accent-warm); background:var(--accent-soft); }
   .plu-ing-modal { max-width:520px; }
@@ -751,7 +751,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   td.mgr-refedit { cursor:pointer; }
   td.mgr-refedit:hover { outline:2px solid #93b4f5; outline-offset:-2px; }
   .plu-ref-ph { color:#9bb4e0; font-weight:700; }
-  .plu-c-extra { color:var(--text); font-size:13px; }
+  .plu-c-extra { color:var(--text); font-size:11px; }
   /* 상품정보추가: 붉은색 체크박스 (매장추가는 초록색 .plu-c-check 유지) */
   .plu-table thead th.plu-col-rcheck { color:#c0392b; }
   .plu-table td.plu-c-rcheck .pluchk { color:#c0392b; }
@@ -926,6 +926,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 전역 설정(plu-config) 실시간 구독
   // ===== 마스터 필드 스타일 (store-manager) 중앙 적용: 타입($/%)·정렬·글자수·색상 =====
   var __MFSTY = {};
+  var __mfstyArrived = false;   // upc-config/main (마스터 필드 스타일·trunc) 첫 응답 도착 여부
   var __MFDEL = {};  // store-manager에서 삭제된 필드(숨김)
   function buildMFSTY(arr){ var m={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(!K) return; var t=String(f.type||'text'); m[K]={ label:(f.label!=null?String(f.label):''), fmt:(t==='price'?'price':(t==='margin'?'margin':'text')), ctype:(t==='checkbox'?'check':''), align:((f.align==='left'||f.align==='center'||f.align==='right')?f.align:''), trunc:((typeof f.trunc==='number'&&f.trunc>0)?f.trunc:0), fg:(f.fg||''), bg:(f.bg||''), bold:!!f.bold }; }); __MFSTY=m; var mc={}; (arr||[]).forEach(function(f){ if(!f||f.key==null) return; var K=String(f.key).trim().toUpperCase(); if(K && f.catOf && Array.isArray(f.catValues) && f.catValues.length){ mc[K]={cat:String(f.catOf), values:f.catValues.map(function(v){return {n:String(v&&v.n!=null?v.n:''),d:String(v&&v.d!=null?v.d:'')};})}; } }); window.__MFCAT=mc; }
   function applyMFSTY(lay){ if(lay){ for(var __i=0;__i<lay.length;__i++){ var __c=lay[__i]; if(!__c) continue;
@@ -935,7 +936,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(!ms){ var __lk=String(__c.label||'').trim().toUpperCase(); if(__lk && __MFSTY[__lk]) ms=__MFSTY[__lk]; }   // 라벨로 폴백 매칭
         if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt) __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; __c.fg=(ms.fg||''); __c.bg=(ms.bg||''); __c.bold=!!ms.bold; }
       } } return lay; }
-  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; if(!d) return; var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if(__ch && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
+  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; var __first=!__mfstyArrived; __mfstyArrived=true; if(!d){ if(__first && cloudLoaded && !editMode && typeof renderContent==='function') renderContent(); return; } var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if((__ch||__first) && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(Array.isArray(d.masterFields)){ masterFields=normMaster(d.masterFields); if($('pluMasterModal') && $('pluMasterModal').classList.contains('show')) renderMasterList(); } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
@@ -1237,7 +1238,10 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     return changed;
   }
   var __tabScanSig='';
-  function rerenderIfIdle(){ if(editMode) return; var sig=Object.keys(cloud||{}).map(function(c){return c+':'+((cloud[c]||[]).length);}).join('|'); var ch=false; if(sig!==__tabScanSig){ __tabScanSig=sig; ch=ensureTabsFromData(); } if(ch){ renderTabs(); } else { renderContent(); } }
+  function rerenderIfIdle(){ if(editMode) return;
+    // 마스터 필드 스타일(trunc 등)이 아직 안 왔으면 첫 렌더를 잠깐 미뤄 폭이 넓게→좁게 튀는 것 방지
+    if(!__mfstyArrived){ if(!rerenderIfIdle.__waited){ rerenderIfIdle.__waited=true; setTimeout(function(){ rerenderIfIdle(); }, 350); return; } }
+    var sig=Object.keys(cloud||{}).map(function(c){return c+':'+((cloud[c]||[]).length);}).join('|'); var ch=false; if(sig!==__tabScanSig){ __tabScanSig=sig; ch=ensureTabsFromData(); } if(ch){ renderTabs(); } else { renderContent(); } }
   // ===== 매장별 체크/데이터 오버라이드 (매니저: 전 매장 문서 읽기/쓰기) =====
   var __netApplied=false;
   function subscribe(){
@@ -2915,14 +2919,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var cat=curCat();
     // (편집) 시작 처리
     var start=function(){ work=rowsFor(cat).filter(function(r){return rowSub(cat,r)===curSub();}).map(copyRow); var base=withStdChecks(cat, (layoutByCat[cat]&&layoutByCat[cat].length)?layoutByCat[cat]:catDefaultLayout(cat)); workLayout=base.map(function(c){return {key:c.key,label:c.label,hidden:c.hidden,hiddenStore:!!c.hiddenStore,type:(c.type==='check'?'check':(c.type==='rcheck'?'rcheck':'text')),exp:!!c.exp,trunc:(typeof c.trunc==='number'&&c.trunc>0?c.trunc:0),align:((c.align==='left'||c.align==='center'||c.align==='right')?c.align:''),fmt:(c.fmt==='price'?'price':'text'),fg:(c.fg||''),bg:(c.bg||''),bold:!!c.bold};}); workTrunc=(globalTrunc>0?globalTrunc:20); var healed=false; workLayout.forEach(function(col){ if(!isCore(col.key) && col.key!==col.label){ if(applyColName(col, col.label)) healed=true; } }); editMode=true; workDirty=false; invalidateLayCache();
-      // POS DESC 자동 채움을 렌더 전에 끝내 렌더를 1회로 줄임(대용량 카테고리 진입 속도)
-      var __posFn=(window.__posFillAllEmpty||null), __pn=0;
-      try{ __pn=__posFn?__posFn():0; }catch(e){}
+      // ① 먼저 화면을 즉시 보여준다 (POS 자동채움을 기다리지 않음 → 진입 체감 속도↑)
       renderContent();
-      // (최초 진입 등) 자동채움 함수가 아직 준비 전이었으면 렌더 후 한 번 더 시도
-      if(!__posFn){ try{ var __pn2=(window.__posFillAllEmpty?window.__posFillAllEmpty():0); if(__pn2>0){ __pn=__pn2; renderContent(); } }catch(e){} }
-      if(healed || __pn>0) markDirty();
-      if(__pn>0) showToast('POS DESC '+__pn+'건 자동 생성','success'); };
+      if(healed) markDirty();
+      // ② POS DESC 자동 채움은 다음 틱으로 미뤄 백그라운드 처리 (대용량에서 진입 멈춤 방지)
+      setTimeout(function(){
+        if(!editMode) return;
+        var __posFn=(window.__posFillAllEmpty||null); if(!__posFn) return;
+        var __pn=0; try{ __pn=__posFn(); }catch(e){}
+        if(__pn>0){ markDirty(); if(pluRender) pluRender(); showToast('POS DESC '+__pn+'건 자동 생성','success'); }
+      }, 30); };
     if(cat==='청과' && cloud['청과']===undefined && !csvRows){ loadCsv().then(start).catch(start); } else start();
   }
   // 변경됨 표시(저장 필요)
