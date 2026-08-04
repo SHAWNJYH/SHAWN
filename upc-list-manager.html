@@ -17,7 +17,7 @@
   10. 편집 모드에는 별도 '수정ON' 버튼이 없다. 변경이 생기면 저장 버튼이 노란 바탕이 되고, 저장하면 사라진다. 편집 종료는 '돌아가기' 버튼(편집 중일 땐 페이지 이동 대신 편집만 종료).
   11. UPC 리스트 표의 헤더(열 제목) 높이(패딩)는 1.5배 크게 하되, 글자 크기는 원래대로 유지(데이터 행도 그대로).
   12. '전체삭제'는 현재 보고/편집 중인 중간 카테고리(sub)만 삭제한다(다른 카테고리는 영향 없음). 전체삭제·선택삭제 직전 상태는 1회 보관되어, 편집 모드 '↩ 데이터복원'으로 되돌릴 수 있다(편집 내용은 복원 대상이 아님).
-  15. 이력 EXPORT 파일명 = (신상품)NEWITEM / (가격변경)CHANGEPRODUCT _수량_상위_중간(yymmdd)[_HANARO/_HANA/_STWS]. 예) NEWITEM_1000_EGP_ARTBOX(260614). 이력 모달과 관리자 내보내기(신상품/가격변경 LIST)는 동일한 공통 로직(histGroupEntries·histFname)을 쓴다.
+  15. 이력 EXPORT 파일명 = (신상품)NEWITEM / (가격변경)CHANGEPRODUCT _수량_상위_중간(yymmdd)[_HANARO/_HANA/_STWS]. 예) NEWITEM_1000_EGP_ARTBOX(260614). 이력 모달과 관리자 내보내기(신상품/가격변경 LIST)는 동일한 공통 로직(histGroupEntries·histFname)을 쓴다. 이력 EXPORT의 열 구성은 EXPORT 설정(exp)이 아니라 현재 화면에 보이는 필드 전체를 그대로 쓴다.
   16. MSRP·MSRP(%)(구 MARGIN) 열은 헤더~데이터 행까지 옅은 파란 바탕 + 검정 글씨로 표시한다. MARGIN 열의 표시명은 MSRP(%)이며 내부 키는 MARGIN으로 유지되어 데이터변환의 MARGIN(MSRP) 계산과 그대로 연결된다.
   17. SRP(%) 열 = SRP 대비 마진. 노란 바탕 + 붉은 글씨. COST와 SRP로 calcMargin((SRP−COST)/SRP)을 스위치 무관 무조건 자동계산(편집 중 SRP/COST 변경·신규/가격변경 import 모두). MSRP 계열 로직과는 독립.
   18. 데이터변환에 SRP 계산(srpSalesOn·끝자리 .09~.99 2줄, 버튼없음)·SRP MARGIN(srpMarginOn, 버튼없음) 스위치 추가. SRP MARGIN ON: SRP 수정→SRP(%) 자동. SRP 계산 ON: SRP(%) 수정→SRP 가격 자동(=COST/(1−마진), 선택 끝자리로 보정, 미선택 시 마진만). 끝자리 보정으로 마진이 바뀌면 "끝자리 설정으로 인해 마진이 변경됩니다" 안내 후 보정 가격 기준으로 SRP(%) 재계산. MSRP(%) 수정→MSRP도 동일 방식(MSRP 끝자리). 전체삭제 후 편집모드 유지.
@@ -1011,6 +1011,17 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function exportColsFor(){ var lay = editMode ? (workLayout||[]) : withStdChecks(curCat(), layoutByCat[curCat()]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
   // 특정 카테고리의 EXPORT 열 (이력 내보내기에서 사용 · 메인과 동일 규칙)
   function exportColsForCat(cat){ var lay=withStdChecks(cat, layoutByCat[cat]||defaultLayout([])); var chosen=(lay||[]).filter(function(c){ return c && c.exp; }); if(chosen.length) return chosen.map(function(c){ return {key:c.key,label:c.label,type:c.type}; }); return EXPORT_COLS; }
+  // 이력(신상품/변경상품) EXPORT 열 — 화면에 보이는 필드 전체(숨김·삭제·표준체크 제외). exp 설정과 무관.
+  function histExportCols(cat){
+    var lay;
+    if(cat && cat===curCat()){ lay=visibleCols(); }
+    else {
+      var base=(layoutByCat[cat] && layoutByCat[cat].length) ? layoutByCat[cat] : catDefaultLayout(cat);
+      lay=applyMFSTY(withStdChecks(cat, base)).filter(function(c){ return c && !c.hidden && !__MFDEL[String(c.key||'').toUpperCase()]; });
+    }
+    var cols=(lay||[]).filter(Boolean).map(function(c){ return {key:c.key,label:c.label,type:c.type}; });
+    return cols.length?cols:exportColsForCat(cat);
+  }
 
   // 현재 선택 상위 카테고리
   function curCat(){ return PLU_TABS[pluBig].label; }
@@ -2150,7 +2161,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var fname=histFname(records, kind, date, 'HANARO');
     XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname,'success');
   }
-  // 이력 EXPORT — 열 구성은 EXPORT 설정(카테고리별 exp) 그대로
+  // 이력 EXPORT — 열 구성은 현재 화면에 보이는 필드 전체(histExportCols)
   // EXPORT 카테고리(HANA 등) 설정 로드 — STORE MANAGER EXPORT 설정 공유
   var __expCats=null;
   async function loadExpCats(){
@@ -2197,7 +2208,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     records.forEach(function(rec){ var cat=rec.cat||curCat(); if(!byCat[cat]){ byCat[cat]=[]; order.push(cat); } byCat[cat].push(rec); });
     var wb=XLSX.utils.book_new(), used={};
     order.forEach(function(cat){
-      var cols=exportColsForCat(cat);
+      var cols=histExportCols(cat);
       var aoa=[cols.map(function(c){return c.label;})];
       byCat[cat].forEach(function(rec){ var row=histLiveRow(cat, rec); aoa.push(cols.map(function(c){ return exportCell(row, c); })); });
       var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length); applyExportFormats(ws, cols, aoa.length);
@@ -3769,7 +3780,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(sub||cat).replace(/[\\\/\?\*\[\]:]/g,' ').substring(0,28)||'sheet');
     var fname=expFileBase(cat,sub)+'.xlsx'; XLSX.writeFile(wb, fname); showToast('내보냈습니다: '+fname,'success');
   }
-  // HANA / STWS — 파일명에 _HANA/_STWS 접미사. 열 구성은 우선 표준(EXPORT 설정 열), 전용 필드 매핑은 추후
+  // HANA / STWS — 파일명에 _HANA/_STWS 접미사. 열 구성은 현재 화면에 보이는 필드 전체, 전용 필드 매핑은 추후
   function exportHistHana(records, kind, date){ exportHistGroup(records, kind, date, 'HANA'); }
   // 이력 STWS 내보내기
   function exportHistStws(records, kind, date){ exportHistGroup(records, kind, date, 'STWS'); }
