@@ -17,7 +17,7 @@
   10. 편집 모드에는 별도 '수정ON' 버튼이 없다. 변경이 생기면 저장 버튼이 노란 바탕이 되고, 저장하면 사라진다. 편집 종료는 '돌아가기' 버튼(편집 중일 땐 페이지 이동 대신 편집만 종료).
   11. UPC 리스트 표의 헤더(열 제목) 높이(패딩)는 1.5배 크게 하되, 글자 크기는 원래대로 유지(데이터 행도 그대로).
   12. '전체삭제'는 현재 보고/편집 중인 중간 카테고리(sub)만 삭제한다(다른 카테고리는 영향 없음). 전체삭제·선택삭제 직전 상태는 1회 보관되어, 편집 모드 '↩ 데이터복원'으로 되돌릴 수 있다(편집 내용은 복원 대상이 아님).
-  15. 이력 EXPORT 파일명 = (신상품)NEWITEM / (가격변경)CHANGEPRODUCT _수량_상위_중간(yymmdd)[_HANARO/_HANA/_STWS]. 예) NEWITEM_1000_EGP_ARTBOX(260614). 이력 모달과 관리자 내보내기(신상품/가격변경 LIST)는 동일한 공통 로직(histGroupEntries·histFname)을 쓴다. 이력 EXPORT의 열 구성은 EXPORT 설정(exp)이 아니라 현재 화면에 보이는 필드 전체를 그대로 쓴다.
+  15. 이력 EXPORT 파일명 = (신상품)NEWITEM / (가격변경)CHANGEPRODUCT _수량_상위_중간(yymmdd)[_HANARO/_HANA/_STWS]. 예) NEWITEM_1000_EGP_ARTBOX(260614). 이력 모달과 관리자 내보내기(신상품/가격변경 LIST)는 동일한 공통 로직(histGroupEntries·histFname)을 쓴다. 이력 EXPORT의 열 구성은 EXPORT 설정(exp)이 아니라 현재 화면에 보이는 필드 전체를 그대로 쓴다. 내보낼 행은 NO. 칸의 N/$ 마커(타임스탬프)가 이력 기록 시각과 같은 실제 행을 그대로 사용한다(행이 삭제된 경우에만 레코드로 합성).
   16. MSRP·MSRP(%)(구 MARGIN) 열은 헤더~데이터 행까지 옅은 파란 바탕 + 검정 글씨로 표시한다. MARGIN 열의 표시명은 MSRP(%)이며 내부 키는 MARGIN으로 유지되어 데이터변환의 MARGIN(MSRP) 계산과 그대로 연결된다.
   17. SRP(%) 열 = SRP 대비 마진. 노란 바탕 + 붉은 글씨. COST와 SRP로 calcMargin((SRP−COST)/SRP)을 스위치 무관 무조건 자동계산(편집 중 SRP/COST 변경·신규/가격변경 import 모두). MSRP 계열 로직과는 독립.
   18. 데이터변환에 SRP 계산(srpSalesOn·끝자리 .09~.99 2줄, 버튼없음)·SRP MARGIN(srpMarginOn, 버튼없음) 스위치 추가. SRP MARGIN ON: SRP 수정→SRP(%) 자동. SRP 계산 ON: SRP(%) 수정→SRP 가격 자동(=COST/(1−마진), 선택 끝자리로 보정, 미선택 시 마진만). 끝자리 보정으로 마진이 바뀌면 "끝자리 설정으로 인해 마진이 변경됩니다" 안내 후 보정 가격 기준으로 SRP(%) 재계산. MSRP(%) 수정→MSRP도 동일 방식(MSRP 끝자리). 전체삭제 후 편집모드 유지.
@@ -2193,22 +2193,24 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     function isItemCodeCol(c){ return /item\s*code/i.test(String((c&&(c.key||c.label))||'')); }
     var headers=['UPC','ENG DESC','KOR DESC','ITEM CODE','EA COST','SRP'];
     var aoa=[headers];
-    records.forEach(function(rec){
-      var cat=rec.cat||curCat();
+    // 이력 그룹의 실제 행(N/$ 마커 기준)을 그대로 사용
+    var byCatH={}, orderH=[];
+    records.forEach(function(rec){ var c=rec.cat||curCat(); if(!byCatH[c]){ byCatH[c]=[]; orderH.push(c); } byCatH[c].push(rec); });
+    orderH.forEach(function(cat){
       var lay=histLayFor(cat);
       var uoCol=histUpcCol(lay), engCol=findInLay(lay,isEngCol), korCol=findInLay(lay,isKorCol), itCol=findInLay(lay,isItemCodeCol), eaCol=findInLay(lay,isEaPriceCol);
-      var live=histMatchRow(cat, rec, lay);
-      // 값 추출 헬퍼
-      function gv(col, fb){ if(live && col){ var v=getVal(live,col.key); if(v!=null && String(v)!=='') return v; } return (fb!=null?fb:''); }
-      var upc = (live?upcValForMatch(live,uoCol):'') || (rec.uo||'');
-      var eng = gv(engCol, rec.eng||'');
-      var kor = gv(korCol, rec.kor||'');
-      var itc = gv(itCol, '');
-      var eaRaw = (live&&eaCol)?getVal(live,eaCol.key):'';
-      if(eaRaw==null||String(eaRaw).trim()===''){ eaRaw=(rec.ea!=null&&rec.ea!=='')?rec.ea:(rec.newp||''); }
-      var eaN = priceNum(eaRaw); var ea = (eaN==null)?'':Math.round((eaN+Number.EPSILON)*100)/100;
-      var srpS = calcSalesPrice(eaRaw); var srpN = srpS?Number(srpS):NaN; var srp = isNaN(srpN)?'':Math.round((srpN+Number.EPSILON)*100)/100;
-      aoa.push([ upc, eng, kor, itc, ea, srp ]);
+      histGroupRows(cat, byCatH[cat]).forEach(function(row){
+        // 값 추출 헬퍼
+        function gv(col){ if(!col) return ''; var v=getVal(row,col.key); return (v==null)?'':v; }
+        var upc = String(upcValForMatch(row, uoCol)||'');
+        var eng = gv(engCol);
+        var kor = gv(korCol);
+        var itc = gv(itCol);
+        var eaRaw = gv(eaCol);
+        var eaN = priceNum(eaRaw); var ea = (eaN==null)?'':Math.round((eaN+Number.EPSILON)*100)/100;
+        var srpS = calcSalesPrice(eaRaw); var srpN = srpS?Number(srpS):NaN; var srp = isNaN(srpN)?'':Math.round((srpN+Number.EPSILON)*100)/100;
+        aoa.push([ upc, eng, kor, itc, ea, srp ]);
+      });
     });
     var ws=XLSX.utils.aoa_to_sheet(aoa);
     try{ styleSheet(ws, [{key:'upc',label:'UPC'},{key:'eng',label:'ENG DESC'},{key:'kor',label:'KOR DESC'},{key:'itemcode',label:'ITEM CODE'},{key:'eacost',label:'EA COST'},{key:'srp',label:'SRP'}], aoa.length); }catch(e){}
@@ -2261,6 +2263,47 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     XLSX.writeFile(wb, base+'('+ymd+').xlsx');
     showToast(cat.name+' 형식으로 '+total+'건 내보냈습니다','success');
   }
+  // 이력 레코드 종류 판정 (섞여 있는 '전체' 내보내기용)
+  function histRecKind(rec){ if(!rec) return 'new'; if(rec.act!=null || rec.exuo!=null) return 'dup'; return (rec.oldp!=null || rec.newp!=null) ? 'price' : 'new'; }
+  // 이력 그룹 → 내보낼 실제 행 목록.
+  // 핵심: 이력 기록 시 해당 행의 NO. 칸에 N/$ 마커(타임스탬프)를 남기므로, 같은 타임스탬프를 가진
+  // 실제 행을 그대로 가져온다(= 화면에 보이는 값 그대로). 마커가 없는 행만 레코드로 보완한다.
+  function histGroupRows(cat, records){
+    records=records||[];
+    var lay=histLayFor(cat), rows=rowsFor(cat)||[];
+    var FLAG={ 'new':'__NEWFLAG', 'price':'__PRICEUPD' };
+    var recsBy={}, keyOrder=[];
+    records.forEach(function(rec){
+      var kd=histRecKind(rec), ts=String(rec.ts==null?'':rec.ts).trim();
+      var key=(FLAG[kd]&&ts)?(kd+'|'+ts):('solo|'+keyOrder.length);
+      if(!recsBy[key]){ recsBy[key]={kind:kd, recs:[]}; keyOrder.push(key); }
+      recsBy[key].recs.push(rec);
+    });
+    var rowsBy={};
+    rows.forEach(function(row){
+      for(var kd in FLAG){
+        var v=String(getVal(row, FLAG[kd])||'').trim(); if(!v) continue;
+        var key=kd+'|'+v; if(!recsBy[key]) continue;
+        (rowsBy[key]=rowsBy[key]||[]).push(row);
+      }
+    });
+    var out=[], seen=[];
+    var has=function(r){ return seen.indexOf(r)>=0; };
+    keyOrder.forEach(function(key){
+      var g=recsBy[key], marked=rowsBy[key]||[];
+      marked.forEach(function(r){ if(!has(r)){ seen.push(r); out.push(r); } });
+      if(marked.length >= g.recs.length) return;   // 마커 행으로 전부 커버됨
+      var need=g.recs.length-marked.length, added=0;
+      g.recs.forEach(function(rec){
+        var lr=histMatchRow(cat, rec, lay);
+        if(lr){ if(!has(lr)){ seen.push(lr); out.push(lr); } return; }
+        if(added>=need) return;                    // 마커 행이 이미 대신한 레코드
+        if(!String(rec.uo==null?'':rec.uo).trim() && !String(rec.eng==null?'':rec.eng).trim() && !String(rec.kor==null?'':rec.kor).trim()) return;
+        out.push(histLiveRow(cat, rec)); added++;  // 행이 사라진 경우만 레코드로 합성
+      });
+    });
+    return out;
+  }
   function exportHistGroup(records, kind, date, suffix){
     if(typeof XLSX==='undefined'){ showToast('엑셀 모듈 오류','error'); return; }
     records=records||[];
@@ -2271,7 +2314,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     order.forEach(function(cat){
       var cols=histExportCols(cat);
       var aoa=[cols.map(function(c){return c.label;})];
-      byCat[cat].forEach(function(rec){ var row=histLiveRow(cat, rec); aoa.push(cols.map(function(c){ return exportCell(row, c); })); });
+      histGroupRows(cat, byCat[cat]).forEach(function(row){ aoa.push(cols.map(function(c){ return exportCell(row, c); })); });
       var ws=XLSX.utils.aoa_to_sheet(aoa); styleSheet(ws, cols, aoa.length); applyExportFormats(ws, cols, aoa.length);
       var nm=String(cat).replace(/[\\\/\?\*\[\]:]/g,' ').substring(0,28)||'sheet';
       var base=nm,kk=1; while(used[nm]){ nm=(base.substring(0,25)+'_'+(++kk)); } used[nm]=1;
