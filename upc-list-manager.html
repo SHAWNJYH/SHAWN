@@ -2058,16 +2058,28 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
   // 가격 숫자 파싱
   function priceNum(v){ var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
-  // 이력 레코드 → 실제 행 매칭(UPC(O) 기준). 없으면 레코드로 합성 행 구성.
-  function histLiveRow(cat, rec){
-    var lay = layoutByCat[cat] || defaultLayout([]);
-    var uoCol = findInLay(lay, isUpcOCol);
-    var eaCol = findInLay(lay, isEaPriceCol), spCol = findInLay(lay, isSalesPriceCol), mgCol = findInLay(lay, isMarginCol);
-    var rows = rowsFor(cat) || [];
-    var found=null;
-    if(uoCol && rec.uo!=null && rec.uo!==''){
-      for(var i=0;i<rows.length;i++){ if(String(getVal(rows[i], uoCol.key)||'')===String(rec.uo)){ found=rows[i]; break; } }
+  // 이력 레코드 → 실제 행 매칭(UPC(O) 기준 · 별칭/선행0/소수점꼬리 무시). 없으면 레코드로 합성 행 구성.
+  // 이력용 카테고리 레이아웃 (비어있으면 화면/기본 레이아웃으로 폴백)
+  function histLayFor(cat){ return (layoutByCat[cat] && layoutByCat[cat].length) ? layoutByCat[cat] : ((cat===curCat()) ? curLayout() : catDefaultLayout(cat)); }
+  // 이력용 UPC 열 (없으면 UPC(O) 가상 열 — 값 조회는 별칭 폴백으로 처리)
+  function histUpcCol(lay){ return pickUpcCol(lay) || findInLay(lay, isUpcOCol) || {key:'UPC(O)',label:'UPC(O)',type:'text'}; }
+  // 이력 레코드와 같은 UPC를 가진 실제 행 찾기 (같은 중간 카테고리 우선)
+  function histMatchRow(cat, rec, lay){
+    var want=upcKey(rec&&rec.uo); if(!want) return null;
+    var uoCol=histUpcCol(lay||histLayFor(cat));
+    var rows=rowsFor(cat)||[], anyRow=null;
+    for(var i=0;i<rows.length;i++){
+      if(upcKey(upcValForMatch(rows[i], uoCol))!==want) continue;
+      if(!anyRow) anyRow=rows[i];
+      if(rec.sub!=null && String(rec.sub)!=='' && rowSub(cat,rows[i])===rec.sub){ anyRow=rows[i]; break; }
     }
+    return anyRow;
+  }
+  function histLiveRow(cat, rec){
+    var lay = histLayFor(cat);
+    var uoCol = histUpcCol(lay);
+    var eaCol = findInLay(lay, isEaPriceCol), spCol = findInLay(lay, isSalesPriceCol), mgCol = findInLay(lay, isMarginCol);
+    var found = histMatchRow(cat, rec, lay);
     if(found){
       // 내보내기용 복제본: SALES PRICE/MARGIN을 현재 EA 기준으로 재계산(저장 데이터는 변경하지 않음)
       if(eaCol && spCol){
@@ -2133,13 +2145,12 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var aoa=[headers];
     records.forEach(function(rec){
       var cat=rec.cat||curCat();
-      var lay=layoutByCat[cat]||defaultLayout([]);
-      var uoCol=findInLay(lay,isUpcOCol), engCol=findInLay(lay,isEngCol), korCol=findInLay(lay,isKorCol), itCol=findInLay(lay,isItemCodeCol), eaCol=findInLay(lay,isEaPriceCol);
-      var rows=rowsFor(cat)||[], live=null;
-      if(uoCol && rec.uo!=null && rec.uo!==''){ for(var i=0;i<rows.length;i++){ if(String(getVal(rows[i],uoCol.key)||'')===String(rec.uo)){ live=rows[i]; break; } } }
+      var lay=histLayFor(cat);
+      var uoCol=histUpcCol(lay), engCol=findInLay(lay,isEngCol), korCol=findInLay(lay,isKorCol), itCol=findInLay(lay,isItemCodeCol), eaCol=findInLay(lay,isEaPriceCol);
+      var live=histMatchRow(cat, rec, lay);
       // 값 추출 헬퍼
       function gv(col, fb){ if(live && col){ var v=getVal(live,col.key); if(v!=null && String(v)!=='') return v; } return (fb!=null?fb:''); }
-      var upc = gv(uoCol, rec.uo||'');
+      var upc = (live?upcValForMatch(live,uoCol):'') || (rec.uo||'');
       var eng = gv(engCol, rec.eng||'');
       var kor = gv(korCol, rec.kor||'');
       var itc = gv(itCol, '');
