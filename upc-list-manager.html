@@ -359,10 +359,10 @@
     max-height: 70vh; background: var(--bg-elev);
     transform: translateZ(0); will-change: scroll-position;
   }
-  .plu-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .plu-table { width: 100%; border-collapse: collapse; font-size: 10px; }
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
-    font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
+    font-family: var(--mono); font-size: 10px; font-weight: 700; text-align: left; text-transform: uppercase;
     padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); border-right: 1px solid #cdddf2; white-space: nowrap;
   }
   /* 색상 헤더도 같은 높이로 고정 + 데이터 위에 유지 (스크롤 오버랩 방지) */
@@ -375,7 +375,7 @@
   .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 400; color: var(--text); white-space: nowrap; }
   .plu-table tbody td.plu-c-organic { font-family: var(--code); font-weight: 400; color: var(--text); white-space: nowrap; }
   .plu-table tbody td.plu-c-eng { color: var(--text); }
-  .plu-table tbody td.plu-c-cat { color: var(--text); font-size: 11px; }
+  .plu-table tbody td.plu-c-cat { color: var(--text); font-size: 10px; }
   /* 체크박스(매장 약자) 열: 아주 좁게 */
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width: 30px; padding: 6px 3px; text-align: center; white-space: nowrap; }
   .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width: 46px; padding: 6px 4px; text-align: center; white-space: nowrap; }
@@ -420,7 +420,7 @@
   #pluPhotoPop.noimg img { display: none; }
   #pluPhotoPop .nophoto { display: none; }
   #pluPhotoPop.noimg .nophoto { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--text-dim); font-size: 13px; text-align: center; padding: 0 12px; box-sizing: border-box; }
-  .plu-table th.plu-col-check { font-size: 11px; }
+  .plu-table th.plu-col-check { font-size: 10px; }
   .plu-table td.plu-c-check { color: var(--text); font-weight: 400; vertical-align: middle; }
   .plu-table td.plu-c-check .pluchk { display: inline-block; line-height: 1; }
   .plu-table td.plu-c-check .pluchk-edit { cursor: pointer; }
@@ -495,7 +495,7 @@
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
   /* INGREDIENT 보기/수정 */
-  .plu-c-ing { font-size:11px; white-space:nowrap; }
+  .plu-c-ing { font-size:10px; white-space:nowrap; }
   .plu-ing-btn { border:1px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:6px; padding:1px 7px; font-family:var(--mono); font-size:11px; font-weight:700; cursor:pointer; margin-left:4px; vertical-align:middle; }
   .plu-ing-btn:hover { border-color:var(--accent-warm); background:var(--accent-soft); }
   .plu-ing-modal { max-width:520px; }
@@ -517,7 +517,7 @@
   .plu-upload-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
 
   @media (max-width: 600px) {
-    .plu-table { font-size: 11px; }
+    .plu-table { font-size: 10px; }
     .plu-table thead th, .plu-table tbody td { padding: 9px 8px; }
     /* 좁은 화면: 영문명(5)·분류(6) 숨겨 PLU·로컬·유기농·한글명만 표시 */
     .plu-c-eng, .plu-c-cat,
@@ -541,7 +541,7 @@
   .plu-table thead th{text-align:center !important;color:#000 !important;font-weight:800 !important;}
   /* #18/#19 필드명 헤더: 중앙정렬 + 한 줄 + 말줄임(줄바꿈으로 행이 커지지 않게) */
   .plu-table thead th { text-align:center; }
-  .plu-col-name { display:inline-block; max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; text-decoration:none; text-align:center; font-size:11px; }
+  .plu-col-name { display:inline-block; max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; text-decoration:none; text-align:center; font-size:10px; }
   .plu-table thead th .plu-col-name { max-width:130px; }
   .plu-col-hidestore.on{ color:#c0392b; }
 
@@ -751,7 +751,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   td.mgr-refedit { cursor:pointer; }
   td.mgr-refedit:hover { outline:2px solid #93b4f5; outline-offset:-2px; }
   .plu-ref-ph { color:#9bb4e0; font-weight:700; }
-  .plu-c-extra { color:var(--text); font-size:11px; }
+  .plu-c-extra { color:var(--text); font-size:10px; }
   /* 상품정보추가: 붉은색 체크박스 (매장추가는 초록색 .plu-c-check 유지) */
   .plu-table thead th.plu-col-rcheck { color:#c0392b; }
   .plu-table td.plu-c-rcheck .pluchk { color:#c0392b; }
