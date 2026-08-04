@@ -211,6 +211,14 @@
     border-radius: 9px; font-family: var(--mono); font-size: 13px; background: var(--bg-elev); color: var(--text);
   }
   .plu-search:focus { outline: none; border-color: var(--accent-warm); background: #fff; }
+  /* 데이터 로딩 오버레이 팝업 */
+  .plu-loading-ov { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; background: rgba(250,250,247,.78); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); transition: opacity .25s; }
+  .plu-loading-ov.hide { opacity: 0; pointer-events: none; }
+  .plu-loading-card { background: var(--bg-elev, #fff); border: 1.5px solid var(--border, #e5e5e0); border-radius: 18px; padding: 30px 40px; box-shadow: 0 20px 60px rgba(0,0,0,.18); display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 240px; }
+  .plu-loading-spin { width: 42px; height: 42px; border: 4px solid var(--border, #e5e5e0); border-top-color: var(--accent-warm, #c9a961); border-radius: 50%; animation: pluSpin .8s linear infinite; }
+  @keyframes pluSpin { to { transform: rotate(360deg); } }
+  .plu-loading-t { font-size: 15px; font-weight: 800; color: var(--text, #1a1a1d); }
+  .plu-loading-s { font-size: 12px; font-weight: 700; color: var(--text-dim, #6b6b72); }
   .plu-search-wrap { position: relative; display: flex; align-items: center; }
   .plu-search-wrap .plu-search { width: 100%; padding-right: 34px; }
   .plu-search-x { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border: none; border-radius: 50%; background: var(--border, #e5e5e0); color: var(--text-dim, #6b6b72); font-size: 11px; font-weight: 800; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: background .12s, color .12s; }
@@ -777,6 +785,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     }catch(e){ try{ location.replace('index.html'); }catch(_){} }
   })();
 </script>
+<div id="pluLoadingOv" class="plu-loading-ov">
+  <div class="plu-loading-card">
+    <div class="plu-loading-spin"></div>
+    <div class="plu-loading-t">데이터 불러오는 중…</div>
+    <div class="plu-loading-s" id="pluLoadingSub">잠시만 기다려 주세요</div>
+  </div>
+</div>
 <div class="page-topbar">
   <h1 class="page-title">🗂️ UPC MANAGER</h1>
   <div class="plu-tabs" id="pluBigTabs"></div>
@@ -1155,7 +1170,11 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     for(var __tk in __pendingText){ var __tp=__tk.split('\u0001'); var __tc=__tp[0],__tpl=__tp[1],__tky=__tp[2],__tv=__pendingText[__tk]; var __trs=cloud[__tc]; if(!__trs){ continue; } var __tff=null; for(var __tj=0;__tj<__trs.length;__tj++){ if(pluValOf(__trs[__tj])===__tpl){ __tff=__trs[__tj]; break; } } if(!__tff){ continue; } if(!__tff.extra) __tff.extra={}; if(String(__tff.extra[__tky]==null?'':__tff.extra[__tky])===String(__tv)){ delete __pendingText[__tk]; } else { __tff.extra[__tky]=__tv; } }
     cloudLoaded=true;
     try{ purgeItemCode1(); }catch(e){}
+    hidePluLoading();
   }
+  // 로딩 오버레이 숨김 (한 번만)
+  var __pluLoadingHidden=false;
+  function hidePluLoading(){ if(__pluLoadingHidden) return; __pluLoadingHidden=true; var ov=$('pluLoadingOv'); if(ov){ ov.classList.add('hide'); setTimeout(function(){ if(ov&&ov.parentNode) ov.style.display='none'; }, 300); } }
   // ITEMCODE1 잔재 완전 제거: 레이아웃에서 해당 열 삭제, 행 값은 ITEM CODE가 비어 있으면 이전 후 삭제.
   // 변경된 카테고리만 저장. (ITEMCODE1은 과거 기능키 목록에 있던 미사용 필드 — 사용자 설정은 ITEM CODE만)
   function purgeItemCode1(){
@@ -1867,6 +1886,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
     var el=$('pluContent'); el.className='plu-list';
+    // 재렌더로 table-wrap 이 새로 만들어질 때 스크롤 위치가 초기화되는 것 방지 — 미리 저장
+    var __prevWrap=document.querySelector('#pluContent .plu-table-wrap');
+    var __savedSL=__prevWrap?__prevWrap.scrollLeft:0, __savedST=__prevWrap?__prevWrap.scrollTop:0;
     // 툴바 재렌더로 파괴되지 않도록 검색·돌아가기 컨트롤을 안전한 위치로 회수
     (function(){ var se=$('pluSearchTop'), bk=$('pluBackBtn'), tr=document.querySelector('.plu-topright'), tb=document.querySelector('.page-topbar'); if(se&&tr&&se.parentNode!==tr) tr.appendChild(se); if(bk&&tb&&bk.parentNode!==tb) tb.appendChild(bk); })();
     var slot=$('pluToolbarSlot'); if(slot){ slot.innerHTML=toolbarHTML(); if(window.__reqRefresh) window.__reqRefresh(); }
@@ -1875,12 +1897,18 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       '<div class="plu-table-wrap"><table class="plu-table">'+headHTML()+'<tbody id="pluTbody"></tbody></table></div>';
     bindToolbar();
     placeFloatingControls();
+    // 저장한 스크롤 위치 복원 (편집 중 필드 수정 시 좌우/상하 튐 방지)
+    if(__savedSL||__savedST){ var __nw=document.querySelector('#pluContent .plu-table-wrap');
+      if(__nw){ __nw.scrollLeft=__savedSL; __nw.scrollTop=__savedST; } }
     if(!cloudLoaded){ $('pluTbody').innerHTML='<tr><td class="plu-no-result">불러오는 중...</td></tr>'; return; }
     var needCsv = (cat==='청과' && cloud['청과']===undefined && !csvRows);
     if(needCsv){ $('pluTbody').innerHTML='<tr><td class="plu-no-result">불러오는 중...</td></tr>'; loadCsv().then(buildList).catch(function(){ $('pluTbody').innerHTML='<tr><td class="plu-no-result">데이터가 없습니다.</td></tr>'; }); }
     else { buildList(); }
     renderNewList(); renderDupList();
     fitTableWrap();
+    // buildList 이후 tbody 가 채워지며 높이가 바뀌므로 스크롤 한 번 더 복원
+    if(__savedSL||__savedST){ var __nw2=document.querySelector('#pluContent .plu-table-wrap');
+      if(__nw2){ __nw2.scrollLeft=__savedSL; __nw2.scrollTop=__savedST; } }
   }
 
   // ===== 리스트 높이를 화면 크기에 맞춤 + 카테고리 구역 sticky 높이 변수 갱신 =====
@@ -4384,6 +4412,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 
   // ===== 시작 =====
   renderTabs();
+  // 로딩 오버레이 안전장치: 데이터가 준비되면 hidePluLoading 이 닫지만,
+  // Firebase 미연결·오류 등으로 무한 로딩이 되지 않도록 최대 대기 후 강제 닫기
+  setTimeout(function(){ if(typeof hidePluLoading==='function') hidePluLoading(); }, 12000);
   onReady(function(){
     startOvAllListener(); subscribeCfg(); startOcrBlinkListener(); subscribeMasterStyles();
     try{ fns().onAuthStateChanged(window.firebaseAuth, function(user){ currentUser=user||null; subscribe(); }); }
