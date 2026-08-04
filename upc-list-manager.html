@@ -2477,8 +2477,32 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   function parseCheckVal(v){ var s=String(v==null?'':v).trim().toLowerCase(); if(s==='') return null; if(/^(x|n|no|false|f|0|off|✗|☐|-)$/.test(s)) return false; return true; }
   // ===== N/$ 표시(이력 삭제 시까지 유지) + 이력(NEW/PRICE CHANGE) =====
   // 최근(TTL 내) 플래그 여부
-  // N/$ 마커: 이력에서 삭제할 때까지 계속 표시(시간 만료 없음)
-  function flagFresh(r, key){ var v=String(getVal(r,key)||'').trim(); if(!v) return false; return !isNaN(parseInt(v,10)); }
+  // 이력에 존재하는 타임스탬프/날짜 집합 (마커 표시·보강 판단용). 이력 캐시가 바뀔 때만 재계산.
+  var __histTsCache={};
+  function histTsSets(kind){
+    var list=((typeof __histCache!=='undefined' && __histCache && __histCache[kind])||[]);
+    var last=list.length?list[list.length-1]:null;
+    var sig=list.length+'|'+(last?String(last.id||last.ts||''):'');
+    var c=__histTsCache[kind];
+    if(c && c.sig===sig) return c;
+    var ts={}, ymd={};
+    list.forEach(function(h){
+      var v=String((h&&h.ts!=null)?h.ts:'').trim(); if(!v) return;
+      ts[v]=1; var t=parseInt(v,10); if(!isNaN(t)&&t>1e12) ymd[fmtDateOnly(t)]=1;
+    });
+    c={sig:sig, ts:ts, ymd:ymd}; __histTsCache[kind]=c; return c;
+  }
+  // 이 마커에 해당하는 이력이 실제로 남아 있는가 (이력을 지우면 N/$도 사라진다)
+  function histHasMark(key, val, exact){
+    var v=String(val==null?'':val).trim(); if(!v) return false;
+    var s=histTsSets((key==='__NEWFLAG')?'new':'price');
+    if(s.ts[v]) return true;
+    if(exact) return false;                         // 이력 신규 생성 판단은 타임스탬프 완전일치만
+    var t=parseInt(v,10);
+    return (!isNaN(t) && t>1e12 && !!s.ymd[fmtDateOnly(t)]);
+  }
+  // N/$ 마커: 해당 이력이 남아 있는 동안 계속 표시(시간 만료 없음)
+  function flagFresh(r, key){ var v=String(getVal(r,key)||'').trim(); if(!v) return false; if(isNaN(parseInt(v,10))) return false; return histHasMark(key, v); }
   // 2자리 0채움
   function pad2(n){ return (n<10?'0':'')+n; }
   // 날짜(연-월-일) 형식
@@ -2567,6 +2591,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 마크 타임스탬프 파싱
   function markTs(s){ s=String(s==null?'':s).trim(); if(!s) return null; var n=parseInt(s,10); return (!isNaN(n) && n>1e12) ? n : 0; }
   // 현재 데이터의 N/$ 마커(타임스탬프)를 스캔해 누락된 이력 보강
+  // ※ 이미 존재하는 이력(같은 타임스탬프/날짜)의 빠진 항목만 채운다. 마커만 남은 행으로 이력을 새로 만들지 않는다.
   function reconcileHist(){
     var exN={}, exP={};
     loadHist('new').forEach(function(h){ exN[h.uo+'|'+h.ts]=1; });
@@ -2576,9 +2601,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       (rowsFor(cat)||[]).forEach(function(r){
         var sub=rowSub(cat,r);
         var nts=markTs(getVal(r,'__NEWFLAG'));
-        if(nts!==null){ var uo=String(upcValForMatch(r,{key:k.uo})||''); var key=uo+'|'+nts; if(uo && !exN[key]){ addN.push({ts:nts,cat:cat,sub:sub,uo:uo,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),ea:fmtPrice(getVal(r,k.ea))}); exN[key]=1; } }
+        if(nts!==null && histHasMark('__NEWFLAG', getVal(r,'__NEWFLAG'), true)){ var uo=String(upcValForMatch(r,{key:k.uo})||''); var key=uo+'|'+nts; if(uo && !exN[key]){ addN.push({ts:nts,cat:cat,sub:sub,uo:uo,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),ea:fmtPrice(getVal(r,k.ea))}); exN[key]=1; } }
         var pts=markTs(getVal(r,'__PRICEUPD'));
-        if(pts!==null){ var uo2=String(upcValForMatch(r,{key:k.uo})||''); var key2=uo2+'|'+pts; if(uo2 && !exP[key2]){ addP.push({ts:pts,cat:cat,sub:sub,uo:uo2,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),oldp:'-',newp:fmtPrice(getVal(r,k.ea))}); exP[key2]=1; } }
+        if(pts!==null && histHasMark('__PRICEUPD', getVal(r,'__PRICEUPD'), true)){ var uo2=String(upcValForMatch(r,{key:k.uo})||''); var key2=uo2+'|'+pts; if(uo2 && !exP[key2]){ addP.push({ts:pts,cat:cat,sub:sub,uo:uo2,eng:String(getVal(r,k.eng)||''),kor:String(getVal(r,k.kor)||''),oldp:'-',newp:fmtPrice(getVal(r,k.ea))}); exP[key2]=1; } }
       });
     });
     if(addN.length) addHist('new', addN);
