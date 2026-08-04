@@ -359,10 +359,10 @@
     max-height: 70vh; background: var(--bg-elev);
     transform: translateZ(0); will-change: scroll-position;
   }
-  .plu-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .plu-table { width: 100%; border-collapse: collapse; font-size: 11px; }
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
-    font-family: var(--mono); font-size: 10px; font-weight: 700; text-align: left; text-transform: uppercase;
+    font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
     padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); border-right: 1px solid #cdddf2; white-space: nowrap;
   }
   /* 색상 헤더도 같은 높이로 고정 + 데이터 위에 유지 (스크롤 오버랩 방지) */
@@ -375,7 +375,7 @@
   .plu-table tbody td.plu-c-local { font-family: var(--code); font-weight: 400; color: var(--text); white-space: nowrap; }
   .plu-table tbody td.plu-c-organic { font-family: var(--code); font-weight: 400; color: var(--text); white-space: nowrap; }
   .plu-table tbody td.plu-c-eng { color: var(--text); }
-  .plu-table tbody td.plu-c-cat { color: var(--text); font-size: 10px; }
+  .plu-table tbody td.plu-c-cat { color: var(--text); font-size: 11px; }
   /* 체크박스(매장 약자) 열: 아주 좁게 */
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width: 30px; padding: 6px 3px; text-align: center; white-space: nowrap; }
   .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width: 46px; padding: 6px 4px; text-align: center; white-space: nowrap; }
@@ -420,7 +420,7 @@
   #pluPhotoPop.noimg img { display: none; }
   #pluPhotoPop .nophoto { display: none; }
   #pluPhotoPop.noimg .nophoto { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--text-dim); font-size: 13px; text-align: center; padding: 0 12px; box-sizing: border-box; }
-  .plu-table th.plu-col-check { font-size: 10px; }
+  .plu-table th.plu-col-check { font-size: 11px; }
   .plu-table td.plu-c-check { color: var(--text); font-weight: 400; vertical-align: middle; }
   .plu-table td.plu-c-check .pluchk { display: inline-block; line-height: 1; }
   .plu-table td.plu-c-check .pluchk-edit { cursor: pointer; }
@@ -495,7 +495,7 @@
   .plu-modal-choice small { display: block; font-weight: 600; font-size: 11px; color: var(--text-dim); margin-top: 3px; }
   .plu-modal-cancel { border: none; background: transparent; color: var(--text-dim); font-size: 13px; cursor: pointer; margin-top: 12px; width: 100%; }
   /* INGREDIENT 보기/수정 */
-  .plu-c-ing { font-size:10px; white-space:nowrap; }
+  .plu-c-ing { font-size:11px; white-space:nowrap; }
   .plu-ing-btn { border:1px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:6px; padding:1px 7px; font-family:var(--mono); font-size:11px; font-weight:700; cursor:pointer; margin-left:4px; vertical-align:middle; }
   .plu-ing-btn:hover { border-color:var(--accent-warm); background:var(--accent-soft); }
   .plu-ing-modal { max-width:520px; }
@@ -517,7 +517,7 @@
   .plu-upload-btn:hover { border-color: var(--accent-warm); background: var(--accent-soft); }
 
   @media (max-width: 600px) {
-    .plu-table { font-size: 10px; }
+    .plu-table { font-size: 11px; }
     .plu-table thead th, .plu-table tbody td { padding: 9px 8px; }
     /* 좁은 화면: 영문명(5)·분류(6) 숨겨 PLU·로컬·유기농·한글명만 표시 */
     .plu-c-eng, .plu-c-cat,
@@ -541,7 +541,7 @@
   .plu-table thead th{text-align:center !important;color:#000 !important;font-weight:800 !important;}
   /* #18/#19 필드명 헤더: 중앙정렬 + 한 줄 + 말줄임(줄바꿈으로 행이 커지지 않게) */
   .plu-table thead th { text-align:center; }
-  .plu-col-name { display:inline-block; max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; text-decoration:none; text-align:center; font-size:10px; }
+  .plu-col-name { display:inline-block; max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; text-decoration:none; text-align:center; font-size:11px; }
   .plu-table thead th .plu-col-name { max-width:130px; }
   .plu-col-hidestore.on{ color:#c0392b; }
 
@@ -614,6 +614,8 @@
   .plu-tool-btn.editact { width:150px; min-width:150px; max-width:150px; text-align:center; box-sizing:border-box; white-space:nowrap; }
   .plu-edit-input { width:auto; min-width:40px; max-width:100%; box-sizing:border-box; border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-family:var(--mono); font-size:13px; background:var(--bg); color:var(--text); }
   .plu-edit-input:focus { outline:none; border-color:var(--accent-warm); }
+  .plu-table td.plu-vedit { cursor:text; }
+  .plu-table td.plu-vedit:hover { background:var(--accent-soft, #f7f1e3); box-shadow:inset 0 0 0 1px var(--accent-warm, #c9a961); }
   .plu-row-del { border:1px solid #e0c0c0; background:#fff; color:#b04141; border-radius:6px; padding:4px 10px; cursor:pointer; font-weight:700; font-size:12px; white-space:nowrap; }
   .plu-row-del:hover { border-color:#b04141; background:#fbeaea; }
   .plu-row-sel { width:16px; height:16px; cursor:pointer; vertical-align:middle; margin-right:5px; accent-color:#b04141; }
@@ -751,7 +753,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   td.mgr-refedit { cursor:pointer; }
   td.mgr-refedit:hover { outline:2px solid #93b4f5; outline-offset:-2px; }
   .plu-ref-ph { color:#9bb4e0; font-weight:700; }
-  .plu-c-extra { color:var(--text); font-size:10px; }
+  .plu-c-extra { color:var(--text); font-size:11px; }
   /* 상품정보추가: 붉은색 체크박스 (매장추가는 초록색 .plu-c-check 유지) */
   .plu-table thead th.plu-col-rcheck { color:#c0392b; }
   .plu-table td.plu-c-rcheck .pluchk { color:#c0392b; }
@@ -1705,7 +1707,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // 보기 모드 행 HTML
   function viewRowHTML(r, rowIdx){
     var v=visibleCols();
-    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'||isMarginCol(c)){ var __mv=fmtMargin(getVal(r,c.key)); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+'"'+colorStyle(c)+(__mv.length>limit?(' title="'+escapeHtml(__mv)+'"'):'')+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(pv.length>limit?(' title="'+escapeHtml(pv)+'"'):'')+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+'"'+colorStyle(c)+(fv.length>limit?(' title="'+escapeHtml(fv)+'"'):'')+'>'+sv+'</td>'; });
+    var TL=getTruncLen(); var cells=v.map(function(c){ if(c.type==='check'||c.type==='rcheck'){ var on=getVal(r,c.key); var cc=(c.type==='rcheck')?'plu-c-check plu-c-rcheck':'plu-c-check'; return '<td class="'+cc+'"><span class="pluchk pluchk-edit'+(on?'':' off')+'" data-plu="'+escapeHtml(pluValOf(r))+'" data-key="'+escapeHtml(c.key)+'" role="button" title="클릭하여 체크">'+(on?'☑':'☐')+'</span></td>'; } if(isIngredientKey(c.key)){ return ingredientCellHTML(r,c); } var __ve=' plu-vedit" data-vplu="'+escapeHtml(pluValOf(r))+'" data-vkey="'+escapeHtml(c.key)+'" data-vbase="'+(isBase(c.key)?'1':'0')+'" title="클릭하여 수정'; var redCls=isRedCol(c)?' upc-c-red':''; var greenCls=isMarginCol(c)?' upc-c-green':''; var isNarrow=(isPriceCol(c)||isMarginCol(c)); var narrowCls=isNarrow?' upc-c-narrow':''; var limit=(c.trunc>0)?c.trunc:(isNarrow?8:TL); var alignCls=c.align?(' align-'+c.align):''; if(c.fmt==='margin'||isMarginCol(c)){ var __mv=fmtMargin(getVal(r,c.key)); var __mvs=__mv.length>limit?(__mv.slice(0,limit)+'…'):__mv; return '<td class="'+clsFor(c.key)+' upc-c-narrow'+greenCls+alignCls+__ve+'"'+colorStyle(c)+'>'+escapeHtml(__mvs)+'</td>'; } if(isPriceCol(c)||c.fmt==='price'){ var pv=fmtPrice(getVal(r,c.key)); var pvs=pv.length>limit?(pv.slice(0,limit)+'…'):pv; return '<td class="'+clsFor(c.key)+' upc-c-price'+(isSrpCol(c)?' upc-c-srp':'')+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+redCls+greenCls+narrowCls+alignCls+__ve+'"'+colorStyle(c)+'>'+escapeHtml(pvs)+'</td>'; } var fv=String(getDisp(r,c)||''); var sv=fv.length>limit?(escapeHtml(fv.slice(0,limit))+'…'):escapeHtml(fv); return '<td class="'+clsFor(c.key)+(isSalesPriceCol(c)||isMarginCol(c)?' upc-c-blue':'')+(isSrpMarginCol(c)?' upc-c-srpp':'')+redCls+greenCls+narrowCls+alignCls+__ve+'"'+colorStyle(c)+'>'+sv+'</td>'; });
     var isNewRow=flagFresh(r,'__NEWFLAG');
     var isPriceUpd=flagFresh(r,'__PRICEUPD');
     var mark=(isNewRow?'NEW':'')+(isPriceUpd?((isNewRow?' ':'')+'$'):'');
@@ -1731,6 +1733,48 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     scheduleCheckSave(cat);
   }
   document.addEventListener('click', function(e){ var s=e.target.closest?e.target.closest('.pluchk-edit'):null; if(s) toggleViewCheck(s); });
+
+  // ===== 보기 화면 인라인 셀 편집: 클릭 → input → blur 저장 (모든 필드) =====
+  var __veditActive=false;
+  function startCellEdit(td){
+    if(editMode || __veditActive) return;
+    if(td.querySelector('input')) return;
+    var plu=td.getAttribute('data-vplu'), key=td.getAttribute('data-vkey'), isB=(td.getAttribute('data-vbase')==='1');
+    var cat=curCat();
+    var rows=cloud[cat]||[]; var row=null;
+    for(var i=0;i<rows.length;i++){ if(pluValOf(rows[i])===plu){ row=rows[i]; break; } }
+    if(!row){ showToast('행을 찾지 못했습니다','error'); return; }
+    __veditActive=true;
+    var cur=getVal(row,key); cur=(cur==null?'':String(cur));
+    var oldHTML=td.innerHTML;
+    var inp=document.createElement('input');
+    inp.type='text'; inp.className='plu-edit-input'; inp.value=cur;
+    td.innerHTML=''; td.appendChild(inp);
+    inp.focus(); try{ inp.select(); }catch(e){}
+    var done=false;
+    function finish(saveIt){
+      if(done) return; done=true; __veditActive=false;
+      var nv=inp.value;
+      if(saveIt && nv!==cur){
+        if(isB){ row[fieldOf(key)]=nv; } else { if(!row.extra) row.extra={}; row.extra[key]=nv; __pendingText[__ckey(cat,plu,key)]=nv; }
+        scheduleCheckSave(cat);
+        showToast('저장됨','success');
+        if(pluRender) pluRender(); else renderContent();
+      } else {
+        td.innerHTML=oldHTML;
+      }
+    }
+    inp.addEventListener('blur', function(){ finish(true); });
+    inp.addEventListener('keydown', function(ev){
+      if(ev.key==='Enter'){ ev.preventDefault(); inp.blur(); }
+      else if(ev.key==='Escape'){ ev.preventDefault(); finish(false); }
+    });
+  }
+  document.addEventListener('click', function(e){
+    if(editMode) return;
+    var td=e.target.closest?e.target.closest('td.plu-vedit'):null;
+    if(td && !td.querySelector('input')) startCellEdit(td);
+  });
   document.addEventListener('click', function(e){ var b=e.target.closest?e.target.closest('.plu-ing-btn'):null; if(b){ openIngModal(b.getAttribute('data-plu'), b.getAttribute('data-key')); } });
   // 수정 모드: 행 삭제(✕) — 확인 후에만 삭제 (위임 방식이라 렌더 시점과 무관하게 동작)
   document.addEventListener('click', async function(e){
