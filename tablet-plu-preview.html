@@ -84,16 +84,17 @@
   .pin-err{ color:var(--local); font-size:13px; font-weight:700; height:18px; margin-top:10px; }
 
   /* ===== 상단 카테고리 박스 ===== */
-  .topbar{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:14px 18px 12px; background:var(--panel); border-bottom:1.5px solid var(--border); }
-  .cat-boxes{ display:flex; gap:10px; flex:1; }
+  /* ===== 상단 카테고리 박스 (요구1: 세로폭 축소) ===== */
+  .topbar{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:9px 16px; background:var(--panel); border-bottom:1.5px solid var(--border); }
+  .cat-boxes{ display:flex; gap:8px; flex:1; }
   .cat-box{
-    flex:1; padding:14px 8px; border:2px solid var(--border-2); border-radius:14px; background:var(--panel-2);
+    flex:1; padding:8px 6px; border:2px solid var(--border-2); border-radius:11px; background:var(--panel-2);
     cursor:pointer; text-align:center; transition:all .12s; font-family:inherit;
-    display:flex; flex-direction:column; align-items:center; gap:4px;
+    display:flex; flex-direction:column; align-items:center; gap:1px;
   }
-  .cat-box .ic{ font-size:17px; line-height:1; }
-  .cat-box .lb{ font-size:19px; font-weight:800; letter-spacing:-.01em; }
-  .cat-box .sub{ font-size:12px; color:var(--ink-dim); font-weight:600; }
+  .cat-box .ic{ font-size:15px; line-height:1; }
+  .cat-box .lb{ font-size:18px; font-weight:800; letter-spacing:-.02em; line-height:1.05; }
+  .cat-box .sub{ font-size:10px; color:var(--ink-dim); font-weight:600; line-height:1.1; }
   .cat-box.on{ color:#fff; }
   .cat-box[data-cat="PRODUCE"].on{ background:var(--green); border-color:var(--green); }
   .cat-box[data-cat="VEGETABLE"].on{ background:var(--green); border-color:var(--green); }
@@ -105,50 +106,66 @@
   .cat-box.on .sub{ color:rgba(255,255,255,.8); }
 
   .refresh-box{
-    flex:0 0 96px; padding:14px 8px; border:2px solid var(--blue); border-radius:14px; background:var(--blue); color:#fff;
-    cursor:pointer; text-align:center; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:4px;
+    flex:0 0 78px; padding:5px 6px; border:2px solid var(--blue); border-radius:10px; background:var(--blue); color:#fff;
+    cursor:pointer; text-align:center; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:0;
     transition:background .12s;
   }
   .refresh-box:active{ background:#245bc0; }
   .refresh-box.loading{ opacity:.6; pointer-events:none; }
-  .refresh-box .ic{ font-size:17px; }
-  .refresh-box .lb{ font-size:15px; font-weight:800; }
-  .refresh-box .spin{ width:20px; height:20px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
+  .refresh-box .ic{ font-size:13px; }
+  .refresh-box .lb{ font-size:12px; font-weight:800; }
+  .refresh-box .spin{ width:15px; height:15px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
   .refresh-box.loading .spin{ display:block; }
   .refresh-box.loading .ic{ display:none; }
   @keyframes sp{ to{ transform:rotate(360deg); } }
 
-  /* 모드 뱃지 + 검색 */
-  .mode-badge{ flex:0 0 auto; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:800; }
-  .mode-badge.admin{ background:var(--admin-soft); color:var(--admin); }
-  .mode-badge.cashier{ background:var(--green-soft); color:var(--green); }
-
-  .subrow{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:10px 18px; background:var(--panel); border-bottom:1.5px solid var(--border); }
-  .search{ flex:1; max-width:360px; padding:9px 14px; border:1.5px solid var(--border-2); border-radius:11px; background:var(--panel-2); font-size:15px; font-family:inherit; outline:none; }
-  .search:focus{ border-color:var(--green); background:#fff; }
-  .meta{ margin-left:auto; font-size:11px; font-weight:700; color:var(--ink-dim); }
-  .meta b{ color:var(--ink); } .meta .off{ color:var(--local); }
-
-  /* ===== 중간: PLU 목록 + 사진 ===== */
-  .main{ flex:1 1 auto; display:flex; gap:14px; padding:14px 18px; overflow:hidden; }
+  /* ===== 중간: 리스트 + 사진 ===== */
+  .main{ flex:1 1 auto; display:flex; gap:12px; padding:12px 16px; overflow:hidden; }
   .list-pane{ flex:1 1 auto; overflow:auto; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; }
-  .plu-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:8px; padding:14px; }
+
+  /* 뒤로가기 바 (CATE → 상품 단계 표시) */
+  .crumb{ display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1.5px solid var(--border); position:sticky; top:0; background:var(--panel); z-index:6; }
+  .crumb-back{ border:1.5px solid var(--border-2); background:var(--panel-2); border-radius:9px; padding:6px 14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .crumb-back:active{ background:var(--green-soft); }
+  .crumb-title{ font-size:16px; font-weight:800; }
+  .crumb-title small{ font-size:12px; color:var(--ink-dim); font-weight:600; margin-left:6px; }
+
+  /* (요구2) CATE 버튼 그리드 — 지금보다 크게: 가로4 (박스 1/3 커짐) */
+  .cate-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
+  .cate-btn{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    border:1.5px solid var(--border); border-radius:14px; background:var(--panel-2);
+    cursor:pointer; transition:all .1s; font-family:inherit; padding:10px; text-align:center;
+  }
+  .cate-btn:active{ border-color:var(--green); background:var(--green-soft); }
+  .cate-btn .ce{ font-size:24px; font-weight:800; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }  /* 영어 크게 */
+  .cate-btn .ck{ font-size:15px; font-weight:600; color:var(--ink-dim); }                                       /* 한글 */
+
+  /* (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한 */
+  /* (요구3) 상품 리스트 — CATE 박스와 같은 크기: 가로4, PLU 최대·붉은 BOLD, 영/한 */
+  .plu-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
   .plu-item{
-    display:flex; flex-direction:column; gap:2px; padding:11px 12px; border:1.5px solid var(--border);
-    border-radius:11px; background:var(--panel-2); cursor:pointer; transition:all .1s;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:10px; border:1.5px solid var(--border);
+    border-radius:14px; background:var(--panel-2); cursor:pointer; transition:all .1s; text-align:center;
   }
   .plu-item:active,.plu-item.sel{ border-color:var(--green); background:var(--green-soft); }
-  .plu-item .num{ font-family:var(--mono); font-size:19px; font-weight:800; color:var(--ink); }
-  .plu-item .nm{ font-size:12px; color:var(--ink-dim); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .plu-item.sel .num{ color:var(--green); }
+  .plu-item .num{ font-family:var(--mono); font-size:32px; font-weight:900; color:#c0392b; line-height:1.05; }  /* PLU 최대·BOLD·붉은색 */
+  .plu-item .en{ font-size:16px; color:var(--ink); font-weight:700; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plu-item .ko{ font-size:14px; color:var(--ink-dim); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  .photo-pane{ flex:0 0 320px; display:flex; flex-direction:column; gap:12px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:16px; }
-  .photo-box{ flex:1; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+  /* (요구6) 사진 패널 — 가로 축소 + 상하 2분할 */
+  .photo-pane{ flex:0 0 260px; display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:12px; }
+  .photo-top{ flex:1 1 60%; display:flex; flex-direction:column; gap:8px; min-height:0; }        /* 위: 과일 사진 */
+  .photo-box{ flex:1; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; min-height:0; }
   .photo-box img{ max-width:100%; max-height:100%; object-fit:contain; }
-  .photo-box .noimg{ color:var(--ink-dim); font-size:13px; font-weight:600; text-align:center; padding:20px; }
+  .photo-box .noimg{ color:var(--ink-dim); font-size:12px; font-weight:600; text-align:center; padding:16px; }
   .photo-info{ text-align:center; }
-  .photo-info .pnum{ font-family:var(--mono); font-size:26px; font-weight:900; color:var(--green); }
-  .photo-info .pname{ font-size:14px; color:var(--ink-dim); font-weight:600; margin-top:2px; }
+  .photo-info .pnum{ font-family:var(--mono); font-size:22px; font-weight:900; color:#c0392b; }
+  .photo-info .pname{ font-size:13px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
+  .logo-box{ flex:0 0 34%; border:1.5px solid var(--border); border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; }   /* 아래: H-MART 로고 */
+  .logo-box img{ max-width:82%; max-height:70%; object-fit:contain; }
+  .logo-box .hmart-txt{ font-family:var(--serif); font-weight:900; font-size:34px; letter-spacing:-.02em; color:#c0392b; }
+  .logo-box .hmart-txt span{ color:var(--ink); }
 
   .empty{ text-align:center; color:var(--ink-dim); padding:60px 20px; font-size:15px; font-weight:600; grid-column:1/-1; }
 
@@ -226,18 +243,21 @@
 
 <!-- 중간: PLU 목록 + 사진 -->
 <div class="main">
-  <div class="list-pane">
-    <div class="plu-grid" id="pluGrid">
-      <div class="firstrun" id="firstrun">
-        <div class="big">📥</div>
-        <h2>저장된 데이터가 없습니다</h2>
-        <p>상단 REFRESH를 눌러 데이터를 가져오세요.<br>한 번 가져오면 브라우저에 저장되어 오프라인에서도 조회됩니다.</p>
-      </div>
+  <div class="list-pane" id="listPane">
+    <div class="firstrun" id="firstrun">
+      <div class="big">📥</div>
+      <h2>저장된 데이터가 없습니다</h2>
+      <p>상단 REFRESH를 눌러 데이터를 가져오세요.<br>한 번 가져오면 브라우저에 저장되어 오프라인에서도 조회됩니다.</p>
     </div>
   </div>
   <div class="photo-pane">
-    <div class="photo-box" id="photoBox"><div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div></div>
-    <div class="photo-info"><div class="pnum" id="photoNum">—</div><div class="pname" id="photoName"></div></div>
+    <div class="photo-top">
+      <div class="photo-box" id="photoBox"><div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div></div>
+      <div class="photo-info"><div class="pnum" id="photoNum">—</div><div class="pname" id="photoName"></div></div>
+    </div>
+    <div class="logo-box" id="logoBox">
+      <div class="hmart-txt">H<span>-</span>MART</div>
+    </div>
   </div>
 </div>
 
@@ -314,11 +334,15 @@
   var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집','SEATTLE FOOD':'행복떡집','HANAYANG(떡)':'한양떡집','HANAYANG':'한양떡집' };
   function rowSub(r){ var s=(r&&r.sub!=null?String(r.sub):''); if(SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
   var VEG=['야채','vegetable'], FRUIT=['과일','fruit'], BOX=['박스','box'], LOCAL=['로컬','local'];
-  function subMatch(r, keys){ var s=rowSub(r).toLowerCase(); return keys.some(function(k){ return s.indexOf(k.toLowerCase())>=0; }); }
+  function subMatch(r, keys){
+    // sub 필드 + CATE 필드 모두에서 키워드 매칭 (야채/과일 등은 sub 또는 cate 어느 쪽에 있을 수 있음)
+    var s=(rowSub(r)+' '+cateOf(r)).toLowerCase();
+    return keys.some(function(k){ return s.indexOf(k.toLowerCase())>=0; });
+  }
   function rowsForCat(catKey){
     if(!DATA) return [];
     var pool=[];
-    for(var lab in DATA.cloud){ (DATA.cloud[lab]||[]).forEach(function(r){ pool.push(r); }); }
+    for(var lab in DATA.cloud){ (DATA.cloud[lab]||[]).forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }  // 요구4: RESERVE 제외
     if(catKey==='PRODUCE') return pool.filter(function(r){ return subMatch(r,VEG)||subMatch(r,FRUIT); });
     if(catKey==='VEGETABLE') return pool.filter(function(r){ return subMatch(r,VEG); });
     if(catKey==='FRUIT') return pool.filter(function(r){ return subMatch(r,FRUIT); });
@@ -331,10 +355,35 @@
     }
     return [];
   }
+  // 특정 카테고리 안의 CATE(세부분류) 목록 추출 (요구2)
+  function catesForCat(catKey){
+    var rows=rowsForCat(catKey), seen={}, out=[];
+    rows.forEach(function(r){ var c=cateOf(r); if(c && !seen[c]){ seen[c]=1; out.push(c); } });
+    out.sort();
+    return out;
+  }
 
-  function getVal(r,key){ if(!r) return ''; if(key==='PLU'){ if(r.plu!=null) return String(r.plu); } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
-  function pluOf(r){ return String((r&&r.plu)||(r&&r.extra&&(r.extra.PLU||r.extra.plu))||''); }
-  function nameOf(r){ return String(getVal(r,'KOR DESC')||getVal(r,'ENG DESC')||getVal(r,'DESC')||''); }
+  // 실제 plu-list 행 구조: {plu, local, organic, kor(한글명), eng(영문명), cate(카테고리), extra:{}}
+  function getVal(r,key){ if(!r) return ''; var lk=String(key).toLowerCase();
+    if(lk==='plu') return r.plu!=null?String(r.plu):'';
+    if(lk==='kor'||lk==='kor desc') return r.kor!=null?String(r.kor):'';
+    if(lk==='eng'||lk==='eng desc') return r.eng!=null?String(r.eng):'';
+    if(lk==='cate'||lk==='category') return r.cate!=null?String(r.cate):'';
+    if(r[key]!=null) return r[key];
+    if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } }
+    return '';
+  }
+  function pluOf(r){ if(!r) return ''; if(r.plu!=null&&String(r.plu).trim()!=='') return String(r.plu); if(r.extra){ if(r.extra.PLU) return String(r.extra.PLU); if(r.extra.plu) return String(r.extra.plu); } return ''; }
+  // 요구2: KOR DESC / ENG DESC 필드에서 이름을 가져옴 (직접필드 r.kor/r.eng 또는 extra의 여러 이름)
+  function korOf(r){ return String((r&&r.kor)||getVal(r,'KOR DESC')||getVal(r,'KOR')||'').trim(); }
+  function engOf(r){ return String((r&&r.eng)||getVal(r,'ENG DESC')||getVal(r,'ENG')||'').trim(); }
+  function nameOf(r){ return korOf(r)||engOf(r); }
+  // CATE(세부 카테고리) 값 — "한글 (ENG)" 형태일 수 있음
+  function cateOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate).trim(); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!=='') return String(r.extra[k]).trim(); } } return ''; }
+  // CATE 를 한글/영문으로 분리 ("상추 (LETTUCE)" → {kor:'상추', eng:'LETTUCE'})
+  function splitCate(cate){ var m=/^(.*?)\s*\(([^)]+)\)\s*$/.exec(String(cate||'')); if(m) return { kor:m[1].trim(), eng:m[2].trim() }; return { kor:String(cate||'').trim(), eng:'' }; }
+  // 요구4: RESERVE 로 시작/포함하는 미등록 상품 제외
+  function isReserve(r){ if(!r) return false; var RX=/\bRESERVE\b/i; if(RX.test(engOf(r))||RX.test(korOf(r))) return true; if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && RX.test(v)) return true; } } return false; }
 
   /* ===== IndexedDB 캐시 ===== */
   /* ===== 매장 식별 (매장별 독립 동작) ===== */
@@ -357,7 +406,8 @@
 
   /* ===== 상태 ===== */
   var DATA=null;
-  var curCat='PRODUCE', selPlu='', searchTerm='', fbReady=false, isAdmin=false;
+  var curCat='PRODUCE', curCate='', selPlu='', searchTerm='', fbReady=false, isAdmin=false;
+  var view='cate';   // 'cate' = CATE 버튼 그리드, 'list' = 상품 리스트
   window.addEventListener('fb-ready', function(){ fbReady=true; });
 
   /* ===== 진입 모드 ===== */
@@ -411,32 +461,64 @@
 
   /* ===== 렌더 ===== */
   function render(){
-    var grid=$('pluGrid');
+    var pane=$('listPane');
     if(!DATA){ return; }
-    var rows=rowsForCat(curCat).slice();
-    if(searchTerm){ var q=searchTerm.toLowerCase(); rows=rows.filter(function(r){ return pluOf(r).toLowerCase().indexOf(q)>=0 || nameOf(r).toLowerCase().indexOf(q)>=0; }); }
-    rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
+    if(view==='cate'){ renderCateGrid(pane); }
+    else { renderProductList(pane); }
+  }
 
-    if(!rows.length){
+  // (요구2) 카테고리(CATE) 버튼 그리드 — 가로5 세로6, 영어 크게/한글 작게
+  function renderCateGrid(pane){
+    var cates=catesForCat(curCat);
+    if(!cates.length){
       if((curCat==='SALES'||curCat==='ETC') && isAdmin){
-        grid.innerHTML='<div class="empty">아직 설정된 항목이 없습니다.<br>관리자 모드에서 이 카테고리에 표시할 분류를 등록하세요.<br>(설정 UI는 다음 단계에서 추가)</div>';
+        pane.innerHTML='<div class="empty">아직 설정된 항목이 없습니다.<br>관리자 모드에서 표시할 분류를 등록하세요.</div>';
       } else if(curCat==='SALES'||curCat==='ETC'){
-        grid.innerHTML='<div class="empty">이 카테고리는 관리자가 설정합니다.</div>';
+        pane.innerHTML='<div class="empty">이 카테고리는 관리자가 설정합니다.</div>';
       } else {
-        grid.innerHTML='<div class="empty">'+(searchTerm?'검색 결과가 없습니다':'표시할 항목이 없습니다')+'</div>';
+        pane.innerHTML='<div class="empty">표시할 항목이 없습니다</div>';
       }
       return;
     }
+    var html='<div class="cate-grid">';
+    cates.forEach(function(cate){
+      var sp=splitCate(cate);
+      // 요구1: 영문은 CATE(ENG)에서 (splitCate 가 "한글 (ENG)"의 ENG 부분을 뽑음)
+      var eng=sp.eng;
+      html+='<button class="cate-btn" data-cate="'+esc(cate)+'">'+
+        '<span class="ce">'+esc(eng||sp.kor)+'</span>'+
+        (eng?('<span class="ck">'+esc(sp.kor)+'</span>'):'')+
+        '</button>';
+    });
+    html+='</div>';
+    pane.innerHTML=html;
+  }
+  // 한글 품목명 → 영문 (CATE 에 영문이 없을 때 표시용)
 
-    var html='';
+
+  // (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한
+  function renderProductList(pane){
+    var rows=rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
+    rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
+    var sp=splitCate(curCate);
+    var head='<div class="crumb"><button class="crumb-back" id="crumbBack">← 뒤로</button>'+
+      '<span class="crumb-title">'+esc(sp.eng||sp.kor)+(sp.eng?(' <small>'+esc(sp.kor)+'</small>'):'')+'</span></div>';
+    if(!rows.length){ pane.innerHTML=head+'<div class="empty">표시할 상품이 없습니다</div>'; wireBack(); return; }
+    var html=head+'<div class="plu-grid">';
     rows.forEach(function(r){
-      var plu=pluOf(r), nm=nameOf(r);
+      // 요구2: PLU 박스 이름 = 데이터의 ENG DESC(eng) / KOR DESC(kor)
+      var plu=pluOf(r), en=engOf(r), ko=korOf(r);
       html+='<button class="plu-item'+(plu===selPlu?' sel':'')+'" data-plu="'+esc(plu)+'">'+
         '<span class="num">'+esc(plu)+'</span>'+
-        '<span class="nm">'+esc(nm||' ')+'</span></button>';
+        (en?('<span class="en">'+esc(en)+'</span>'):'')+
+        (ko?('<span class="ko">'+esc(ko)+'</span>'):'')+
+        '</button>';
     });
-    grid.innerHTML=html;
+    html+='</div>';
+    pane.innerHTML=html;
+    wireBack();
   }
+  function wireBack(){ var b=$('crumbBack'); if(b) b.onclick=function(){ view='cate'; curCate=''; selPlu=''; render(); resetPhoto(); }; }
 
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
@@ -472,19 +554,28 @@
     var b=e.target.closest('.cat-box'); if(!b) return;
     [].forEach.call(this.querySelectorAll('.cat-box'), function(x){ x.classList.remove('on'); });
     b.classList.add('on');
-    curCat=b.getAttribute('data-cat'); selPlu=''; render(); updateMeta();
+    curCat=b.getAttribute('data-cat'); curCate=''; selPlu=''; view='cate';
+    render(); resetPhoto();
+  });
+  // 리스트 영역 위임: CATE 버튼 → 상품 리스트, 상품 → 사진
+  $('listPane').addEventListener('click', function(e){
+    var cb=e.target.closest('.cate-btn');
+    if(cb){ curCate=cb.getAttribute('data-cate'); selPlu=''; view='list'; render(); resetPhoto(); return; }
+    var it=e.target.closest('.plu-item');
+    if(it){
+      [].forEach.call(this.querySelectorAll('.plu-item'), function(x){ x.classList.remove('sel'); });
+      it.classList.add('sel');
+      var plu=it.getAttribute('data-plu');
+      var enEl=it.querySelector('.en'), koEl=it.querySelector('.ko');
+      var nm=(koEl?koEl.textContent:'')||(enEl?enEl.textContent:'');
+      showPhoto(plu, nm);
+    }
+  });
+  function resetPhoto(){
     $('photoBox').innerHTML='<div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div>';
     $('photoNum').textContent='—'; $('photoName').textContent='';
-  });
-  $('pluGrid').addEventListener('click', function(e){
-    var it=e.target.closest('.plu-item'); if(!it) return;
-    [].forEach.call(this.querySelectorAll('.plu-item'), function(x){ x.classList.remove('sel'); });
-    it.classList.add('sel');
-    var plu=it.getAttribute('data-plu');
-    var nm=it.querySelector('.nm').textContent;
-    showPhoto(plu, nm);
-  });
-  var st=null;
+    selPlu='';
+  }
   $('refreshBox').addEventListener('click', refresh);
 
   /* ===== 매장 표시 + 진입 모드 초기화 ===== */
