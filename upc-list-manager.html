@@ -367,7 +367,13 @@
   /* 특수 열은 고정폭(126) 예외 — 좁게 유지 (min=max=width 3중 고정) */
   .plu-table th.upc-c-no-col, .plu-table td.upc-c-no-col { width:52px; min-width:52px; max-width:52px; }
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width:34px; min-width:34px; max-width:34px; }
-  .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width:46px; min-width:46px; max-width:46px; }
+  /* TAX 등 rcheck 열 = 5자 영문폭 고정, 헤더 "TAX A" 안 잘림 */
+  .plu-table th.plu-col-rcheck, .plu-table td.plu-c-rcheck { width:56px; min-width:56px; max-width:56px; }
+  .plu-table thead th.plu-col-rcheck { padding-left:3px; padding-right:3px; }
+  .plu-table thead th.plu-col-rcheck .plu-col-name { overflow:visible; text-overflow:clip; }
+  /* 모든 필드명(헤더) 가운데 정렬 */
+  .plu-table thead th { text-align:center; }
+  .plu-table thead th .plu-col-name { display:block; width:100%; text-align:center; }
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
@@ -946,7 +952,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         if(!ms){ var __lk=String(__c.label||'').trim().toUpperCase(); if(__lk && __MFSTY[__lk]) ms=__MFSTY[__lk]; }   // 라벨로 폴백 매칭
         if(ms){ if(ms.label) __c.label=ms.label; if(ms.fmt) __c.fmt=ms.fmt; if(ms.align) __c.align=ms.align; if(ms.trunc>0) __c.trunc=ms.trunc; __c.fg=(ms.fg||''); __c.bg=(ms.bg||''); __c.bold=!!ms.bold; }
       } } return lay; }
-  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; var __first=!__mfstyArrived; __mfstyArrived=true; if(!d){ if(__first && cloudLoaded && !editMode && typeof renderContent==='function') renderContent(); return; } var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if((__ch||__first) && typeof renderContent==='function') renderContent(); }, function(){}); }catch(e){} }
+  function subscribeMasterStyles(){ try{ if(!fns()||!fns().onSnapshot){ setTimeout(subscribeMasterStyles,600); return; } fns().onSnapshot(fns().doc(db(),'upc-config','main'), function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null; var __first=!__mfstyArrived; __mfstyArrived=true; if(!d){ if(__first && cloudLoaded && !editMode && typeof renderContent==='function') renderContent(); return; } var __ch=false; if(Array.isArray(d.masterFields)){ var __prevMF=JSON.stringify(__MFSTY); buildMFSTY(d.masterFields); if(JSON.stringify(__MFSTY)!==__prevMF) __ch=true; } var __nd={}; if(Array.isArray(d.deletedFields)){ for(var __di=0;__di<d.deletedFields.length;__di++){ var __k=d.deletedFields[__di]; var __kk=(__k&&typeof __k==='object')?__k.key:__k; if(__kk!=null){ var __K=String(__kk).trim().toUpperCase(); if(__K) __nd[__K]=1; } } } if(JSON.stringify(__nd)!==JSON.stringify(__MFDEL)){ __MFDEL=__nd; __ch=true; } if((__ch||__first) && typeof renderContent==='function'){ if((typeof __veditActive!=='undefined' && __veditActive) || (__selfWriteAt && (Date.now()-__selfWriteAt)<2500)){ return; } if(editMode) return; renderContent(); } }, function(){}); }catch(e){} }
   function subscribeCfg(){ if(!fns()||!fns().onSnapshot) return; try{ fns().onSnapshot(fns().doc(db(), CFG_COL, CFG_DOC), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):null; if(!d) return; var tch=false; if(typeof d.truncLen==='number'&&d.truncLen>0&&d.truncLen!==globalTrunc){ globalTrunc=d.truncLen; tch=true; } if(d.salesCfg && typeof d.salesCfg==='object'){ salesCfgMap=d.salesCfg; tch=true; } if(Array.isArray(d.masterFields)){ masterFields=normMaster(d.masterFields); if($('pluMasterModal') && $('pluMasterModal').classList.contains('show')) renderMasterList(); } if(d.tabs&&d.tabs.length){ applyTabs(d.tabs); } else if(tch){ if(!editMode) renderContent(); } }, function(){}); }catch(e){} }
 
   // 기본 열 정의 (의미 고정, 라벨/순서/숨김만 변경)
@@ -1505,7 +1511,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var __vc=curCat(), __vs=curSub();
     var ths=v.map(function(c){ var hc=(c.type==='check'?'plu-col-check':(c.type==='rcheck'?'plu-col-check plu-col-rcheck':(String(c.key).toLowerCase()==='plu'?'plu-col-no':''))); if(isRedCol(c)) hc=(hc?hc+' ':'')+'upc-c-red'; if(isPriceCol(c)) hc=(hc?hc+' ':'')+'upc-c-price'; if(isMarginCol(c)) hc=(hc?hc+' ':'')+'upc-c-green'; if(isPriceCol(c)||isMarginCol(c)) hc=(hc?hc+' ':'')+'upc-c-narrow'; if(isSrpCol(c)) hc=(hc?hc+' ':'')+'upc-c-srp'; if(isSrpMarginCol(c)) hc=(hc?hc+' ':'')+'upc-c-srpp'; if(isSalesPriceCol(c)||isMarginCol(c)) hc=(hc?hc+' ':'')+'upc-c-blue'; if(c.align) hc=(hc?hc+' ':'')+'align-'+c.align; var __tt=colTooltip(c,__vc,__vs); return '<th'+(hc?(' class="'+hc+'"'):'')+colorStyle(c)+(__tt?(' data-tip="'+escapeHtml(__tt)+'"'):'')+'><span class="plu-col-name">'+escapeHtml(c.label)+'</span></th>'; });
     ths.splice(noColPos(v), 0, '<th class="upc-c-no-col">NO.</th>');
-    return '<thead><tr>'+ths.join('')+'<th class="plu-col-photo">사진</th></tr></thead>';
+    return '<thead><tr>'+ths.join('')+'</tr></thead>';
   }
   // 이름·PLU 검색: PLU, KOR DESC(한글명), ENG DESC(영문명)만 기준으로 검색.
   function rowMatches(r,t){
@@ -1769,7 +1775,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var noCls=(isNewRow&&isPriceUpd)?' upc-c-no-newupd':(isNewRow?' upc-c-no-new':(isPriceUpd?' upc-c-no-upd':''));
     cells.splice(noColPos(v), 0, '<td class="upc-c-no-col'+noCls+'">'+noContent+'</td>');
     var dupCls=(__dupViewMark&&__dupViewMark.has(r))?' plu-row-dup':'';
-    return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+dupCls+'">'+cells.join('')+photoCellHTML(r)+'</tr>';
+    return '<tr class="'+(isReserveRow(r)?'plu-row-reserve':'')+dupCls+'">'+cells.join('')+'</tr>';
   }
   var __chkSaveTimer=null, __chkSaveCat=null;
   var __selfWriteAt=0;   // 내가 마지막으로 저장한 시각 — 자기 쓰기 반향 스냅샷의 불필요한 전체 재렌더 방지
