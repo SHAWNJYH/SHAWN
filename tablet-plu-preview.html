@@ -162,26 +162,31 @@
   /* (요구2) CATE 버튼 그리드 — 지금보다 크게: 가로4 (박스 1/3 커짐) */
   .cate-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
   .cate-btn{
-    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
     border:1.5px solid var(--border); border-radius:14px; background:var(--panel-2);
-    cursor:pointer; transition:all .1s; font-family:inherit; padding:16px 10px; text-align:center; overflow:hidden;
+    cursor:pointer; transition:all .1s; font-family:inherit; padding:10px; text-align:center;
   }
   .cate-btn:active{ border-color:var(--green); background:var(--green-soft); }
-  .cate-btn .ce{ font-size:24px; font-weight:800; color:var(--ink); line-height:1.15; letter-spacing:-.01em; white-space:normal; word-break:break-word; overflow-wrap:anywhere; max-width:100%; }  /* 영어 크게, 길면 2줄 */
-  .cate-btn .ck{ font-size:15px; font-weight:600; color:var(--ink-dim); line-height:1.15; }                                       /* 한글 */
+  .cate-btn .ce{ font-size:24px; font-weight:800; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }  /* 영어 크게 */
+  .cate-btn .ck{ font-size:15px; font-weight:600; color:var(--ink-dim); }                                       /* 한글 */
+  /* 영어·스페인어는 이름이 길어 글자 크기 축소 */
+  body.lang-EN .cate-btn .ce, body.lang-ES .cate-btn .ce{ font-size:19px; }
+  body.lang-EN .cate-btn .ck, body.lang-ES .cate-btn .ck{ font-size:13px; }
 
   /* (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한 */
   /* (요구3) 상품 리스트 — CATE 박스와 같은 크기: 가로4, PLU 최대·붉은 BOLD, 영/한 */
   .plu-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
   .plu-item{
-    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px; padding:12px 10px; border:1.5px solid var(--border);
-    border-radius:14px; background:var(--panel-2); cursor:pointer; transition:all .1s; text-align:center; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:10px; border:1.5px solid var(--border);
+    border-radius:14px; background:var(--panel-2); cursor:pointer; transition:all .1s; text-align:center;
   }
   .plu-item:active,.plu-item.sel{ border-color:var(--green); background:var(--green-soft); }
   .plu-item .num{ font-family:var(--mono); font-size:32px; font-weight:900; color:#c0392b; line-height:1.05; }  /* PLU 최대·BOLD·붉은색 */
-  /* 영문: 길면 2줄로 줄바꿈 (1줄일 때와 같은 상단 위치 유지) */
-  .plu-item .en{ font-size:16px; color:var(--ink); font-weight:700; line-height:1.15; max-width:100%; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
-  .plu-item .ko{ font-size:14px; color:var(--ink-dim); font-weight:600; line-height:1.15; max-width:100%; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
+  .plu-item .en{ font-size:16px; color:var(--ink); font-weight:700; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plu-item .ko{ font-size:14px; color:var(--ink-dim); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* 영어·스페인어는 이름이 길어 글자 크기 축소 */
+  body.lang-EN .plu-item .en, body.lang-ES .plu-item .en{ font-size:13px; }
+  body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko{ font-size:12px; }
 
   /* 사진 패널 — DATA REFRESH · 언어선택 · 과일사진(고정크기) · BACK(고정) */
   .photo-pane{ flex:0 0 260px; display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:12px; }
@@ -716,10 +721,14 @@
     [].forEach.call(this.querySelectorAll('.lang-btn'), function(x){ x.classList.remove('on'); });
     b.classList.add('on');
     curLang=b.getAttribute('data-lang');
+    applyLangClass();
     render();   // 현재 화면(카테고리/상품) 이름 다시 그림
     // 사진 정보 이름도 선택 언어로 갱신
     if(selPlu){ var it=document.querySelector('.plu-item[data-plu="'+selPlu+'"]'); if(it){ var nm=itemName(it.getAttribute('data-ko')||'', it.getAttribute('data-en')||''); $('photoName').textContent=nm.main||''; } }
   });
+  // 언어별 글자 크기 조정용 클래스 (영어·스페인어는 이름이 길어 조금 작게)
+  function applyLangClass(){ document.body.classList.remove('lang-EN','lang-KO','lang-ES'); document.body.classList.add('lang-'+curLang); }
+  applyLangClass();
 
   /* ===== 매장 표시 + 진입 모드 초기화 ===== */
   // 상단에 매장명 표시 (매장별 화면임을 명확히)
