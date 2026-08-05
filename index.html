@@ -2458,8 +2458,8 @@
       <div class="portal-card" id="toCampeonBtn" role="button" tabindex="0" aria-label="CAMPEON WHOLESALE">
         <div class="portal-name">CAMPEON WHOLESALE</div>
       </div>
-      <div class="portal-card" id="toDoordashBtn" role="button" tabindex="0" aria-label="DOORDASH">
-        <div class="portal-name">DOORDASH</div>
+      <div class="portal-card" id="toPluPreviewBtn" role="button" tabindex="0" aria-label="PLU PREVIEW">
+        <div class="portal-name">PLU PREVIEW</div>
       </div>
       <div class="portal-card" id="toAnalyzeBtn" role="button" tabindex="0" aria-label="ITEM ANALYZE">
         <div class="portal-name">ITEM ANALYZE</div>
@@ -2595,22 +2595,21 @@
   </div>
 </div>
 
-<!-- DOORDASH 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
-<div class="mgr-ov" id="ddLoginOv">
+<!-- PLU PREVIEW 매장 선택 팝업 (조회 전용 · PIN 없이 매장만 선택) -->
+<div class="mgr-ov" id="ppLoginOv">
   <div class="lock-card mgr-login-card mgr-pw-card">
-    <button class="mgr-x" id="ddLoginClose" type="button">✕</button>
-    <h1 class="lock-title">DOORDASH</h1>
+    <button class="mgr-x" id="ppLoginClose" type="button">✕</button>
+    <h1 class="lock-title">PLU PREVIEW</h1>
+    <p class="mgr-pw-sub">매장을 선택하세요</p>
     <div class="field">
-      <label>아이디</label>
-      <select id="ddLoginUser"><option value="">불러오는 중…</option></select>
+      <label>매장</label>
+      <select id="ppStore" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:var(--mono);font-size:15px;color:var(--text);background:var(--bg-elev);">
+        <option value="">SELECT STORE</option>
+      </select>
     </div>
-    <div class="field">
-      <label>PASSWORD</label>
-      <input type="password" id="ddLoginPw" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <div class="err" id="ddLoginErr"></div>
-    <label class="egmm-auto-row"><input type="checkbox" id="ddLoginAuto"><span>자동 로그인</span></label>
-    <button class="btn" id="ddLoginBtn" type="button">입장</button>
+    <div class="err" id="ppLoginErr"></div>
+    <label class="egmm-auto-row"><input type="checkbox" id="ppAutoChk"><span>이 매장 기억하기</span></label>
+    <button class="btn" id="ppLoginBtn" type="button">입장</button>
   </div>
 </div>
 
@@ -2907,7 +2906,7 @@
   $('toOdpBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
   });
-  // ===== 아이디/패스워드 스코프 로그인 (index 화면 팝업) — CAMPEON · DOORDASH · ITEM ANALYZE =====
+  // ===== 아이디/패스워드 스코프 로그인 (index 화면 팝업) — CAMPEON · ITEM ANALYZE =====
   // H-MART 처럼 index 화면에서 팝업으로 로그인 → 성공 시 대상 페이지로 이동(대상 페이지는 게이트로 로그인 생략).
   function initScopeGate(cfg){
     var ov=$(cfg.ov); if(!ov) return function(){};
@@ -2966,7 +2965,35 @@
     return open;
   }
   const openCampeonPw = initScopeGate({ ov:'cwLoginOv', userSel:'cwLoginUser', pwInput:'cwLoginPw', err:'cwLoginErr', autoChk:'cwLoginAuto', btn:'cwLoginBtn', closeBtn:'cwLoginClose', doc:'campeon-users', gateKey:'campeonGate', userKey:'campeonUser', autoKey:'campeonAutoLogin', dest:'campeon-wholsale.html' });
-  const openDoordashPw = initScopeGate({ ov:'ddLoginOv', userSel:'ddLoginUser', pwInput:'ddLoginPw', err:'ddLoginErr', autoChk:'ddLoginAuto', btn:'ddLoginBtn', closeBtn:'ddLoginClose', doc:'doordash-users', gateKey:'doordashGate', userKey:'doordashUser', autoKey:'doordashAutoLogin', dest:'doordash.html' });
+  // PLU PREVIEW — 매장 선택(조회 전용, PIN 없음) → tablet-plu-preview.html 이동
+  const PP_STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  const PP_STORE_KEY = 'theShawnStore';   // H-MART 와 동일 매장값 공유
+  const PP_AUTO_KEY = 'pluPreviewAuto';
+  const ppLoginOv = $('ppLoginOv'), ppStoreSel = $('ppStore'), ppLoginErr = $('ppLoginErr'), ppAutoChk = $('ppAutoChk');
+  const isPpAuto = () => { try{ return localStorage.getItem(PP_AUTO_KEY)==='1'; }catch(e){ return false; } };
+  const savedPpStore = () => { try{ var s=localStorage.getItem(PP_STORE_KEY); return (s && PP_STORES.indexOf(s)>=0)?s:''; }catch(e){ return ''; } };
+  const fillPpStores = () => { if(!ppStoreSel) return; ppStoreSel.innerHTML='<option value="">SELECT STORE</option>'+PP_STORES.map(s=>'<option value="'+s+'">'+s+'</option>').join(''); };
+  const openPluPreview = () => {
+    // 이 매장 기억하기가 켜져 있으면 바로 입장
+    if(isPpAuto() && savedPpStore()){ try{ localStorage.setItem(PP_STORE_KEY, savedPpStore()); }catch(e){} window.location.href='tablet-plu-preview.html'; return; }
+    if(ppLoginErr) ppLoginErr.textContent=''; fillPpStores();
+    var sv=savedPpStore(); if(ppStoreSel) ppStoreSel.value=sv;
+    if(ppAutoChk) ppAutoChk.checked=isPpAuto();
+    ppLoginOv.classList.add('show');
+    setTimeout(()=>{ if(ppStoreSel) ppStoreSel.focus(); }, 80);
+  };
+  const closePluPreview = () => ppLoginOv.classList.remove('show');
+  const submitPluPreview = () => {
+    const store=(ppStoreSel && ppStoreSel.value || '').trim();
+    if(ppLoginErr) ppLoginErr.textContent='';
+    if(!store){ if(ppLoginErr) ppLoginErr.textContent='매장을 선택하세요'; return; }
+    try{ localStorage.setItem(PP_STORE_KEY, store); }catch(e){}
+    try{ localStorage.setItem(PP_AUTO_KEY, (ppAutoChk && ppAutoChk.checked)?'1':'0'); }catch(e){}
+    window.location.href='tablet-plu-preview.html';
+  };
+  if($('ppLoginBtn')) $('ppLoginBtn').onclick = submitPluPreview;
+  if($('ppLoginClose')) $('ppLoginClose').onclick = closePluPreview;
+  if(ppLoginOv) ppLoginOv.addEventListener('click', e => { if(e.target===ppLoginOv) closePluPreview(); });
   const openAnalyzePw = initScopeGate({ ov:'iaLoginOv', userSel:'iaLoginUser', pwInput:'iaLoginPw', err:'iaLoginErr', autoChk:'iaLoginAuto', btn:'iaLoginBtn', closeBtn:'iaLoginClose', doc:'item-analyze-users', gateKey:'analyzeGate', userKey:'analyzeUser', autoKey:'analyzeAutoLogin', dest:'item-management-analyze.html' });
 
   // CAMPEON WHOLESALE 박스 → index 팝업 로그인
@@ -2974,10 +3001,10 @@
     $('toCampeonBtn').onclick = () => openCampeonPw();
     $('toCampeonBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCampeonPw(); } });
   }
-  // DOORDASH 박스 → index 팝업 로그인
-  if($('toDoordashBtn')){
-    $('toDoordashBtn').onclick = () => openDoordashPw();
-    $('toDoordashBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDoordashPw(); } });
+  // PLU PREVIEW 박스 → 매장 선택 팝업
+  if($('toPluPreviewBtn')){
+    $('toPluPreviewBtn').onclick = () => openPluPreview();
+    $('toPluPreviewBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPluPreview(); } });
   }
   // ITEM ANALYZE 박스 → index 팝업 로그인
   if($('toAnalyzeBtn')){

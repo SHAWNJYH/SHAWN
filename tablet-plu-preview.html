@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<!-- THE SHAWN WITH EGMM BY CLAUDE -->
+<!--
+  tablet-plu-preview.html — 매장 태블릿 PLU 조회 (11인치 아이패드 = 1194×834 가로 기준)
+  ─────────────────────────────────────────────────────────────────
+  [데이터] plu-list-store 와 동일 Firebase(the-shawn) · upc-list 컬렉션
+    · 평소: 브라우저 저장(IndexedDB 'egmm-store-tablet')에서만 읽음 → 오프라인 동작
+    · REFRESH: Firebase 에서 1회 가져와 저장 후 표시 (실시간 구독 없음)
+  [레이아웃]
+    · 상단: 카테고리 박스 (PRODUCE/VEGETABLE/FRUIT/BOX/LOCAL/SALES ITEM/ETC) + REFRESH
+    · 중간: 왼쪽 PLU 목록 · 오른쪽 사진 패널 (image_produce/{PLU}.jpg)
+    · 하단: 관리자 메시지
+  [모드] 관리자(비번 1004, 추후 STORE MANAGER 관리) / 캐시어(비번 없음)
+  [분류] PRODUCE=야채+과일 / VEGETABLE=야채 / FRUIT=과일 / BOX=박스 / LOCAL=로컬
+         SALES ITEM·ETC = 관리자가 직접 등록/수정
+-->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1194, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>PLU 조회 · 매장 태블릿</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f2ec; --panel:#fff; --panel-2:#faf9f5;
+    --border:#e2ddd2; --border-2:#d5cfc0;
+    --ink:#26221a; --ink-dim:#7a7264;
+    --green:#3f7d3a; --green-soft:#eaf3e8;
+    --orange:#d98a3d; --orange-soft:#faf0e2;
+    --box:#8a6d3b; --box-soft:#f3ece0;
+    --blue:#2d6cdf; --blue-soft:#e8f0fb;
+    --local:#b0532e; --local-soft:#f8ebe4;
+    --admin:#6b4fa8; --admin-soft:#efeaf7;
+    --mono:"SFMono-Regular",ui-monospace,"Menlo",monospace;
+    --serif:"Pretendard",-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:var(--serif); background:var(--bg); color:var(--ink);
+    width:100vw; height:100vh; margin:0; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  /* 데스크톱(마우스): 11인치 아이패드(1194×834) 고정 틀로 중앙 표시 */
+  @media (pointer:fine) and (min-width:1200px){
+    html{ background:#dfe3e8; }
+    body{
+      width:1194px; height:834px; margin:24px auto;
+      border-radius:18px; box-shadow:0 0 0 14px #c9cfd6, 0 30px 70px -20px rgba(20,40,70,.45);
+      overflow:hidden;
+    }
+  }
+  /* 태블릿·터치 기기: 전체화면 (위 고정 틀 미적용 → 100vw/vh 그대로) */
+
+  /* ===== 진입 모드 선택 ===== */
+  .gate{ position:fixed; inset:0; z-index:200; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+  .gate.hide{ display:none; }
+  .gate-card{ text-align:center; }
+  .gate-card h1{ font-size:30px; font-weight:900; margin:0 0 6px; letter-spacing:-.02em; }
+  .gate-card .tag{ font-size:14px; color:var(--ink-dim); font-weight:600; margin-bottom:36px; }
+  .gate-btns{ display:flex; gap:24px; }
+  .gate-btn{
+    width:250px; padding:32px 20px; border:2px solid var(--border-2); border-radius:20px;
+    background:var(--panel); cursor:pointer; transition:all .14s; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:12px;
+  }
+  .gate-btn:hover{ border-color:var(--green); transform:translateY(-3px); box-shadow:0 14px 34px -14px rgba(60,100,50,.4); }
+  .gate-btn .ic{ font-size:44px; }
+  .gate-btn .t{ font-size:20px; font-weight:800; }
+  .gate-btn .s{ font-size:12px; color:var(--ink-dim); font-weight:600; }
+  .gate-btn.admin:hover{ border-color:var(--admin); box-shadow:0 14px 34px -14px rgba(107,79,168,.4); }
+
+  /* 비번 입력 */
+  .pin{ position:fixed; inset:0; z-index:210; background:rgba(38,34,26,.5); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; }
+  .pin.show{ display:flex; }
+  .pin-card{ background:var(--panel); border-radius:22px; padding:32px 36px; width:340px; text-align:center; box-shadow:0 24px 70px rgba(0,0,0,.3); }
+  .pin-card h2{ margin:0 0 4px; font-size:20px; font-weight:800; }
+  .pin-card .s{ font-size:12px; color:var(--ink-dim); margin-bottom:20px; }
+  .pin-disp{ font-family:var(--mono); font-size:32px; letter-spacing:12px; height:44px; margin-bottom:18px; color:var(--admin); font-weight:800; }
+  .pin-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .pin-key{ padding:18px 0; border:1.5px solid var(--border); border-radius:12px; background:var(--panel-2); font-size:22px; font-weight:800; cursor:pointer; font-family:inherit; transition:background .1s; }
+  .pin-key:active{ background:var(--admin-soft); }
+  .pin-key.wide{ grid-column:span 1; font-size:14px; color:var(--ink-dim); }
+  .pin-err{ color:var(--local); font-size:13px; font-weight:700; height:18px; margin-top:10px; }
+
+  /* ===== 상단 카테고리 박스 ===== */
+  .topbar{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:14px 18px 12px; background:var(--panel); border-bottom:1.5px solid var(--border); }
+  .cat-boxes{ display:flex; gap:10px; flex:1; }
+  .cat-box{
+    flex:1; padding:14px 8px; border:2px solid var(--border-2); border-radius:14px; background:var(--panel-2);
+    cursor:pointer; text-align:center; transition:all .12s; font-family:inherit;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .cat-box .ic{ font-size:24px; line-height:1; }
+  .cat-box .lb{ font-size:14px; font-weight:800; letter-spacing:-.01em; }
+  .cat-box .sub{ font-size:10px; color:var(--ink-dim); font-weight:600; }
+  .cat-box.on{ color:#fff; }
+  .cat-box[data-cat="PRODUCE"].on{ background:var(--green); border-color:var(--green); }
+  .cat-box[data-cat="VEGETABLE"].on{ background:var(--green); border-color:var(--green); }
+  .cat-box[data-cat="FRUIT"].on{ background:var(--orange); border-color:var(--orange); }
+  .cat-box[data-cat="BOX"].on{ background:var(--box); border-color:var(--box); }
+  .cat-box[data-cat="LOCAL"].on{ background:var(--local); border-color:var(--local); }
+  .cat-box[data-cat="SALES"].on{ background:var(--blue); border-color:var(--blue); }
+  .cat-box[data-cat="ETC"].on{ background:var(--ink-dim); border-color:var(--ink-dim); }
+  .cat-box.on .sub{ color:rgba(255,255,255,.8); }
+
+  .refresh-box{
+    flex:0 0 96px; padding:14px 8px; border:2px solid var(--blue); border-radius:14px; background:var(--blue); color:#fff;
+    cursor:pointer; text-align:center; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:4px;
+    transition:background .12s;
+  }
+  .refresh-box:active{ background:#245bc0; }
+  .refresh-box.loading{ opacity:.6; pointer-events:none; }
+  .refresh-box .ic{ font-size:24px; }
+  .refresh-box .lb{ font-size:12px; font-weight:800; }
+  .refresh-box .spin{ width:20px; height:20px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
+  .refresh-box.loading .spin{ display:block; }
+  .refresh-box.loading .ic{ display:none; }
+  @keyframes sp{ to{ transform:rotate(360deg); } }
+
+  /* 모드 뱃지 + 검색 */
+  .mode-badge{ flex:0 0 auto; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:800; }
+  .mode-badge.admin{ background:var(--admin-soft); color:var(--admin); }
+  .mode-badge.cashier{ background:var(--green-soft); color:var(--green); }
+
+  .subrow{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:10px 18px; background:var(--panel); border-bottom:1.5px solid var(--border); }
+  .search{ flex:1; max-width:360px; padding:9px 14px; border:1.5px solid var(--border-2); border-radius:11px; background:var(--panel-2); font-size:15px; font-family:inherit; outline:none; }
+  .search:focus{ border-color:var(--green); background:#fff; }
+  .meta{ margin-left:auto; font-size:11px; font-weight:700; color:var(--ink-dim); }
+  .meta b{ color:var(--ink); } .meta .off{ color:var(--local); }
+
+  /* ===== 중간: PLU 목록 + 사진 ===== */
+  .main{ flex:1 1 auto; display:flex; gap:14px; padding:14px 18px; overflow:hidden; }
+  .list-pane{ flex:1 1 auto; overflow:auto; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; }
+  .plu-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:8px; padding:14px; }
+  .plu-item{
+    display:flex; flex-direction:column; gap:2px; padding:11px 12px; border:1.5px solid var(--border);
+    border-radius:11px; background:var(--panel-2); cursor:pointer; transition:all .1s;
+  }
+  .plu-item:active,.plu-item.sel{ border-color:var(--green); background:var(--green-soft); }
+  .plu-item .num{ font-family:var(--mono); font-size:19px; font-weight:800; color:var(--ink); }
+  .plu-item .nm{ font-size:12px; color:var(--ink-dim); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plu-item.sel .num{ color:var(--green); }
+
+  .photo-pane{ flex:0 0 320px; display:flex; flex-direction:column; gap:12px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:16px; }
+  .photo-box{ flex:1; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+  .photo-box img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .photo-box .noimg{ color:var(--ink-dim); font-size:13px; font-weight:600; text-align:center; padding:20px; }
+  .photo-info{ text-align:center; }
+  .photo-info .pnum{ font-family:var(--mono); font-size:26px; font-weight:900; color:var(--green); }
+  .photo-info .pname{ font-size:14px; color:var(--ink-dim); font-weight:600; margin-top:2px; }
+
+  .empty{ text-align:center; color:var(--ink-dim); padding:60px 20px; font-size:15px; font-weight:600; grid-column:1/-1; }
+
+  /* ===== 하단: 관리자 메시지 ===== */
+  .msgbar{ flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:12px 18px; background:var(--ink); color:#fff; }
+  .msgbar .ic{ font-size:18px; }
+  .msgbar .txt{ flex:1; font-size:14px; font-weight:600; }
+  .msgbar .txt.empty-msg{ color:rgba(255,255,255,.4); font-weight:500; }
+  .msgbar .edit-msg{ border:1px solid rgba(255,255,255,.3); background:transparent; color:#fff; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; display:none; }
+  body.admin .msgbar .edit-msg{ display:inline-block; }
+
+  /* 로딩 */
+  .load-ov{ position:fixed; inset:0; z-index:150; display:none; align-items:center; justify-content:center; background:rgba(244,242,236,.85); }
+  .load-ov.show{ display:flex; }
+  .load-card{ background:#fff; border-radius:18px; padding:26px 38px; box-shadow:0 20px 60px rgba(0,0,0,.18); text-align:center; }
+  .load-card .sp{ width:38px; height:38px; border:4px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:sp .8s linear infinite; margin:0 auto 12px; }
+  .load-card .t{ font-size:15px; font-weight:800; }
+
+  /* 첫 실행 */
+  .firstrun{ grid-column:1/-1; text-align:center; padding:60px 20px; }
+  .firstrun .big{ font-size:40px; margin-bottom:10px; }
+  .firstrun h2{ margin:0 0 8px; font-size:19px; font-weight:800; }
+  .firstrun p{ margin:0; font-size:13px; color:var(--ink-dim); line-height:1.7; }
+</style>
+</head>
+<body>
+
+<!-- 진입 모드 선택 -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <h1>PLU 조회</h1>
+    <div class="tag">THE SHAWN · 매장 태블릿</div>
+    <div class="gate-btns">
+      <button class="gate-btn cashier" id="gateCashier">
+        <span class="ic">🧾</span><span class="t">캐시어 모드</span><span class="s">바로 입장</span>
+      </button>
+      <button class="gate-btn admin" id="gateAdmin">
+        <span class="ic">🔑</span><span class="t">관리자 모드</span><span class="s">비밀번호 필요</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 비번 입력 -->
+<div class="pin" id="pin">
+  <div class="pin-card">
+    <h2>관리자 비밀번호</h2>
+    <div class="s">임시 비밀번호 (추후 STORE MANAGER 관리)</div>
+    <div class="pin-disp" id="pinDisp"></div>
+    <div class="pin-pad" id="pinPad">
+      <button class="pin-key" data-k="1">1</button><button class="pin-key" data-k="2">2</button><button class="pin-key" data-k="3">3</button>
+      <button class="pin-key" data-k="4">4</button><button class="pin-key" data-k="5">5</button><button class="pin-key" data-k="6">6</button>
+      <button class="pin-key" data-k="7">7</button><button class="pin-key" data-k="8">8</button><button class="pin-key" data-k="9">9</button>
+      <button class="pin-key wide" data-k="clear">지움</button><button class="pin-key" data-k="0">0</button><button class="pin-key wide" data-k="back">←</button>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+  </div>
+</div>
+
+<!-- 상단 카테고리 박스 -->
+<div class="topbar">
+  <div class="cat-boxes" id="catBoxes">
+    <button class="cat-box on" data-cat="PRODUCE"><span class="ic">🥬</span><span class="lb">PRODUCE</span><span class="sub">야채+과일 전체</span></button>
+    <button class="cat-box" data-cat="VEGETABLE"><span class="ic">🥕</span><span class="lb">VEGETABLE</span><span class="sub">야채</span></button>
+    <button class="cat-box" data-cat="FRUIT"><span class="ic">🍎</span><span class="lb">FRUIT</span><span class="sub">과일</span></button>
+    <button class="cat-box" data-cat="BOX"><span class="ic">📦</span><span class="lb">BOX</span><span class="sub">박스</span></button>
+    <button class="cat-box" data-cat="LOCAL"><span class="ic">🏠</span><span class="lb">LOCAL</span><span class="sub">로컬</span></button>
+    <button class="cat-box" data-cat="SALES"><span class="ic">🏷️</span><span class="lb">SALES ITEM</span><span class="sub">관리자 설정</span></button>
+    <button class="cat-box" data-cat="ETC"><span class="ic">➕</span><span class="lb">ETC</span><span class="sub">관리자 설정</span></button>
+  </div>
+  <button class="refresh-box" id="refreshBox"><span class="spin"></span><span class="ic">↻</span><span class="lb">REFRESH</span></button>
+</div>
+
+<div class="subrow">
+  <span class="mode-badge cashier" id="modeBadge">캐시어</span>
+  <input class="search" id="search" type="text" placeholder="PLU 번호 · 이름 검색" autocomplete="off">
+  <span class="meta" id="meta">—</span>
+</div>
+
+<!-- 중간: PLU 목록 + 사진 -->
+<div class="main">
+  <div class="list-pane">
+    <div class="plu-grid" id="pluGrid">
+      <div class="firstrun" id="firstrun">
+        <div class="big">📥</div>
+        <h2>저장된 데이터가 없습니다</h2>
+        <p>상단 REFRESH를 눌러 데이터를 가져오세요.<br>한 번 가져오면 브라우저에 저장되어 오프라인에서도 조회됩니다.</p>
+      </div>
+    </div>
+  </div>
+  <div class="photo-pane">
+    <div class="photo-box" id="photoBox"><div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div></div>
+    <div class="photo-info"><div class="pnum" id="photoNum">—</div><div class="pname" id="photoName"></div></div>
+  </div>
+</div>
+
+<!-- 하단: 관리자 메시지 -->
+<div class="msgbar">
+  <span class="ic">📢</span>
+  <span class="txt empty-msg" id="msgTxt">관리자 메시지가 없습니다</span>
+  <button class="edit-msg" id="editMsg">메시지 편집</button>
+</div>
+
+<div class="load-ov" id="loadOv"><div class="load-card"><div class="sp"></div><div class="t" id="loadT">데이터 불러오는 중…</div></div></div>
+
+<!-- Firebase (REFRESH 시에만) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+    authDomain: "the-shawn.firebaseapp.com",
+    projectId: "the-shawn",
+    storageBucket: "the-shawn.firebasestorage.app",
+    messagingSenderId: "519898602513",
+    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  window.__fbFetch = async function(){
+    const cols = ['upc-list','upc-config','store-msg'];
+    const out = {};
+    for(const c of cols){
+      const o = {};
+      try{ const snap = await getDocs(collection(db, c)); snap.forEach(ds => { o[ds.id] = ds.data(); }); }catch(e){}
+      out[c] = o;
+    }
+    return out;
+  };
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<script>
+(function(){
+  var $=function(id){ return document.getElementById(id); };
+  var ADMIN_PIN='1004';   // 임시 (추후 STORE MANAGER 관리)
+
+  /* ===== gzip / 파싱 ===== */
+  function b64ToU8(b64){ var bin=atob(b64), u=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
+  function ungzipRows(d){
+    try{ if(d.comp && typeof pako!=='undefined'){
+      var out=pako.ungzip(b64ToU8(d.data),{to:'string'});
+      if(typeof out!=='string'){ out=new TextDecoder('utf-8').decode(out instanceof Uint8Array?out:new Uint8Array(out)); }
+      return JSON.parse(out);
+    }}catch(e){}
+    return Array.isArray(d.rows)?d.rows:[];
+  }
+  function labelOf(id, map){ for(var k in map){ if(map[k]===id) return k; } return id; }
+  function buildDocidMap(cfg){ var m={}; var main=(cfg&&cfg.main)||null; if(main&&Array.isArray(main.tabs)){ main.tabs.forEach(function(t){ if(t&&t.label) m[String(t.label)]=String(t.doc||t.label); }); } return m; }
+
+  // upc-list → { 카테고리: [rows] }, 각 row {plu, extra, sub}
+  function parseSnap(upcList, upcConfig){
+    var map=buildDocidMap(upcConfig);
+    var cloud={}, metas={}, chunkBy={};
+    for(var id in upcList){
+      var d=upcList[id]||{};
+      if(d && d.parent){ if(!chunkBy[d.parent]) chunkBy[d.parent]=[]; chunkBy[d.parent].push({sub:(d.sub!=null?String(d.sub):''),ci:(typeof d.ci==='number'?d.ci:0),rows:ungzipRows(d)}); }
+      else { var mc=/^(.*)__c(\d+)$/.exec(id); if(mc){ if(!chunkBy[mc[1]])chunkBy[mc[1]]=[]; chunkBy[mc[1]].push({sub:'',ci:parseInt(mc[2],10),rows:ungzipRows(d)}); } else { metas[id]=d; } }
+    }
+    function assemble(id,d){ var rows=[]; if(chunkBy[id]){ var bs={},order=[]; chunkBy[id].forEach(function(c){ if(!(c.sub in bs)){bs[c.sub]=[];order.push(c.sub);} bs[c.sub].push(c); }); order.forEach(function(s){ bs[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ c.rows.forEach(function(r){ if(r&&r.sub==null&&c.sub) r.sub=c.sub; }); rows=rows.concat(c.rows); }); }); } else if(Array.isArray(d.rows)) rows=d.rows; return rows; }
+    for(var mid in metas){ var lab=labelOf(mid,map); cloud[lab]=assemble(mid,metas[mid]); }
+    for(var par in chunkBy){ if(metas[par])continue; var l2=labelOf(par,map); if(cloud[l2]!==undefined)continue; cloud[l2]=assemble(par,{}); }
+    return cloud;
+  }
+
+  /* ===== 서브 분류 판별 (야채/과일/박스/로컬) ===== */
+  var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집','SEATTLE FOOD':'행복떡집','HANAYANG(떡)':'한양떡집','HANAYANG':'한양떡집' };
+  function rowSub(r){ var s=(r&&r.sub!=null?String(r.sub):''); if(SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
+  var VEG=['야채','vegetable'], FRUIT=['과일','fruit'], BOX=['박스','box'], LOCAL=['로컬','local'];
+  function subMatch(r, keys){ var s=rowSub(r).toLowerCase(); return keys.some(function(k){ return s.indexOf(k.toLowerCase())>=0; }); }
+  function rowsForCat(catKey){
+    if(!DATA) return [];
+    var pool=[];
+    for(var lab in DATA.cloud){ (DATA.cloud[lab]||[]).forEach(function(r){ pool.push(r); }); }
+    if(catKey==='PRODUCE') return pool.filter(function(r){ return subMatch(r,VEG)||subMatch(r,FRUIT); });
+    if(catKey==='VEGETABLE') return pool.filter(function(r){ return subMatch(r,VEG); });
+    if(catKey==='FRUIT') return pool.filter(function(r){ return subMatch(r,FRUIT); });
+    if(catKey==='BOX') return pool.filter(function(r){ return subMatch(r,BOX); });
+    if(catKey==='LOCAL') return pool.filter(function(r){ return subMatch(r,LOCAL); });
+    if(catKey==='SALES'||catKey==='ETC'){
+      var conf=(DATA.custom&&DATA.custom[catKey])||null;
+      if(conf&&conf.subs&&conf.subs.length){ return pool.filter(function(r){ return conf.subs.some(function(k){ return rowSub(r).toLowerCase().indexOf(String(k).toLowerCase())>=0; }); }); }
+      return [];
+    }
+    return [];
+  }
+
+  function getVal(r,key){ if(!r) return ''; if(key==='PLU'){ if(r.plu!=null) return String(r.plu); } if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; var lk=String(key).toLowerCase(); for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } } return ''; }
+  function pluOf(r){ return String((r&&r.plu)||(r&&r.extra&&(r.extra.PLU||r.extra.plu))||''); }
+  function nameOf(r){ return String(getVal(r,'KOR DESC')||getVal(r,'ENG DESC')||getVal(r,'DESC')||''); }
+
+  /* ===== IndexedDB 캐시 ===== */
+  /* ===== 매장 식별 (매장별 독립 동작) ===== */
+  // 우선순위: URL ?store= > localStorage theShawnStore > 없으면 진입 불가 안내
+  function readStore(){
+    try{ var qs=new URLSearchParams(location.search); var q=(qs.get('store')||'').toUpperCase().trim(); if(q) return q; }catch(e){}
+    try{ var s=localStorage.getItem('theShawnStore'); if(s) return String(s).toUpperCase().trim(); }catch(e){}
+    return '';
+  }
+  function readMode(){ try{ var qs=new URLSearchParams(location.search); return (qs.get('mode')||'').toLowerCase(); }catch(e){ return ''; } }
+  var STORE=readStore();
+  var URL_MODE=readMode();   // 'manager' 면 hmart 안에서 관리 모드로 열림
+
+  /* ===== IndexedDB 캐시 (매장별 분리) ===== */
+  var DBN='egmm-store-tablet', ST='data';
+  var KEY='snapshot::'+(STORE||'_NONE_');   // 매장마다 별도 저장 (FEDERALWAY 데이터와 TACOMA 데이터 분리)
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open(DBN,1); r.onupgradeneeded=function(){ r.result.createObjectStore(ST); }; r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
+  function cacheGet(){ return idb().then(function(d){ return new Promise(function(res){ try{ var g=d.transaction(ST,'readonly').objectStore(ST).get(KEY); g.onsuccess=function(){ res(g.result||null); }; g.onerror=function(){ res(null); }; }catch(e){ res(null); } }); }); }
+  function cacheSet(o){ return idb().then(function(d){ return new Promise(function(res){ try{ var p=d.transaction(ST,'readwrite').objectStore(ST).put(o,KEY); p.onsuccess=function(){ res(true); }; p.onerror=function(){ res(false); }; }catch(e){ res(false); } }); }); }
+
+  /* ===== 상태 ===== */
+  var DATA=null;
+  var curCat='PRODUCE', selPlu='', searchTerm='', fbReady=false, isAdmin=false;
+  window.addEventListener('fb-ready', function(){ fbReady=true; });
+
+  /* ===== 진입 모드 ===== */
+  $('gateCashier').addEventListener('click', function(){ enter(false); });
+  $('gateAdmin').addEventListener('click', function(){ $('pin').classList.add('show'); pinBuf=''; renderPin(); });
+  var pinBuf='';
+  function renderPin(){ $('pinDisp').textContent='●'.repeat(pinBuf.length); }
+  $('pinPad').addEventListener('click', function(e){ var b=e.target.closest('.pin-key'); if(!b) return; var k=b.getAttribute('data-k');
+    if(k==='clear'){ pinBuf=''; } else if(k==='back'){ pinBuf=pinBuf.slice(0,-1); } else if(pinBuf.length<6){ pinBuf+=k; }
+    renderPin(); $('pinErr').textContent='';
+    if(pinBuf.length>=4 && pinBuf===ADMIN_PIN){ $('pin').classList.remove('show'); enter(true); }
+    else if(pinBuf.length>=4){ $('pinErr').textContent='비밀번호가 맞지 않습니다'; setTimeout(function(){ pinBuf=''; renderPin(); },700); }
+  });
+  function enter(admin){
+    isAdmin=admin;
+    document.body.classList.toggle('admin', admin);
+    $('modeBadge').textContent = admin?'관리자':'캐시어';
+    $('modeBadge').className = 'mode-badge '+(admin?'admin':'cashier');
+    $('gate').classList.add('hide');
+    boot();
+  }
+
+  /* ===== REFRESH ===== */
+  function setLoading(on,msg){ $('loadOv').classList.toggle('show',on); if(msg)$('loadT').textContent=msg; $('refreshBox').classList.toggle('loading',on); }
+  async function refresh(){
+    if(!fbReady){ alert('네트워크 준비 중입니다. 잠시 후 다시 시도하세요.'); return; }
+    setLoading(true,'Firebase에서 데이터 가져오는 중…');
+    try{
+      var raw=await window.__fbFetch();
+      var cloud=parseSnap(raw['upc-list']||{}, raw['upc-config']||{});
+      var msg=''; var sm=raw['store-msg']||{}; if(sm.main&&sm.main.text) msg=String(sm.main.text);
+      var custom=(DATA&&DATA.custom)||{};
+      DATA={ cloud:cloud, custom:custom, msg:msg, savedAt:Date.now() };
+      await cacheSet(DATA);
+      render(); updateMeta(); renderMsg();
+    }catch(e){ alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+(e&&e.message?e.message:e)); }
+    finally{ setLoading(false); }
+  }
+
+  async function boot(){
+    var c=await cacheGet();
+    if(c && c.cloud){ DATA=c; if($('firstrun')) $('firstrun').style.display='none'; render(); }
+    updateMeta(); renderMsg();
+  }
+
+  function updateMeta(){
+    var m=$('meta');
+    if(!DATA){ m.innerHTML='<span class="off">저장된 데이터 없음</span>'; return; }
+    var when=new Date(DATA.savedAt);
+    var ts=when.getFullYear()+'-'+String(when.getMonth()+1).padStart(2,'0')+'-'+String(when.getDate()).padStart(2,'0')+' '+String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');
+    var n=rowsForCat(curCat).length;
+    m.innerHTML='저장 <b>'+ts+'</b> · 현재 <b>'+n+'</b>개';
+  }
+
+  /* ===== 렌더 ===== */
+  function render(){
+    var grid=$('pluGrid');
+    if(!DATA){ return; }
+    var rows=rowsForCat(curCat).slice();
+    if(searchTerm){ var q=searchTerm.toLowerCase(); rows=rows.filter(function(r){ return pluOf(r).toLowerCase().indexOf(q)>=0 || nameOf(r).toLowerCase().indexOf(q)>=0; }); }
+    rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
+
+    if(!rows.length){
+      if((curCat==='SALES'||curCat==='ETC') && isAdmin){
+        grid.innerHTML='<div class="empty">아직 설정된 항목이 없습니다.<br>관리자 모드에서 이 카테고리에 표시할 분류를 등록하세요.<br>(설정 UI는 다음 단계에서 추가)</div>';
+      } else if(curCat==='SALES'||curCat==='ETC'){
+        grid.innerHTML='<div class="empty">이 카테고리는 관리자가 설정합니다.</div>';
+      } else {
+        grid.innerHTML='<div class="empty">'+(searchTerm?'검색 결과가 없습니다':'표시할 항목이 없습니다')+'</div>';
+      }
+      return;
+    }
+
+    var html='';
+    rows.forEach(function(r){
+      var plu=pluOf(r), nm=nameOf(r);
+      html+='<button class="plu-item'+(plu===selPlu?' sel':'')+'" data-plu="'+esc(plu)+'">'+
+        '<span class="num">'+esc(plu)+'</span>'+
+        '<span class="nm">'+esc(nm||' ')+'</span></button>';
+    });
+    grid.innerHTML=html;
+  }
+
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* ===== 사진 ===== */
+  function showPhoto(plu, name){
+    selPlu=plu;
+    $('photoNum').textContent=plu||'—';
+    $('photoName').textContent=name||'';
+    var box=$('photoBox');
+    box.innerHTML='<div class="noimg">사진 불러오는 중…</div>';
+    var img=new Image();
+    img.onload=function(){ box.innerHTML=''; box.appendChild(img); };
+    img.onerror=function(){ box.innerHTML='<div class="noimg">등록된 사진이 없습니다<br>('+esc(plu)+'.jpg)</div>'; };
+    img.src='image_produce/'+encodeURIComponent(plu)+'.jpg';
+  }
+
+  /* ===== 관리자 메시지 ===== */
+  function renderMsg(){
+    var t=$('msgTxt'), msg=(DATA&&DATA.msg)||'';
+    if(msg){ t.textContent=msg; t.className='txt'; } else { t.textContent='관리자 메시지가 없습니다'; t.className='txt empty-msg'; }
+  }
+  $('editMsg').addEventListener('click', function(){
+    if(!isAdmin) return;
+    var cur=(DATA&&DATA.msg)||'';
+    var v=prompt('매장 태블릿에 표시할 관리자 메시지를 입력하세요:', cur);
+    if(v==null) return;
+    if(!DATA) DATA={ cloud:{}, custom:{}, msg:'', savedAt:Date.now() };
+    DATA.msg=v; cacheSet(DATA); renderMsg();
+  });
+
+  /* ===== 이벤트 ===== */
+  $('catBoxes').addEventListener('click', function(e){
+    var b=e.target.closest('.cat-box'); if(!b) return;
+    [].forEach.call(this.querySelectorAll('.cat-box'), function(x){ x.classList.remove('on'); });
+    b.classList.add('on');
+    curCat=b.getAttribute('data-cat'); selPlu=''; render(); updateMeta();
+    $('photoBox').innerHTML='<div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div>';
+    $('photoNum').textContent='—'; $('photoName').textContent='';
+  });
+  $('pluGrid').addEventListener('click', function(e){
+    var it=e.target.closest('.plu-item'); if(!it) return;
+    [].forEach.call(this.querySelectorAll('.plu-item'), function(x){ x.classList.remove('sel'); });
+    it.classList.add('sel');
+    var plu=it.getAttribute('data-plu');
+    var nm=it.querySelector('.nm').textContent;
+    showPhoto(plu, nm);
+  });
+  var st=null;
+  $('search').addEventListener('input', function(e){ searchTerm=e.target.value; if(st)clearTimeout(st); st=setTimeout(function(){ render(); updateMeta(); },180); });
+  $('refreshBox').addEventListener('click', refresh);
+
+  /* ===== 매장 표시 + 진입 모드 초기화 ===== */
+  // 상단에 매장명 표시 (매장별 화면임을 명확히)
+  (function showStoreName(){
+    var nm = STORE || '매장 미지정';
+    var badge=document.createElement('div');
+    badge.id='storeName';
+    badge.style.cssText='position:fixed;top:14px;right:130px;z-index:60;font-size:13px;font-weight:800;color:var(--green);background:var(--green-soft);padding:6px 14px;border-radius:20px;';
+    badge.textContent='🏪 '+nm+(URL_MODE==='manager'?' · MANAGER':'');
+    document.body.appendChild(badge);
+  })();
+
+  if(URL_MODE==='manager'){
+    // hmart 안에서 열림 → 게이트/사진패널 없이 바로 관리 모드로 (매장별 관리 화면)
+    document.title='PLU PREVIEW MANAGER · '+(STORE||'');
+    enter(true);
+  }
+  // 매장 미지정 안내 (일반 진입인데 매장이 없으면)
+  if(!STORE && URL_MODE!=='manager'){
+    var tag=document.querySelector('.gate-card .tag');
+    if(tag){ tag.innerHTML='⚠ 매장이 지정되지 않았습니다 · INDEX에서 매장을 선택해 입장하세요'; tag.style.color='#b0532e'; }
+  }
+})();
+</script>
+</body>
+</html>
