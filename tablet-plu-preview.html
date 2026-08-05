@@ -87,7 +87,8 @@
   /* ===== 상단 카테고리 박스 ===== */
   .topbar{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:9px 14px; background:var(--panel); border-bottom:1.5px solid var(--border); }
   /* 요구4: 상단 맨 앞 H-MART 로고 (전체 표시) */
-  .hmart-badge{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0 16px; height:56px; border-radius:12px; background:#c0392b; color:#fff; font-family:var(--serif); font-weight:900; font-size:26px; letter-spacing:-.03em; white-space:nowrap; }
+  .hmart-badge{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; height:56px; }
+  .hmart-badge img{ height:56px; width:auto; border-radius:10px; display:block; }
   .hmart-badge span{ color:rgba(255,255,255,.55); }
   .cat-boxes{ display:flex; gap:7px; flex:1; }
   .cat-box{
@@ -161,25 +162,26 @@
   /* (요구2) CATE 버튼 그리드 — 지금보다 크게: 가로4 (박스 1/3 커짐) */
   .cate-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
   .cate-btn{
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:4px;
     border:1.5px solid var(--border); border-radius:14px; background:var(--panel-2);
-    cursor:pointer; transition:all .1s; font-family:inherit; padding:10px; text-align:center;
+    cursor:pointer; transition:all .1s; font-family:inherit; padding:16px 10px; text-align:center; overflow:hidden;
   }
   .cate-btn:active{ border-color:var(--green); background:var(--green-soft); }
-  .cate-btn .ce{ font-size:24px; font-weight:800; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }  /* 영어 크게 */
-  .cate-btn .ck{ font-size:15px; font-weight:600; color:var(--ink-dim); }                                       /* 한글 */
+  .cate-btn .ce{ font-size:24px; font-weight:800; color:var(--ink); line-height:1.15; letter-spacing:-.01em; white-space:normal; word-break:break-word; overflow-wrap:anywhere; max-width:100%; }  /* 영어 크게, 길면 2줄 */
+  .cate-btn .ck{ font-size:15px; font-weight:600; color:var(--ink-dim); line-height:1.15; }                                       /* 한글 */
 
   /* (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한 */
   /* (요구3) 상품 리스트 — CATE 박스와 같은 크기: 가로4, PLU 최대·붉은 BOLD, 영/한 */
   .plu-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
   .plu-item{
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:10px; border:1.5px solid var(--border);
-    border-radius:14px; background:var(--panel-2); cursor:pointer; transition:all .1s; text-align:center;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:2px; padding:12px 10px; border:1.5px solid var(--border);
+    border-radius:14px; background:var(--panel-2); cursor:pointer; transition:all .1s; text-align:center; overflow:hidden;
   }
   .plu-item:active,.plu-item.sel{ border-color:var(--green); background:var(--green-soft); }
   .plu-item .num{ font-family:var(--mono); font-size:32px; font-weight:900; color:#c0392b; line-height:1.05; }  /* PLU 최대·BOLD·붉은색 */
-  .plu-item .en{ font-size:16px; color:var(--ink); font-weight:700; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .plu-item .ko{ font-size:14px; color:var(--ink-dim); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* 영문: 길면 2줄로 줄바꿈 (1줄일 때와 같은 상단 위치 유지) */
+  .plu-item .en{ font-size:16px; color:var(--ink); font-weight:700; line-height:1.15; max-width:100%; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
+  .plu-item .ko{ font-size:14px; color:var(--ink-dim); font-weight:600; line-height:1.15; max-width:100%; white-space:normal; word-break:break-word; overflow-wrap:anywhere; }
 
   /* 사진 패널 — DATA REFRESH · 언어선택 · 과일사진(고정크기) · BACK(고정) */
   .photo-pane{ flex:0 0 260px; display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:12px; }
@@ -251,7 +253,7 @@
 
 <!-- 상단 카테고리 박스 -->
 <div class="topbar">
-  <div class="hmart-badge" title="H-MART">H<span>-</span>MART</div>
+  <div class="hmart-badge" title="H-MART"><img id="hmartLogo" alt="H-MART"></div>
   <div class="cat-boxes" id="catBoxes">
     <button class="cat-box on" data-cat="PRODUCE" data-ic="🥬"><span class="lb">PRODUCE</span><span class="sub">청과 전체</span></button>
     <button class="cat-box" data-cat="VEGETABLE" data-ic="🥕"><span class="lb">VEGETABLE</span><span class="sub">야채</span></button>
@@ -329,6 +331,9 @@
 <script>
 (function(){
   var $=function(id){ return document.getElementById(id); };
+  // H-MART 로고 (임베드 이미지)
+  var HMART_LOGO='data:image/png;base64,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';
+  (function(){ var im=$('hmartLogo'); if(im) im.src=HMART_LOGO; })();
   var ADMIN_PIN='1004';   // 임시 (추후 STORE MANAGER 관리)
 
   /* ===== gzip / 파싱 ===== */
