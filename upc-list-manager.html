@@ -367,10 +367,9 @@
   /* 특수 열은 고정폭(126) 예외 — 좁게 유지 (min=max=width 3중 고정) */
   .plu-table th.upc-c-no-col, .plu-table td.upc-c-no-col { width:52px; min-width:52px; max-width:52px; }
   .plu-table th.plu-col-check, .plu-table td.plu-c-check { width:34px; min-width:34px; max-width:34px; }
+  /* ② TAX A·B 등 체크필드(rcheck) = 영문 10자 폭 (86px) */
+  .plu-table th.plu-col-rcheck, .plu-table td.plu-c-rcheck { width:86px; min-width:86px; max-width:86px; }
   .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width:46px; min-width:46px; max-width:46px; }
-  /* ① 편집 모드: 체크박스(TAX A·B 등 rcheck) 열도 15자 영문폭(126px)로 */
-  .plu-editing .plu-table th.plu-col-rcheck, .plu-editing .plu-table td.plu-c-rcheck,
-  .plu-editing .plu-table th.plu-col-check, .plu-editing .plu-table td.plu-c-check { width:126px; min-width:126px; max-width:126px; }
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
@@ -625,11 +624,8 @@
   .plu-tool-btn.editact { width:150px; min-width:150px; max-width:150px; text-align:center; box-sizing:border-box; white-space:nowrap; }
   .plu-edit-input { width:auto; min-width:40px; max-width:100%; box-sizing:border-box; border:1px solid var(--border); border-radius:6px; padding:5px 7px; font-family:var(--mono); font-size:13px; background:var(--bg); color:var(--text); }
   .plu-edit-input:focus { outline:none; border-color:var(--accent-warm); }
-  .plu-table td.plu-vedit { cursor:cell; }
+  .plu-table td.plu-vedit { cursor:text; }
   .plu-table td.plu-vedit:hover { background:var(--accent-soft, #f7f1e3); box-shadow:inset 0 0 0 1px var(--accent-warm, #c9a961); }
-  /* 인라인 편집 input 이 셀 폭을 넘지 않도록 (박스가 데이터 라인보다 넓어지는 것 방지) */
-  .plu-table td.plu-vedit:has(input.plu-vedit-input) { padding:0 !important; }
-  input.plu-vedit-input { width:100% !important; max-width:100% !important; min-width:0 !important; box-sizing:border-box !important; margin:0 !important; border-radius:0 !important; font-size:11px !important; padding:4px 6px !important; }
   .plu-row-del { border:1px solid #e0c0c0; background:#fff; color:#b04141; border-radius:6px; padding:4px 10px; cursor:pointer; font-weight:700; font-size:12px; white-space:nowrap; }
   .plu-row-del:hover { border-color:#b04141; background:#fbeaea; }
   .plu-row-sel { width:16px; height:16px; cursor:pointer; vertical-align:middle; margin-right:5px; accent-color:#b04141; }
@@ -1819,9 +1815,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var cur=getVal(row,key); cur=(cur==null?'':String(cur));
     var oldHTML=td.innerHTML;
     var inp=document.createElement('input');
-    inp.type='text'; inp.className='plu-edit-input plu-vedit-input'; inp.value=cur;
-    // 셀 폭을 넘지 않게 강제 (박스가 데이터 라인보다 넓어지는 것 방지)
-    inp.style.cssText='width:100%;max-width:100%;min-width:0;box-sizing:border-box;margin:0;';
+    inp.type='text'; inp.className='plu-edit-input'; inp.value=cur;
     td.innerHTML=''; td.appendChild(inp);
     inp.focus(); try{ inp.select(); }catch(e){}
     var done=false;
@@ -1847,7 +1841,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       else if(ev.key==='Escape'){ ev.preventDefault(); finish(false); }
     });
   }
-  document.addEventListener('dblclick', function(e){
+  document.addEventListener('click', function(e){
     if(editMode) return;
     var td=e.target.closest?e.target.closest('td.plu-vedit'):null;
     if(td && !td.querySelector('input')) startCellEdit(td);
@@ -2019,7 +2013,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     if(pluSearchTerm.trim()){ renderSearch(pluSearchTerm.trim()); return; }
     var cat=curCat(), sub=curSub();
     var crumb=sub?(cat+' › '+sub):cat;
-    var el=$('pluContent'); el.className='plu-list'+(editMode?' plu-editing':'');
+    var el=$('pluContent'); el.className='plu-list';
     // 재렌더로 table-wrap 이 새로 만들어질 때 스크롤 위치가 초기화되는 것 방지 — 미리 저장
     var __prevWrap=document.querySelector('#pluContent .plu-table-wrap');
     var __savedSL=__prevWrap?__prevWrap.scrollLeft:0, __savedST=__prevWrap?__prevWrap.scrollTop:0;
@@ -3811,152 +3805,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var tb=$('pluTbody');
     if(tb){
       // 카테고리 필드(숫자 목록) 선택 드롭다운
-      tb.addEventListener('focusin', function(e){
-        var t=e.target;
-        // 체크 필드(TAX A·TAX B 등): 전체 체크 / 전체 해제
-        if(t.classList && t.classList.contains('plu-edit-check')){
-          var oldC=document.getElementById('mfChkFill'); if(oldC) oldC.parentNode.removeChild(oldC);
-          var ck=String(t.getAttribute('data-key')||'');
-          var box=document.createElement('div'); box.id='mfChkFill';
-          box.style.cssText='position:fixed;z-index:9500;display:flex;gap:6px;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.2);padding:6px;';
-          box.innerHTML='<button type="button" data-v="1" style="background:#1e7a46;color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">⤓ 전체 체크</button>'
-            +'<button type="button" data-v="0" style="background:#8a8a90;color:#fff;border:0;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">⤓ 전체 해제</button>';
-          var cr=t.getBoundingClientRect();
-          box.style.left=Math.min(Math.max(4,cr.left-60), window.innerWidth-190)+'px';
-          box.style.top=(cr.bottom+4)+'px';
-          document.body.appendChild(box);
-          Array.prototype.forEach.call(box.querySelectorAll('button'), function(b2){
-            b2.onmousedown=async function(ev){
-              ev.preventDefault();
-              var on=(b2.getAttribute('data-v')==='1');
-              if(box.parentNode) box.parentNode.removeChild(box);
-              if(!(await uiConfirm(ck+' 필드 전체('+((work||[]).length)+'행)를 '+(on?'체크':'해제')+'할까요?'))) return;
-              (work||[]).forEach(function(row){ if(!row) return; if(!row.extra) row.extra={}; row.extra[ck]=on?'O':''; });
-              var cs=tb.querySelectorAll('input.plu-edit-check[data-key="'+ck.replace(/"/g,'\\"')+'"]');
-              for(var i4=0;i4<cs.length;i4++){ cs[i4].checked=on; }
-              markDirty();
-            };
-          });
-          var rmC=function(){ if(box.parentNode) box.parentNode.removeChild(box); };
-          t.addEventListener('blur', function(){ setTimeout(rmC, 200); }, { once:true });
-          return;
-        }
-        if(!t.classList||!t.classList.contains('plu-edit-input')) return;
-        var key=String(t.getAttribute('data-key')||'').trim().toUpperCase();
-        var mc=(window.__MFCAT||{})[key];
-        // 반복값 필드: 기존 값 목록에서 골라 일괄 적용
-        var __FILL_PICK={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
-        if(!mc && __FILL_PICK[key]){
-          var old2=document.getElementById('mfCatPick'); if(old2) old2.parentNode.removeChild(old2);
-          var oldF2=document.getElementById('mfFillBtn'); if(oldF2) oldF2.parentNode.removeChild(oldF2);
-          // 현재 리스트에서 이 필드의 고유 값 수집
-          var seen={}, vals=[];
-          (work||[]).forEach(function(row){ if(!row) return;
-            var v=''; var bb=t.getAttribute('data-base')==='1';
-            if(bb){ v=row[fieldOf(key)]; } else if(row.extra){ for(var k in row.extra){ if(String(k).trim().toUpperCase()===key){ v=row.extra[k]; break; } } }
-            v=(v==null?'':String(v)).trim(); if(v && !seen[v]){ seen[v]=1; vals.push(v); }
-          });
-          vals.sort(); if(vals.length>40) vals=vals.slice(0,40);
-          var pick=document.createElement('div'); pick.id='mfCatPick';
-          pick.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:190px;max-height:260px;overflow:auto;';
-          pick.innerHTML='<div style="font-size:10px;color:#9a9aa0;padding:2px 6px 6px;">'+key+' — 값 선택 후 일괄 적용</div>'
-            +'<div class="mfc-opt" data-mode="cur" style="padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;color:#b8730f;font-weight:700;">✏ 현재 입력값으로 전체 채우기</div>'
-            +(vals.length?vals.map(function(v){ return '<div class="mfc-opt" data-n="'+v.replace(/"/g,'&quot;')+'" style="padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;">'+v+'</div>'; }).join(''):'<div style="padding:6px 8px;font-size:11px;color:#9a9aa0;">기존 값 없음 — 직접 입력 후 위 항목 사용</div>');
-          var r2=t.getBoundingClientRect();
-          pick.style.left=Math.min(r2.left, window.innerWidth-230)+'px';
-          pick.style.top=(r2.bottom+4)+'px';
-          document.body.appendChild(pick);
-          Array.prototype.forEach.call(pick.querySelectorAll('.mfc-opt'), function(op){
-            op.onmouseenter=function(){ op.style.background='#f4efe2'; };
-            op.onmouseleave=function(){ op.style.background=''; };
-            op.onmousedown=async function(ev){
-              ev.preventDefault();
-              var isCur=(op.getAttribute('data-mode')==='cur');
-              var idx2=parseInt(t.getAttribute('data-idx'),10);
-              var bb2=t.getAttribute('data-base')==='1';
-              if(pick.parentNode) pick.parentNode.removeChild(pick);
-              var n;
-              if(isCur){ n=await uiPrompt(key+' 필드 전체에 채울 값을 입력하세요', t.value||''); if(n==null) return; }
-              else { n=op.getAttribute('data-n'); }
-              var whole=await uiConfirm('현재 필드('+key+') 전체를 "'+n+'"(으)로 변경할까요?\n[확인]=전체 변경 · [취소]=이 행만');
-              if(whole){
-                (work||[]).forEach(function(row){ if(!row) return; if(bb2){ row[fieldOf(key)]=n; } else { if(!row.extra) row.extra={}; row.extra[key]=n; } });
-                var ins2=tb.querySelectorAll('input.plu-edit-input[data-key="'+key.replace(/"/g,'\\"')+'"]');
-                for(var i3=0;i3<ins2.length;i3++){ ins2[i3].value=n; }
-                showToast(key+' 전체 채움 완료','success');
-              } else {
-                if(work&&work[idx2]){ if(bb2){ work[idx2][fieldOf(key)]=n; } else { if(!work[idx2].extra) work[idx2].extra={}; work[idx2].extra[key]=n; } }
-                t.value=n;
-              }
-              markDirty();
-            };
-          });
-          function closeP(){ if(pick.parentNode) pick.parentNode.removeChild(pick); document.removeEventListener('mousedown', outP, true); }
-          function outP(ev){ if(!pick.contains(ev.target) && ev.target!==t) closeP(); }
-          setTimeout(function(){ document.addEventListener('mousedown', outP, true); },0);
-          t.addEventListener('blur', function(){ setTimeout(function(){ var ae=document.activeElement; if(!pick.contains(ae)) closeP(); }, 150); }, { once:true });
-          return;
-        }
-        if(!mc){
-          // 일반 필드: 입력값을 필드 전체에 채우는 버튼
-          var oldF=document.getElementById('mfFillBtn'); if(oldF) oldF.parentNode.removeChild(oldF);
-          var fb=document.createElement('button'); fb.id='mfFillBtn'; fb.type='button'; fb.textContent='⤓ 전체 채우기';
-          fb.style.cssText='position:fixed;z-index:9500;background:#c9a961;color:#fff;border:0;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);';
-          var fr=t.getBoundingClientRect();
-          fb.style.left=Math.min(fr.left, window.innerWidth-110)+'px';
-          fb.style.top=(fr.bottom+4)+'px';
-          document.body.appendChild(fb);
-          fb.onmousedown=async function(ev){
-            ev.preventDefault();
-            var kk=t.getAttribute('data-key'); var bb=t.getAttribute('data-base')==='1';
-            if(fb.parentNode) fb.parentNode.removeChild(fb);
-            var val=await uiPrompt(kk+' 필드 전체('+((work||[]).length)+'행)에 채울 값을 입력하세요', t.value||'');
-            if(val==null) return;
-            (work||[]).forEach(function(row){ if(!row) return; if(bb){ row[fieldOf(kk)]=val; } else { if(!row.extra) row.extra={}; row.extra[kk]=val; } });
-            var ins=tb.querySelectorAll('input.plu-edit-input[data-key="'+kk.replace(/"/g,'\\"')+'"]');
-            for(var i2=0;i2<ins.length;i2++){ ins[i2].value=val; }
-            markDirty();
-            showToast(kk+' 전체 채움 완료','success');
-          };
-          function rmF(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }
-          t.addEventListener('blur', function(){ setTimeout(rmF, 180); }, { once:true });
-          return;
-        }
-        var old=document.getElementById('mfCatPick'); if(old) old.parentNode.removeChild(old);
-        var pick=document.createElement('div'); pick.id='mfCatPick';
-        pick.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:180px;max-height:240px;overflow:auto;';
-        pick.innerHTML='<div style="font-size:10px;color:#9a9aa0;padding:2px 6px 6px;">'+mc.cat+' · '+key+' 숫자 선택</div>'+mc.values.map(function(v){
-          return '<div class="mfc-opt" data-n="'+v.n.replace(/"/g,'&quot;')+'" style="display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;"><b style="min-width:24px;text-align:center;">'+v.n+'</b><span style="color:#777;">'+(v.d||'')+'</span></div>';
-        }).join('');
-        var r=t.getBoundingClientRect();
-        pick.style.left=Math.min(r.left, window.innerWidth-220)+'px';
-        pick.style.top=(r.bottom+4)+'px';
-        document.body.appendChild(pick);
-        Array.prototype.forEach.call(pick.querySelectorAll('.mfc-opt'), function(op){
-          op.onmouseenter=function(){ op.style.background='#f4efe2'; };
-          op.onmouseleave=function(){ op.style.background=''; };
-          op.onmousedown=async function(ev){
-            ev.preventDefault();
-            var n=op.getAttribute('data-n');
-            var idx=parseInt(t.getAttribute('data-idx'),10);
-            var base=t.getAttribute('data-base')==='1';
-            if(pick.parentNode) pick.parentNode.removeChild(pick);
-            if(await uiConfirm('현재 필드('+key+') 전체를 "'+n+'"(으)로 변경할까요?\n[확인]=전체 변경 · [취소]=이 행만')){
-              (work||[]).forEach(function(row,ri){ if(!row) return; if(base){ row[fieldOf(key)]=n; } else { if(!row.extra) row.extra={}; row.extra[key]=n; } });
-              var ins=tb.querySelectorAll('input.plu-edit-input[data-key="'+key.replace(/"/g,'\\"')+'"]');
-              for(var i2=0;i2<ins.length;i2++){ ins[i2].value=n; }
-            } else {
-              if(work&&work[idx]){ if(base){ work[idx][fieldOf(key)]=n; } else { if(!work[idx].extra) work[idx].extra={}; work[idx].extra[key]=n; } }
-              t.value=n;
-            }
-            markDirty();
-          };
-        });
-        function closePick(){ if(pick.parentNode) pick.parentNode.removeChild(pick); document.removeEventListener('mousedown', outside, true); }
-        function outside(ev){ if(!pick.contains(ev.target) && ev.target!==t) closePick(); }
-        setTimeout(function(){ document.addEventListener('mousedown', outside, true); },0);
-        t.addEventListener('blur', function(){ setTimeout(function(){ var ae=document.activeElement; if(!pick.contains(ae)) closePick(); }, 150); }, { once:true });
-      });
+      // ① 편집 시 전체채우기/자동 채우기 메뉴 제거 (셀 포커스 시 자동 팝업 없음)
       // ===== 행 값 읽기/쓰기 (라벨 대소문자 무시) =====
       function __gv(r,label){ if(!r) return ''; var W=String(label).trim().toUpperCase(); if(r.extra){ for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ var v=r.extra[k]; if(v!=null) return String(v); } } } for(var k2 in r){ if(k2==='extra')continue; if(String(k2).trim().toUpperCase()===W){ var v2=r[k2]; if(v2!=null) return String(v2); } } return ''; }
       function __sv(r,label,val){ if(!r) return; var W=String(label).trim().toUpperCase(); if(!r.extra) r.extra={}; for(var k in r.extra){ if(String(k).trim().toUpperCase()===W){ r.extra[k]=val; return; } } r.extra[label]=val; }
