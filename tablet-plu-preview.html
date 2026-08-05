@@ -381,7 +381,43 @@
   // CATE(세부 카테고리) 값 — "한글 (ENG)" 형태일 수 있음
   function cateOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate).trim(); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!=='') return String(r.extra[k]).trim(); } } return ''; }
   // CATE 를 한글/영문으로 분리 ("상추 (LETTUCE)" → {kor:'상추', eng:'LETTUCE'})
-  function splitCate(cate){ var m=/^(.*?)\s*\(([^)]+)\)\s*$/.exec(String(cate||'')); if(m) return { kor:m[1].trim(), eng:m[2].trim() }; return { kor:String(cate||'').trim(), eng:'' }; }
+  // CATE 값을 한글/영문으로 분리 — 여러 저장 형태를 모두 처리
+  function hasKo(s){ return /[가-힣]/.test(String(s||'')); }
+  function hasEn(s){ return /[A-Za-z]/.test(String(s||'')); }
+  function splitCate(cate){
+    var s=String(cate||'').trim();
+    if(!s) return { kor:'', eng:'' };
+    // 1) "앞 (뒤)" 괄호 형태 — 한/영 판별해서 배치
+    var m=/^(.*?)\s*[\(\[]([^)\]]+)[\)\]]\s*$/.exec(s);
+    if(m){
+      var a=m[1].trim(), b=m[2].trim();
+      if(hasKo(a)&&hasEn(b)) return { kor:a, eng:b };   // 한글 (ENG)
+      if(hasEn(a)&&hasKo(b)) return { kor:b, eng:a };   // ENG (한글)
+      // 둘 다 같은 언어면 앞을 메인으로
+      return hasKo(a) ? { kor:a, eng:b } : { kor:b, eng:a };
+    }
+    // 2) 구분자(/ · | -) 형태 — 한/영 나눠 배치
+    var parts=s.split(/\s*[\/·|]\s*|\s+-\s+/).map(function(x){return x.trim();}).filter(Boolean);
+    if(parts.length>=2){
+      var ko='', en='';
+      parts.forEach(function(x){ if(hasKo(x)&&!ko) ko=x; else if(hasEn(x)&&!en) en=x; });
+      if(ko||en) return { kor:ko||parts[0], eng:en };
+    }
+    // 3) 단일 값 — 언어로 판별
+    if(hasKo(s)) return { kor:s, eng:'' };
+    if(hasEn(s)) return { kor:'', eng:s };
+    return { kor:s, eng:'' };
+  }
+  // CATE 에 영문이 없을 때, 해당 카테고리 상품들의 ENG DESC 앞부분으로 영문 유추
+  function engForCate(cate){
+    var rows=rowsForCat(curCat).filter(function(r){ return cateOf(r)===cate; });
+    // 상품 영문명들의 공통 첫 단어(들)를 카테고리 영문으로 추정
+    var firsts={};
+    rows.forEach(function(r){ var e=engOf(r); if(e){ var w=e.split(/\s+/)[0].toUpperCase(); if(w) firsts[w]=(firsts[w]||0)+1; } });
+    var best='', bestN=0;
+    for(var w in firsts){ if(firsts[w]>bestN){ bestN=firsts[w]; best=w; } }
+    return best;
+  }
   // 요구4: RESERVE 로 시작/포함하는 미등록 상품 제외
   function isReserve(r){ if(!r) return false; var RX=/\bRESERVE\b/i; if(RX.test(engOf(r))||RX.test(korOf(r))) return true; if(r.extra){ for(var k in r.extra){ var v=r.extra[k]; if(typeof v==='string' && RX.test(v)) return true; } } return false; }
 
@@ -483,8 +519,8 @@
     var html='<div class="cate-grid">';
     cates.forEach(function(cate){
       var sp=splitCate(cate);
-      // 요구1: 영문은 CATE(ENG)에서 (splitCate 가 "한글 (ENG)"의 ENG 부분을 뽑음)
-      var eng=sp.eng;
+      // 요구1: 영문은 CATE(ENG)에서. 없으면 상품 ENG DESC 로 유추
+      var eng=sp.eng || engForCate(cate);
       html+='<button class="cate-btn" data-cate="'+esc(cate)+'">'+
         '<span class="ce">'+esc(eng||sp.kor)+'</span>'+
         (eng?('<span class="ck">'+esc(sp.kor)+'</span>'):'')+
@@ -501,8 +537,9 @@
     var rows=rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
     rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
     var sp=splitCate(curCate);
+    var cEng=sp.eng || engForCate(curCate);
     var head='<div class="crumb"><button class="crumb-back" id="crumbBack">← 뒤로</button>'+
-      '<span class="crumb-title">'+esc(sp.eng||sp.kor)+(sp.eng?(' <small>'+esc(sp.kor)+'</small>'):'')+'</span></div>';
+      '<span class="crumb-title">'+esc(cEng||sp.kor)+(cEng?(' <small>'+esc(sp.kor)+'</small>'):'')+'</span></div>';
     if(!rows.length){ pane.innerHTML=head+'<div class="empty">표시할 상품이 없습니다</div>'; wireBack(); return; }
     var html=head+'<div class="plu-grid">';
     rows.forEach(function(r){
