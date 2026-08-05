@@ -86,6 +86,9 @@
   /* ===== 상단 카테고리 박스 ===== */
   /* ===== 상단 카테고리 박스 (요구1: 세로폭 축소) ===== */
   .topbar{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:9px 16px; background:var(--panel); border-bottom:1.5px solid var(--border); }
+  /* 요구5: 상단 맨 앞 H-MART 아이콘 */
+  .hmart-badge{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; width:64px; height:52px; border-radius:11px; background:#c0392b; color:#fff; font-family:var(--serif); font-weight:900; font-size:22px; letter-spacing:-.03em; }
+  .hmart-badge span{ color:rgba(255,255,255,.55); }
   .cat-boxes{ display:flex; gap:8px; flex:1; }
   .cat-box{
     flex:1; padding:8px 6px; border:2px solid var(--border-2); border-radius:11px; background:var(--panel-2);
@@ -105,19 +108,29 @@
   .cat-box[data-cat="ETC"].on{ background:var(--ink-dim); border-color:var(--ink-dim); }
   .cat-box.on .sub{ color:rgba(255,255,255,.8); }
 
+  /* 오른쪽 패널 버튼 (요구4): DATA REFRESH (맨 위) */
   .refresh-box{
-    flex:0 0 78px; padding:5px 6px; border:2px solid var(--blue); border-radius:10px; background:var(--blue); color:#fff;
-    cursor:pointer; text-align:center; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:0;
+    flex:0 0 auto; padding:12px 8px; border:2px solid var(--blue); border-radius:12px; background:var(--blue); color:#fff;
+    cursor:pointer; text-align:center; font-family:inherit; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px;
     transition:background .12s;
   }
   .refresh-box:active{ background:#245bc0; }
   .refresh-box.loading{ opacity:.6; pointer-events:none; }
-  .refresh-box .ic{ font-size:13px; }
-  .refresh-box .lb{ font-size:12px; font-weight:800; }
-  .refresh-box .spin{ width:15px; height:15px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
+  .refresh-box .ic{ font-size:18px; }
+  .refresh-box .lb{ font-size:15px; font-weight:800; }
+  .refresh-box .spin{ width:16px; height:16px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
   .refresh-box.loading .spin{ display:block; }
   .refresh-box.loading .ic{ display:none; }
   @keyframes sp{ to{ transform:rotate(360deg); } }
+  /* 요구3: BACK 뒤로가기 버튼 (사진 아래, 크게) */
+  .back-box{
+    flex:0 0 auto; padding:16px 8px; border:2px solid var(--box); border-radius:12px; background:var(--box-soft); color:var(--box);
+    cursor:pointer; text-align:center; font-family:inherit; display:flex; flex-direction:row; align-items:center; justify-content:center; gap:8px;
+    transition:all .12s;
+  }
+  .back-box:active{ background:var(--box); color:#fff; }
+  .back-box .ic{ font-size:20px; font-weight:900; }
+  .back-box .lb{ font-size:16px; font-weight:800; }
 
   /* ===== 중간: 리스트 + 사진 ===== */
   .main{ flex:1 1 auto; display:flex; gap:12px; padding:12px 16px; overflow:hidden; }
@@ -153,18 +166,18 @@
   .plu-item .en{ font-size:16px; color:var(--ink); font-weight:700; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plu-item .ko{ font-size:14px; color:var(--ink-dim); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
-  /* (요구6) 사진 패널 — 가로 축소 + 상하 2분할 */
+  /* 사진 패널 — 위→아래: DATA REFRESH · 과일사진 · BACK · H-MART 로고 */
   .photo-pane{ flex:0 0 260px; display:flex; flex-direction:column; gap:10px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:12px; }
-  .photo-top{ flex:1 1 60%; display:flex; flex-direction:column; gap:8px; min-height:0; }        /* 위: 과일 사진 */
+  .photo-top{ flex:1 1 auto; display:flex; flex-direction:column; gap:8px; min-height:0; }        /* 과일 사진 (신축) */
   .photo-box{ flex:1; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; min-height:0; }
   .photo-box img{ max-width:100%; max-height:100%; object-fit:contain; }
   .photo-box .noimg{ color:var(--ink-dim); font-size:12px; font-weight:600; text-align:center; padding:16px; }
   .photo-info{ text-align:center; }
   .photo-info .pnum{ font-family:var(--mono); font-size:22px; font-weight:900; color:#c0392b; }
   .photo-info .pname{ font-size:13px; color:var(--ink-dim); font-weight:600; margin-top:1px; }
-  .logo-box{ flex:0 0 34%; border:1.5px solid var(--border); border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; }   /* 아래: H-MART 로고 */
+  .logo-box{ flex:0 0 90px; border:1.5px solid var(--border); border-radius:14px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .logo-box img{ max-width:82%; max-height:70%; object-fit:contain; }
-  .logo-box .hmart-txt{ font-family:var(--serif); font-weight:900; font-size:34px; letter-spacing:-.02em; color:#c0392b; }
+  .logo-box .hmart-txt{ font-family:var(--serif); font-weight:900; font-size:30px; letter-spacing:-.02em; color:#c0392b; }
   .logo-box .hmart-txt span{ color:var(--ink); }
 
   .empty{ text-align:center; color:var(--ink-dim); padding:60px 20px; font-size:15px; font-weight:600; grid-column:1/-1; }
@@ -227,6 +240,7 @@
 
 <!-- 상단 카테고리 박스 -->
 <div class="topbar">
+  <div class="hmart-badge" title="H-MART">H<span>-</span>M</div>
   <div class="cat-boxes" id="catBoxes">
     <button class="cat-box on" data-cat="PRODUCE"><span class="ic">🥬</span><span class="lb">PRODUCE</span><span class="sub">야채+과일 전체</span></button>
     <button class="cat-box" data-cat="VEGETABLE"><span class="ic">🥕</span><span class="lb">VEGETABLE</span><span class="sub">야채</span></button>
@@ -236,25 +250,27 @@
     <button class="cat-box" data-cat="SALES"><span class="ic">🏷️</span><span class="lb">SALES ITEM</span><span class="sub">관리자 설정</span></button>
     <button class="cat-box" data-cat="ETC"><span class="ic">➕</span><span class="lb">ETC</span><span class="sub">관리자 설정</span></button>
   </div>
-  <button class="refresh-box" id="refreshBox"><span class="spin"></span><span class="ic">↻</span><span class="lb">REFRESH</span></button>
 </div>
 
 <!-- (요구 12) 검색·저장날짜·모드뱃지 제거됨 -->
 
-<!-- 중간: PLU 목록 + 사진 -->
+<!-- 중간: PLU 목록 + 사진/컨트롤 -->
 <div class="main">
   <div class="list-pane" id="listPane">
     <div class="firstrun" id="firstrun">
       <div class="big">📥</div>
       <h2>저장된 데이터가 없습니다</h2>
-      <p>상단 REFRESH를 눌러 데이터를 가져오세요.<br>한 번 가져오면 브라우저에 저장되어 오프라인에서도 조회됩니다.</p>
+      <p>오른쪽 DATA REFRESH를 눌러 데이터를 가져오세요.<br>한 번 가져오면 브라우저에 저장되어 오프라인에서도 조회됩니다.</p>
     </div>
   </div>
+  <!-- 오른쪽 패널 (요구4): 위→아래 = DATA REFRESH · 과일사진 · BACK -->
   <div class="photo-pane">
+    <button class="refresh-box" id="refreshBox"><span class="spin"></span><span class="ic">↻</span><span class="lb">DATA REFRESH</span></button>
     <div class="photo-top">
       <div class="photo-box" id="photoBox"><div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div></div>
       <div class="photo-info"><div class="pnum" id="photoNum">—</div><div class="pname" id="photoName"></div></div>
     </div>
+    <button class="back-box" id="backBox" style="display:none;"><span class="ic">←</span><span class="lb">BACK · 뒤로가기</span></button>
     <div class="logo-box" id="logoBox">
       <div class="hmart-txt">H<span>-</span>MART</div>
     </div>
@@ -378,8 +394,30 @@
   function korOf(r){ return String((r&&r.kor)||getVal(r,'KOR DESC')||getVal(r,'KOR')||'').trim(); }
   function engOf(r){ return String((r&&r.eng)||getVal(r,'ENG DESC')||getVal(r,'ENG')||'').trim(); }
   function nameOf(r){ return korOf(r)||engOf(r); }
-  // CATE(세부 카테고리) 값 — "한글 (ENG)" 형태일 수 있음
-  function cateOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate).trim(); if(r.extra){ for(var k in r.extra){ var lk=String(k).toLowerCase(); if((lk==='category'||lk==='cate') && r.extra[k]!=null && String(r.extra[k]).trim()!=='') return String(r.extra[k]).trim(); } } return ''; }
+  // 카테고리 한글/영문 — CATE(KOR)/CATE(ENG) 별도 필드 우선, 없으면 합쳐진 cate 파싱
+  function extraGet(r, names){
+    if(!r||!r.extra) return '';
+    for(var i=0;i<names.length;i++){ var want=String(names[i]).toLowerCase();
+      for(var k in r.extra){ if(String(k).toLowerCase()===want){ var v=r.extra[k]; if(v!=null&&String(v).trim()!=='') return String(v).trim(); } }
+    }
+    return '';
+  }
+  function cateEngOf(r){
+    var v=extraGet(r,['CATE(ENG)','CATE (ENG)','CATEENG','CATE_ENG']);
+    if(v) return v;
+    return splitCate(cateRawOf(r)).eng;   // 합쳐진 값에서 영문 파싱
+  }
+  function cateKorOf(r){
+    var v=extraGet(r,['CATE(KOR)','CATE (KOR)','CATEKOR','CATE_KOR']);
+    if(v) return v;
+    return splitCate(cateRawOf(r)).kor;   // 합쳐진 값에서 한글 파싱
+  }
+  // 원본 cate 값 (합쳐진 "한글 (ENG)" 형태 또는 단일)
+  function cateRawOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate).trim(); return extraGet(r,['CATEGORY','CATE']); }
+  // 카테고리 고유 키 (그룹핑용) — 한글+영문 조합
+  function cateOf(r){ var ko=cateKorOf(r), en=cateEngOf(r); if(ko&&en) return ko+' \u0001 '+en; return ko||en||cateRawOf(r); }
+  // 카테고리 키 → {kor, eng}
+  function cateKeyParts(key){ var p=String(key||'').split(' \u0001 '); if(p.length===2) return {kor:p[0], eng:p[1]}; return splitCate(key); }
   // CATE 를 한글/영문으로 분리 ("상추 (LETTUCE)" → {kor:'상추', eng:'LETTUCE'})
   // CATE 값을 한글/영문으로 분리 — 여러 저장 형태를 모두 처리
   function hasKo(s){ return /[가-힣]/.test(String(s||'')); }
@@ -518,7 +556,7 @@
     }
     var html='<div class="cate-grid">';
     cates.forEach(function(cate){
-      var sp=splitCate(cate);
+      var sp=cateKeyParts(cate);
       // 요구1: 영문은 CATE(ENG)에서. 없으면 상품 ENG DESC 로 유추
       var eng=sp.eng || engForCate(cate);
       html+='<button class="cate-btn" data-cate="'+esc(cate)+'">'+
@@ -536,11 +574,12 @@
   function renderProductList(pane){
     var rows=rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
     rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
-    var sp=splitCate(curCate);
+    var sp=cateKeyParts(curCate);
     var cEng=sp.eng || engForCate(curCate);
-    var head='<div class="crumb"><button class="crumb-back" id="crumbBack">← 뒤로</button>'+
+    // 요구2: 뒤로가기 버튼 삭제 — 카테고리 이름만
+    var head='<div class="crumb">'+
       '<span class="crumb-title">'+esc(cEng||sp.kor)+(cEng?(' <small>'+esc(sp.kor)+'</small>'):'')+'</span></div>';
-    if(!rows.length){ pane.innerHTML=head+'<div class="empty">표시할 상품이 없습니다</div>'; wireBack(); return; }
+    if(!rows.length){ pane.innerHTML=head+'<div class="empty">표시할 상품이 없습니다</div>'; return; }
     var html=head+'<div class="plu-grid">';
     rows.forEach(function(r){
       // 요구2: PLU 박스 이름 = 데이터의 ENG DESC(eng) / KOR DESC(kor)
@@ -553,9 +592,9 @@
     });
     html+='</div>';
     pane.innerHTML=html;
-    wireBack();
   }
-  function wireBack(){ var b=$('crumbBack'); if(b) b.onclick=function(){ view='cate'; curCate=''; selPlu=''; render(); resetPhoto(); }; }
+  // 요구3: 뒤로가기는 오른쪽 패널 버튼에서 처리
+  function goBack(){ view='cate'; curCate=''; selPlu=''; render(); resetPhoto(); updateBackBtn(); }
 
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
@@ -592,12 +631,12 @@
     [].forEach.call(this.querySelectorAll('.cat-box'), function(x){ x.classList.remove('on'); });
     b.classList.add('on');
     curCat=b.getAttribute('data-cat'); curCate=''; selPlu=''; view='cate';
-    render(); resetPhoto();
+    render(); resetPhoto(); updateBackBtn();
   });
   // 리스트 영역 위임: CATE 버튼 → 상품 리스트, 상품 → 사진
   $('listPane').addEventListener('click', function(e){
     var cb=e.target.closest('.cate-btn');
-    if(cb){ curCate=cb.getAttribute('data-cate'); selPlu=''; view='list'; render(); resetPhoto(); return; }
+    if(cb){ curCate=cb.getAttribute('data-cate'); selPlu=''; view='list'; render(); resetPhoto(); updateBackBtn(); return; }
     var it=e.target.closest('.plu-item');
     if(it){
       [].forEach.call(this.querySelectorAll('.plu-item'), function(x){ x.classList.remove('sel'); });
@@ -613,6 +652,9 @@
     $('photoNum').textContent='—'; $('photoName').textContent='';
     selPlu='';
   }
+  // 요구3: BACK 버튼 — 상품 리스트(list 뷰)일 때만 표시
+  function updateBackBtn(){ var b=$('backBox'); if(b) b.style.display=(view==='list')?'flex':'none'; }
+  if($('backBox')) $('backBox').addEventListener('click', goBack);
   $('refreshBox').addEventListener('click', refresh);
 
   /* ===== 매장 표시 + 진입 모드 초기화 ===== */
