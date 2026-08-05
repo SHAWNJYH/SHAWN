@@ -3,7 +3,7 @@
 <!--
   tablet-plu-preview.html — 매장 태블릿 PLU 조회 (11인치 아이패드 = 1194×834 가로 기준)
   ─────────────────────────────────────────────────────────────────
-  [데이터] plu-list-store 와 동일 Firebase(the-shawn) · upc-list 컬렉션
+  [데이터] PLU MASTER = plu-list 컬렉션 + plu-config (plu-list-store 와 동일)
     · 평소: 브라우저 저장(IndexedDB 'egmm-store-tablet')에서만 읽음 → 오프라인 동작
     · REFRESH: Firebase 에서 1회 가져와 저장 후 표시 (실시간 구독 없음)
   [레이아웃]
@@ -91,9 +91,9 @@
     cursor:pointer; text-align:center; transition:all .12s; font-family:inherit;
     display:flex; flex-direction:column; align-items:center; gap:4px;
   }
-  .cat-box .ic{ font-size:24px; line-height:1; }
-  .cat-box .lb{ font-size:14px; font-weight:800; letter-spacing:-.01em; }
-  .cat-box .sub{ font-size:10px; color:var(--ink-dim); font-weight:600; }
+  .cat-box .ic{ font-size:17px; line-height:1; }
+  .cat-box .lb{ font-size:19px; font-weight:800; letter-spacing:-.01em; }
+  .cat-box .sub{ font-size:12px; color:var(--ink-dim); font-weight:600; }
   .cat-box.on{ color:#fff; }
   .cat-box[data-cat="PRODUCE"].on{ background:var(--green); border-color:var(--green); }
   .cat-box[data-cat="VEGETABLE"].on{ background:var(--green); border-color:var(--green); }
@@ -111,8 +111,8 @@
   }
   .refresh-box:active{ background:#245bc0; }
   .refresh-box.loading{ opacity:.6; pointer-events:none; }
-  .refresh-box .ic{ font-size:24px; }
-  .refresh-box .lb{ font-size:12px; font-weight:800; }
+  .refresh-box .ic{ font-size:17px; }
+  .refresh-box .lb{ font-size:15px; font-weight:800; }
   .refresh-box .spin{ width:20px; height:20px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
   .refresh-box.loading .spin{ display:block; }
   .refresh-box.loading .ic{ display:none; }
@@ -177,7 +177,7 @@
 <body>
 
 <!-- 진입 모드 선택 -->
-<div class="gate" id="gate">
+<div class="gate hide" id="gate" style="display:none;">
   <div class="gate-card">
     <h1>PLU 조회</h1>
     <div class="tag">THE SHAWN · 매장 태블릿</div>
@@ -222,11 +222,7 @@
   <button class="refresh-box" id="refreshBox"><span class="spin"></span><span class="ic">↻</span><span class="lb">REFRESH</span></button>
 </div>
 
-<div class="subrow">
-  <span class="mode-badge cashier" id="modeBadge">캐시어</span>
-  <input class="search" id="search" type="text" placeholder="PLU 번호 · 이름 검색" autocomplete="off">
-  <span class="meta" id="meta">—</span>
-</div>
+<!-- (요구 12) 검색·저장날짜·모드뱃지 제거됨 -->
 
 <!-- 중간: PLU 목록 + 사진 -->
 <div class="main">
@@ -269,7 +265,7 @@
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
   window.__fbFetch = async function(){
-    const cols = ['upc-list','upc-config','store-msg'];
+    const cols = ['plu-list','plu-config','plu-preview-config'];
     const out = {};
     for(const c of cols){
       const o = {};
@@ -299,7 +295,7 @@
   function labelOf(id, map){ for(var k in map){ if(map[k]===id) return k; } return id; }
   function buildDocidMap(cfg){ var m={}; var main=(cfg&&cfg.main)||null; if(main&&Array.isArray(main.tabs)){ main.tabs.forEach(function(t){ if(t&&t.label) m[String(t.label)]=String(t.doc||t.label); }); } return m; }
 
-  // upc-list → { 카테고리: [rows] }, 각 row {plu, extra, sub}
+  // plu-list(PLU MASTER) → { 카테고리: [rows] }, 각 row {plu, extra, sub}
   function parseSnap(upcList, upcConfig){
     var map=buildDocidMap(upcConfig);
     var cloud={}, metas={}, chunkBy={};
@@ -378,8 +374,6 @@
   function enter(admin){
     isAdmin=admin;
     document.body.classList.toggle('admin', admin);
-    $('modeBadge').textContent = admin?'관리자':'캐시어';
-    $('modeBadge').className = 'mode-badge '+(admin?'admin':'cashier');
     $('gate').classList.add('hide');
     boot();
   }
@@ -391,9 +385,15 @@
     setLoading(true,'Firebase에서 데이터 가져오는 중…');
     try{
       var raw=await window.__fbFetch();
-      var cloud=parseSnap(raw['upc-list']||{}, raw['upc-config']||{});
-      var msg=''; var sm=raw['store-msg']||{}; if(sm.main&&sm.main.text) msg=String(sm.main.text);
-      var custom=(DATA&&DATA.custom)||{};
+      var cloud=parseSnap(raw['plu-list']||{}, raw['plu-config']||{});
+      // 매장별 관리자 설정 (plu-preview-config/{매장}): SALES/ETC 분류, 메시지
+      var pc=(raw['plu-preview-config']||{})[STORE]||{};
+      var custom={};
+      if(pc.sales && Array.isArray(pc.sales.subs)) custom.SALES={ subs:pc.sales.subs, plus:(pc.sales.plus||[]) };
+      if(pc.etc && Array.isArray(pc.etc.subs)) custom.ETC={ subs:pc.etc.subs, plus:(pc.etc.plus||[]) };
+      // 로컬에만 있던 설정도 병합 (관리자가 아직 서버 저장 안 한 경우)
+      if(DATA&&DATA.custom){ for(var ck in DATA.custom){ if(!custom[ck]) custom[ck]=DATA.custom[ck]; } }
+      var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
       DATA={ cloud:cloud, custom:custom, msg:msg, savedAt:Date.now() };
       await cacheSet(DATA);
       render(); updateMeta(); renderMsg();
@@ -407,14 +407,7 @@
     updateMeta(); renderMsg();
   }
 
-  function updateMeta(){
-    var m=$('meta');
-    if(!DATA){ m.innerHTML='<span class="off">저장된 데이터 없음</span>'; return; }
-    var when=new Date(DATA.savedAt);
-    var ts=when.getFullYear()+'-'+String(when.getMonth()+1).padStart(2,'0')+'-'+String(when.getDate()).padStart(2,'0')+' '+String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');
-    var n=rowsForCat(curCat).length;
-    m.innerHTML='저장 <b>'+ts+'</b> · 현재 <b>'+n+'</b>개';
-  }
+  function updateMeta(){ /* (요구 12) 저장날짜 표시 제거 */ }
 
   /* ===== 렌더 ===== */
   function render(){
@@ -492,29 +485,19 @@
     showPhoto(plu, nm);
   });
   var st=null;
-  $('search').addEventListener('input', function(e){ searchTerm=e.target.value; if(st)clearTimeout(st); st=setTimeout(function(){ render(); updateMeta(); },180); });
   $('refreshBox').addEventListener('click', refresh);
 
   /* ===== 매장 표시 + 진입 모드 초기화 ===== */
   // 상단에 매장명 표시 (매장별 화면임을 명확히)
-  (function showStoreName(){
-    var nm = STORE || '매장 미지정';
-    var badge=document.createElement('div');
-    badge.id='storeName';
-    badge.style.cssText='position:fixed;top:14px;right:130px;z-index:60;font-size:13px;font-weight:800;color:var(--green);background:var(--green-soft);padding:6px 14px;border-radius:20px;';
-    badge.textContent='🏪 '+nm+(URL_MODE==='manager'?' · MANAGER':'');
-    document.body.appendChild(badge);
-  })();
+  /* (요구 12) 매장명 표시 제거 */
 
   if(URL_MODE==='manager'){
-    // hmart 안에서 열림 → 게이트/사진패널 없이 바로 관리 모드로 (매장별 관리 화면)
+    // hmart 안에서 열림 → 관리 모드 (매장별 관리 화면)
     document.title='PLU PREVIEW MANAGER · '+(STORE||'');
     enter(true);
-  }
-  // 매장 미지정 안내 (일반 진입인데 매장이 없으면)
-  if(!STORE && URL_MODE!=='manager'){
-    var tag=document.querySelector('.gate-card .tag');
-    if(tag){ tag.innerHTML='⚠ 매장이 지정되지 않았습니다 · INDEX에서 매장을 선택해 입장하세요'; tag.style.color='#b0532e'; }
+  } else {
+    // 메인 진입 → 무조건 캐시어 모드 (관리자 선택 없음)
+    enter(false);
   }
 })();
 </script>
