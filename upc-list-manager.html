@@ -359,7 +359,15 @@
     max-height: 70vh; background: var(--bg-elev);
     transform: translateZ(0); will-change: scroll-position;
   }
-  .plu-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .plu-table { width: max-content; border-collapse: collapse; font-size: 11px; }
+  /* ===== 모든 데이터 열 = 15자리 영문 고정폭 (126px). min=max=width 3중 고정으로 내용 무관 일정 ===== */
+  .plu-table th, .plu-table td { width: 126px; min-width: 126px; max-width: 126px; box-sizing: border-box; }
+  .plu-table th:not(.upc-c-no-col):not(.plu-col-check):not(.plu-col-photo),
+  .plu-table td:not(.upc-c-no-col):not(.plu-c-check):not(.plu-c-photo) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 특수 열은 고정폭(126) 예외 — 좁게 유지 (min=max=width 3중 고정) */
+  .plu-table th.upc-c-no-col, .plu-table td.upc-c-no-col { width:52px; min-width:52px; max-width:52px; }
+  .plu-table th.plu-col-check, .plu-table td.plu-c-check { width:34px; min-width:34px; max-width:34px; }
+  .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width:46px; min-width:46px; max-width:46px; }
   .plu-table thead th {
     position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
@@ -384,7 +392,7 @@
   .plu-photo-btn.has-photo { filter: none; opacity: 1; }
   .plu-photo-btn.has-photo:hover { transform: scale(1.12); }
   .plu-table td { word-break: break-word; overflow-wrap: anywhere; vertical-align: top; }
-  .plu-table td:not(.plu-c-no):not(.plu-c-check):not(.plu-c-photo):not(.plu-c-local):not(.plu-c-organic) { max-width: 130px; }
+  /* (제거) 데이터 열은 전체 126px 고정으로 통일 */
   .plu-screen-row { display: flex; align-items: flex-start; gap: 14px; }
   .plu-bars-col { width: 100%; position: sticky; top: var(--topbarH, 64px); z-index: 100; background: var(--bg); }
   #pluContent { flex: 1 1 auto; min-width: 0; }
@@ -541,7 +549,7 @@
   .plu-table thead th{text-align:center !important;color:#000 !important;font-weight:800 !important;}
   /* #18/#19 필드명 헤더: 중앙정렬 + 한 줄 + 말줄임(줄바꿈으로 행이 커지지 않게) */
   .plu-table thead th { text-align:center; }
-  .plu-col-name { display:inline-block; max-width:130px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; text-decoration:none; text-align:center; font-size:11px; }
+  .plu-col-name { display:inline-block; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; text-decoration:none; text-align:center; font-size:11px; }
   .plu-table thead th .plu-col-name { max-width:130px; }
   .plu-col-hidestore.on{ color:#c0392b; }
 
@@ -696,13 +704,13 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   .plu-col-del { border:none; background:transparent; color:#b04141; cursor:pointer; font-weight:700; font-size:11px; padding:0 2px; }
   .plu-col-ops { display:inline-flex; flex-wrap:nowrap; gap:2px; margin-top:0; margin-left:6px; vertical-align:middle; }
   /* 편집 모드 열 헤더: 필드명(위) + 버튼(아래) 세로 배치, 버튼 3개가 항상 보이도록 최소 폭 보장 */
-  .plu-table th.plu-col-drag { min-width:76px; padding-top:5px; padding-bottom:5px; }
+  .plu-table th.plu-col-drag { padding-top:5px; padding-bottom:5px; }
   .plu-table th.plu-col-drag .plu-col-name { display:block; max-width:none; white-space:normal; word-break:break-word; line-height:1.2; margin-bottom:4px; text-align:center; }
   .plu-table th.plu-col-drag .plu-col-ops { display:flex; justify-content:center; flex-wrap:nowrap; gap:3px; margin-left:0; }
-  .plu-table th.plu-col-drag.plu-col-check { min-width:60px; }
-  .plu-table th.plu-col-drag.plu-col-no { min-width:70px; }
+  /* (제거) */
+  /* (제거) */
   /* 편집 모드에서는 좁은 가격 열(upc-c-narrow 등)의 폭 강제를 풀어 버튼 3개가 보이게 */
-  .plu-table th.plu-col-drag.upc-c-narrow, .plu-table th.plu-col-drag.upc-c-price, .plu-table th.plu-col-drag.upc-c-blue, .plu-table th.plu-col-drag.upc-c-srp, .plu-table th.plu-col-drag.upc-c-srpp, .plu-table th.plu-col-drag.upc-c-green { max-width:none; width:auto; min-width:80px; }
+  /* (제거) 편집모드 가격열도 126px 고정 통일 */
   .plu-col-delbtn { color:#c0392b; font-weight:900; }
   .plu-col-drag .plu-col-name { vertical-align:middle; }
   th.plu-col-drag { white-space:nowrap; }
@@ -774,7 +782,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   /* MSRP 특수색 제거 */
 
   /* EA PRICE · SALES PRICE · MARGIN: 좁은 너비 + 8자까지만 표시 */
-  .plu-table td.upc-c-narrow, .plu-table th.upc-c-narrow { max-width:9ch; width:9ch; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plu-table td.upc-c-narrow, .plu-table th.upc-c-narrow { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plu-table td.upc-c-narrow input.plu-edit-input { width:auto; min-width:0; max-width:100%; }
   /* 열별 정렬 (사용자 지정 시 기본 정렬보다 우선) */
   .plu-table td.align-left,   .plu-table th.align-left   { text-align:left   !important; }
