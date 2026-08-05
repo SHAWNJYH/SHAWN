@@ -1813,6 +1813,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(done) return; done=true; __veditActive=false;
       var nv=inp.value;
       if(saveIt && nv!==cur){
+        // ★ 보기 화면 인라인 편집 = 이 셀 값만 저장.
+        //   관리자(편집) 모드의 자동 기능(전체 채우기·일괄 변경·카테고리 채우기·POS DESC 자동 생성·
+        //   SRP/MARGIN 자동 계산·UPC 변환)은 여기서 일절 실행하지 않는다.
         if(isB){ row[fieldOf(key)]=nv; } else { if(!row.extra) row.extra={}; row.extra[key]=nv; __pendingText[__ckey(cat,plu,key)]=nv; }
         scheduleCheckSave(cat);
         // 전체 재렌더 대신 이 셀만 갱신 (수천 행에서 즉각 반응)
