@@ -174,13 +174,15 @@
   .main{ flex:1 1 auto; display:flex; flex-direction:column; gap:12px; padding:12px 16px; overflow:hidden; }
   .list-pane{ flex:1 1 auto; overflow:auto; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; }
   /* 아래 영역: 키보드(왼쪽) + 사진(오른쪽) 가로 배치 */
-  .lower{ flex:0 0 300px; display:flex; gap:12px; min-height:0; }
+  .lower{ flex:0 0 233px; display:flex; gap:12px; min-height:0; }
   /* 왼쪽: 세로 2분할 (위 언어/BACK, 아래 키패드) */
   .kbd-panel{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0; overflow:hidden; }
   .kbd-topbar{ flex:0 0 auto; display:flex; gap:10px; align-items:stretch; min-width:0; }
   .kbd-topbar .lang-row{ flex:1 1 auto; min-width:0; }
-  .kbd-topbar .lang-btn{ min-height:38px; padding:8px 4px; }
-  .kbd-topbar .back-box{ flex:0 0 200px; padding:7px 8px; }
+  .kbd-topbar .lang-btn{ min-height:32px; padding:5px 4px; font-size:13px; }
+  .kbd-topbar .back-box{ flex:0 0 200px; padding:5px 8px; min-height:32px; }
+  .kbd-topbar .back-box .lb{ font-size:13px; }
+  .kbd-topbar .back-box .ic{ font-size:15px; }
 
   /* 뒤로가기 바 (CATE → 상품 단계 표시) */
   .crumb{ display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1.5px solid var(--border); position:sticky; top:0; background:var(--panel); z-index:6; }
@@ -219,8 +221,9 @@
   body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko{ font-size:12px; }
 
   /* 사진 패널 — DATA REFRESH · 언어선택 · 과일사진(고정크기) · BACK(고정) */
-  .photo-pane{ flex:0 0 270px; display:flex; flex-direction:column; gap:8px; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:10px; align-items:center; justify-content:center; }
-  .photo-top{ flex:0 0 auto; width:90%; aspect-ratio:1/1; max-height:90%; display:flex; align-items:center; justify-content:center; }
+  .photo-pane{ flex:0 0 233px; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
+  .photo-top{ flex:1 1 auto; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; }
+  .photo-box{ height:100%; aspect-ratio:1/1; max-width:100%; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
   .photo-box{ width:100%; height:100%; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
   .photo-box img{ max-width:100%; max-height:100%; object-fit:contain; }
   .photo-box .noimg{ color:var(--ink-dim); font-size:12px; font-weight:600; text-align:center; padding:16px; }
@@ -239,28 +242,38 @@
   body.admin .msgbar .edit-msg{ display:inline-block; }
 
   /* ===== 검색 키보드 (main 안 세로 컬럼 — 가로 좁고 세로 길게) ===== */
-  .kbdbar{ position:relative; z-index:210; flex:1 1 auto; min-height:0; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; padding:10px 12px; display:flex; flex-direction:row; gap:10px; align-items:stretch; overflow:hidden; }
+  .kbdbar{ position:relative; z-index:210; flex:1 1 auto; min-height:0; padding:0; display:flex; flex-direction:row; gap:10px; align-items:stretch; overflow:hidden; }
   /* 왼쪽 모드 열 (한글/영문/숫자 세로) */
   .kbd-modes{ flex:0 0 auto; display:flex; flex-direction:column; gap:5px; }
   .kbd-mode{ width:62px; flex:0 0 auto; min-height:44px; border:1.5px solid var(--border-2); border-radius:8px; background:var(--panel-2); color:var(--ink-dim); font-family:inherit; font-size:11px; font-weight:800; cursor:pointer; transition:all .1s; letter-spacing:-.02em; padding:0 2px; }
   .kbd-mode.on{ background:var(--red); border-color:var(--red); color:#fff; }
   /* 오른쪽 키 영역 (줄바꿈으로 여러 줄) */
-  .kbd-keys{ flex:1 1 auto; display:flex; flex-wrap:wrap; gap:5px; align-content:flex-start; overflow-y:auto; }
+  .kbd-keys{ flex:1 1 auto; display:flex; flex-wrap:wrap; gap:4px; align-content:space-between; overflow:hidden; }
   /* 한글도 동일 크기 (세로로 길어 충분) */
-  .kbd-keys.ko .kbd-key:not(.fn){ width:44px; height:42px; font-size:20px; }
+  .kbd-keys.ko .kbd-key:not(.fn){ width:44px; height:37px; font-size:19px; }
   .kbd-key{
-    width:44px; height:42px; border:1.5px solid var(--border); border-radius:9px; background:var(--panel-2); color:var(--ink);
-    font-family:inherit; font-size:22px; font-weight:700; cursor:pointer; transition:background .08s; display:flex; align-items:center; justify-content:center; padding:0;
+    width:44px; height:37px; border:1.5px solid var(--border); border-radius:9px; background:var(--panel-2); color:var(--ink);
+    font-family:inherit; font-size:20px; font-weight:700; cursor:pointer; transition:background .08s; display:flex; align-items:center; justify-content:center; padding:0;
   }
   .kbd-key:active{ background:var(--green-soft); border-color:var(--green); }
-  .kbd-key.fn{ width:100%; height:38px; min-width:0; padding:0 10px; font-size:14px; font-weight:800; background:var(--panel); color:var(--ink-dim); }
+  /* 기능키: 글자키와 동일 높이, 한글 끝 오른쪽에 이어붙음 */
+  .kbd-key.fn{ height:37px; min-width:100px; padding:0 12px; font-size:13px; font-weight:800; background:var(--panel-2); color:var(--ink-dim); border:1.5px solid var(--border); }
+  .kbd-key.backsp{ flex:1 1 auto; min-width:120px; }
+  .kbd-key.fn.clr{ flex:1 1 auto; min-width:90px; }
   .kbd-key.fn.del{ color:var(--red); }
-  .kbd-key.backsp{ width:100%; flex:0 0 auto; }   /* BACKSPACE 전체폭 */
+  /* 그룹별 배경색: 숫자=하늘, 영문=초록, 한글=노랑 */
+  .kbd-key.g-num{ background:#e3f2fd; border-color:#bbdefb; }
+  .kbd-key.g-en{ background:#e8f5e9; border-color:#c8e6c9; }
+  .kbd-key.g-ko{ background:#fff8e1; border-color:#ffecb3; }
+  /* 세로가 짧은 아이패드(8.3인치 등)에서 키를 조금 더 작게 → 잘림 방지 */
+  @media (max-height:790px){
+    .kbd-key, .kbd-keys.ko .kbd-key:not(.fn){ width:38px; height:35px; font-size:18px; }
+  }
 
   /* ===== 검색 결과 팝업 (요구5) ===== */
-  .search-ov{ position:fixed; left:0; right:0; top:0; bottom:0; z-index:200; display:none; align-items:flex-start; justify-content:flex-start; background:rgba(31,29,26,.5); padding:74px 16px 16px; }
-  .search-ov.show{ display:flex; }
-  .search-card{ width:calc(100vw - 660px); min-width:360px; max-width:720px; max-height:calc(100vh - 100px); background:var(--panel); border-radius:18px; box-shadow:0 30px 80px -20px rgba(0,0,0,.5); display:flex; flex-direction:column; overflow:hidden; }
+  .search-ov{ position:fixed; inset:0; z-index:200; display:none; background:rgba(31,29,26,.4); }
+  .search-ov.show{ display:block; }
+  .search-card{ position:absolute; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; box-shadow:0 20px 60px -15px rgba(0,0,0,.4); display:flex; flex-direction:column; overflow:hidden; }
   .search-head{ flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1.5px solid var(--border); }
   .search-q{ flex:1; font-family:var(--mono); font-size:24px; font-weight:900; color:var(--red); min-height:28px; letter-spacing:1px; }
   .search-q .caret{ color:var(--ink-dim); animation:blink 1s steps(1) infinite; }
@@ -931,12 +944,15 @@
   var KB_NUM=['1','2','3','4','5','6','7','8','9','0'];
   function renderKeyboard(){
     var bar=$('kbdBar'); if(!bar) return;
-    function keyBtn(k){ return '<button class="kbd-key" data-k="'+k+'">'+k+'</button>'; }
-    // 모드 구분 없이 전부 한 화면에: 숫자 + 영문 + 한글 자모
-    var allKeys=KB_NUM.concat(KB_EN).concat(KB_KO_LINES[0]).concat(KB_KO_LINES[1]).concat(KB_KO_LINES[2]);
-    var keys=allKeys.map(keyBtn).join('');
-    var funcs='<button class="kbd-key fn del backsp" data-act="del">⌫ BACKSPACE</button>'+
-      '<button class="kbd-key fn del" data-act="clear">지움</button>';
+    function keyBtn(k,cls){ return '<button class="kbd-key '+cls+'" data-k="'+k+'">'+k+'</button>'; }
+    // 그룹별 배경색: 숫자=하늘, 영문=초록, 한글=노랑
+    var numKeys=KB_NUM.map(function(k){ return keyBtn(k,'g-num'); }).join('');
+    var enKeys=KB_EN.map(function(k){ return keyBtn(k,'g-en'); }).join('');
+    var koKeys=KB_KO_LINES[0].concat(KB_KO_LINES[1]).concat(KB_KO_LINES[2]).map(function(k){ return keyBtn(k,'g-ko'); }).join('');
+    var keys=numKeys+enKeys+koKeys;
+    // 기능키: 글자키와 동일 크기, 아이콘 없는 BACKSPACE, 지움→delete
+    var funcs='<button class="kbd-key fn del backsp" data-act="del">BACKSPACE</button>'+
+      '<button class="kbd-key fn del clr" data-act="clear">DELETE</button>';
     bar.innerHTML='<div class="kbd-keys all">'+keys+funcs+'</div>';
   }
   renderKeyboard();
@@ -1018,7 +1034,15 @@
 
   function openSearch(){
     searching=true; document.body.classList.add('searching'); $('searchOv').classList.add('show');
+    positionSearchCard();
     updateBackBtn();   // BACK → 검색취소 로 변경
+  }
+  // 검색 팝업을 카테고리 리스트 영역에 맞춰 배치
+  function positionSearchCard(){
+    var lp=$('listPane'); var card=document.querySelector('.search-card'); if(!lp||!card) return;
+    var r=lp.getBoundingClientRect();
+    card.style.left=r.left+'px'; card.style.top=r.top+'px';
+    card.style.width=r.width+'px'; card.style.height=r.height+'px';
   }
   function closeSearch(){
     searching=false; document.body.classList.remove('searching'); $('searchOv').classList.remove('show');
