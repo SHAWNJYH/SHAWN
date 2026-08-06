@@ -404,18 +404,19 @@
 
   // 실제 plu-list 행 구조: {plu, local, organic, kor(한글명), eng(영문명), cate(카테고리), extra:{}}
   function getVal(r,key){ if(!r) return ''; var lk=String(key).toLowerCase();
-    if(lk==='plu') return r.plu!=null?String(r.plu):'';
-    if(lk==='kor'||lk==='kor desc') return r.kor!=null?String(r.kor):'';
-    if(lk==='eng'||lk==='eng desc') return r.eng!=null?String(r.eng):'';
-    if(lk==='cate'||lk==='category') return r.cate!=null?String(r.cate):'';
-    if(r[key]!=null) return r[key];
-    if(r.extra){ if(r.extra[key]!=null) return r.extra[key]; for(var k in r.extra){ if(String(k).toLowerCase()===lk) return r.extra[k]; } }
+    if(lk==='plu' && r.plu!=null && String(r.plu).trim()!=='') return String(r.plu);
+    if((lk==='kor'||lk==='kor desc') && r.kor!=null && String(r.kor).trim()!=='') return String(r.kor);
+    if((lk==='eng'||lk==='eng desc') && r.eng!=null && String(r.eng).trim()!=='') return String(r.eng);
+    if((lk==='cate'||lk==='category') && r.cate!=null && String(r.cate).trim()!=='') return String(r.cate);
+    if(r[key]!=null && String(r[key]).trim()!=='') return r[key];
+    // extra 에서 정확한 키 또는 대소문자 무시 매칭
+    if(r.extra){ if(r.extra[key]!=null && String(r.extra[key]).trim()!=='') return r.extra[key]; for(var k in r.extra){ if(String(k).toLowerCase()===lk && r.extra[k]!=null && String(r.extra[k]).trim()!=='') return r.extra[k]; } }
     return '';
   }
   function pluOf(r){ if(!r) return ''; if(r.plu!=null&&String(r.plu).trim()!=='') return String(r.plu); if(r.extra){ if(r.extra.PLU) return String(r.extra.PLU); if(r.extra.plu) return String(r.extra.plu); } return ''; }
   // 요구2: KOR DESC / ENG DESC 필드에서 이름을 가져옴 (직접필드 r.kor/r.eng 또는 extra의 여러 이름)
-  function korOf(r){ return String((r&&r.kor)||getVal(r,'KOR DESC')||getVal(r,'KOR')||'').trim(); }
-  function engOf(r){ return String((r&&r.eng)||getVal(r,'ENG DESC')||getVal(r,'ENG')||'').trim(); }
+  function korOf(r){ return String((r&&r.kor)||getVal(r,'KOR DESC')||getVal(r,'KOR')||getVal(r,'KOREAN')||getVal(r,'한글명')||'').trim(); }
+  function engOf(r){ return String((r&&r.eng)||getVal(r,'ENG DESC')||getVal(r,'ENG')||getVal(r,'ENGLISH')||getVal(r,'영문명')||'').trim(); }
   function nameOf(r){ return korOf(r)||engOf(r); }
   // 카테고리 한글/영문 — CATE(KOR)/CATE(ENG) 별도 필드 우선, 없으면 합쳐진 cate 파싱
   function extraGet(r, names){
