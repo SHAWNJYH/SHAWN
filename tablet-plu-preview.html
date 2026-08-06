@@ -52,6 +52,12 @@
     display:flex; flex-direction:column;
     -webkit-user-select:none;
   }
+  /* 상단 상태바(시계·배터리) 영역을 하얀색으로 */
+  body::before{
+    content:''; position:fixed; top:0; left:0; right:0;
+    height:max(env(safe-area-inset-top), 28px);
+    background:var(--panel); z-index:100; pointer-events:none;
+  }
   /* 데스크톱(마우스)에서 미리보기용 아이패드 틀 — 터치기기(실제 태블릿)에는 미적용 */
   @media (pointer:fine){
     html{ position:static; background:#dfe3e8; }
@@ -181,7 +187,7 @@
   .main{ flex:1 1 auto; display:flex; flex-direction:column; gap:12px; padding:12px 16px 0; overflow:hidden; }
   .list-pane{ flex:1 1 auto; overflow:auto; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; }
   /* 아래 영역: 키보드(왼쪽) + 사진(오른쪽) 가로 배치 */
-  .lower{ flex:0 0 201px; display:flex; gap:12px; min-height:0; }
+  .lower{ flex:0 0 160px; display:flex; gap:12px; min-height:0; }
   /* 왼쪽: 세로 2분할 (위 언어/BACK, 아래 키패드) */
   .kbd-panel{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0; overflow:hidden; }
   .kbd-topbar{ flex:0 0 auto; display:flex; gap:10px; align-items:stretch; min-width:0; }
@@ -281,7 +287,7 @@
     .kbd-key.fn{ height:35px; }
     .kbd-key.fn.span2{ height:74px; }   /* 35×2+gap4 */
     .photo-box{ height:152px; width:152px; }   /* 작은 키에 맞춰 사진도 축소 (1~4열 높이) */
-    .lower{ flex-basis:191px; }
+    .lower{ flex-basis:152px; }
   }
 
   /* ===== 검색 결과 팝업 (요구5) ===== */
