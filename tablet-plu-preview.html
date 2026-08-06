@@ -96,15 +96,15 @@
 
   /* ===== 상단 카테고리 박스 ===== */
   /* ===== 상단 카테고리 박스 ===== */
-  .topbar{ flex:0 0 auto; display:flex; align-items:center; gap:8px; padding:20px 14px 9px; background:var(--panel); border-bottom:1.5px solid var(--border); }
+  .topbar{ flex:0 0 auto; height:56px; display:flex; align-items:stretch; gap:8px; padding:6px 14px; background:var(--panel); border-bottom:1.5px solid var(--border); }
   /* 요구4: 상단 맨 앞 H-MART 로고 (전체 표시) */
-  .hmart-badge{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; height:56px; }
-  .hmart-badge img{ height:56px; width:auto; border-radius:10px; display:block; }
+  .hmart-badge{ flex:0 0 auto; align-self:stretch; display:flex; align-items:center; justify-content:center; }
+  .hmart-badge img{ height:100%; width:auto; max-height:100%; border-radius:10px; display:block; }
   .hmart-badge span{ color:rgba(255,255,255,.55); }
   .cat-boxes{ display:flex; gap:7px; flex:1; }
   .cat-box{
     position:relative; overflow:hidden;
-    flex:1; padding:7px 5px; border:2px solid var(--border-2); border-radius:10px; background:var(--panel-2);
+    flex:1; padding:4px 5px; border:2px solid var(--border-2); border-radius:10px; background:var(--panel-2);
     cursor:pointer; text-align:center; transition:all .12s; font-family:inherit;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
   }
@@ -114,8 +114,8 @@
     font-size:38px; opacity:.13; z-index:0; pointer-events:none;
   }
   .cat-box .lb, .cat-box .sub{ position:relative; z-index:1; }
-  .cat-box .lb{ font-size:16px; font-weight:800; letter-spacing:-.02em; line-height:1.05; }
-  .cat-box .sub{ font-size:10px; color:var(--ink-dim); font-weight:600; line-height:1.1; }
+  .cat-box .lb{ font-size:14px; font-weight:800; letter-spacing:-.02em; line-height:1.05; }
+  .cat-box .sub{ font-size:9px; color:var(--ink-dim); font-weight:600; line-height:1.1; }
   .cat-box.on{ color:#fff; }
   .cat-box.on::before{ opacity:.22; }
   .cat-box[data-cat="PRODUCE"].on{ background:var(--green); border-color:var(--green); }
@@ -135,6 +135,11 @@
   .refresh-mini .spin{ width:15px; height:15px; border:2.5px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
   .refresh-mini.loading .spin{ display:block; }
   .refresh-mini.loading .ic{ display:none; }
+  /* UPDATE 옆 LANGUAGE 버튼 */
+  .lang-mini{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; width:64px; padding:4px 5px; border:2px solid var(--ink-dim); border-radius:10px; background:var(--panel-2); color:var(--ink); cursor:pointer; font-family:inherit; transition:background .12s; }
+  .lang-mini:active{ background:var(--border-2); }
+  .lang-mini .ic{ font-size:14px; line-height:1.05; }
+  .lang-mini .lb{ font-size:9px; font-weight:800; line-height:1.1; }
 
   /* 오른쪽 패널 버튼 (요구4): DATA REFRESH (맨 위) */
   .refresh-box{
@@ -171,10 +176,10 @@
   .lang-btn.on{ background:#c0392b; border-color:#c0392b; color:#fff; }   /* 요구8: 선택 언어 붉은색 */
 
   /* ===== 중간: 리스트 + 사진 ===== */
-  .main{ flex:1 1 auto; display:flex; flex-direction:column; gap:12px; padding:12px 16px; overflow:hidden; }
+  .main{ flex:1 1 auto; display:flex; flex-direction:column; gap:12px; padding:12px 16px 0; overflow:hidden; }
   .list-pane{ flex:1 1 auto; overflow:auto; background:var(--panel); border:1.5px solid var(--border); border-radius:16px; }
   /* 아래 영역: 키보드(왼쪽) + 사진(오른쪽) 가로 배치 */
-  .lower{ flex:0 0 233px; display:flex; gap:12px; min-height:0; }
+  .lower{ flex:0 0 201px; display:flex; gap:12px; min-height:0; }
   /* 왼쪽: 세로 2분할 (위 언어/BACK, 아래 키패드) */
   .kbd-panel{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0; overflow:hidden; }
   .kbd-topbar{ flex:0 0 auto; display:flex; gap:10px; align-items:stretch; min-width:0; }
@@ -221,10 +226,9 @@
   body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko{ font-size:12px; }
 
   /* 사진 패널 — DATA REFRESH · 언어선택 · 과일사진(고정크기) · BACK(고정) */
-  .photo-pane{ flex:0 0 233px; display:flex; flex-direction:column; align-items:center; overflow:hidden; }
-  .photo-top{ flex:1 1 auto; min-height:0; width:100%; display:flex; align-items:center; justify-content:center; }
-  .photo-box{ height:100%; aspect-ratio:1/1; max-width:100%; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
-  .photo-box{ width:100%; height:100%; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+  .photo-pane{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; }
+  .photo-top{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  .photo-box{ height:201px; width:201px; aspect-ratio:1/1; border:2px dashed var(--border-2); border-radius:14px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
   .photo-box img{ max-width:100%; max-height:100%; object-fit:contain; }
   .photo-box .noimg{ color:var(--ink-dim); font-size:12px; font-weight:600; text-align:center; padding:16px; }
   .photo-info{ display:none; }
@@ -248,7 +252,10 @@
   .kbd-mode{ width:62px; flex:0 0 auto; min-height:44px; border:1.5px solid var(--border-2); border-radius:8px; background:var(--panel-2); color:var(--ink-dim); font-family:inherit; font-size:11px; font-weight:800; cursor:pointer; transition:all .1s; letter-spacing:-.02em; padding:0 2px; }
   .kbd-mode.on{ background:var(--red); border-color:var(--red); color:#fff; }
   /* 오른쪽 키 영역 (줄바꿈으로 여러 줄) */
-  .kbd-keys{ flex:1 1 auto; display:flex; flex-wrap:wrap; gap:4px; align-content:space-between; overflow:hidden; }
+  .kbd-keys{ flex:1 1 auto; display:flex; flex-direction:row; gap:10px; align-items:flex-start; overflow:hidden; }
+  .kbd-letters{ flex:0 0 auto; display:flex; flex-direction:column; gap:4px; }   /* 줄 사이 간격 축소 */
+  .kbd-funcs{ flex:1 1 auto; display:flex; flex-direction:column; gap:4px; }
+  .kbd-line{ display:flex; gap:4px; align-items:stretch; }
   /* 한글도 동일 크기 (세로로 길어 충분) */
   .kbd-keys.ko .kbd-key:not(.fn){ width:44px; height:37px; font-size:19px; }
   .kbd-key{
@@ -256,10 +263,11 @@
     font-family:inherit; font-size:20px; font-weight:700; cursor:pointer; transition:background .08s; display:flex; align-items:center; justify-content:center; padding:0;
   }
   .kbd-key:active{ background:var(--green-soft); border-color:var(--green); }
-  /* 기능키: 글자키와 동일 높이, 한글 끝 오른쪽에 이어붙음 */
-  .kbd-key.fn{ height:37px; min-width:100px; padding:0 12px; font-size:13px; font-weight:800; background:var(--panel-2); color:var(--ink-dim); border:1.5px solid var(--border); }
-  .kbd-key.backsp{ flex:1 1 auto; min-width:120px; }
-  .kbd-key.fn.clr{ flex:1 1 auto; min-width:90px; }
+  /* 기능키: 오른쪽 세로 컬럼, 모두 같은 크기 */
+  .kbd-key.fn{ height:37px; width:100%; flex:0 0 auto; padding:0 14px; font-size:13px; font-weight:800; white-space:nowrap; background:var(--panel-2); color:var(--ink-dim); border:1.5px solid var(--border); }
+  .kbd-funcs .kbd-key.fn{ min-width:120px; }
+  .kbd-key.fn.empty{ cursor:default; color:transparent; }
+  .kbd-key.fn.empty:active{ background:var(--panel-2); border-color:var(--border); }
   .kbd-key.fn.del{ color:var(--red); }
   /* 그룹별 배경색: 숫자=하늘, 영문=초록, 한글=노랑 */
   .kbd-key.g-num{ background:#e3f2fd; border-color:#bbdefb; }
@@ -268,6 +276,9 @@
   /* 세로가 짧은 아이패드(8.3인치 등)에서 키를 조금 더 작게 → 잘림 방지 */
   @media (max-height:790px){
     .kbd-key, .kbd-keys.ko .kbd-key:not(.fn){ width:38px; height:35px; font-size:18px; }
+    .kbd-key.fn{ height:35px; }
+    .photo-box{ height:191px; width:191px; }   /* 작은 키에 맞춰 사진도 축소 */
+    .lower{ flex-basis:191px; }
   }
 
   /* ===== 검색 결과 팝업 (요구5) ===== */
@@ -360,6 +371,7 @@
     <button class="cat-box" data-cat="SALES" data-ic="🏷️"><span class="lb">SALES ITEM</span><span class="sub">광고상품</span></button>
     <button class="cat-box" data-cat="ETC" data-ic="➕"><span class="lb">ETC</span><span class="sub">기타상품</span></button>
   </div>
+  <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
   <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
 </div>
 
@@ -379,14 +391,7 @@
   <div class="lower">
     <!-- 왼쪽: 위 언어/BACK 행 + 아래 키패드 -->
     <div class="kbd-panel">
-      <div class="kbd-topbar">
-        <div class="lang-row" id="langRow">
-          <button class="lang-btn on" data-lang="EN">ENGLISH</button>
-          <button class="lang-btn" data-lang="KO">KOREAN</button>
-          <button class="lang-btn" data-lang="ES">SPANISH</button>
-        </div>
-        <button class="back-box" id="backBox"><span class="ic">←</span><span class="lb">BACK · 뒤로가기</span></button>
-      </div>
+      <button class="back-box" id="backBox" style="display:none;"><span class="ic">←</span><span class="lb">BACK · 뒤로가기</span></button>
       <div class="kbdbar" id="kbdBar"></div>
     </div>
     <!-- 오른쪽: 정사각형 사진 -->
@@ -916,13 +921,22 @@
   // 요구8: 언어 버튼 — 선택 시 붉은색 + 카테고리/상품 이름 언어 전환
   if($('langRow')) $('langRow').addEventListener('click', function(e){
     var b=e.target.closest('.lang-btn'); if(!b) return;
-    [].forEach.call(this.querySelectorAll('.lang-btn'), function(x){ x.classList.remove('on'); });
-    b.classList.add('on');
-    curLang=b.getAttribute('data-lang');
+    setLang(b.getAttribute('data-lang'));
+  });
+  // 언어 설정 (langRow 버튼 + LANGUAGE 버튼 공용)
+  function setLang(lang){
+    curLang=lang;
+    var lr=$('langRow');
+    if(lr){ [].forEach.call(lr.querySelectorAll('.lang-btn'), function(x){ x.classList.toggle('on', x.getAttribute('data-lang')===lang); }); }
+    var lb=$('langBtnLb'); if(lb){ lb.textContent = lang==='KO'?'KOREAN':(lang==='ES'?'SPANISH':'ENGLISH'); }
     applyLangClass();
-    render();   // 현재 화면(카테고리/상품) 이름 다시 그림
-    // 사진 정보 이름도 선택 언어로 갱신
+    render();
     if(selPlu){ var it=document.querySelector('.plu-item[data-plu="'+selPlu+'"]'); if(it){ var nm=itemName(it.getAttribute('data-ko')||'', it.getAttribute('data-en')||''); $('photoName').textContent=nm.main||''; } }
+  }
+  // LANGUAGE 버튼: EN → KO → ES → EN 순환
+  if($('langBtn')) $('langBtn').addEventListener('click', function(){
+    var next = curLang==='EN'?'KO':(curLang==='KO'?'ES':'EN');
+    setLang(next);
   });
   // 언어별 글자 크기 조정용 클래스 (영어·스페인어는 이름이 길어 조금 작게)
   function applyLangClass(){ document.body.classList.remove('lang-EN','lang-KO','lang-ES'); document.body.classList.add('lang-'+curLang); }
@@ -945,15 +959,35 @@
   function renderKeyboard(){
     var bar=$('kbdBar'); if(!bar) return;
     function keyBtn(k,cls){ return '<button class="kbd-key '+cls+'" data-k="'+k+'">'+k+'</button>'; }
-    // 그룹별 배경색: 숫자=하늘, 영문=초록, 한글=노랑
-    var numKeys=KB_NUM.map(function(k){ return keyBtn(k,'g-num'); }).join('');
-    var enKeys=KB_EN.map(function(k){ return keyBtn(k,'g-en'); }).join('');
-    var koKeys=KB_KO_LINES[0].concat(KB_KO_LINES[1]).concat(KB_KO_LINES[2]).map(function(k){ return keyBtn(k,'g-ko'); }).join('');
-    var keys=numKeys+enKeys+koKeys;
-    // 기능키: 글자키와 동일 크기, 아이콘 없는 BACKSPACE, 지움→delete
-    var funcs='<button class="kbd-key fn del backsp" data-act="del">BACKSPACE</button>'+
-      '<button class="kbd-key fn del clr" data-act="clear">DELETE</button>';
-    bar.innerHTML='<div class="kbd-keys all">'+keys+funcs+'</div>';
+    // 지정 배열
+    var row1=['A','B','C','D','E','F','G','H','I','J','K','L','M'];
+    var row2=['N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+    // 한글: 자음13 / (ㅎ+쌍자음5+모음7) / (나머지 모음)
+    var ko=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ','ㅏ','ㅓ','ㅗ','ㅕ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ'];
+    var row3=ko.slice(0,13);
+    var row4=ko.slice(13,26);
+    var row5=ko.slice(26);
+    var r1=row1.map(function(k){ return keyBtn(k,'g-en'); }).join('');
+    var r2=row2.map(function(k){ return keyBtn(k,'g-en'); }).join('');
+    var r3=row3.map(function(k){ return keyBtn(k,'g-ko'); }).join('');
+    var r4=row4.map(function(k){ return keyBtn(k,'g-ko'); }).join('');
+    var r5=row5.map(function(k){ return keyBtn(k,'g-ko'); }).join('');
+    // 왼쪽 글자 영역
+    var letters='<div class="kbd-letters">'+
+      '<div class="kbd-line">'+r1+'</div>'+
+      '<div class="kbd-line">'+r2+'</div>'+
+      '<div class="kbd-line">'+r3+'</div>'+
+      '<div class="kbd-line">'+r4+'</div>'+
+      '<div class="kbd-line">'+r5+'</div>'+
+      '</div>';
+    // 오른쪽 기능키 세로 4개: BACK / DELETE / BACKSPACE / 빈버튼
+    var funcs='<div class="kbd-funcs">'+
+      '<button class="kbd-key fn del backk" data-act="back">← BACK</button>'+
+      '<button class="kbd-key fn del clr" data-act="clear">DELETE</button>'+
+      '<button class="kbd-key fn del backsp" data-act="del">BACKSPACE</button>'+
+      '<button class="kbd-key fn empty" data-act="none">&nbsp;</button>'+
+      '</div>';
+    bar.innerHTML='<div class="kbd-keys all">'+letters+funcs+'</div>';
   }
   renderKeyboard();
 
@@ -1025,6 +1059,8 @@
     if(mb){ commitPending(); kbdMode=mb.getAttribute('data-mode'); renderKeyboard(); return; }
     var b=e.target.closest('.kbd-key'); if(!b) return;
     var act=b.getAttribute('data-act');
+    if(act==='none'){ return; }
+    if(act==='back'){ if($('backBox')) $('backBox').click(); return; }
     if(act==='del'){ pressDel(); return; }
     if(act==='space'){ pressSpace(); return; }
     if(act==='clear'){ pressClear(); return; }
