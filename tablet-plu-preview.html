@@ -44,10 +44,11 @@
     font-family:var(--serif); background:var(--bg); color:var(--ink);
     position:fixed; inset:0;              /* 화면 완전 고정 — 움직임/넘침 방지 */
     width:100vw; height:100vh;
-    height:100dvh;                         /* iOS 동적 뷰포트 (주소창/홈바 제외한 실제 영역) */
-    height:-webkit-fill-available;         /* 구형 iOS Safari 폴백 */
+    height:-webkit-fill-available;         /* 구형 iOS Safari 폴백 (먼저) */
+    height:100dvh;                         /* iOS 동적 뷰포트 — 최신 기기 우선 (홈바/주소창 제외 실제 영역) */
     margin:0; overflow:hidden; touch-action:none;
     padding-top:max(env(safe-area-inset-top), 28px);   /* 아이패드 상단 시계·배터리 영역 회피 */
+    padding-bottom:env(safe-area-inset-bottom, 0px);   /* 하단 홈 인디케이터 회피 — 키패드가 그 위에 딱 붙음 */
     box-sizing:border-box;
     display:flex; flex-direction:column;
     -webkit-user-select:none;
