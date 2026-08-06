@@ -140,6 +140,8 @@
   .back-box.dim{ opacity:.4; }
   .back-box .ic{ font-size:20px; font-weight:900; }
   .back-box .lb{ font-size:16px; font-weight:800; }
+  /* 검색 중 BACK(검색취소)을 팝업 위로 */
+  body.searching .back-box{ position:relative; z-index:220; box-shadow:0 0 0 3px rgba(192,57,43,.4); }
   /* 요구7: 언어 선택 버튼 (ENGLISH/KOREAN/SPANISH) */
   .lang-row{ flex:0 0 auto; display:flex; gap:6px; }
   .lang-btn{
@@ -160,18 +162,18 @@
   .crumb-title small{ font-size:12px; color:var(--ink-dim); font-weight:600; margin-left:6px; }
 
   /* (요구2) CATE 버튼 그리드 — 지금보다 크게: 가로4 (박스 1/3 커짐) */
-  .cate-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(120px,1fr); gap:10px; padding:14px; }
+  .cate-grid{ display:grid; grid-template-columns:repeat(5,1fr); grid-auto-rows:minmax(96px,1fr); gap:8px; padding:12px; }
   .cate-btn{
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    border:1.5px solid var(--border); border-radius:14px; background:var(--panel-2);
-    cursor:pointer; transition:all .1s; font-family:inherit; padding:10px; text-align:center;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    border:1.5px solid var(--border); border-radius:12px; background:var(--panel-2);
+    cursor:pointer; transition:all .1s; font-family:inherit; padding:8px; text-align:center;
   }
   .cate-btn:active{ border-color:var(--green); background:var(--green-soft); }
-  .cate-btn .ce{ font-size:24px; font-weight:800; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }  /* 영어 크게 */
-  .cate-btn .ck{ font-size:15px; font-weight:600; color:var(--ink-dim); }                                       /* 한글 */
+  .cate-btn .ce{ font-size:20px; font-weight:800; color:var(--ink); line-height:1.1; letter-spacing:-.01em; }  /* 영어 크게 */
+  .cate-btn .ck{ font-size:13px; font-weight:600; color:var(--ink-dim); }                                       /* 한글 */
   /* 영어·스페인어는 이름이 길어 글자 크기 축소 */
-  body.lang-EN .cate-btn .ce, body.lang-ES .cate-btn .ce{ font-size:19px; }
-  body.lang-EN .cate-btn .ck, body.lang-ES .cate-btn .ck{ font-size:13px; }
+  body.lang-EN .cate-btn .ce, body.lang-ES .cate-btn .ce{ font-size:16px; }
+  body.lang-EN .cate-btn .ck, body.lang-ES .cate-btn .ck{ font-size:11px; }
 
   /* (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한 */
   /* (요구3) 상품 리스트 — CATE 박스와 같은 크기: 가로4, PLU 최대·붉은 BOLD, 영/한 */
@@ -207,6 +209,37 @@
   .msgbar .txt.empty-msg{ color:rgba(255,255,255,.4); font-weight:500; }
   .msgbar .edit-msg{ border:1px solid rgba(255,255,255,.3); background:transparent; color:#fff; border-radius:8px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; display:none; }
   body.admin .msgbar .edit-msg{ display:inline-block; }
+
+  /* ===== 하단 검색 키보드 (요구2) ===== */
+  .kbdbar{ position:relative; z-index:210; flex:0 0 auto; background:var(--ink); padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
+  .kbd-row{ display:flex; gap:6px; justify-content:center; }
+  .kbd-key{
+    flex:1 1 0; min-width:0; max-width:72px; height:44px; border:none; border-radius:8px; background:#3a3833; color:#fff;
+    font-family:inherit; font-size:18px; font-weight:700; cursor:pointer; transition:background .08s; display:flex; align-items:center; justify-content:center;
+  }
+  .kbd-key:active{ background:var(--red); }
+  .kbd-key.wide{ flex:2 1 0; max-width:160px; font-size:14px; }
+  .kbd-key.space{ flex:5 1 0; max-width:none; }
+  .kbd-key.act{ background:var(--green); }
+  .kbd-key.del{ background:#6b3a34; }
+
+  /* ===== 검색 결과 팝업 (요구5) ===== */
+  .search-ov{ position:fixed; left:0; right:0; top:0; bottom:270px; z-index:200; display:none; align-items:flex-start; justify-content:center; background:rgba(31,29,26,.55); padding:50px 20px 10px; }
+  .search-ov.show{ display:flex; }
+  .search-card{ width:100%; max-width:640px; max-height:70vh; background:var(--panel); border-radius:18px; box-shadow:0 30px 80px -20px rgba(0,0,0,.5); display:flex; flex-direction:column; overflow:hidden; }
+  .search-head{ flex:0 0 auto; display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1.5px solid var(--border); }
+  .search-q{ flex:1; font-family:var(--mono); font-size:24px; font-weight:900; color:var(--red); min-height:28px; letter-spacing:1px; }
+  .search-q .caret{ color:var(--ink-dim); animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+  .search-close{ border:1.5px solid var(--border-2); background:var(--panel-2); border-radius:9px; width:36px; height:36px; font-size:16px; cursor:pointer; font-family:inherit; color:var(--ink); }
+  .search-results{ flex:1 1 auto; overflow-y:auto; padding:8px; }
+  .search-item{ display:flex; align-items:center; gap:14px; padding:12px 16px; border-radius:12px; cursor:pointer; transition:background .1s; }
+  .search-item:active{ background:var(--green-soft); }
+  .search-item .snum{ font-family:var(--mono); font-size:26px; font-weight:900; color:var(--red); flex:0 0 auto; min-width:72px; }
+  .search-item .sname{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+  .search-item .sen{ font-size:16px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .search-item .sko{ font-size:14px; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .search-empty{ text-align:center; color:var(--ink-dim); padding:40px 20px; font-size:15px; }
 
   /* 로딩 */
   .load-ov{ position:fixed; inset:0; z-index:150; display:none; align-items:center; justify-content:center; background:rgba(244,242,236,.85); }
@@ -297,11 +330,25 @@
   </div>
 </div>
 
-<!-- 하단: 관리자 메시지 -->
-<div class="msgbar">
+<!-- 관리자 메시지 (숨김 유지 — 로직 보존) -->
+<div class="msgbar" style="display:none;">
   <span class="ic">📢</span>
   <span class="txt empty-msg" id="msgTxt">관리자 메시지가 없습니다</span>
   <button class="edit-msg" id="editMsg">메시지 편집</button>
+</div>
+
+<!-- 하단: 검색 키보드 (요구2) -->
+<div class="kbdbar" id="kbdBar"></div>
+
+<!-- 검색 결과 팝업 (요구5) -->
+<div class="search-ov" id="searchOv">
+  <div class="search-card">
+    <div class="search-head">
+      <span class="search-q" id="searchQ"></span>
+      <button class="search-close" id="searchClose">✕</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
 </div>
 
 <div class="load-ov" id="loadOv"><div class="load-card"><div class="sp"></div><div class="t" id="loadT">데이터 불러오는 중…</div></div></div>
@@ -378,6 +425,57 @@
     var s=(rowSub(r)+' '+cateOf(r)).toLowerCase();
     return keys.some(function(k){ return s.indexOf(k.toLowerCase())>=0; });
   }
+  // 요구5: 전체 데이터 (카테고리 무관) — RESERVE 제외
+  function allRows(){
+    if(!DATA) return [];
+    var pool=[];
+    for(var lab in DATA.cloud){ (DATA.cloud[lab]||[]).forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }
+    return pool;
+  }
+  // 한글 초성 추출 (요구4: 초성 검색)
+  var CHO=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  function chosungOf(str){
+    var out='';
+    for(var i=0;i<str.length;i++){
+      var code=str.charCodeAt(i);
+      if(code>=0xAC00 && code<=0xD7A3){ out+=CHO[Math.floor((code-0xAC00)/588)]; }
+      else if(CHO.indexOf(str[i])>=0){ out+=str[i]; }   // 이미 초성이면 그대로
+      else out+=str[i];
+    }
+    return out;
+  }
+  // 검색: 질의(q)로 전체 상품에서 매칭 (영문 prefix / 한글 초성 or 문장 / PLU)
+  function searchRows(q){
+    q=String(q||'').trim(); if(!q) return [];
+    var ql=q.toLowerCase();
+    var isCho=/^[ㄱ-ㅎ]+$/.test(q);   // 순수 초성 질의
+    var rows=allRows();
+    var scored=[];
+    rows.forEach(function(r){
+      var plu=pluOf(r), en=engOf(r), ko=korOf(r);
+      var enl=en.toLowerCase();
+      var score=-1;
+      if(isCho){
+        // 초성 검색: 상품 한글명의 초성이 질의 초성으로 시작
+        var cho=chosungOf(ko);
+        if(cho.indexOf(q)===0) score=100;
+        else if(cho.indexOf(q)>=0) score=60;
+      } else {
+        // 영문 prefix (요구3): A → A로 시작
+        if(enl.indexOf(ql)===0) score=100;
+        else if(ko.indexOf(q)===0) score=95;                 // 한글 문장 prefix
+        else if(plu.indexOf(q)===0) score=90;                // PLU prefix
+        else if(enl.indexOf(ql)>=0) score=50;                // 영문 부분일치
+        else if(ko.indexOf(q)>=0) score=45;                  // 한글 부분일치
+        else if(plu.indexOf(q)>=0) score=40;
+        else if(chosungOf(ko).indexOf(q)===0) score=30;      // 혹시 초성 겸용
+      }
+      if(score>=0) scored.push({r:r, score:score, plu:plu});
+    });
+    scored.sort(function(a,b){ if(b.score!==a.score) return b.score-a.score; var x=parseInt(a.plu,10),y=parseInt(b.plu,10); if(isNaN(x))return 1; if(isNaN(y))return -1; return x-y; });
+    return scored.map(function(s){ return s.r; });
+  }
+
   function rowsForCat(catKey){
     if(!DATA) return [];
     var pool=[];
@@ -712,9 +810,25 @@
     $('photoNum').textContent='—'; $('photoName').textContent='';
     selPlu='';
   }
-  // 요구3: BACK 버튼 — 상품 리스트(list 뷰)일 때만 표시
-  function updateBackBtn(){ var b=$('backBox'); if(b){ if(view==='list'){ b.classList.remove('dim'); } else { b.classList.add('dim'); } } }
-  if($('backBox')) $('backBox').addEventListener('click', function(){ if(view==='list') goBack(); });
+  // 요구3·6: BACK 버튼 — 검색 중엔 '검색취소', 상품 리스트일 때 '뒤로', 그 외 흐림
+  function updateBackBtn(){
+    var b=$('backBox'); if(!b) return;
+    var lb=b.querySelector('.lb'), ic=b.querySelector('.ic');
+    if(searching){ b.classList.remove('dim'); if(ic)ic.textContent='✕'; if(lb)lb.textContent='검색취소'; }
+    else if(view==='list'){ b.classList.remove('dim'); if(ic)ic.textContent='←'; if(lb)lb.textContent='BACK · 뒤로가기'; }
+    else { b.classList.add('dim'); if(ic)ic.textContent='←'; if(lb)lb.textContent='BACK · 뒤로가기'; }
+  }
+  if($('backBox')) $('backBox').addEventListener('click', function(){
+    if(searching){ closeSearch(); goHome(); return; }   // 요구6: 검색취소 → 처음화면
+    if(view==='list') goBack();
+  });
+  // 처음 화면으로 (PRODUCE 카테고리 그리드)
+  function goHome(){
+    curCat='PRODUCE'; curCate=''; selPlu=''; view='cate';
+    [].forEach.call(document.querySelectorAll('.cat-box'), function(x){ x.classList.remove('on'); });
+    var pb=document.querySelector('.cat-box[data-cat="PRODUCE"]'); if(pb) pb.classList.add('on');
+    render(); resetPhoto(); updateBackBtn();
+  }
   $('refreshBox').addEventListener('click', refresh);
   // 요구8: 언어 버튼 — 선택 시 붉은색 + 카테고리/상품 이름 언어 전환
   if($('langRow')) $('langRow').addEventListener('click', function(e){
@@ -723,6 +837,7 @@
     b.classList.add('on');
     curLang=b.getAttribute('data-lang');
     applyLangClass();
+    renderKeyboard();   // 요구2: 언어에 맞는 자판 표시
     render();   // 현재 화면(카테고리/상품) 이름 다시 그림
     // 사진 정보 이름도 선택 언어로 갱신
     if(selPlu){ var it=document.querySelector('.plu-item[data-plu="'+selPlu+'"]'); if(it){ var nm=itemName(it.getAttribute('data-ko')||'', it.getAttribute('data-en')||''); $('photoName').textContent=nm.main||''; } }
@@ -730,6 +845,143 @@
   // 언어별 글자 크기 조정용 클래스 (영어·스페인어는 이름이 길어 조금 작게)
   function applyLangClass(){ document.body.classList.remove('lang-EN','lang-KO','lang-ES'); document.body.classList.add('lang-'+curLang); }
   applyLangClass();
+
+  /* ===== 검색 키보드 (요구2~6) ===== */
+  var searchQuery='';        // 현재 검색어
+  var searching=false;       // 검색 팝업 열림 상태
+  // 자판 레이아웃
+  var KB_EN=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M']];
+  // 한글: 초성 위주 + 모음 (초성검색 & 간단 문장). 두벌식 자모 배열
+  var KB_KO=[['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],['ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ']];
+  var KB_NUM=['1','2','3','4','5','6','7','8','9','0'];
+  function renderKeyboard(){
+    var bar=$('kbdBar'); if(!bar) return;
+    var lang=(curLang==='KO')?'KO':'EN';   // ES 는 영문 자판 사용
+    var layout=(lang==='KO')?KB_KO:KB_EN;
+    var html='';
+    // 숫자 줄 (PLU 검색 겸용)
+    html+='<div class="kbd-row">'+KB_NUM.map(function(k){ return '<button class="kbd-key" data-k="'+k+'">'+k+'</button>'; }).join('')+'</div>';
+    layout.forEach(function(row){
+      html+='<div class="kbd-row">'+row.map(function(k){ return '<button class="kbd-key" data-k="'+k+'">'+k+'</button>'; }).join('')+'</div>';
+    });
+    // 기능 줄: 스페이스 + 삭제 + 지우기
+    html+='<div class="kbd-row">'+
+      '<button class="kbd-key wide del" data-act="del">⌫ 삭제</button>'+
+      '<button class="kbd-key space" data-act="space">space</button>'+
+      '<button class="kbd-key wide del" data-act="clear">전체지우기</button>'+
+      '</div>';
+    bar.innerHTML=html;
+  }
+  renderKeyboard();
+
+  // 한글 자모 조합 (간단 오토마타) — 초성/중성/종성 결합
+  var CHO_L=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  var JUNG_L=['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+  var JONG_L=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  function isCho(c){ return CHO_L.indexOf(c)>=0; }
+  function isJung(c){ return JUNG_L.indexOf(c)>=0; }
+  // 한글 입력 상태
+  var hangul={ cho:-1, jung:-1, jong:-1 };
+  function resetHangul(){ hangul={cho:-1,jung:-1,jong:-1}; }
+  function composeHangul(){
+    if(hangul.cho<0) return '';
+    if(hangul.jung<0) return CHO_L[hangul.cho];   // 초성만 → 초성 문자 (초성검색용)
+    var code=0xAC00 + hangul.cho*588 + hangul.jung*28 + (hangul.jong<0?0:hangul.jong);
+    return String.fromCharCode(code);
+  }
+  // 자모 입력을 받아 searchQuery 갱신 (완성 글자는 확정, 진행 중 글자는 마지막에)
+  var committed='';  // 확정된 문자열
+  function feedJamo(jamo){
+    if(isCho(jamo)){
+      if(hangul.cho<0){ hangul.cho=CHO_L.indexOf(jamo); }
+      else if(hangul.jung<0){ committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); }
+      else if(hangul.jong<0){ var ji=JONG_L.indexOf(jamo); if(ji>0){ hangul.jong=ji; } else { committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); } }
+      else { committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); }
+    } else if(isJung(jamo)){
+      if(hangul.cho<0){ committed+=jamo; }     // 모음 단독 → 그대로
+      else if(hangul.jung<0){ hangul.jung=JUNG_L.indexOf(jamo); }
+      else { committed+=composeHangul(); resetHangul(); }   // 이미 완성 → 새 글자 (종성 이동 생략, 단순화)
+    }
+  }
+  function currentText(){
+    if(curLang==='KO'){ return committed + composeHangul(); }
+    return searchQuery;
+  }
+  function pressKey(k){
+    if(!searching) openSearch();
+    if(curLang==='KO'){ feedJamo(k); }
+    else { searchQuery+=k; }
+    updateSearch();
+  }
+  function pressSpace(){
+    if(curLang==='KO'){ committed+=composeHangul()+' '; resetHangul(); }
+    else searchQuery+=' ';
+    updateSearch();
+  }
+  function pressDel(){
+    if(curLang==='KO'){
+      if(hangul.jong>=0){ hangul.jong=-1; }
+      else if(hangul.jung>=0){ hangul.jung=-1; }
+      else if(hangul.cho>=0){ hangul.cho=-1; }
+      else if(committed){ committed=committed.slice(0,-1); }
+    } else { searchQuery=searchQuery.slice(0,-1); }
+    updateSearch();
+  }
+  function pressClear(){ searchQuery=''; committed=''; resetHangul(); updateSearch(); }
+  function pressNum(n){
+    if(!searching) openSearch();
+    // 숫자는 언어 무관하게 바로 추가 (PLU 검색)
+    if(curLang==='KO'){ committed+=composeHangul()+n; resetHangul(); }
+    else searchQuery+=n;
+    updateSearch();
+  }
+
+  $('kbdBar').addEventListener('click', function(e){
+    var b=e.target.closest('.kbd-key'); if(!b) return;
+    var act=b.getAttribute('data-act');
+    if(act==='del'){ pressDel(); return; }
+    if(act==='space'){ pressSpace(); return; }
+    if(act==='clear'){ pressClear(); return; }
+    var k=b.getAttribute('data-k'); if(k==null) return;
+    if(/^[0-9]$/.test(k)) pressNum(k); else pressKey(k);
+  });
+
+  function openSearch(){
+    searching=true; document.body.classList.add('searching'); $('searchOv').classList.add('show');
+    updateBackBtn();   // BACK → 검색취소 로 변경
+  }
+  function closeSearch(){
+    searching=false; document.body.classList.remove('searching'); $('searchOv').classList.remove('show');
+    searchQuery=''; committed=''; resetHangul();
+    $('searchQ').innerHTML=''; $('searchResults').innerHTML='';
+    updateBackBtn();
+  }
+  function updateSearch(){
+    var q=currentText();
+    $('searchQ').innerHTML=esc(q)+'<span class="caret">|</span>';
+    var rows=searchRows(q);
+    if(!q){ $('searchResults').innerHTML='<div class="search-empty">글자를 입력하면 상품을 찾습니다</div>'; return; }
+    if(!rows.length){ $('searchResults').innerHTML='<div class="search-empty">"'+esc(q)+'" 검색 결과가 없습니다</div>'; return; }
+    var html='';
+    rows.slice(0,40).forEach(function(r){
+      var plu=pluOf(r), nm=itemName(korOf(r), engOf(r));
+      html+='<div class="search-item" data-plu="'+esc(plu)+'">'+
+        '<span class="snum">'+esc(plu)+'</span>'+
+        '<span class="sname"><span class="sen">'+esc(nm.main||'')+'</span>'+
+        (nm.sub?'<span class="sko">'+esc(nm.sub)+'</span>':'')+'</span></div>';
+    });
+    $('searchResults').innerHTML=html;
+  }
+  // 검색결과 클릭 → 그 상품 사진 표시
+  $('searchResults').addEventListener('click', function(e){
+    var it=e.target.closest('.search-item'); if(!it) return;
+    var plu=it.getAttribute('data-plu');
+    var row=allRows().filter(function(r){ return pluOf(r)===plu; })[0];
+    if(row){ showPhoto(plu, itemName(korOf(row), engOf(row)).main); }
+    closeSearch();
+  });
+  $('searchClose').addEventListener('click', closeSearch);
+  $('searchOv').addEventListener('click', function(e){ if(e.target===$('searchOv')) closeSearch(); });
 
   /* ===== 매장 표시 + 진입 모드 초기화 ===== */
   // 상단에 매장명 표시 (매장별 화면임을 명확히)
