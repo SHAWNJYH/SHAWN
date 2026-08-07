@@ -54,6 +54,7 @@
     --c-local:#8E4A34;
     --c-sales:#3B556F;
     --c-etc:#6E675B;
+    --c-weekly:#8A6E3C;
     /* 그림자 */
     --sh-1:0 1px 2px rgba(30,27,22,.05);
     --sh-2:0 1px 2px rgba(30,27,22,.05), 0 14px 30px -20px rgba(30,27,22,.42);
@@ -152,20 +153,20 @@
 
   /* ===== 상단 바 ===== */
   .topbar{
-    flex:0 0 auto; height:56px; display:flex; align-items:stretch; gap:8px;
-    padding:7px 14px; background:var(--panel);
+    flex:0 0 auto; height:56px; display:flex; align-items:stretch; gap:6px;
+    padding:7px 12px; background:var(--panel);
     border-bottom:1px solid var(--line);
     box-shadow:0 1px 0 rgba(30,27,22,.02);
   }
-  .hmart-badge{ flex:0 0 auto; align-self:stretch; display:flex; align-items:center; justify-content:center; padding-right:12px; margin-right:2px; position:relative; }
+  .hmart-badge{ flex:0 0 auto; align-self:stretch; display:flex; align-items:center; justify-content:center; padding-right:9px; margin-right:1px; position:relative; }
   .hmart-badge::after{ content:''; position:absolute; right:0; top:6px; bottom:6px; width:1px; background:var(--line); }
   .hmart-badge img{ height:100%; width:auto; max-height:100%; border-radius:8px; display:block; }
   .hmart-badge span{ color:rgba(255,255,255,.55); }
 
-  .cat-boxes{ display:flex; gap:6px; flex:1; }
+  .cat-boxes{ display:flex; gap:5px; flex:1; min-width:0; }
   .cat-box{
     position:relative; overflow:hidden;
-    flex:1; padding:5px 4px; border:1px solid var(--line); border-radius:9px;
+    flex:1 1 0; min-width:0; padding:5px 3px; border:1px solid var(--line); border-radius:9px;
     background:var(--panel-2); color:var(--ink-2);
     cursor:pointer; text-align:center; transition:all .16s ease; font-family:inherit;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
@@ -173,8 +174,8 @@
   /* 아이콘 배경 제거 — 타이포그래피로만 구성 */
   .cat-box::before{ content:none; }
   .cat-box .lb, .cat-box .sub{ position:relative; z-index:1; }
-  .cat-box .lb{ font-size:12.5px; font-weight:700; letter-spacing:.055em; line-height:1.1; }
-  .cat-box .sub{ font-size:9.5px; color:var(--ink-dim); font-weight:500; line-height:1.2; letter-spacing:.01em; }
+  .cat-box .lb{ font-size:11.5px; font-weight:700; letter-spacing:.03em; line-height:1.1; white-space:nowrap; }
+  .cat-box .sub{ font-size:9px; color:var(--ink-dim); font-weight:500; line-height:1.2; letter-spacing:0; white-space:nowrap; }
   .cat-box:active{ transform:translateY(1px); }
   .cat-box.on{ color:#fff; box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 6px 14px -10px rgba(30,27,22,.6); }
   .cat-box.on .sub{ color:rgba(255,255,255,.7); }
@@ -185,23 +186,31 @@
   .cat-box[data-cat="LOCAL"].on{ background:var(--c-local); border-color:var(--c-local); }
   .cat-box[data-cat="SALES"].on{ background:var(--c-sales); border-color:var(--c-sales); }
   .cat-box[data-cat="ETC"].on{ background:var(--c-etc); border-color:var(--c-etc); }
+  .cat-box[data-cat="WEEKLY"].on{ background:var(--c-weekly); border-color:var(--c-weekly); }
+
+  /* 좁은 태블릿(8.3인치 등) — 상단 라벨 한 단계 축소 */
+  @media (max-width:1150px){
+    .cat-box .lb{ font-size:10.5px; letter-spacing:.01em; }
+    .cat-box .sub{ font-size:8.5px; }
+    .cat-boxes{ gap:4px; }
+  }
 
   /* 상단 유틸 버튼 (LANGUAGE / UPDATE) */
   .lang-mini, .refresh-mini{
     flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
-    width:70px; padding:5px 4px; border-radius:9px; cursor:pointer; font-family:inherit; transition:all .16s ease;
+    width:62px; padding:5px 3px; border-radius:9px; cursor:pointer; font-family:inherit; transition:all .16s ease;
   }
-  .lang-mini{ border:1px solid var(--line-2); background:var(--panel); color:var(--ink); margin-left:6px; }
+  .lang-mini{ border:1px solid var(--line-2); background:var(--panel); color:var(--ink); margin-left:4px; }
   .lang-mini:active{ background:var(--ink); border-color:var(--ink); color:#fff; }
   .lang-mini .ic{ display:none; }
-  .lang-mini .lb{ font-size:9.5px; font-weight:700; letter-spacing:.1em; line-height:1.2; }
+  .lang-mini .lb{ font-size:9px; font-weight:700; letter-spacing:.04em; line-height:1.2; white-space:nowrap; }
   .lang-mini::before{ content:'LANG'; font-size:8px; font-weight:700; letter-spacing:.16em; color:var(--ink-dim); }
   .lang-mini:active::before{ color:rgba(255,255,255,.6); }
   .refresh-mini{ border:1px solid var(--ink); background:var(--ink); color:#fff; margin-left:2px; }
   .refresh-mini:active{ background:#000; }
   .refresh-mini.loading{ opacity:.55; pointer-events:none; }
   .refresh-mini .ic{ font-size:13px; line-height:1; opacity:.65; }
-  .refresh-mini .lb{ font-size:9.5px; font-weight:700; letter-spacing:.1em; line-height:1.2; }
+  .refresh-mini .lb{ font-size:9px; font-weight:700; letter-spacing:.06em; line-height:1.2; white-space:nowrap; }
   .refresh-mini .spin{ width:13px; height:13px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
   .refresh-mini.loading .spin{ display:block; }
   .refresh-mini.loading .ic{ display:none; }
@@ -280,11 +289,12 @@
   }
   .cate-btn:active{ border-color:var(--line-2); background:var(--panel); box-shadow:var(--sh-1); }
   .cate-btn:active::before{ opacity:1; }
-  .cate-btn .ce{ font-size:18px; font-weight:600; color:var(--ink); line-height:1.15; letter-spacing:.005em; }
-  .cate-btn .ck{ font-size:12px; font-weight:500; color:var(--ink-dim); letter-spacing:.01em; }
-  body.lang-KO .cate-btn .ck{ font-size:15px; }
-  body.lang-EN .cate-btn .ce, body.lang-ES .cate-btn .ce{ font-size:20px; }
-  body.lang-EN .cate-btn .ck, body.lang-ES .cate-btn .ck{ font-size:11px; }
+  /* .ce = 선택 언어(주) · .ck = 보조 언어 — EN/ES 선택시 영문이 .ce, KO 선택시 한글이 .ce */
+  .cate-btn .ce{ font-size:20px; font-weight:600; color:var(--ink); line-height:1.2; letter-spacing:.005em; }
+  .cate-btn .ck{ font-size:13px; font-weight:500; color:var(--ink-dim); letter-spacing:.01em; }
+  /* EN/ES: 영문 20 · 한글 13 | KO: 한글 20 · 영문 13 */
+  body.lang-EN .cate-btn .ce, body.lang-ES .cate-btn .ce, body.lang-KO .cate-btn .ce{ font-size:20px; }
+  body.lang-EN .cate-btn .ck, body.lang-ES .cate-btn .ck, body.lang-KO .cate-btn .ck{ font-size:13px; }
 
   /* 상품 그리드 */
   .plu-grid{ display:grid; grid-template-columns:repeat(4,1fr); grid-auto-rows:minmax(96px,1fr); gap:10px; padding:14px; }
@@ -297,7 +307,7 @@
     font-family:var(--num); font-variant-numeric:tabular-nums;
     font-size:31px; font-weight:700; color:var(--red); line-height:1.05; letter-spacing:.005em;
   }
-  .plu-item .en{ font-size:15px; color:var(--ink); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em; }
+  .plu-item .en{ font-size:20px; color:var(--ink); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em; line-height:1.2; }
   .plu-item .ko{ font-size:13px; color:var(--ink-dim); font-weight:500; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .plu-item:active{ background:var(--panel); border-color:var(--line-2); }
   .plu-item.sel{
@@ -305,11 +315,19 @@
     box-shadow:inset 0 0 0 1px var(--accent), 0 10px 24px -16px rgba(47,93,70,.8);
   }
   .plu-item.sel::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
-  body.lang-KO .plu-item .ko{ font-size:16px; }
-  body.lang-EN .plu-item .en, body.lang-ES .plu-item .en{ font-size:17px; }
-  body.lang-ES .plu-item .ko{ font-size:12px; }
-  /* ENGLISH 모드 상품 리스트 — 한글 보조명 2배 크게 (12px → 24px) */
-  body.lang-EN .plu-item .ko{ font-size:24px; font-weight:500; color:var(--ink-2); line-height:1.25; margin-top:1px; }
+  /* PLU 리스트도 분류와 동일 — 주 언어 20 · 보조 언어 13 */
+  body.lang-EN .plu-item .en, body.lang-ES .plu-item .en, body.lang-KO .plu-item .en{ font-size:20px; }
+  body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko, body.lang-KO .plu-item .ko{ font-size:13px; }
+
+  /* ===== 주간 광고 (WEEKLY SALES) ===== */
+  .weekly-wrap{ padding:14px; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+  .weekly-card{ border:1px solid var(--line); border-radius:12px; background:var(--panel-3); overflow:hidden; display:flex; flex-direction:column; }
+  .weekly-card img{ width:100%; display:block; object-fit:contain; background:var(--panel); }
+  .weekly-card .cap{ padding:10px 14px; font-size:12px; font-weight:600; color:var(--ink-2); border-top:1px solid var(--line); letter-spacing:.02em; }
+  .weekly-empty{ text-align:center; padding:70px 24px; }
+  .weekly-empty .tag{ font-size:10px; font-weight:700; letter-spacing:.24em; color:var(--c-weekly); margin-bottom:16px; }
+  .weekly-empty h2{ margin:0 0 12px; font-family:var(--display); font-size:21px; font-weight:600; }
+  .weekly-empty p{ margin:0; font-size:13px; color:var(--ink-dim); line-height:1.9; font-weight:500; }
 
   /* 사진 패널 */
   .photo-pane{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; }
@@ -472,6 +490,7 @@
     <button class="cat-box" data-cat="LOCAL" data-ic="🏠"><span class="lb">LOCAL</span><span class="sub">로컬</span></button>
     <button class="cat-box" data-cat="SALES" data-ic="🏷️"><span class="lb">SALES ITEM</span><span class="sub">광고상품</span></button>
     <button class="cat-box" data-cat="ETC" data-ic="➕"><span class="lb">ETC</span><span class="sub">기타상품</span></button>
+    <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
   </div>
   <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
   <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
@@ -848,7 +867,9 @@
       // 로컬에만 있던 설정도 병합 (관리자가 아직 서버 저장 안 한 경우)
       if(DATA&&DATA.custom){ for(var ck in DATA.custom){ if(!custom[ck]) custom[ck]=DATA.custom[ck]; } }
       var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
-      DATA={ cloud:cloud, custom:custom, msg:msg, savedAt:Date.now() };
+      // 주간 광고 이미지 목록 (관리 페이지에서 저장 → plu-preview-config/{매장}.weekly)
+      var weekly=Array.isArray(pc.weekly)?pc.weekly:((DATA&&DATA.weekly)||[]);
+      DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, savedAt:Date.now() };
       await cacheSet(DATA);
       render(); updateMeta(); renderMsg();
     }catch(e){ alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+(e&&e.message?e.message:e)); }
@@ -866,9 +887,40 @@
   /* ===== 렌더 ===== */
   function render(){
     var pane=$('listPane');
+    // 주간 광고 — plu-list 와 무관, 별도 이미지 목록 (관리 페이지에서 등록 예정)
+    if(curCat==='WEEKLY'){ renderWeekly(pane); return; }
     if(!DATA){ return; }
     if(view==='cate'){ renderCateGrid(pane); }
     else { renderProductList(pane); }
+  }
+
+  // 주간 광고 이미지 목록 — DATA.weekly = [ '이미지주소', ... ] 또는 [ {url, title}, ... ]
+  function weeklyItems(){
+    var w=(DATA&&DATA.weekly)||[];
+    if(!Array.isArray(w)) return [];
+    return w.map(function(x){
+      if(typeof x==='string') return { url:x, title:'' };
+      if(x&&typeof x==='object') return { url:String(x.url||x.src||''), title:String(x.title||x.name||'') };
+      return null;
+    }).filter(function(x){ return x&&x.url; });
+  }
+  function renderWeekly(pane){
+    var items=weeklyItems();
+    if(!items.length){
+      pane.innerHTML='<div class="weekly-empty">'+
+        '<div class="tag">WEEKLY SALES</div>'+
+        '<h2>등록된 주간 광고가 없습니다</h2>'+
+        '<p>관리 페이지에서 주간 광고 이미지를 등록하면<br>이 화면에 표시됩니다.</p>'+
+        '</div>';
+      return;
+    }
+    var html='<div class="weekly-wrap">';
+    items.forEach(function(it){
+      html+='<div class="weekly-card"><img src="'+esc(it.url)+'" alt="'+esc(it.title||'WEEKLY SALES')+'" loading="lazy">'+
+        (it.title?('<div class="cap">'+esc(it.title)+'</div>'):'')+'</div>';
+    });
+    html+='</div>';
+    pane.innerHTML=html;
   }
 
   // (요구2) 카테고리(CATE) 버튼 그리드 — 가로5 세로6, 영어 크게/한글 작게
