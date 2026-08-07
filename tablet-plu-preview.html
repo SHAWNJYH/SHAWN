@@ -307,7 +307,9 @@
   .plu-item.sel::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
   body.lang-KO .plu-item .ko{ font-size:16px; }
   body.lang-EN .plu-item .en, body.lang-ES .plu-item .en{ font-size:17px; }
-  body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko{ font-size:12px; }
+  body.lang-ES .plu-item .ko{ font-size:12px; }
+  /* ENGLISH 모드 상품 리스트 — 한글 보조명 2배 크게 (12px → 24px) */
+  body.lang-EN .plu-item .ko{ font-size:24px; font-weight:500; color:var(--ink-2); line-height:1.25; margin-top:1px; }
 
   /* 사진 패널 */
   .photo-pane{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; }
