@@ -307,17 +307,17 @@
     font-family:var(--num); font-variant-numeric:tabular-nums;
     font-size:31px; font-weight:700; color:var(--red); line-height:1.05; letter-spacing:.005em;
   }
-  .plu-item .en{ font-size:20px; color:var(--ink); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em; line-height:1.2; }
-  .plu-item .ko{ font-size:13px; color:var(--ink-dim); font-weight:500; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plu-item .en{ font-size:15px; color:var(--ink); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em; line-height:1.3; }
+  .plu-item .ko{ font-size:15px; color:var(--ink-dim); font-weight:500; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
   .plu-item:active{ background:var(--panel); border-color:var(--line-2); }
   .plu-item.sel{
     background:var(--panel); border-color:var(--accent);
     box-shadow:inset 0 0 0 1px var(--accent), 0 10px 24px -16px rgba(47,93,70,.8);
   }
   .plu-item.sel::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
-  /* PLU 리스트도 분류와 동일 — 주 언어 20 · 보조 언어 13 */
-  body.lang-EN .plu-item .en, body.lang-ES .plu-item .en, body.lang-KO .plu-item .en{ font-size:20px; }
-  body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko, body.lang-KO .plu-item .ko{ font-size:13px; }
+  /* PLU 리스트 — 번호는 31px 유지, 영문·한글·스페인어 이름은 모두 15px 통일 */
+  body.lang-EN .plu-item .en, body.lang-ES .plu-item .en, body.lang-KO .plu-item .en{ font-size:15px; }
+  body.lang-EN .plu-item .ko, body.lang-ES .plu-item .ko, body.lang-KO .plu-item .ko{ font-size:15px; }
 
   /* ===== 주간 광고 (WEEKLY SALES) ===== */
   .weekly-wrap{ padding:14px; display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
