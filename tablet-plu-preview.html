@@ -55,6 +55,7 @@
     --c-sales:#3B556F;
     --c-etc:#6E675B;
     --c-weekly:#8A6E3C;
+    --c-custom:#55506B;
     /* 그림자 */
     --sh-1:0 1px 2px rgba(30,27,22,.05);
     --sh-2:0 1px 2px rgba(30,27,22,.05), 0 14px 30px -20px rgba(30,27,22,.42);
@@ -174,8 +175,8 @@
   /* 아이콘 배경 제거 — 타이포그래피로만 구성 */
   .cat-box::before{ content:none; }
   .cat-box .lb, .cat-box .sub{ position:relative; z-index:1; }
-  .cat-box .lb{ font-size:11.5px; font-weight:700; letter-spacing:.03em; line-height:1.1; white-space:nowrap; }
-  .cat-box .sub{ font-size:9px; color:var(--ink-dim); font-weight:500; line-height:1.2; letter-spacing:0; white-space:nowrap; }
+  .cat-box .lb{ font-size:10.5px; font-weight:700; letter-spacing:.015em; line-height:1.1; white-space:nowrap; }
+  .cat-box .sub{ font-size:8.5px; color:var(--ink-dim); font-weight:500; line-height:1.2; letter-spacing:0; white-space:nowrap; }
   .cat-box:active{ transform:translateY(1px); }
   .cat-box.on{ color:#fff; box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 6px 14px -10px rgba(30,27,22,.6); }
   .cat-box.on .sub{ color:rgba(255,255,255,.7); }
@@ -187,12 +188,14 @@
   .cat-box[data-cat="SALES"].on{ background:var(--c-sales); border-color:var(--c-sales); }
   .cat-box[data-cat="ETC"].on{ background:var(--c-etc); border-color:var(--c-etc); }
   .cat-box[data-cat="WEEKLY"].on{ background:var(--c-weekly); border-color:var(--c-weekly); }
+  .cat-box[data-cat="CUSTOM"].on{ background:var(--c-custom); border-color:var(--c-custom); }
 
   /* 좁은 태블릿(8.3인치 등) — 상단 라벨 한 단계 축소 */
   @media (max-width:1150px){
-    .cat-box .lb{ font-size:10.5px; letter-spacing:.01em; }
-    .cat-box .sub{ font-size:8.5px; }
+    .cat-box .lb{ font-size:9.5px; letter-spacing:0; }
+    .cat-box .sub{ font-size:8px; }
     .cat-boxes{ gap:4px; }
+    .cat-box{ padding:5px 2px; }
   }
 
   /* 상단 유틸 버튼 (LANGUAGE / UPDATE) */
@@ -276,6 +279,28 @@
   .crumb-title{ font-family:var(--display); font-size:19px; font-weight:600; letter-spacing:-.005em; }
   .crumb-title small{ font-family:var(--sans); font-size:11px; color:var(--ink-dim); font-weight:600; letter-spacing:.08em; margin-left:9px; text-transform:uppercase; }
 
+  .crumb-actions{ margin-left:auto; display:flex; gap:7px; }
+  .crumb-btn{
+    border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink-2); border-radius:9px;
+    padding:8px 15px; font-size:11px; font-weight:700; letter-spacing:.06em; cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .crumb-btn:active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .crumb-btn.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .crumb-btn.danger{ color:var(--red); }
+  .crumb-btn.danger:active{ background:var(--red); border-color:var(--red); color:#fff; }
+
+  /* 사용자 정의 — 편집 모드 */
+  .plu-grid.editing .plu-item{ border-style:dashed; border-color:var(--line-2); cursor:grab; touch-action:none; }
+  .plu-item .del-btn{
+    position:absolute; right:7px; bottom:7px; width:27px; height:27px; border-radius:50%;
+    background:var(--red); color:#fff; font-size:13px; font-weight:700; line-height:1;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px -3px rgba(30,27,22,.6); z-index:3;
+  }
+  .plu-item.dragging{
+    opacity:.96; z-index:30; cursor:grabbing; border-style:solid; border-color:var(--accent);
+    background:var(--panel); box-shadow:var(--sh-3); transition:none;
+  }
+
   /* 분류 그리드 */
   .cate-grid{ display:grid; grid-template-columns:repeat(5,1fr); grid-auto-rows:minmax(96px,1fr); gap:9px; padding:14px; }
   .cate-btn{
@@ -302,6 +327,7 @@
     position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
     padding:10px; border:1px solid var(--line);
     border-radius:12px; background:var(--panel-3); cursor:pointer; transition:all .16s ease; text-align:center; overflow:hidden;
+    -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
   }
   .plu-item .num{
     font-family:var(--num); font-variant-numeric:tabular-nums;
@@ -499,6 +525,7 @@
     <button class="cat-box" data-cat="SALES" data-ic="🏷️"><span class="lb">SALES ITEM</span><span class="sub">광고상품</span></button>
     <button class="cat-box" data-cat="ETC" data-ic="➕"><span class="lb">ETC</span><span class="sub">기타상품</span></button>
     <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
+    <button class="cat-box" data-cat="CUSTOM" data-ic="★"><span class="lb">CUSTOM</span><span class="sub">사용자 정의</span></button>
   </div>
   <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
   <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
@@ -552,6 +579,18 @@
 </div>
 
 <!-- 데이터 업데이트 확인 팝업 (요구3) -->
+<div class="confirm-ov" id="askOv">
+  <div class="confirm-card">
+    <div class="confirm-ic" id="askIc">+</div>
+    <div class="confirm-title" id="askTitle"></div>
+    <div class="confirm-msg" id="askMsg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-no" id="askNo"></button>
+      <button class="confirm-yes" id="askYes"></button>
+    </div>
+  </div>
+</div>
+
 <div class="confirm-ov" id="updateOv">
   <div class="confirm-card">
     <div class="confirm-ic">↻</div>
@@ -819,6 +858,39 @@
   var view='cate';   // 'cate' = CATE 버튼 그리드, 'list' = 상품 리스트
   var curLang='EN';  // 요구8: 표시 언어 EN/KO/ES
 
+  /* ===== 사용자 정의(CUSTOM) — 다국어 문구 ===== */
+  var STR={
+    KO:{ custom:'사용자 정의', addTitle:'사용자 정의', addMsg:'PLU {p} 을(를) 사용자 정의에 추가하시겠습니까?',
+         yes:'YES · 추가', no:'NO · 취소', ok:'확인',
+         edit:'삭제 & 수정', done:'완료', delAll:'전체삭제',
+         delAllTitle:'전체삭제', delAllMsg:'사용자 정의 상품을 전체 삭제하시겠습니까?', delAllYes:'YES · 전체삭제',
+         dup:'이미 사용자 정의에 추가된 상품입니다.',
+         empty:'사용자 정의 상품이 없습니다.<br>PLU 버튼을 길게 누르면 추가됩니다.' },
+    EN:{ custom:'CUSTOM', addTitle:'ADD TO CUSTOM', addMsg:'Add PLU {p} to Custom?',
+         yes:'YES · ADD', no:'NO · CANCEL', ok:'OK',
+         edit:'EDIT & DELETE', done:'DONE', delAll:'DELETE ALL',
+         delAllTitle:'DELETE ALL', delAllMsg:'Delete all custom items?', delAllYes:'YES · DELETE ALL',
+         dup:'This item is already in Custom.',
+         empty:'No custom items yet.<br>Press and hold a PLU button to add it.' },
+    ES:{ custom:'PERSONALIZADO', addTitle:'AGREGAR A PERSONALIZADO', addMsg:'Agregar PLU {p} a Personalizado?',
+         yes:'SI · AGREGAR', no:'NO · CANCELAR', ok:'ACEPTAR',
+         edit:'EDITAR Y BORRAR', done:'LISTO', delAll:'BORRAR TODO',
+         delAllTitle:'BORRAR TODO', delAllMsg:'Borrar todos los productos personalizados?', delAllYes:'SI · BORRAR TODO',
+         dup:'Este producto ya esta en Personalizado.',
+         empty:'No hay productos personalizados.<br>Mantenga presionado un boton PLU para agregar.' }
+  };
+  function T(k){ var m=STR[curLang]||STR.EN; return (m[k]!=null?m[k]:(STR.EN[k]||'')); }
+
+  /* ===== 사용자 정의 목록 — 태블릿 로컬 저장 (매장별) ===== */
+  var CUSKEY='pluCustom::'+(readStore()||'_NONE_');
+  var customList=[], customEdit=false;
+  function loadCustom(){
+    try{ var v=JSON.parse(localStorage.getItem(CUSKEY)||'[]'); customList=Array.isArray(v)?v.filter(function(x){ return x&&x.plu; }):[]; }
+    catch(e){ customList=[]; }
+  }
+  function saveCustom(){ try{ localStorage.setItem(CUSKEY, JSON.stringify(customList)); }catch(e){} }
+  loadCustom();
+
   // 요구8: SPANISH 번역 — 영문(CATE(ENG)/ENG DESC) → 스페인어. 데이터 로드 시 영문을 번역해 표시.
   var EN_ES={
     ONION:'CEBOLLA', 'GREEN ONION':'CEBOLLETA', LETTUCE:'LECHUGA', ROMAINE:'LECHUGA ROMANA', CABBAGE:'REPOLLO', 'NAPA CABBAGE':'COL CHINA',
@@ -893,13 +965,64 @@
   function updateMeta(){ /* (요구 12) 저장날짜 표시 제거 */ }
 
   /* ===== 렌더 ===== */
+  // 데이터 없을 때 보여줄 첫 실행 안내 — CUSTOM/WEEKLY 화면이 덮어쓴 뒤 복구용
+  var FIRSTRUN_HTML = ($('listPane') ? $('listPane').innerHTML : '');
+
   function render(){
     var pane=$('listPane');
     // 주간 광고 — plu-list 와 무관, 별도 이미지 목록 (관리 페이지에서 등록 예정)
+    if(curCat==='CUSTOM'){ renderCustom(pane); return; }
     if(curCat==='WEEKLY'){ renderWeekly(pane); return; }
-    if(!DATA){ return; }
+    // 데이터가 없으면 안내 화면으로 복구 (예전엔 그냥 return 해서 이전 화면이 남아 있었음)
+    if(!DATA){ pane.innerHTML=FIRSTRUN_HTML; return; }
     if(view==='cate'){ renderCateGrid(pane); }
     else { renderProductList(pane); }
+  }
+
+  /* ===== 사용자 정의 화면 ===== */
+  function renderCustom(pane){
+    var head='<div class="crumb">'+
+      '<span class="crumb-title">'+esc(T('custom'))+'</span>'+
+      '<span class="crumb-actions">'+
+        '<button class="crumb-btn'+(customEdit?' on':'')+'" data-act="edit">'+esc(customEdit?T('done'):T('edit'))+'</button>'+
+        '<button class="crumb-btn danger" data-act="clear">'+esc(T('delAll'))+'</button>'+
+      '</span></div>';
+    if(!customList.length){ customEdit=false; pane.innerHTML=head+'<div class="empty">'+T('empty')+'</div>'; return; }
+    var html=head+'<div class="plu-grid'+(customEdit?' editing':'')+'" id="cusGrid">';
+    customList.forEach(function(c,i){
+      var nm=itemName(c.ko||'', c.en||'');
+      html+='<button class="plu-item'+(c.plu===selPlu?' sel':'')+'" data-plu="'+esc(c.plu)+'" data-ko="'+esc(c.ko||'')+'" data-en="'+esc(c.en||'')+'" data-idx="'+i+'">'+
+        '<span class="num">'+esc(c.plu)+'</span>'+
+        (nm.main?('<span class="en">'+esc(nm.main)+'</span>'):'')+
+        (nm.sub?('<span class="ko">'+esc(nm.sub)+'</span>'):'')+
+        (customEdit?'<span class="del-btn">\u2715</span>':'')+
+        '</button>';
+    });
+    html+='</div>';
+    pane.innerHTML=html;
+  }
+  // 길게 누른 PLU → 사용자 정의 추가 확인
+  function askAddCustom(it){
+    var plu=it.getAttribute('data-plu')||'', ko=it.getAttribute('data-ko')||'', en=it.getAttribute('data-en')||'';
+    if(!plu) return;
+    var dup=customList.some(function(c){ return c.plu===plu; });
+    if(dup){ askConfirm({ ic:'\u2605', title:T('custom'), msg:esc(T('dup')), yes:T('ok'), oneBtn:true }); return; }
+    askConfirm({
+      ic:'\u2605', title:T('addTitle'),
+      msg:esc(T('addMsg').replace('{p}', plu)),
+      yes:T('yes'), no:T('no'),
+      cb:function(){
+        customList.push({ plu:plu, ko:ko, en:en });
+        saveCustom();
+        if(curCat==='CUSTOM') render();
+      }
+    });
+  }
+  // 편집 모드 드래그 순서 변경 후 저장
+  function syncCustomOrder(grid){
+    var order=[].map.call(grid.querySelectorAll('.plu-item'), function(el){ return parseInt(el.getAttribute('data-idx'),10); });
+    var next=order.map(function(i){ return customList[i]; }).filter(Boolean);
+    if(next.length===customList.length){ customList=next; saveCustom(); }
   }
 
   // 주간 광고 이미지 목록 — DATA.weekly = [ '이미지주소', ... ] 또는 [ {url, title}, ... ]
@@ -1011,6 +1134,23 @@
 
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
+  /* ===== 공용 확인 팝업 (선택 언어로 표시) ===== */
+  var askCb=null;
+  function askConfirm(o){
+    $('askIc').textContent = o.ic || '+';
+    $('askTitle').textContent = o.title || '';
+    $('askMsg').innerHTML = o.msg || '';
+    $('askYes').textContent = o.yes || T('ok');
+    $('askNo').textContent = o.no || T('no');
+    $('askNo').style.display = o.oneBtn ? 'none' : '';
+    askCb = o.cb || null;
+    $('askOv').classList.add('show');
+  }
+  function closeAsk(){ $('askOv').classList.remove('show'); askCb=null; suppressUntil=0; }
+  $('askYes').addEventListener('click', function(){ var f=askCb; closeAsk(); if(f) f(); });
+  $('askNo').addEventListener('click', closeAsk);
+  $('askOv').addEventListener('click', function(e){ if(e.target===$('askOv')) closeAsk(); });
+
   /* ===== 사진 ===== */
   function showPhoto(plu, name){
     selPlu=plu;
@@ -1044,10 +1184,32 @@
     [].forEach.call(this.querySelectorAll('.cat-box'), function(x){ x.classList.remove('on'); });
     b.classList.add('on');
     curCat=b.getAttribute('data-cat'); curCate=''; selPlu=''; view='cate';
+    if(curCat!=='CUSTOM') customEdit=false;   // 사용자 정의를 벗어나면 편집 모드 해제
     render(); resetPhoto(); updateBackBtn();
   });
   // 리스트 영역 위임: CATE 버튼 → 상품 리스트, 상품 → 사진
   $('listPane').addEventListener('click', function(e){
+    if(Date.now()<suppressUntil){ suppressUntil=0; return; }   // 롱프레스·드래그 직후 유령 클릭 무시
+    // 사용자 정의 헤더 버튼 (삭제&수정 / 전체삭제)
+    var ab=e.target.closest('.crumb-btn');
+    if(ab){
+      var act=ab.getAttribute('data-act');
+      if(act==='edit'){ customEdit=!customEdit; render(); }
+      else if(act==='clear'){
+        if(!customList.length) return;
+        askConfirm({ ic:'\u2715', title:T('delAllTitle'), msg:esc(T('delAllMsg')), yes:T('delAllYes'), no:T('no'),
+          cb:function(){ customList=[]; customEdit=false; saveCustom(); render(); } });
+      }
+      return;
+    }
+    // 편집 모드 개별 삭제
+    var db=e.target.closest('.del-btn');
+    if(db){
+      var host=db.closest('.plu-item'); if(!host) return;
+      var di=parseInt(host.getAttribute('data-idx'),10);
+      if(!isNaN(di)){ customList.splice(di,1); saveCustom(); render(); }
+      return;
+    }
     var cb=e.target.closest('.cate-btn');
     if(cb){ curCate=cb.getAttribute('data-cate'); selPlu=''; view='list'; render(); resetPhoto(); updateBackBtn(); return; }
     var it=e.target.closest('.plu-item');
@@ -1060,6 +1222,70 @@
       showPhoto(plu, nm);
     }
   });
+
+  /* ===== PLU 길게 누르기 → 사용자 정의 추가 / 편집 모드 드래그 이동 ===== */
+  var suppressUntil=0;
+  var lpTimer=null, lpItem=null, lpX=0, lpY=0;
+  var dragEl=null, dragGrid=null, dragOn=false, dgX=0, dgY=0;
+
+  function clearLongPress(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } lpItem=null; }
+
+  $('listPane').addEventListener('pointerdown', function(e){
+    if(e.button!=null && e.button!==0) return;
+    if(e.target.closest('.del-btn')) return;               // 삭제 버튼은 클릭으로 처리
+    var it=e.target.closest('.plu-item'); if(!it) return;
+    lpX=e.clientX; lpY=e.clientY;
+    // 사용자 정의 + 편집 모드 → 드래그로 위치 변경
+    if(curCat==='CUSTOM' && customEdit){
+      dragEl=it; dragGrid=it.parentNode; dragOn=false; dgX=e.clientX; dgY=e.clientY;
+      return;
+    }
+    if(curCat==='CUSTOM') return;                          // 사용자 정의 화면에선 롱프레스 추가 없음
+    lpItem=it;
+    lpTimer=setTimeout(function(){
+      lpTimer=null;
+      if(!lpItem) return;
+      suppressUntil=Date.now()+800;
+      askAddCustom(lpItem);
+      lpItem=null;
+    }, 600);
+  });
+
+  document.addEventListener('pointermove', function(e){
+    if(lpTimer && (Math.abs(e.clientX-lpX)>10 || Math.abs(e.clientY-lpY)>10)) clearLongPress();
+    if(!dragEl) return;
+    var dx=e.clientX-dgX, dy=e.clientY-dgY;
+    if(!dragOn){
+      if(Math.abs(dx)<6 && Math.abs(dy)<6) return;
+      dragOn=true; suppressUntil=Date.now()+800; dragEl.classList.add('dragging');
+    }
+    dragEl.style.transform='translate('+dx+'px,'+dy+'px)';
+    // 포인터가 올라간 카드 기준으로 즉시 순서 교체
+    var items=[].slice.call(dragGrid.querySelectorAll('.plu-item'));
+    for(var i=0;i<items.length;i++){
+      var el=items[i]; if(el===dragEl) continue;
+      var r=el.getBoundingClientRect();
+      if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom){
+        var after = items.indexOf(el) > items.indexOf(dragEl);
+        dragGrid.insertBefore(dragEl, after ? el.nextSibling : el);
+        dgX=e.clientX; dgY=e.clientY; dragEl.style.transform='';   // 새 자리 기준으로 좌표 재설정
+        break;
+      }
+    }
+  }, { passive:true });
+
+  function endDrag(){
+    clearLongPress();
+    if(!dragEl) return;
+    var el=dragEl, grid=dragGrid, moved=dragOn;
+    dragEl=null; dragGrid=null; dragOn=false;
+    el.classList.remove('dragging'); el.style.transform='';
+    if(moved && grid){ syncCustomOrder(grid); render(); }
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+  $('listPane').addEventListener('scroll', clearLongPress, { passive:true });
+  $('listPane').addEventListener('contextmenu', function(e){ if(e.target.closest('.plu-item')) e.preventDefault(); });
   function resetPhoto(){
     $('photoBox').innerHTML='<div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div>';
     $('photoNum').textContent='—'; $('photoName').textContent='';
