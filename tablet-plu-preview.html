@@ -950,15 +950,24 @@
       }
       return;
     }
-    var html='<div class="cate-grid">';
-    cates.forEach(function(cate){
+    // 표시 이름을 먼저 계산 (정렬·렌더에 재사용 — engForCate 중복 호출 방지)
+    var list=cates.map(function(cate){
       var sp=cateKeyParts(cate);
       var eng=sp.eng || engForCate(cate);
-      var nm=cateName(sp.kor, eng);   // 요구8: 선택 언어로 주 이름
-      var subKo=sp.kor;               // 보조로 한글 (영어/스페인 선택 시)
-      html+='<button class="cate-btn" data-cate="'+esc(cate)+'">'+
-        '<span class="ce">'+esc(nm.main||subKo)+'</span>'+
-        (nm.sub?('<span class="ck">'+esc(nm.sub)+'</span>'):'')+
+      var nm=cateName(sp.kor, eng);   // 선택 언어로 주 이름
+      return { key:cate, main:String(nm.main||sp.kor||''), sub:String(nm.sub||'') };
+    });
+    // 선택 언어 기준 정렬 — EN/ES = A·B·C 순 / KO = 가·나·다 순
+    var LOC = (curLang==='KO') ? 'ko' : (curLang==='ES' ? 'es' : 'en');
+    list.sort(function(a,b){
+      try{ return a.main.localeCompare(b.main, LOC, { sensitivity:'base', numeric:true }); }
+      catch(e){ return a.main<b.main?-1:(a.main>b.main?1:0); }
+    });
+    var html='<div class="cate-grid">';
+    list.forEach(function(c){
+      html+='<button class="cate-btn" data-cate="'+esc(c.key)+'">'+
+        '<span class="ce">'+esc(c.main)+'</span>'+
+        (c.sub?('<span class="ck">'+esc(c.sub)+'</span>'):'')+
         '</button>';
     });
     html+='</div>';
