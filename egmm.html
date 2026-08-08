@@ -3254,7 +3254,7 @@
     sel.innerHTML='<div class="eg-exit-modal" style="width:380px">'
       +'<div class="eg-exit-title">🗂 MANAGER</div>'
       +'<div class="eg-exit-btns" style="flex-direction:column">'
-      +'<button class="eg-ex-btn" data-url="store-manager.html" type="button">STORE MANAGER<br><small style="font-weight:600;opacity:.7">매장 관리</small></button>'
+      +'<button class="eg-ex-btn" data-url="homepage-manager.html" type="button">HOMEPAGE MANAGER<br><small style="font-weight:600;opacity:.7">홈페이지 관리</small></button>'
       +'<button class="eg-ex-btn" data-url="advertising.html" type="button">AD MANAGER<br><small style="font-weight:600;opacity:.7">광고상품 관리</small></button>'
       +'<button class="eg-ex-btn" data-url="item-management-manager.html" type="button">ITEM MANAGEMENT<br><small style="font-weight:600;opacity:.7">아이템 관리</small></button>'
       +'</div></div>';
@@ -3276,6 +3276,8 @@
     });
     document.getElementById('egMgrX').onclick=function(){ big.classList.remove('show'); };
     big.addEventListener('click', function(e){ if(e.target===big) big.classList.remove('show'); });
+    // homepage-manager.html 내부의 닫기 버튼 → 팝업 닫기
+    window.addEventListener('message', function(e){ if(e && e.data==='hpm-close') big.classList.remove('show'); });
     // 공용 대형 팝업 오픈 (도구 모음 등)
     window.__egBigPop=function(url){
       var f=document.getElementById('egMgrFrame');
