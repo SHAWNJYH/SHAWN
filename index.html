@@ -3168,12 +3168,12 @@
     if(String(d.pin) !== String(pin)){ if(hmartPwErr) hmartPwErr.textContent='PIN이 일치하지 않습니다'; return; }
     try{ localStorage.setItem(HMART_STORE_KEY, store); }catch(e){}
     try{ localStorage.setItem(HMART_AUTO_KEY, (hmartAutoChk && hmartAutoChk.checked) ? '1' : '0'); }catch(e){}
-    window.location.href = 'hmart.html';
+    window.location.href = 'HMART/hmart.html';
   };
   const enterHmart = () => {
     if (isHmartAuto() && savedHmartStore()) {
       try { showToast('자동 로그인 합니다', 'success'); } catch(e) {}
-      setTimeout(()=>{ window.location.href = 'hmart.html'; }, 600);
+      setTimeout(()=>{ window.location.href = 'HMART/hmart.html'; }, 600);
       return;
     }
     openHmartPw();
