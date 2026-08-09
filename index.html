@@ -26,7 +26,7 @@
 })();
 </script>
 <link rel="manifest" href="TABLET-manifest.json">
-<meta name="theme-color" content="#d92b2f">
+<meta name="theme-color" content="#9C3327">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -48,7 +48,7 @@
     b.id = 'pwaInstallBtn'; b.type = 'button';
     b.textContent = '📲 앱 설치';
     b.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483000;'
-      + 'background:#d92b2f;color:#fff;border:0;border-radius:10px;padding:9px 14px;'
+      + 'background:#9C3327;color:#fff;border:0;border-radius:10px;padding:9px 14px;'
       + 'font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:inherit;';
     b.onclick = function(){
       if (deferred) {                            // 안드로이드: 원탭 설치
@@ -131,19 +131,24 @@
 </script>
 <style>
   :root {
-    --bg: #fafaf7;
-    --bg-elev: #ffffff;
-    --bg-elev-2: #f3f3ee;
-    --border: #e5e5e0;
-    --border-bright: #c8c8c0;
-    --text: #1a1a1d;
-    --text-dim: #6b6b72;
-    --text-faint: #9a9aa0;
-    --accent: #1a1a1d;
-    --accent-soft: #f0eee5;
-    --accent-warm: #c9a961;
-    --danger: #c83a3a;
+    /* ── DESIGN SYSTEM "Paper & Pine" (homepage-manager · tablet-plu-preview 공통) ── */
+    --bg: #EDEAE3;
+    --bg-elev: #FFFDFA;
+    --bg-elev-2: #F7F4ED;
+    --border: #E4DFD4;
+    --border-bright: #D6CFC0;
+    --text: #1E1B16;
+    --text-dim: #4C463C;
+    --text-faint: #8C8578;
+    --accent: #1E1B16;
+    --accent-soft: #E9EFEA;
+    --accent-warm: #2F5D46;
+    --brass: #A98A55;
+    --danger: #9C3327;
+    --danger-soft: #F5EAE7;
     --success: #2a8a4a;
+    --sh-1: 0 1px 2px rgba(30,27,22,.05);
+    --sh-2: 0 1px 2px rgba(30,27,22,.05), 0 14px 30px -20px rgba(30,27,22,.42);
     /* 카테고리 색상 */
     --cat-work: #4a6cc9;
     --cat-work-soft: #e5ebfa;
@@ -172,8 +177,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(201, 169, 97, 0.05) 0%, transparent 40%),
-      radial-gradient(circle at 80% 90%, rgba(26, 26, 29, 0.03) 0%, transparent 40%);
+      radial-gradient(circle at 20% 10%, rgba(169,138,85,0.06) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(30,27,22,0.03) 0%, transparent 40%);
     pointer-events: none;
     z-index: 0;
   }
@@ -207,7 +212,7 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 40px 32px 32px;
-    box-shadow: 0 10px 40px rgba(26,26,29,0.06);
+    box-shadow: 0 10px 40px rgba(30,27,22,0.06);
   }
 
   /* 로그인(THE SHAWN) + EGMM 두 박스를 나란히 */
@@ -219,7 +224,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 28px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .12s;
   }
-  .lock-card-egmm:hover { border-color: var(--accent-warm); box-shadow: 0 12px 44px rgba(26,26,29,0.1); }
+  .lock-card-egmm:hover { border-color: var(--accent-warm); box-shadow: 0 12px 44px rgba(30,27,22,0.1); }
   .lock-card-egmm:active { transform: scale(0.99); }
   .lock-card-egmm:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 2px; }
   .lock-card-egmm .lock-title { margin-bottom: 0; }
@@ -291,7 +296,7 @@
     transition: transform 0.15s, background 0.2s;
     margin-top: 8px;
   }
-  .btn:hover { background: #2d2d33; }
+  .btn:hover { background: #332E26; }
   .btn:active { transform: scale(0.98); }
   .btn.ghost {
     background: transparent;
@@ -356,10 +361,12 @@
   }
   .menu-brand {
     font-family: var(--serif);
-    font-size: 42px;
-    font-weight: 700;
+    font-size: 40px;
+    font-weight: 800;
     line-height: 1;
     color: var(--text);
+    letter-spacing: .14em;
+    text-transform: uppercase;
   }
   .menu-brand-sub {
     font-family: var(--mono);
@@ -394,7 +401,7 @@
   .menu-card:hover {
     border-color: var(--accent-warm);
     transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(26,26,29,0.08);
+    box-shadow: 0 20px 40px rgba(30,27,22,0.08);
   }
   .menu-card.disabled {
     cursor: not-allowed;
@@ -509,9 +516,11 @@
   }
   .brand {
     font-family: var(--serif);
-    font-size: 34px;
-    font-weight: 700;
+    font-size: 32px;
+    font-weight: 800;
     line-height: 1;
+    letter-spacing: .14em;
+    text-transform: uppercase;
   }
   .brand em { font-style: normal; color: var(--accent-warm); }
   .brand-meta {
@@ -575,7 +584,7 @@
   .sync-status.synced::before { background: var(--success); }
   .sync-status.syncing {
     color: var(--accent-warm);
-    border-color: rgba(201,169,97,0.3);
+    border-color: rgba(47,93,70,0.28);
     background: var(--accent-soft);
   }
   .sync-status.syncing::before {
@@ -636,7 +645,7 @@
     align-items: center;
     gap: 6px;
   }
-  .add-note-btn:hover { background: #2d2d33; }
+  .add-note-btn:hover { background: #332E26; }
   .add-note-btn:active { transform: scale(0.96); }
 
   .notes-grid {
@@ -1039,12 +1048,12 @@
     align-items: center;
     gap: 6px;
     min-width: 120px;
-    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
+    box-shadow: 0 4px 16px rgba(30,27,22,0.15);
   }
   .upc-convert-btn:hover {
     background: var(--accent-warm);
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
+    box-shadow: 0 6px 20px rgba(47,93,70,0.28);
   }
   .upc-convert-btn:active {
     transform: scale(0.98);
@@ -1077,12 +1086,12 @@
     align-items: center;
     gap: 4px;
     min-width: 130px;
-    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
+    box-shadow: 0 4px 16px rgba(30,27,22,0.15);
   }
   .case-convert-btn:hover {
     background: var(--accent-warm);
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
+    box-shadow: 0 6px 20px rgba(47,93,70,0.28);
   }
   .case-convert-btn:active {
     transform: scale(0.98);
@@ -1198,12 +1207,12 @@
     cursor: pointer;
     border-radius: 10px;
     transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
+    box-shadow: 0 4px 16px rgba(30,27,22,0.15);
   }
   .claude-add-btn:hover {
     background: var(--accent-warm);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
+    box-shadow: 0 6px 20px rgba(47,93,70,0.28);
   }
 
   .claude-notes-grid {
@@ -1255,7 +1264,7 @@
     font-family: var(--mono);
     font-size: 17px;
     font-weight: 800;
-    color: #2a2a2a;
+    color: #332E26;
     outline: none;
   }
   .claude-note-title-input:focus {
@@ -1275,7 +1284,7 @@
     font-family: var(--mono);
     font-size: 14px;
     line-height: 1.55;
-    color: #2a2a2a;
+    color: #332E26;
     outline: none;
   }
   .claude-note-body::placeholder {
@@ -1314,7 +1323,7 @@
   }
   .claude-note-action:hover {
     background: rgba(0,0,0,0.06);
-    color: #2a2a2a;
+    color: #332E26;
     border-color: rgba(0,0,0,0.45);
   }
   .claude-note-action.danger:hover {
@@ -1423,7 +1432,7 @@
     transition: background 0.2s;
     white-space: nowrap;
   }
-  .bible-go-btn:hover { background: #2d2d33; }
+  .bible-go-btn:hover { background: #332E26; }
 
   .bible-quick {
     display: flex;
@@ -1807,7 +1816,7 @@
   .panel-bg {
     position: fixed;
     inset: 0;
-    background: rgba(26, 26, 29, 0.35);
+    background: rgba(30,27,22,0.35);
     backdrop-filter: blur(6px);
     z-index: 200;
     display: none;
@@ -1829,7 +1838,7 @@
     overflow-y: auto;
     padding: 28px 28px 24px;
     position: relative;
-    box-shadow: 0 30px 80px rgba(26,26,29,0.15);
+    box-shadow: 0 30px 80px rgba(30,27,22,0.15);
     animation: cardIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @keyframes cardIn {
@@ -2196,7 +2205,7 @@
     pointer-events: none;
     transition: all 0.3s;
     z-index: 9999;
-    box-shadow: 0 10px 40px rgba(26,26,29,0.3);
+    box-shadow: 0 10px 40px rgba(30,27,22,0.3);
     min-width: 200px;
     text-align: center;
   }
@@ -2220,7 +2229,7 @@
   .modal-bg {
     position: fixed;
     inset: 0;
-    background: rgba(26, 26, 29, 0.45);
+    background: rgba(30,27,22,0.45);
     backdrop-filter: blur(4px);
     z-index: 500;
     display: none;
@@ -2236,7 +2245,7 @@
     padding: 28px;
     max-width: 380px;
     width: 100%;
-    box-shadow: 0 30px 80px rgba(26,26,29,0.15);
+    box-shadow: 0 30px 80px rgba(30,27,22,0.15);
   }
   .modal h3 {
     font-family: var(--serif);
@@ -2379,7 +2388,7 @@
     background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
     padding: 8px 12px; border-radius: 999px; cursor: pointer;
     font-family: var(--mono); font-size: 12px; font-weight: 800; letter-spacing: .04em;
-    box-shadow: 0 6px 20px rgba(26,26,29,0.10);
+    box-shadow: 0 6px 20px rgba(30,27,22,0.10);
     transition: border-color .15s, color .15s, transform .12s;
   }
   .mgr-fab:hover { border-color: var(--accent-warm); color: var(--text); }
@@ -2428,7 +2437,7 @@
     border:1.5px solid var(--border); border-radius:18px;
     min-height:150px; display:flex; align-items:center; justify-content:center;
     cursor:pointer; text-align:center; padding:24px;
-    box-shadow:0 8px 30px rgba(26,26,29,0.05);
+    box-shadow:0 8px 30px rgba(30,27,22,0.05);
     transition:border-color .22s, transform .22s cubic-bezier(0.2,0.8,0.2,1), box-shadow .22s;
   }
   .portal-card::before{
@@ -2436,7 +2445,7 @@
     background:var(--accent-warm); transform:scaleX(0); transform-origin:center;
     transition:transform .25s cubic-bezier(0.2,0.8,0.2,1);
   }
-  .portal-card:hover{ border-color:var(--accent-warm); transform:translateY(-5px); box-shadow:0 24px 48px rgba(26,26,29,0.10); }
+  .portal-card:hover{ border-color:var(--accent-warm); transform:translateY(-5px); box-shadow:0 24px 48px rgba(30,27,22,0.10); }
   .portal-card:hover::before{ transform:scaleX(1); }
   .portal-card:active{ transform:translateY(-2px) scale(.99); }
   .portal-card:focus-visible{ outline:2px solid var(--accent-warm); outline-offset:2px; }
@@ -2446,7 +2455,7 @@
   }
   .portal-tablet-badge{
     display:block; margin-top:8px;
-    color:#c0392b;
+    color:#9C3327;
     font-family:var(--mono); font-size:12px; font-weight:800; letter-spacing:.03em;
   }
   /* PLU PREVIEW 카드: 이름 + 배지를 세로로 (배지가 이름 아래에 오도록) */
@@ -3084,8 +3093,8 @@
   const closeMgrLogin = () => {
     mgrLoginOv.classList.remove('show');
     mgrLoginOv.style.display = 'none';   // 인라인 강제로 확실히 닫기
-    try{ if(menuScreen) menuScreen.classList.remove('active'); }catch(e){}
-    try{ if(app && app.classList) app.classList.remove('active'); }catch(e){}
+    try{ if(menuScreen) scrCL('menuScreen').remove('active'); }catch(e){}
+    try{ if(app && scrCL('app')) scrCL('app').remove('active'); }catch(e){}
     try{ if(lockScreen) lockScreen.style.display='flex'; }catch(e){}
     try{ if(lockErr) lockErr.textContent=''; }catch(e){}
     try{ var f=$('mgrFab'); if(f) f.style.display=''; }catch(e){}
@@ -3373,9 +3382,9 @@
     var __ov=$('mgrLoginOv'); if(__ov) __ov.classList.remove('show');
     var __fab=$('mgrFab'); if(__fab) __fab.style.display='none';
     lockScreen.style.display = 'none';
-    app.classList.remove('active');
-    menuScreen.classList.remove('odp-only');
-    menuScreen.classList.add('active');
+    scrCL('app').remove('active');
+    scrCL('menuScreen').remove('odp-only');
+    scrCL('menuScreen').add('active');
     $('loginEmail').value = '';
     $('loginPassword').value = '';
     $('signupEmail').value = '';
@@ -3392,8 +3401,12 @@
     } catch (e) {}
   }
 
+  // 제거된 THE SHAWN 앱 화면(달력/성경/도구 — shawn.html로 이동) 참조를 널-세이프로 처리
+  function scrCL(id){ var el=document.getElementById(id);
+    return el?el.classList:{add:function(){},remove:function(){},toggle:function(){},contains:function(){return false;}}; }
   function updateUserInfo() {
     const info = $('menuUserInfo');
+    if (!info) return;
     if (state.mode === 'odp') {
       info.textContent = 'ODP 작업용';
     } else if (state.mode === 'cloud' && currentUser) {
@@ -3404,27 +3417,27 @@
   }
 
   function showMenu() {
-    app.classList.remove('active');
-    panelBg.classList.remove('show');
-    $('bibleScreen').classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    menuScreen.classList.add('active');
+    scrCL('app').remove('active');
+    scrCL('panelBg').remove('show');
+    scrCL('bibleScreen').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
+    scrCL('menuScreen').add('active');
     window.scrollTo(0, 0);
   }
 
   function showTodo() {
-    menuScreen.classList.remove('active');
-    app.classList.add('active');
-    $('bibleScreen').classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').add('active');
+    scrCL('bibleScreen').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
     const now = new Date();
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
@@ -3434,14 +3447,14 @@
   }
 
   function showBible() {
-    menuScreen.classList.remove('active');
-    app.classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    $('bibleScreen').classList.add('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
+    scrCL('bibleScreen').add('active');
     window.scrollTo(0, 0);
     // 성경 화면 초기화 (한 번만)
     if (window.__bibleApp && !window.__bibleApp.initialized) {
@@ -3450,14 +3463,14 @@
   }
 
   function showUpc() {
-    menuScreen.classList.remove('active');
-    app.classList.remove('active');
-    $('bibleScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    $('upcScreen').classList.add('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').remove('active');
+    scrCL('bibleScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
+    scrCL('upcScreen').add('active');
     window.scrollTo(0, 0);
     if (window.__upcApp && !window.__upcApp.initialized) {
       window.__upcApp.init();
@@ -3465,14 +3478,14 @@
   }
 
   function showCase() {
-    menuScreen.classList.remove('active');
-    app.classList.remove('active');
-    $('bibleScreen').classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    $('caseScreen').classList.add('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').remove('active');
+    scrCL('bibleScreen').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
+    scrCL('caseScreen').add('active');
     window.scrollTo(0, 0);
     if (window.__caseApp && !window.__caseApp.initialized) {
       window.__caseApp.init();
@@ -3480,14 +3493,14 @@
   }
 
   function showWeight() {
-    menuScreen.classList.remove('active');
-    app.classList.remove('active');
-    $('bibleScreen').classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    $('weightScreen').classList.add('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').remove('active');
+    scrCL('bibleScreen').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
+    scrCL('weightScreen').add('active');
     window.scrollTo(0, 0);
     if (window.__weightApp && !window.__weightApp.initialized) {
       window.__weightApp.init();
@@ -3495,14 +3508,14 @@
   }
 
   function showCalc() {
-    menuScreen.classList.remove('active');
-    app.classList.remove('active');
-    $('bibleScreen').classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('claudeScreen').classList.remove('active');
-    $('calcScreen').classList.add('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').remove('active');
+    scrCL('bibleScreen').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('claudeScreen').remove('active');
+    scrCL('calcScreen').add('active');
     window.scrollTo(0, 0);
     if (window.__calcApp && !window.__calcApp.initialized) {
       window.__calcApp.init();
@@ -3510,14 +3523,14 @@
   }
 
   function showClaude() {
-    menuScreen.classList.remove('active');
-    app.classList.remove('active');
-    $('bibleScreen').classList.remove('active');
-    $('upcScreen').classList.remove('active');
-    $('caseScreen').classList.remove('active');
-    $('weightScreen').classList.remove('active');
-    $('calcScreen').classList.remove('active');
-    $('claudeScreen').classList.add('active');
+    scrCL('menuScreen').remove('active');
+    scrCL('app').remove('active');
+    scrCL('bibleScreen').remove('active');
+    scrCL('upcScreen').remove('active');
+    scrCL('caseScreen').remove('active');
+    scrCL('weightScreen').remove('active');
+    scrCL('calcScreen').remove('active');
+    scrCL('claudeScreen').add('active');
     window.scrollTo(0, 0);
     if (window.__claudeApp && !window.__claudeApp.initialized) {
       window.__claudeApp.init();
@@ -3548,18 +3561,13 @@
 
   // 화면 안의 "← 메뉴" 버튼들은 브라우저 뒤로가기와 동일하게 동작시킨다.
   // (popstate 핸들러가 메뉴로 되돌리므로 화면 정리도 거기서 일괄 처리됨)
-  $('backToMenuBtn').onclick = () => history.back();
-  $('bibleBackBtn').onclick = () => history.back();
-  $('upcBackBtn').onclick = () => history.back();
-  $('caseBackBtn').onclick = () => history.back();
-  $('weightBackBtn').onclick = () => history.back();
-  $('calcBackBtn').onclick = () => history.back();
-  $('claudeBackBtn').onclick = () => history.back();
+  ['backToMenuBtn','bibleBackBtn','upcBackBtn','caseBackBtn','weightBackBtn','calcBackBtn','claudeBackBtn']
+    .forEach(id => { const b = $(id); if (b) b.onclick = () => history.back(); });
 
   // showMenu에서 bible 화면도 닫기
   const _origShowMenu = showMenu;
   window.__showMenuExtra = () => {
-    $('bibleScreen').classList.remove('active');
+    scrCL('bibleScreen').remove('active');
   };
 
   // ========== CALENDAR ==========
@@ -3803,24 +3811,24 @@
     }
   });
 
-  calendarEl.addEventListener('click', e => {
+  if(calendarEl) calendarEl.addEventListener('click', e => {
     const day = e.target.closest('.day');
     if (!day) return;
     const key = day.dataset.key;
     openDayPanel(key);
   });
 
-  $('prevBtn').onclick = () => {
+  ($('prevBtn')||{}).onclick = () => {
     state.viewMonth--;
     if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
     renderCalendar();
   };
-  $('nextBtn').onclick = () => {
+  ($('nextBtn')||{}).onclick = () => {
     state.viewMonth++;
     if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
     renderCalendar();
   };
-  $('todayBtn').onclick = () => {
+  ($('todayBtn')||{}).onclick = () => {
     const now = new Date();
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
@@ -3828,7 +3836,7 @@
   };
 
   // 일정 추가 버튼 (헤더에 있는) → 오늘 날짜 패널 열기
-  $('addEventBtn').onclick = () => {
+  ($('addEventBtn')||{}).onclick = () => {
     openDayPanel(todayKey());
   };
 
@@ -3860,8 +3868,8 @@
     formState.lunar = 'solar';
     formState.color = 'default';
     updateFormUI();
-    const wasOpen = panelBg.classList.contains('show');
-    panelBg.classList.add('show');
+    const wasOpen = scrCL('panelBg').contains('show');
+    scrCL('panelBg').add('show');
     setTimeout(() => $('evTitle').focus(), 50);
     renderCalendar();
     // 패널을 새로 열 때만 히스토리에 기록 → 뒤로가기로 패널만 닫힘
@@ -3933,18 +3941,18 @@
   });
 
   function closeDayPanel() {
-    panelBg.classList.remove('show');
+    scrCL('panelBg').remove('show');
     state.selectedDate = null;
     renderCalendar();
   }
 
   // 닫기 동작은 모두 브라우저 뒤로가기로 통일 (popstate에서 실제로 닫음)
-  $('panelClose').onclick = () => history.back();
-  panelBg.addEventListener('click', e => {
+  ($('panelClose')||{}).onclick = () => history.back();
+  if(panelBg) panelBg.addEventListener('click', e => {
     if (e.target === panelBg) history.back();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && panelBg.classList.contains('show')) history.back();
+    if (e.key === 'Escape' && scrCL('panelBg').contains('show')) history.back();
   });
 
   function renderDayEvents() {
@@ -4023,7 +4031,7 @@
     return `${m}/${d}`;
   }
 
-  $('evList').addEventListener('click', e => {
+  ($('evList')||document.createElement('i')).addEventListener('click', e => {
     const row = e.target.closest('.ev-row');
     if (!row) return;
     const id = row.dataset.id;
@@ -4124,8 +4132,8 @@
     $('evTitle').focus();
   }
 
-  $('addEvBtn').onclick = addEvent;
-  $('evTitle').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
+  ($('addEvBtn')||{}).onclick = addEvent;
+  ($('evTitle')||{}).onkeydown = e => { if (e.key === 'Enter') addEvent(); };
 
   // ========== NOTES ==========
   const NOTE_COLORS = ['c-yellow', 'c-pink', 'c-blue', 'c-green', 'c-purple', 'c-orange'];
@@ -4188,10 +4196,10 @@
     }, 50);
   }
 
-  $('addNoteBtn').onclick = addNote;
+  ($('addNoteBtn')||{}).onclick = addNote;
 
   // 메모 textarea 입력 / 삭제 처리 (이벤트 위임)
-  $('notesGrid').addEventListener('input', e => {
+  ($('notesGrid')||document.createElement('i')).addEventListener('input', e => {
     if (e.target.dataset.action === 'edit') {
       const noteEl = e.target.closest('.note');
       const id = noteEl.dataset.id;
@@ -4208,7 +4216,7 @@
     }
   });
 
-  $('notesGrid').addEventListener('click', e => {
+  ($('notesGrid')||document.createElement('i')).addEventListener('click', e => {
     const delBtn = e.target.closest('[data-action="delete"]');
     if (delBtn) {
       const noteEl = delBtn.closest('.note');
@@ -4301,10 +4309,10 @@
     }, 50);
   }
 
-  $('claudeAddBtn').onclick = addClaudeNote;
+  ($('claudeAddBtn')||{}).onclick = addClaudeNote;
 
   // 입력 이벤트 (제목 + 본문)
-  $('claudeNotesGrid').addEventListener('input', e => {
+  ($('claudeNotesGrid')||document.createElement('i')).addEventListener('input', e => {
     const action = e.target.dataset.action;
     if (action !== 'edit-title' && action !== 'edit-body') return;
     const noteEl = e.target.closest('.claude-note');
@@ -4322,7 +4330,7 @@
   });
 
   // 클릭 이벤트 (복사, 삭제)
-  $('claudeNotesGrid').addEventListener('click', async e => {
+  ($('claudeNotesGrid')||document.createElement('i')).addEventListener('click', async e => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
@@ -4501,8 +4509,8 @@
       $('modalConfirm').removeEventListener('click', confirmHandler);
       doFileSave(pw);
     };
-    $('modalConfirm').addEventListener('click', confirmHandler);
-    $('modalCancel').onclick = () => {
+    ($('modalConfirm')||document.createElement('i')).addEventListener('click', confirmHandler);
+    ($('modalCancel')||{}).onclick = () => {
       modal.classList.remove('show');
       input.remove();
       $('modalConfirm').removeEventListener('click', confirmHandler);
@@ -4510,8 +4518,8 @@
     input.onkeydown = e => { if (e.key === 'Enter') confirmHandler(); };
   }
 
-  $('saveBtn').onclick = saveVault;
-  $('menuSaveBtn').onclick = saveVault;
+  ($('saveBtn')||{}).onclick = saveVault;
+  ($('menuSaveBtn')||{}).onclick = saveVault;
 
   // LOCK
   function lockNow() {
@@ -4529,16 +4537,16 @@
       state.mode = null;
       isAdmin = false;
       $('adminPanel').style.display = 'none';
-      panelBg.classList.remove('show');
-      app.classList.remove('active');
-      menuScreen.classList.remove('active');
-      menuScreen.classList.remove('odp-only');
-      $('bibleScreen').classList.remove('active');
-      $('upcScreen').classList.remove('active');
-      $('caseScreen').classList.remove('active');
-      $('weightScreen').classList.remove('active');
-      $('calcScreen').classList.remove('active');
-      $('claudeScreen').classList.remove('active');
+      scrCL('panelBg').remove('show');
+      scrCL('app').remove('active');
+      scrCL('menuScreen').remove('active');
+      scrCL('menuScreen').remove('odp-only');
+      scrCL('bibleScreen').remove('active');
+      scrCL('upcScreen').remove('active');
+      scrCL('caseScreen').remove('active');
+      scrCL('weightScreen').remove('active');
+      scrCL('calcScreen').remove('active');
+      scrCL('claudeScreen').remove('active');
       lockScreen.style.display = 'flex';
       setSyncStatus('', '');
       // Firebase 로그아웃
@@ -4550,12 +4558,12 @@
     };
     doLock();
   }
-  $('lockBtn').onclick = lockNow;
-  $('menuLockBtn').onclick = lockNow;
+  ($('lockBtn')||{}).onclick = lockNow;
+  ($('menuLockBtn')||{}).onclick = lockNow;
 
   // Shortcuts
   document.addEventListener('keydown', e => {
-    const isUnlocked = app.classList.contains('active') || menuScreen.classList.contains('active');
+    const isUnlocked = scrCL('app').contains('active') || scrCL('menuScreen').contains('active');
     if (!isUnlocked) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
@@ -4602,7 +4610,7 @@
     }
 
     // 날짜 패널이 열려 있으면 화면 이동 대신 패널만 닫는다
-    if (panelBg.classList.contains('show')) {
+    if (scrCL('panelBg').contains('show')) {
       closeDayPanel();
       __currentScreen = 'todo';
       return;
@@ -4640,6 +4648,7 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const data = window.__bibleData;
+  if (!data) return;   // 성경 데이터 없음 — 성경 화면은 shawn.html에서 처리
   const books = data.books;
 
   const app = {
