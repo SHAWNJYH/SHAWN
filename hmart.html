@@ -632,8 +632,8 @@
     openInFrame('tablet-plu-preview.html?mode=manager&store='+encodeURIComponent(store), this);
   };
   $('hmartToQuizBtn').onclick = function(){ openInFrame('plu-quiz.html', this); };
-  $('hmartAdViewBtn').onclick = function(){ openInFrame('advertising.html?mode=view', this); };
-  $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('advertising.html?mode=newitem', this); };
+  $('hmartAdViewBtn').onclick = function(){ openInFrame('advertising-viewer.html?mode=view', this); };
+  $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('advertising-viewer.html?mode=newitem', this); };
   ready(watchNewItems);
   Array.prototype.forEach.call(document.querySelectorAll('.egmm-menu-btn.soon'), function(b){ b.onclick = function(){}; });
 

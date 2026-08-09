@@ -2422,7 +2422,7 @@
   @keyframes portalIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
   .portal-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; width:100%; max-width:660px; margin:0 auto; }
   /* 카테고리(메인 이름) 레이아웃 */
-  .portal-cats{ display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; width:100%; max-width:1020px; margin:0 auto; align-items:stretch; }
+  .portal-cats{ display:grid; grid-template-columns:repeat(4, 1fr); gap:20px; width:100%; max-width:1280px; margin:0 auto; align-items:stretch; }
   .portal-cat{ display:flex; flex-direction:column; gap:10px; }
   .portal-cat .portal-card{ flex:1; }
   .portal-cat-title{
@@ -2458,8 +2458,13 @@
     color:#9C3327;
     font-family:var(--mono); font-size:12px; font-weight:800; letter-spacing:.03em;
   }
-  /* PLU PREVIEW 카드: 이름 + 배지를 세로로 (배지가 이름 아래에 오도록) */
-  #toPluPreviewBtn{ flex-direction:column; }
+  .portal-open-badge{
+    display:block; margin-top:8px;
+    color:#2F5D46;
+    font-family:var(--mono); font-size:12px; font-weight:800; letter-spacing:.03em;
+  }
+  /* PLU PREVIEW · ADVERTISING VIEWER 카드: 이름 + 배지를 세로로 (배지가 이름 아래에 오도록) */
+  #toPluPreviewBtn, #toAdViewerBtn{ flex-direction:column; }
   @media (max-width:900px){
     .portal-grid{ grid-template-columns:1fr; max-width:400px; }
     .portal-cats{ grid-template-columns:1fr; max-width:400px; }
@@ -2497,6 +2502,13 @@
         <div class="portal-card" id="toPluPreviewBtn" role="button" tabindex="0" aria-label="PLU PREVIEW">
           <div class="portal-name">PLU PREVIEW</div>
           <div class="portal-tablet-badge">TABLET ONLY · 태블릿 전용</div>
+        </div>
+      </div>
+      <div class="portal-cat">
+        <div class="portal-cat-title">ADVERTISING</div>
+        <div class="portal-card" id="toAdViewerBtn" role="button" tabindex="0" aria-label="ADVERTISING VIEWER">
+          <div class="portal-name">ADVERTISING VIEWER</div>
+          <div class="portal-open-badge">OPEN ACCESS · 누구나 보기</div>
         </div>
       </div>
     </div>
@@ -3040,6 +3052,12 @@
   if($('toPluPreviewBtn')){
     $('toPluPreviewBtn').onclick = () => openPluPreview();
     $('toPluPreviewBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPluPreview(); } });
+  }
+  // ADVERTISING VIEWER 박스 → 접속권한 불필요 · 누구나 바로 보기
+  if($('toAdViewerBtn')){
+    const openAdViewer = () => { window.location.href = 'advertising-viewer.html'; };
+    $('toAdViewerBtn').onclick = openAdViewer;
+    $('toAdViewerBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAdViewer(); } });
   }
   // ITEM ANALYZE 박스 → index 팝업 로그인
   if($('toAnalyzeBtn')){
