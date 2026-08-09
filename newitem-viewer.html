@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <!-- THE SHAWN WITH EGMM BY CLAUDE -->
 <!--
-  advertising-viewer.html — ADVERTISING VIEWER · Paper & Pine (homepage-manager 공통 디자인)
-  보기 전용(누구나 접속 가능 · 로그인 불필요) — 광고상품(AD LIST) 전용
-  신상품 보기는 newitem-viewer.html 로 분리
-  진입: index.html(공개 카드) · hmart.html(AD ITEMS — iframe 임베드)
-  Firestore 읽기 전용: advertising(광고리스트)
-  관리(업로드·저장)는 MANAGER/advertising-manager.html — EGMM MANAGER 팝업에서 사용
+  newitem-viewer.html — NEW ITEM VIEWER · Paper & Pine (homepage-manager 공통 디자인)
+  보기 전용(누구나 접속 가능 · 로그인 불필요) — advertising-viewer.html 에서 신상품 기능 분리 신설
+  진입: index.html(공개 카드) · hmart.html(NEW ITEMS — iframe 임베드)
+  Firestore 읽기 전용: upc-ocr-list (EGMM UPC OCR 변환 도구에서 저장한 rows · updatedAt 배치별 그룹)
 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5.0">
-<title>ADVERTISING VIEWER · THE SHAWN</title>
+<title>NEW ITEM VIEWER · THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
@@ -48,7 +46,7 @@
   /* ── 본문 ── */
   .sm-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; background:var(--bg-elev); }
 
-  /* 툴바: 리스트 선택 + 상태 + 주간 배지 */
+  /* 툴바: 배치 선택 + 상태 */
   .pv-toolbar{ flex:0 0 auto; display:flex; align-items:center; flex-wrap:wrap; gap:12px;
     padding:14px 28px; border-bottom:1px solid var(--border); background:var(--bg-elev-2); }
   .pv-toolbar .lbl{ font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--text-faint); }
@@ -61,11 +59,6 @@
   .pv-count{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:var(--text-dim); }
   .pv-count b{ color:var(--accent-warm); font-size:16px; }
   .pv-status{ font-size:12.5px; font-weight:800; color:var(--text-faint); }
-  @keyframes pvBlink{ 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
-  .weekly-badge{ display:none; margin-left:auto; font-size:12.5px; font-weight:900; letter-spacing:.02em; white-space:nowrap;
-    color:var(--danger); background:var(--danger-soft); border:1.5px solid #DBB6AE; border-radius:999px; padding:6px 14px;
-    animation:pvBlink 1s ease-in-out infinite; }
-  .weekly-badge.show{ display:inline-block; }
 
   /* 테이블 */
   .pv-wrap{ flex:1 1 auto; min-height:0; overflow:auto; padding:16px 28px 26px; }
@@ -83,7 +76,6 @@
   table.adt td.code{ font-family:var(--mono); font-weight:700; color:var(--text-dim); }
   table.adt td.desc{ text-align:left; max-width:300px; overflow:hidden; text-overflow:ellipsis; font-weight:700; }
   table.adt td.money{ font-weight:800; color:var(--text); }
-  table.adt td.srp{ color:var(--brass); }
   table.adt td.etc{ font-family:var(--mono); color:var(--text-faint); }
   table.adt svg.bc{ display:block; margin:0 auto; }
   .empty{ text-align:center; color:var(--text-faint); padding:44px 20px; font-size:14px; font-weight:700; }
@@ -101,23 +93,22 @@
     .pv-toolbar{ padding:12px 16px; } .pv-wrap{ padding:12px 12px 20px; }
     .sm-title{ font-size:18px; } .sm-title .ko{ display:none; }
     select.pv-pick{ min-width:180px; }
-    .weekly-badge{ margin-left:0; }
   }
 </style>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = { apiKey:"AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0", authDomain:"the-shawn.firebaseapp.com", projectId:"the-shawn", storageBucket:"the-shawn.firebasestorage.app", messagingSenderId:"519898602513", appId:"1:519898602513:web:0f35e3dc9c29dce21665b0", measurementId:"G-NKGYGC63JN" };
   const app=initializeApp(firebaseConfig);
   window.fbDb=getFirestore(app);
-  window.fbFns={ doc, getDoc, collection, getDocs };
+  window.fbFns={ collection, getDocs };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 </head>
 <body>
   <!-- 상단바 -->
   <header class="sm-top">
-    <div class="sm-title">ADVERTISING <span class="ko">광고상품 보기</span></div>
+    <div class="sm-title">NEW ITEMS <span class="ko">신상품 보기</span></div>
     <div class="sm-top-actions">
       <button class="pv-btn" id="exportBtn" type="button">⬇ 내보내기 <span class="en">EXCEL</span></button>
       <button class="pv-btn" id="printBtn" type="button">🖨 인쇄 <span class="en">PRINT</span></button>
@@ -128,11 +119,10 @@
   <div class="sm-body">
     <!-- 툴바 -->
     <div class="pv-toolbar">
-      <span class="lbl">AD LIST</span>
+      <span class="lbl">NEW ITEM LIST</span>
       <select class="pv-pick" id="viewPick"><option value="">불러오는 중…</option></select>
       <span class="pv-count">총 <b id="pvCount">0</b> 개</span>
       <span class="pv-status" id="stView"></span>
-      <span class="weekly-badge" id="weeklyBadge"></span>
     </div>
     <!-- 테이블 -->
     <div class="pv-wrap">
@@ -146,8 +136,8 @@
 (function(){
   'use strict';
   var $=function(id){ return document.getElementById(id); };
-  var AD_COL='advertising', MASTER_ID='STI LIST', AD_DRAFT_ID='_AD_DRAFT';
-  var curList=[], curMaxEtc=0, curTitle='';
+  var OCR_COL='upc-ocr-list';
+  var curList=[], curTitle='';
   var embedded=false; try{ embedded=(window.parent && window.parent!==window); }catch(e){}
 
   function toast(m){ var t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(function(){t.classList.remove('show');},2200); }
@@ -155,6 +145,7 @@
   function norm(s){ return String(s==null?'':s).trim(); }
   function fbReady(){ return window.fbDb && window.fbFns; }
   function whenFb(cb){ if(fbReady()) cb(); else window.addEventListener('fb-ready', cb, {once:true}); }
+  function setCount(n){ var c=$('pvCount'); if(c) c.textContent=n; }
 
   /* ===== 바코드 ===== */
   function barcodeSVG(upc){
@@ -166,88 +157,59 @@
     return svg.outerHTML;
   }
 
-  /* ===== AD LIST (advertising 컬렉션) ===== */
-  function renderAdTable(list, maxEtc){
+  /* ===== NEW ITEMS (upc-ocr-list 컬렉션 · updatedAt 배치별 그룹) ===== */
+  function niFmt(ts){ if(!ts) return ''; var d=new Date(ts); var p=function(n){return ('0'+n).slice(-2);}; return (''+d.getFullYear()).slice(2)+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes()); }
+  function niCost(v){ v=norm(v); if(!v) return ''; var n=parseFloat(v.replace(/[^0-9.]/g,'')); return isNaN(n)? v : ('$'+n.toFixed(2)); }
+  function niCombine(brand, desc){ brand=norm(brand); desc=norm(desc); if(brand&&desc) return brand+') '+desc; return brand||desc; }
+  function niUnit(r){ return [r.u1,r.u2,r.size,r.sizecode].map(function(x){return norm(x);}).filter(function(x){return x!=='';}).join('/'); }
+  function niRow(r){ return { upc: norm(r.upcc)||norm(r.upco), itemcode: norm(r.code), korDesc: niCombine(r.brandK, r.kor), engDesc: niCombine(r.brandE, r.eng), cost: norm(r.cost), unit: niUnit(r) }; }
+  var newGroups={};
+  function initNewView(){
+    var sel=$('viewPick');
+    window.fbFns.getDocs(window.fbFns.collection(window.fbDb, OCR_COL)).then(function(snap){
+      newGroups={}; var keys=[];
+      snap.forEach(function(d){ var v=d.data()||{}; var rows=Array.isArray(v.rows)?v.rows:[]; rows.forEach(function(r){ var k=niFmt(r.updatedAt)||'(시간없음)'; if(!newGroups[k]){ newGroups[k]=[]; keys.push(k); } newGroups[k].push(r); }); });
+      keys.sort(function(a,b){ return a<b?1:-1; });
+      if(!keys.length){ sel.innerHTML='<option value="">데이터 없음</option>'; $('stView').textContent='신상품 데이터가 없습니다.'; setCount(0); renderNewTable([]); return; }
+      sel.innerHTML=keys.map(function(k){ return '<option value="'+esc(k)+'">'+esc(k)+' · '+newGroups[k].length+'개</option>'; }).join('');
+      sel.onchange=function(){ newLoad(sel.value); }; newLoad(keys[0]);
+    }).catch(function(err){ $('stView').textContent='오류: '+(err&&err.message||err); });
+  }
+  function newLoad(key){
+    if(!key) return; var rows=newGroups[key]||[];
+    curList=rows.map(niRow); curTitle=key;
+    $('stView').textContent=''; setCount(curList.length); renderNewTable(curList);
+  }
+  function renderNewTable(list){
     var box=$('previewBox');
-    if(!list||!list.length){ box.innerHTML='<div class="empty">표시할 광고상품이 없습니다.</div>'; return; }
-    maxEtc=Math.max(maxEtc||0, 2);   // ETC #1·#2 상시 표시
-    var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
-    var head='<thead><tr><th class="no">#</th><th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th><th>BARCODE</th>'+etcH+'</tr></thead>';
-    var rows=list.map(function(it,i){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc);
-      var etcT=''; for(var e=0;e<maxEtc;e++){ etcT+='<td class="etc">'+esc((it.etc&&it.etc[e])||'')+'</td>'; }
+    if(!list||!list.length){ box.innerHTML='<div class="empty">표시할 신상품이 없습니다.</div>'; return; }
+    var head='<thead><tr><th class="no">#</th><th>UPC</th><th>ITEMCODE</th><th>KOR DESC</th><th>ENG DESC</th><th>COST</th><th>UNIT SIZE</th><th>BARCODE</th></tr></thead>';
+    var rows=list.map(function(it,i){ var isX=(!it.upc);
       return '<tr><td>'+(i+1)+'</td>'+
         '<td class="upc'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td>'+
         '<td class="code">'+esc(it.itemcode||'')+'</td>'+
-        '<td class="desc" title="'+esc(it.desc||'')+'">'+esc(it.desc||'')+'</td>'+
-        '<td class="money">'+esc(it.cost||'')+'</td><td class="money srp">'+esc(it.srp||'')+'</td>'+
-        '<td>'+(isX?'<span style="color:var(--danger);font-weight:800">—</span>':barcodeSVG(it.upc))+'</td>'+etcT+'</tr>';
+        '<td class="desc" title="'+esc(it.korDesc||'')+'">'+esc(it.korDesc||'')+'</td>'+
+        '<td class="desc" title="'+esc(it.engDesc||'')+'">'+esc(it.engDesc||'')+'</td>'+
+        '<td class="money">'+esc(niCost(it.cost))+'</td>'+
+        '<td class="etc">'+esc(it.unit||'')+'</td>'+
+        '<td>'+(isX?'<span style="color:var(--danger);font-weight:800">—</span>':barcodeSVG(it.upc))+'</td></tr>';
     }).join('');
     box.innerHTML='<table class="adt">'+head+'<tbody>'+rows+'</tbody></table>';
   }
-  /* 주간 배지: 가장 최근 리스트 저장 시점 기준, 다음주 월요일 전까지만 표시 */
-  function nextMondayEnd(ts){
-    var d=new Date(ts); d.setHours(0,0,0,0);
-    var day=d.getDay(); var diffToMon=(day===0? -6 : 1-day);
-    var mon=new Date(d); mon.setDate(d.getDate()+diffToMon);
-    var nextMon=new Date(mon); nextMon.setDate(mon.getDate()+7);
-    return nextMon.getTime();
-  }
-  function mmdd(d){ return ('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2); }
-  function updateWeeklyBadge(arr){
-    var el=$('weeklyBadge'); if(!el) return;
-    var latest=0;
-    (arr||[]).forEach(function(x){ if((x.updatedAt||0)>latest) latest=x.updatedAt; });
-    if(!latest && arr && arr.length) latest=Date.now();
-    if(!latest || Date.now()>=nextMondayEnd(latest)){ el.textContent=''; el.classList.remove('show'); return; }
-    var monStart=new Date(nextMondayEnd(latest));
-    var sunEnd=new Date(monStart); sunEnd.setDate(monStart.getDate()+6);
-    el.textContent='UPDATED - NEXT WEEKLY SALE ITEMS ('+mmdd(monStart)+' ~ '+mmdd(sunEnd)+')';
-    el.classList.add('show');
-  }
-  function initAdView(){
-    window.fbFns.getDocs(window.fbFns.collection(window.fbDb, AD_COL)).then(function(snap){
-      var arr=[]; snap.forEach(function(d){ var v=d.data()||{}; if(d.id===MASTER_ID || d.id===AD_DRAFT_ID || v.type==='master' || v.type==='draft') return; arr.push({id:d.id,title:(v.title||d.id),count:(v.count!=null?v.count:(v.items?v.items.length:0)),updatedAt:(v.updatedAt||0)}); });
-      arr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
-      fillAdPick(arr);
-    }).catch(function(err){ $('stView').textContent='오류: '+(err&&err.message||err); });
-  }
-  function fillAdPick(arr){
-    var sel=$('viewPick');
-    if(!arr.length){ sel.innerHTML='<option value="">데이터 없음</option>'; $('stView').textContent='저장된 광고리스트가 없습니다.'; setCount(0); renderAdTable([],0); return; }
-    sel.innerHTML=arr.map(function(x){ return '<option value="'+esc(x.id)+'">'+esc(x.title)+' · '+x.count+'개</option>'; }).join('');
-    updateWeeklyBadge(arr);
-    sel.onchange=function(){ adLoad(sel.value); }; adLoad(arr[0].id);
-  }
-  function adLoad(id){
-    if(!id) return; $('stView').innerHTML='<span class="spin"></span>';
-    window.fbFns.getDoc(window.fbFns.doc(window.fbDb, AD_COL, id)).then(function(s){
-      var v=(s&&s.exists&&s.exists())?(s.data()||{}):{};
-      curList=v.items||[]; curMaxEtc=v.maxEtc||0; curTitle=v.title||id;
-      $('stView').textContent=''; setCount(curList.length); renderAdTable(curList, curMaxEtc);
-    }).catch(function(err){ $('stView').textContent='오류: '+(err&&err.message||err); });
-  }
-
-  /* ===== 공통 ===== */
-  function setCount(n){ var c=$('pvCount'); if(c) c.textContent=n; }
 
   /* ===== 내보내기 / 인쇄 ===== */
   function exportXlsx(){
     if(!curList.length){ toast('내보낼 항목이 없습니다'); return; }
-    var maxEtc=2; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });
-    var head=['UPC','ITEMCODE','DESC','COST','SRP']; for(var e=1;e<=maxEtc;e++) head.push('ETC #'+e);
-    var aoa=[head]; curList.forEach(function(it){ var r=[(it.upc||'X'),it.itemcode||'',it.desc||'',it.cost||'',it.srp||'']; for(var e=0;e<maxEtc;e++) r.push((it.etc&&it.etc[e])||''); aoa.push(r); });
-    var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'AD'); XLSX.writeFile(wb,(curTitle||'AD_LIST')+'.xlsx');
+    var aoa=[['UPC','ITEMCODE','KOR DESC','ENG DESC','COST','UNIT SIZE']];
+    curList.forEach(function(it){ aoa.push([(it.upc||'X'),it.itemcode||'',it.korDesc||'',it.engDesc||'',it.cost||'',it.unit||'']); });
+    var ws=XLSX.utils.aoa_to_sheet(aoa); var wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'NEWITEM'); XLSX.writeFile(wb,(curTitle||'NEW_ITEM')+'.xlsx');
   }
   function printList(){
     if(!curList.length){ toast('인쇄할 항목이 없습니다'); return; }
-    var titleTxt=curTitle||'AD LIST', head, body;
-    {
-      var maxEtc=2; curList.forEach(function(it){ if(it.etc&&it.etc.length>maxEtc) maxEtc=it.etc.length; });
-      var etcH=''; for(var e=1;e<=maxEtc;e++) etcH+='<th>ETC #'+e+'</th>';
-      head='<th>UPC</th><th>ITEMCODE</th><th>DESC</th><th>COST</th><th>SRP</th><th>BARCODE</th>'+etcH;
-      body=curList.map(function(it){ var isX=(String(it.upc||'').toUpperCase()==='X'||!it.upc); var etcT=''; for(var e=0;e<maxEtc;e++) etcT+='<td>'+esc((it.etc&&it.etc[e])||'')+'</td>';
-        return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.desc||'')+'</td><td>'+esc(it.cost||'')+'</td><td>'+esc(it.srp||'')+'</td><td>'+(isX?'—':barcodeSVG(it.upc))+'</td>'+etcT+'</tr>'; }).join('');
-    }
+    var titleTxt=curTitle||'NEW ITEMS';
+    var head='<th>UPC</th><th>ITEMCODE</th><th>KOR DESC</th><th>ENG DESC</th><th>COST</th><th>UNIT SIZE</th><th>BARCODE</th>';
+    var body=curList.map(function(it){ var isX=(!it.upc);
+      return '<tr><td class="u'+(isX?' x':'')+'">'+(isX?'X':esc(it.upc))+'</td><td>'+esc(it.itemcode||'')+'</td><td class="l">'+esc(it.korDesc||'')+'</td><td class="l">'+esc(it.engDesc||'')+'</td><td>'+esc(niCost(it.cost))+'</td><td>'+esc(it.unit||'')+'</td><td>'+(isX?'—':barcodeSVG(it.upc))+'</td></tr>'; }).join('');
     var css='body{font-family:Arial,sans-serif;margin:14px;color:#1E1B16}h1{font-size:16px;margin:0 0 10px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #999;padding:4px 6px;text-align:center}thead th{background:#2F5D46;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.u{font-weight:700;color:#2F5D46}td.u.x{color:#9C3327}td.l{text-align:left}svg{display:block;margin:0 auto}@page{margin:10mm}';
     var html='<!doctype html><html><head><meta charset="utf-8"><title>'+esc(titleTxt)+'</title><style>'+css+'</style></head><body><h1>'+esc(titleTxt)+' ('+curList.length+'개)</h1>'+
       '<table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></body></html>';
@@ -260,7 +222,7 @@
     if(embedded){ $('backBtn').classList.add('hidden'); }
     $('backBtn').onclick=function(){ if(window.opener && !window.opener.closed){ window.close(); return; } window.location.href='index.html'; };
     $('exportBtn').onclick=exportXlsx; $('printBtn').onclick=printList;
-    whenFb(initAdView);
+    whenFb(initNewView);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
