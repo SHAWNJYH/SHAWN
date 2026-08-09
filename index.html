@@ -2526,6 +2526,14 @@
           </div>
         </div>
       </div>
+      <div class="portal-cat">
+        <div class="portal-cat-title">TOOLS</div>
+        <div class="portal-cat-cards">
+          <div class="portal-card" id="toPluQuizBtn" role="button" tabindex="0" aria-label="PLU MEMORIZE">
+            <div class="portal-name">PLU MEMORIZE</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -3079,6 +3087,12 @@
     const openNewViewer = () => { window.location.href = 'newitem-viewer.html'; };
     $('toNewViewerBtn').onclick = openNewViewer;
     $('toNewViewerBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNewViewer(); } });
+  }
+  // PLU MEMORIZE 박스 → TOOLS 폴더 · 퀴즈 내 매장 선택 사용
+  if($('toPluQuizBtn')){
+    const openPluQuiz = () => { window.location.href = 'TOOLS/plu-quiz.html'; };
+    $('toPluQuizBtn').onclick = openPluQuiz;
+    $('toPluQuizBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPluQuiz(); } });
   }
   // ITEM ANALYZE 박스 → index 팝업 로그인
   if($('toAnalyzeBtn')){
