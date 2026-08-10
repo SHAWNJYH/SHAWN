@@ -2660,7 +2660,10 @@
     </div>
     <div class="err" id="cwLoginErr"></div>
     <label class="egmm-auto-row"><input type="checkbox" id="cwLoginAuto"><span>자동 로그인</span></label>
-    <button class="btn" id="cwLoginBtn" type="button">입장</button>
+    <div style="display:flex;gap:10px;">
+      <button class="btn" id="cwLoginBtn" type="button" style="flex:1.4;">입장</button>
+      <button class="btn" id="cwLoginCancel" type="button" style="flex:1;background:var(--bg-elev);color:var(--text);border:1.5px solid var(--border-bright);">취소</button>
+    </div>
   </div>
 </div>
 
@@ -3029,11 +3032,12 @@
     }
     var btn=$(cfg.btn); if(btn) btn.onclick=submit;
     var cl=$(cfg.closeBtn); if(cl) cl.onclick=close;
+    var cc=$(cfg.cancelBtn); if(cc) cc.onclick=close;
     ov.addEventListener('click', function(ev){ if(ev.target===ov) close(); });
     var pin=$(cfg.pwInput); if(pin) pin.addEventListener('keydown', function(ev){ if(ev.key==='Enter') submit(); });
     return open;
   }
-  const openCampeonPw = initScopeGate({ ov:'cwLoginOv', userSel:'cwLoginUser', pwInput:'cwLoginPw', err:'cwLoginErr', autoChk:'cwLoginAuto', btn:'cwLoginBtn', closeBtn:'cwLoginClose', doc:'campeon-users', gateKey:'campeonGate', userKey:'campeonUser', autoKey:'campeonAutoLogin', dest:'campeon-wholsale.html' });
+  const openCampeonPw = initScopeGate({ ov:'cwLoginOv', userSel:'cwLoginUser', pwInput:'cwLoginPw', err:'cwLoginErr', autoChk:'cwLoginAuto', btn:'cwLoginBtn', closeBtn:'cwLoginClose', cancelBtn:'cwLoginCancel', doc:'campeon-users', gateKey:'campeonGate', userKey:'campeonUser', autoKey:'campeonAutoLogin', dest:'WHOLSALE/campeon-wholsale.html' });
   // PLU PREVIEW — 매장 선택(조회 전용, PIN 없음) → tablet-plu-preview.html 이동
   const PP_STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
   const PP_STORE_KEY = 'theShawnStore';   // H-MART 와 동일 매장값 공유
