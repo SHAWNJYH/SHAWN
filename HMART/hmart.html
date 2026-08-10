@@ -369,6 +369,13 @@
         <button class="egmm-menu-btn" id="hmartNewItemBtn"><span class="mlab">NEW ITEMS<small>신상품 보기</small></span><span class="hm-req-dot" id="hmNewDot"></span></button>
       </div>
 
+      <!-- 카드: PURCHASE — 매입일지 -->
+      <div class="egmm-card">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">PURCHASE</span></div>
+
+        <button class="egmm-menu-btn" id="hmartPurchaseBtn"><span class="mlab">DAILY PURCHASE<small>매입일지</small></span></button>
+      </div>
+
       <!-- 카드: REQUEST — 숨김 처리 (표시 안함 · 기능 코드는 유지) -->
       <div class="egmm-card" id="hmReqCard" style="display:none">
         <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
@@ -624,6 +631,7 @@
   $('hmartToQuizBtn').onclick = function(){ openInFrame('../plu-quiz.html', this); };
   $('hmartAdViewBtn').onclick = function(){ openInFrame('../advertising-viewer.html', this); };
   $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('../newitem-viewer.html', this); };
+  var __dpBtn=$('hmartPurchaseBtn'); if(__dpBtn) __dpBtn.onclick = function(){ openInFrame('daily-purchase.html', this); };
   ready(watchNewItems);
 
   // 로그아웃 → 세션 정리 후 INDEX
