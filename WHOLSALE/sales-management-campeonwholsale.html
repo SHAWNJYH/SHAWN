@@ -365,11 +365,11 @@
 <body>
 <div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
 <script>
-  /* === 진입 가드 === campeon-wholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
+  /* === 진입 가드 === index.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
   (function(){
     try{
       var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
-      if(!ok){ location.replace('campeon-wholsale.html'); }
+      if(!ok){ location.replace('../index.html'); }
     }catch(e){}
   })();
 </script>
@@ -382,7 +382,7 @@
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
   <div class="today"><span class="sync" id="syncState">OFFLINE</span>Today: <b id="todayLabel"></b></div>
-  <button onclick="location.href='campeon-wholsale.html'" style="background:#FFFDFA;border:1.5px solid #D6CFC0;color:#1E1B16;border-radius:9px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;margin-left:14px;letter-spacing:.04em;">← 뒤로가기 <span style="color:#8C8578;font-size:10px;font-weight:800;">BACK</span></button>
+  <button onclick="location.href='../index.html'" style="background:#FFFDFA;border:1.5px solid #D6CFC0;color:#1E1B16;border-radius:9px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;margin-left:14px;letter-spacing:.04em;">← 뒤로가기 <span style="color:#8C8578;font-size:10px;font-weight:800;">BACK</span></button>
 </header>
 
 <div class="app">
