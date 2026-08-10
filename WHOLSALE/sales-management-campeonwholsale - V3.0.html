@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SALES MANAGEMENT v1.0 · CAMPEON WHOLESALE</title>
+<script>
+/* 주소창에서 파일명 숨김: 로드 즉시 주소를 루트(/)로 교체 (서버 호스팅에서만 동작) */
+(function(){
+  try{
+    if(location.protocol==='http:'||location.protocol==='https:'){
+      history.replaceState(null, '', './');
+    }
+  }catch(e){}
+})();
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  try {
+    const app = initializeApp({
+      apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+      authDomain: "the-shawn.firebaseapp.com",
+      projectId: "the-shawn",
+      storageBucket: "the-shawn.firebasestorage.app",
+      messagingSenderId: "519898602513",
+      appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+      measurementId: "G-NKGYGC63JN"
+    });
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    let started = false;
+    function start(user){
+      if (started) return; started = true;
+      window.fbSM = { db, doc, getDoc, setDoc, onSnapshot, auth, uid: user ? user.uid : null };
+      window.dispatchEvent(new Event('fbsm-ready'));
+    }
+    // 인증(익명) 세션이 준비되면 그걸로 시작 — 지속 세션 덕에 오프라인 재로드도 커버.
+    onAuthStateChanged(auth, (user) => { if (user) start(user); });
+    signInAnonymously(auth).catch((e) => {
+      console.error('anonymous auth fail (sales)', e);
+    });
+    // 안전장치: 익명 인증이 (미활성/네트워크로) 안 붙어도 3초 뒤 진행해 무한 로딩을 막는다.
+    // 규칙을 잠근 뒤 이 경로로 오면 Firestore가 권한 오류를 상태바에 표시한다(무증상 멈춤 방지).
+    setTimeout(() => { if (!started){ console.warn('sales: proceeding without auth session'); start(null); } }, 3000);
+  } catch (e) { console.error('firebase init fail', e); }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* body를 내용 전체 높이로 늘려야 sticky 헤더가 끝까지 고정된다.
+     (height:100%로 뷰포트에 묶으면 일정 스크롤 후 헤더가 사라지는 원인)
+     overscroll-behavior:none → 당겨서 새로고침·오버스크롤 바운스 제거.
+     (전체화면 중 목록 끝/짧은 목록에서 스와이프하면 이 제스처가 전체화면을 풀어버리는 것을 방지) */
+  html { height: 100%; overscroll-behavior: none; }
+  body { min-height: 100%; overscroll-behavior: none; }
+  body {
+    font-family: "Segoe UI", "Malgun Gothic", Helvetica, Arial, sans-serif;
+    background: #eef1f5; color: #1f2937; font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { width: 100%; max-width: 1904px; margin: 0 auto; padding: 0 12px; }
+
+  /* ── Header ─────────────────────────────── */
+  header {
+    height: 54px; background: #101827; color: #fff;
+    display: flex; align-items: center; padding: 0 24px; gap: 32px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
+    position: sticky; top: 0; z-index: 40;   /* 스크롤을 내려도 상단 탭 항상 고정 */
+  }
+  header .logo { font-size: 17px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+  header .logo span { color: #60a5fa; }
+  nav { display: flex; gap: 6px; height: 100%; }
+  nav button {
+    background: none; border: none; color: #9ca3af; font-size: 13.5px; font-weight: 600;
+    padding: 0 22px; cursor: pointer; height: 100%; border-bottom: 3px solid transparent;
+    letter-spacing: .8px; white-space: nowrap;
+  }
+  nav button:hover { color: #e5e7eb; }
+  nav button.active { color: #fff; border-bottom-color: #3b82f6; }
+  header .today { margin-left: auto; color: #cbd5e1; font-weight: 600; white-space: nowrap; }
+  header .today b { color: #fff; margin-left: 6px; }
+
+  main { padding: 14px 0 16px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── Cards / tables ─────────────────────── */
+  .card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(15,23,42,.06); overflow: hidden;
+  }
+  .card h2 {
+    font-size: 13.5px; font-weight: 700; color: #0f172a; letter-spacing: .3px;
+    padding: 11px 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
+    display: flex; align-items: center; gap: 10px; white-space: nowrap;
+  }
+  .card h2 .sub { font-weight: 500; color: #64748b; font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td {
+    border: 1px solid #e5e9f0; padding: 5px 10px; text-align: right;
+    white-space: nowrap; font-variant-numeric: tabular-nums; height: 28px;
+  }
+  th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 700; text-align: center; }
+  td.lbl, th.lbl { text-align: left; font-weight: 600; color: #334155; background: #fafbfd; }
+  tr.total td { font-weight: 700; background: #f8fafc; border-top: 2px solid #cbd5e1; }
+  /* 주간비교: Diff 계산에 쓰이는 최근 2주 + Diff 2줄 강조 (아주 옅은 노란색) */
+  #tblWeekly tr.wk-hl td { background: #fffbeb; }
+  #tblWeekly tr.wk-hl td.lbl { background: #fdf6dc; }
+  td.neg { color: #dc2626; }
+  td.pos { color: #047857; }
+  .grp-last  { background: #eef2f7 !important; color: #475569 !important; }
+  .grp-cur   { background: #fee2e2 !important; color: #b91c1c !important; }
+
+  /* ── Dashboard layout ───────────────────── */
+  .dash-top { display: flex; gap: 14px; margin-bottom: 14px; align-items: stretch; }
+  .dash-top .monthly { flex: 1 1 auto; min-width: 0; }
+  .dash-top .stockbox { width: 640px; flex: 0 0 auto; display: flex; flex-direction: column; }
+  /* Meat Stock: 자체 스크롤 없이 내용만큼 카드가 늘어남 */
+  .stock-scroll { overflow: visible; flex: 1; }
+  /* 열 추가로 8열 — 카드 폭을 넓히지 않고 안에 다 들어가도록 컴팩트하게 */
+  #tblStock th, #tblStock td { padding: 4px 5px; font-size: 12px; height: 26px; }
+  #tblStock thead th { font-size: 11px; white-space: normal; line-height: 1.25; }
+  #tblStock th.lbl { width: 96px; }
+  #tblStock .itm-input { width: 100%; }
+  /* Item#·Box: 필드(헤더)와 데이터 모두 가운데 정렬 */
+  #tblStock th.lbl, #tblStock td.lbl { text-align: center; }
+  #tblStock .itm-input { text-align: center; }
+  #tblStock td:nth-child(2) { text-align: center; }
+  /* AMOUNT(4W)(8열) 가격만 BOLD */
+  #tblStock td:nth-child(8) { font-weight: 700; }
+  .quick { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+  /* 대시보드 버튼(BACKUP/RESTORE/EXCEL/PDF/FULL SCREEN) 축소 —
+     nowrap+자동 너비라 글씨는 항상 한 줄, 박스 밖으로 넘치지 않음 */
+  .quick .btn { padding: 6px 14px; font-size: 11.5px; letter-spacing: .4px; }
+  .quick .spacer { flex: 1; }
+  .btn {
+    border: none; border-radius: 7px; padding: 9px 26px; font-size: 13px; font-weight: 700;
+    cursor: pointer; letter-spacing: .6px; white-space: nowrap; transition: filter .12s;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn-sales    { background: #2563eb; color: #fff; }
+  .btn-purchase { background: #7c3aed; color: #fff; }
+  .btn-stock    { background: #0d9488; color: #fff; }
+  .btn-export   { background: #0f172a; color: #fff; }
+  .btn-pdf      { background: #dc2626; color: #fff; }
+  .btn-backup   { background: #059669; color: #fff; }   /* 백업: 초록 */
+  .btn-restore  { background: #7c3aed; color: #fff; }   /* 복원: 보라 */
+  .btn-sm       { padding: 6px 16px; font-size: 12px; border-radius: 6px; }
+  .card h2 .push { margin-left: auto; }
+  .vdiv { width: 1px; height: 26px; background: #cbd5e1; }
+  .entry-data th, .entry-data td { min-width: 128px; }
+  .entry-data thead th { text-align: center; }
+  .entry-data td.dt { text-align: center; font-weight: 600; color: #334155; background: #fafbfd; }
+  .btn-edit { background: #d97706; color: #fff; }
+  .btn-edit.on { background: #16a34a; }
+  .entry-data td.ed { padding: 2px 4px; }
+  .edit-in, .edit-sel {
+    width: 100%; min-width: 110px; border: 1px solid #cbd5e1; border-radius: 5px;
+    padding: 5px 8px; font: inherit; font-size: 13px; text-align: right; background: #fffdf6; color: #111827;
+  }
+  .edit-in:focus, .edit-sel:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  .edit-in.txt { text-align: left; text-transform: uppercase; }
+  .edit-date {
+    width: 100%; min-width: 130px; border: 1px solid #cbd5e1; border-radius: 5px;
+    padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fffdf6; color: #111827;
+  }
+  .edit-date:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  .entry-left {
+    width: 420px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 14px;
+    /* 오른쪽 목록이 페이지 스크롤될 때도 입력/검색 박스는 제자리 고정 */
+    position: sticky; top: calc(var(--hdr-h, 54px) + 12px); align-self: flex-start;
+    max-height: calc(100vh - var(--hdr-h, 54px) - 24px); overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .entry-left .entry-form { width: 100%; }
+  .month-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .flt-btn {
+    border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 6px;
+    padding: 7px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all .12s;
+  }
+  .flt-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
+  .flt-btn.on { background: #1e40af; border-color: #1e40af; color: #fff; }
+  .frow input[type="date"] { text-align: left; }
+  .delh, .entry-data td.delc { min-width: 64px !important; width: 64px; text-align: center; }
+  .row-del {
+    border: 1px solid #fca5a5; background: #fff; color: #dc2626; border-radius: 5px;
+    padding: 4px 11px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all .12s;
+  }
+  .row-del:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
+  .mtot { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; background: #fbfcfe; }
+  .mtot-chip {
+    border: 1px solid #dbe3ee; background: #fff; border-radius: 8px; padding: 6px 14px;
+    font-size: 12.5px; font-weight: 700; color: #475569; white-space: nowrap;
+  }
+  .mtot-chip b { color: #0f172a; margin-left: 8px; }
+  .mtot-chip.empty { color: #94a3b8; }
+  .entry-left .frow label { width: 158px; font-size: 11.5px; }
+  .entry-left .frow input[type="date"] { min-width: 0; width: 100%; padding: 7px 8px; font-size: 12.5px; }
+  .flt-btn { white-space: nowrap; }
+  .entry-left .btn-row .btn { font-size: 13px; white-space: nowrap; padding: 10px 4px; }
+  .sync { font-size: 11.5px; font-weight: 700; color: #94a3b8; margin-right: 14px; white-space: nowrap; }
+  .sync.on { color: #4ade80; }
+  .sync::before { content: '● '; }
+  .edit-sel { text-align: left; }
+  .btn-save  { background: #16a34a; color: #fff; padding: 10px 0; width: 100%; font-size: 14px; }
+  .btn-clear { background: #e2e8f0; color: #334155; padding: 10px 0; width: 100%; font-size: 14px; }
+  .month-chip { font-weight: 700; color: #475569; background:#e2e8f0; border-radius: 6px; padding: 6px 14px; white-space: nowrap; }
+  .month-chip.cur { background: #fee2e2; color: #b91c1c; }
+
+  /* ── Entry layout (sales/purchase/stock) ── */
+  .entry-wrap { display: flex; gap: 14px; align-items: flex-start; }
+  .entry-form { width: 420px; flex: 0 0 auto; }
+  .entry-form .body { padding: 16px 18px 18px; }
+  .entry-data { flex: 1 1 auto; min-width: 0; }
+  /* 리스트 카드 자체의 세로 스크롤 제거 → 페이지 스크롤로 목록 이동.
+     가로는 넓은 표(태블릿)에서 필요하므로 표 안에서만 스크롤 유지. */
+  .data-scroll { overflow-x: auto; overflow-y: visible; }
+  .frow { display: flex; align-items: center; margin-bottom: 9px; gap: 10px; }
+  .frow label { width: 158px; flex: 0 0 auto; font-weight: 600; font-size: 11.5px; color: #475569; white-space: nowrap; overflow: hidden; }
+  .frow input, .frow select {
+    flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 10px;
+    font-size: 13px; font-family: inherit; text-align: right; min-width: 0;
+    background: #fff; color: #111827;
+  }
+  .frow select { text-align: left; }
+  .frow input:focus, .frow select:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  .frow input[readonly] { background: #e5e7eb; font-weight: 700; }
+  .frow input.text { text-align: left; }
+  .date-trio { display: flex; gap: 6px; flex: 1; }
+  .date-trio input { width: 33%; text-align: center; }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; }
+  .form-divider { border: none; border-top: 1px dashed #d7dde6; margin: 12px 0; }
+  .hint { color: #94a3b8; font-size: 11.5px; margin-top: 10px; white-space: nowrap; }
+
+  .itm-input {
+    width: 100%; border: 1px solid transparent; background: transparent; font: inherit;
+    text-align: left; padding: 2px 4px; border-radius: 4px; color: #111827; font-weight: 600;
+  }
+  .itm-input:hover { border-color: #cbd5e1; background: #fff; }
+  .itm-input:focus { outline: 2px solid #93c5fd; background: #fff; border-color: #3b82f6; }
+
+  /* ── Toast ──────────────────────────────── */
+  #toast {
+    position: fixed; right: 28px; bottom: 28px; min-width: 240px; padding: 13px 20px;
+    border-radius: 8px; color: #fff; font-weight: 700; font-size: 13.5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.25); opacity: 0; transform: translateY(12px);
+    transition: all .22s; pointer-events: none; white-space: nowrap; z-index: 5000;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.ok  { background: #16a34a; }
+  #toast.err { background: #dc2626; }
+  /* ── DEL 열: EDIT 모드에서만 노출 ── */
+  .delh, .entry-data td.delc { display: none; }
+  table.editing .delh, table.editing td.delc { display: table-cell; }
+  /* ── SEARCH 카드: 내부 여백 + START/END DATE 한 줄 배치 ── */
+  .search-body { padding: 14px 16px 16px; }
+  .date-range { display: flex; gap: 12px; margin-bottom: 10px; }
+  .date-range .dr-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .date-range .dr-col label {
+    width: auto; font-size: 11px; font-weight: 700; color: #64748b;
+    letter-spacing: .3px; white-space: nowrap;
+  }
+  .date-range .dr-col input[type="date"] {
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 6px;
+    padding: 8px 10px; font-size: 12.5px; font-family: inherit;
+    background: #fff; color: #111827; text-align: left;
+  }
+  .date-range .dr-col input[type="date"]:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  /* ── PRINT 버튼 ── */
+  .btn-print { background: #475569; color: #fff; }
+  /* ── 인터넷 끊김 경고 배너 ── */
+  #netWarn{
+    position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
+    display: none; align-items: center; justify-content: center; gap: 10px;
+    padding: 12px 18px; font-size: 15px; font-weight: 800; letter-spacing: .2px;
+    text-align: center; color: #fff; box-shadow: 0 4px 18px rgba(0,0,0,.35);
+    border-bottom: 2px solid rgba(0,0,0,.25);
+  }
+  #netWarn.show{ display: flex; }
+  #netWarn.off{ background: #dc2626; animation: netPulse 1.4s ease-in-out infinite; }
+  #netWarn.ok { background: #16a34a; }
+  #netWarn .dot{
+    width: 11px; height: 11px; border-radius: 50%; background: #fff;
+    box-shadow: 0 0 0 0 rgba(255,255,255,.7); flex: 0 0 auto;
+  }
+  #netWarn.off .dot{ animation: netDot 1.4s ease-out infinite; }
+  @keyframes netPulse{ 0%,100%{ filter: brightness(1); } 50%{ filter: brightness(1.18); } }
+  @keyframes netDot{ 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.7); } 70%{ box-shadow: 0 0 0 9px rgba(255,255,255,0); } 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
+  /* 배너가 뜰 때 헤더가 가리지 않도록 본문을 살짝 내림 */
+  body.netdown header{ box-shadow: inset 0 3px 0 #dc2626; }
+
+  /* ══════════ RESPONSIVE · 태블릿 대응 ══════════ */
+  /* 넓은 표를 감싸 가로 스크롤 처리 (레이아웃이 깨지지 않고 표 안에서만 스크롤) */
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl-scroll > table { width: 100%; }
+
+  /* 태블릿 가로(~1024–1366px): 폭 여유가 줄어 고정 패널을 축소 */
+  @media (max-width: 1366px){
+    /* 태블릿에서는 콘텐츠와 상단 탭(헤더)을 함께 축소해 한 화면에 더 많이 보이도록.
+       PC(>1366px)는 영향 없음. 헤더는 body 자식이라 축소해도 상단 고정은 유지된다. */
+    .app { padding: 0 10px; zoom: 0.8; }
+    /* 검색 영역: zoom 0.8을 감안해 버튼·입력을 키워 태블릿에서도 잘 보이게 */
+    .search-body .btn-row { margin-top: 12px; gap: 12px; }
+    .search-body .btn-save, .search-body .btn-clear { padding: 14px 0; font-size: 16px; min-height: 48px; }
+    .search-body .date-range .dr-col input[type="date"] { padding: 12px 10px; font-size: 15px; min-height: 46px; }
+    header { zoom: 0.8; }
+    .dash-top .stockbox { width: 540px; }
+    .entry-left, .entry-form { width: 360px; }
+  }
+
+  /* 헤더가 한 줄에 안 들어가는 폭부터 줄바꿈 (iPad 가로 등) */
+  @media (max-width: 1120px){
+    header { flex-wrap: wrap; height: auto; padding: 8px 14px; row-gap: 8px; }
+    header .logo { font-size: 15px; }
+    nav { order: 3; width: 100%; overflow-x: auto; }
+    nav button { padding: 0 14px; }
+    header .today { margin-left: auto; font-size: 12px; }
+  }
+
+  /* 태블릿 세로(~768–1024px): 2단 레이아웃을 세로로 쌓음 */
+  @media (max-width: 1024px){
+    .dash-top { flex-direction: column; }
+    .dash-top .stockbox { width: 100%; }
+    .stock-scroll { max-height: none; }
+
+    .entry-wrap { flex-direction: column; }
+    .entry-left, .entry-form { width: 100%; }
+    /* 세로로 쌓이면 왼쪽 열은 표 위에 오므로 sticky 해제 */
+    .entry-left { flex-direction: row; flex-wrap: wrap; position: static; max-height: none; overflow: visible; }
+    .entry-left > .card { flex: 1 1 320px; }
+    /* SEARCH 카드는 한 줄 전체를 차지해 날짜·버튼이 잘리지 않게 */
+    .entry-left > .card:has(.search-body) { flex: 1 1 100%; }
+    .entry-data { width: 100%; }
+    .data-scroll { max-height: none; }   /* 내부 스크롤 없이 페이지 스크롤로 목록 이동 */
+    /* 카드 헤더 버튼이 좁은 폭에서 다음 줄로 넘어가도록 */
+    .card h2 { flex-wrap: wrap; white-space: normal; row-gap: 6px; }
+
+    .quick { flex-wrap: wrap; }
+    .quick .spacer { flex-basis: 100%; height: 0; }
+  }
+
+  /* 소형 태블릿 세로(~760px 이하): 좌측 폼도 세로로 */
+  @media (max-width: 760px){
+    .entry-left { flex-direction: column; }
+    .entry-left > .card { flex: 1 1 auto; }
+  }
+
+  /* ══════════ FULL SCREEN ══════════ */
+  /* 브라우저 Fullscreen API로 화면 전체(주소창·탭·메뉴 숨김)로 전환한다.
+     전체 페이지(입력폼·검색·리스트·헤더)를 그대로 두고 브라우저 UI만 숨김 —
+     특정 카드만 확대하지 않는다. 페이지 스크롤/헤더 고정도 그대로 유지. */
+  .btn-full { background: #4f46e5; color: #fff; }
+
+  /* 네이티브 전체화면 시 배경(브라우저 기본 검정 방지) */
+  :fullscreen { background: #eef1f5; }
+  :-webkit-full-screen { background: #eef1f5; }
+
+  /* 태블릿에서 목록 스크롤 관성(momentum) 활성화 */
+  .data-scroll, .stock-scroll { -webkit-overflow-scrolling: touch; }
+</style>
+</head>
+<body>
+<div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
+<script>
+  /* === 진입 가드 === campeon-wholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
+  (function(){
+    try{
+      var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
+      if(!ok){ location.replace('campeon-wholsale.html'); }
+    }catch(e){}
+  })();
+</script>
+<header>
+  <div class="logo">SALES MANAGEMENT <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
+  <nav>
+    <button id="tab-dashboard" class="active" onclick="showTab('dashboard')">DASHBOARD</button>
+    <button id="tab-sales" onclick="showTab('sales')">SALES</button>
+    <button id="tab-purchase" onclick="showTab('purchase')">PURCHASE</button>
+    <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
+  </nav>
+  <div class="today"><span class="sync" id="syncState">OFFLINE</span>Today: <b id="todayLabel"></b></div>
+  <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
+</header>
+
+<div class="app">
+<main>
+
+  <!-- ══════════ DASHBOARD ══════════ -->
+  <section id="view-dashboard" class="view active">
+    <div class="quick">
+      <span class="month-chip">Month <span id="lastMonthNum"></span> · Last month</span>
+      <span class="month-chip cur">Month <span id="curMonthNum"></span> · Current month</span>
+      <div class="spacer"></div>
+      <button class="btn btn-backup" onclick="backupAll()" title="모든 데이터(SALES·PURCHASE·STOCK·품목명)를 파일 하나로 저장">⬇ BACKUP</button>
+      <button class="btn btn-restore" onclick="restorePick()" title="백업 파일에서 전체 데이터 복원">⬆ RESTORE</button>
+      <input type="file" id="restoreFile" accept="application/json,.json" style="display:none" onchange="restoreRun(this)">
+      <button class="btn btn-export" onclick="exportDashboardExcel()">EXCEL EXPORT</button>
+      <button class="btn btn-pdf" onclick="exportDashboardPDF()">PDF EXPORT</button>
+      <button class="btn btn-full" onclick="toggleFullView('view-dashboard', this)">FULL SCREEN</button>
+    </div>
+
+    <div class="dash-top">
+      <div class="card monthly">
+        <h2>Monthly Performance <span class="sub">Sales · Purchase · Gross Profit</span></h2>
+        <div class="tbl-scroll">
+        <table id="tblMonthly">
+          <thead>
+            <tr>
+              <th class="lbl" rowspan="2" style="width:130px">Department</th>
+              <th class="grp-last" colspan="4">Last month</th>
+              <th class="grp-cur" colspan="4">Current month</th>
+            </tr>
+            <tr>
+              <th class="grp-last">Sales</th><th class="grp-last">Purchase</th>
+              <th class="grp-last">GP($)</th><th class="grp-last">GP(%)</th>
+              <th class="grp-cur">Sales</th><th class="grp-cur">Purchase</th>
+              <th class="grp-cur">GP($)</th><th class="grp-cur">GP(%)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="card stockbox">
+        <h2>Meat Stock <span class="sub">On hand · Latest cost/date · 4wk avg</span></h2>
+        <div class="stock-scroll">
+          <table id="tblStock">
+            <thead>
+              <tr>
+                <th class="lbl" rowspan="2">Item#</th>
+                <th colspan="5">On hand stock</th>
+                <th colspan="2" style="background:#e0e7ff;color:#3730a3">Inventory for 4 Weeks</th>
+              </tr>
+              <tr>
+                <th>Box</th><th>Lbs</th><th>Latest Cost</th><th>Amount</th><th>Latest Date</th>
+                <th style="background:#e0e7ff;color:#3730a3">AVG COST(4W)</th>
+                <th style="background:#e0e7ff;color:#3730a3">AMOUNT(4W)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Compare with the previous week</h2>
+      <div class="tbl-scroll">
+      <table id="tblWeekly">
+        <thead>
+          <tr>
+            <th class="lbl" rowspan="2" style="width:120px">Week</th>
+            <th colspan="2">Mon</th><th colspan="2">Tue</th><th colspan="2">Wed</th>
+            <th colspan="2">Thu</th><th colspan="2">Fri</th><th colspan="2">Sat</th>
+            <th colspan="4" style="background:#e0e7ff;color:#3730a3">Total</th>
+          </tr>
+          <tr>
+            <th>Sales</th><th>Purchase</th><th>Sales</th><th>Purchase</th>
+            <th>Sales</th><th>Purchase</th><th>Sales</th><th>Purchase</th>
+            <th>Sales</th><th>Purchase</th><th>Sales</th><th>Purchase</th>
+            <th style="background:#e0e7ff;color:#3730a3">Sales</th>
+            <th style="background:#e0e7ff;color:#3730a3">Purchase</th>
+            <th style="background:#e0e7ff;color:#3730a3">GP($)</th>
+            <th style="background:#e0e7ff;color:#3730a3">GP(%)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ SALES ══════════ -->
+  <section id="view-sales" class="view">
+    <div class="entry-wrap">
+      <div class="entry-left">
+      <div class="card entry-form">
+        <h2>Sales Entry <span class="sub">daily sales by department</span></h2>
+        <div class="body">
+          <div class="frow"><label>Sales Date (mm-dd-yyyy)</label>
+            <div class="date-trio">
+              <input id="s_month" maxlength="2" data-num="int">
+              <input id="s_day"   maxlength="2" data-num="int">
+              <input id="s_year"  maxlength="4" data-num="int">
+            </div>
+          </div>
+          <hr class="form-divider">
+          <div class="frow"><label>Grocery</label><input id="s_g" data-num="dec"></div>
+          <div class="frow"><label>Produce</label><input id="s_p" data-num="dec"></div>
+          <div class="frow"><label>Meat</label><input id="s_m" data-num="dec"></div>
+          <div class="frow"><label>Houseware</label><input id="s_h" data-num="dec"></div>
+          <div class="frow"><label>Seafood</label><input id="s_s" data-num="dec"></div>
+          <div class="frow"><label>Deli</label><input id="s_d" data-num="dec"></div>
+          <div class="frow"><label>Bakery</label><input id="s_b" data-num="dec"></div>
+          <hr class="form-divider">
+          <div class="frow"><label>Total</label><input id="s_total" readonly></div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="salesSave()">SAVE</button>
+            <button class="btn btn-clear" onclick="salesClear();document.getElementById('s_g').focus()">CLEAR</button>
+          </div>
+          <div class="hint">Same date overwrites that row · otherwise a new row is added</div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>SEARCH <span class="sub">BY DATE</span></h2>
+        <div class="body search-body">
+          <div class="date-range">
+            <div class="dr-col"><label>START DATE</label><input type="date" id="f_sales_from"></div>
+            <div class="dr-col"><label>END DATE</label><input type="date" id="f_sales_to"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="applyRange('sales')">SEARCH</button>
+            <button class="btn btn-clear" onclick="clearFilter('sales')">VIEW ALL</button>
+          </div>
+          <div class="month-row" id="mb_sales"></div>
+        </div>
+      </div>
+      </div>
+      <div class="card entry-data" id="card-sales">
+        <h2>SALES <span class="sub" id="salesCount"></span><span class="push"></span>
+          <button class="btn btn-export btn-sm" onclick="exportSalesExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-print btn-sm" onclick="printTab('sales')">PRINT</button>
+          <button class="btn btn-edit btn-sm" id="edit-sales" onclick="toggleEdit('sales')">EDIT</button>
+          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-sales', this)">FULL SCREEN</button></h2>
+        <div class="mtot" id="mt_sales"></div>
+        <div class="data-scroll">
+          <table id="tblSalesData">
+            <thead><tr>
+              <th class="lbl">DATE</th><th>GROCERY</th><th>PRODUCE</th><th>MEAT</th>
+              <th>HOUSEWARE</th><th>SEAFOOD</th><th>DELI</th><th>BAKERY</th><th>TOTAL</th><th class="delh">DEL</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PURCHASE ══════════ -->
+  <section id="view-purchase" class="view">
+    <div class="entry-wrap">
+      <div class="entry-left">
+      <div class="card entry-form">
+        <h2>Purchase Entry <span class="sub">invoice registration</span></h2>
+        <div class="body">
+          <div class="frow"><label>Purchase Date (mm-dd-yyyy)</label>
+            <div class="date-trio">
+              <input id="p_month" maxlength="2" data-num="int">
+              <input id="p_day"   maxlength="2" data-num="int">
+              <input id="p_year"  maxlength="4" data-num="int">
+            </div>
+          </div>
+          <hr class="form-divider">
+          <div class="frow"><label>Department</label>
+            <select id="p_dept">
+              <option>Meat</option><option>Grocery</option><option>Houseware</option>
+              <option>Produce</option><option>Seafood</option><option>Deli</option>
+              <option>Bakery</option>
+            </select>
+          </div>
+          <div class="frow"><label>Vendor</label><input id="p_vendor" class="text" placeholder="vendor name"></div>
+          <div class="frow"><label>Invoice#</label><input id="p_invoice" class="text" placeholder="invoice#"></div>
+          <div class="frow"><label>Amount</label><input id="p_amt" data-num="dec"></div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="purchaseSave()">SAVE</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>SEARCH <span class="sub">BY DATE</span></h2>
+        <div class="body search-body">
+          <div class="date-range">
+            <div class="dr-col"><label>START DATE</label><input type="date" id="f_purchase_from"></div>
+            <div class="dr-col"><label>END DATE</label><input type="date" id="f_purchase_to"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="applyRange('purchase')">SEARCH</button>
+            <button class="btn btn-clear" onclick="clearFilter('purchase')">VIEW ALL</button>
+          </div>
+          <div class="month-row" id="mb_purchase"></div>
+        </div>
+      </div>
+      </div>
+      <div class="card entry-data" id="card-purchase">
+        <h2>PURCHASE <span class="sub" id="purchaseCount"></span><span class="push"></span>
+          <button class="btn btn-export btn-sm" onclick="exportPurchaseExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-print btn-sm" onclick="printTab('purchase')">PRINT</button>
+          <button class="btn btn-edit btn-sm" id="edit-purchase" onclick="toggleEdit('purchase')">EDIT</button>
+          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-purchase', this)">FULL SCREEN</button></h2>
+        <div class="mtot" id="mt_purchase"></div>
+        <div class="data-scroll">
+          <table id="tblPurchaseData">
+            <thead><tr>
+              <th class="lbl">DATE</th><th class="lbl">DEPT</th><th class="lbl">VENDOR</th>
+              <th class="lbl">INVOICE</th><th>AMT</th><th class="delh">DEL</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ STOCK ══════════ -->
+  <section id="view-stock" class="view">
+    <div class="entry-wrap">
+      <div class="entry-left">
+      <div class="card entry-form">
+        <h2>Stock Entry <span class="sub">meat stock receiving</span></h2>
+        <div class="body">
+          <div class="frow"><label>Stock Date (mm-dd-yyyy)</label>
+            <div class="date-trio">
+              <input id="k_month" maxlength="2" data-num="int">
+              <input id="k_day"   maxlength="2" data-num="int">
+              <input id="k_year"  maxlength="4" data-num="int">
+            </div>
+          </div>
+          <hr class="form-divider">
+          <div class="frow"><label>Item Code</label><input id="k_item" class="text" placeholder="item#"></div>
+          <div class="frow"><label>Qty (Box)</label><input id="k_qty" data-num="dec"></div>
+          <div class="frow"><label>Weight (Lbs)</label><input id="k_weight" data-num="dec"></div>
+          <div class="frow"><label>Cost</label><input id="k_cost" data-num="dec"></div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="stockSave()">SAVE</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>SEARCH <span class="sub">BY DATE</span></h2>
+        <div class="body search-body">
+          <div class="date-range">
+            <div class="dr-col"><label>START DATE</label><input type="date" id="f_stock_from"></div>
+            <div class="dr-col"><label>END DATE</label><input type="date" id="f_stock_to"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-save" onclick="applyRange('stock')">SEARCH</button>
+            <button class="btn btn-clear" onclick="clearFilter('stock')">VIEW ALL</button>
+          </div>
+          <div class="month-row" id="mb_stock"></div>
+        </div>
+      </div>
+      </div>
+      <div class="card entry-data" id="card-stock">
+        <h2>STOCK <span class="sub" id="stockCount"></span><span class="push"></span>
+          <button class="btn btn-export btn-sm" onclick="exportStockExcel()">EXCEL EXPORT</button>
+          <button class="btn btn-print btn-sm" onclick="printTab('stock')">PRINT</button>
+          <button class="btn btn-edit btn-sm" id="edit-stock" onclick="toggleEdit('stock')">EDIT</button>
+          <button class="btn btn-full btn-sm" onclick="toggleFullView('card-stock', this)">FULL SCREEN</button></h2>
+        <div class="mtot" id="mt_stock"></div>
+        <div class="data-scroll">
+          <table id="tblStockData">
+            <thead><tr>
+              <th class="lbl">DATE</th><th class="lbl">ITEM</th><th>QTY</th>
+              <th>WEIGHT</th><th>COST</th><th class="delh">DEL</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ═════════ Storage (안전한 저장소: 사용 불가 환경에서는 메모리로 대체) ═════════ */
+const store = (() => {
+  try { const t='__probe__'; window.localStorage.setItem(t,'1'); window.localStorage.removeItem(t); return window.localStorage; }
+  catch(e) { const m={}; return { getItem:k=>(k in m?m[k]:null), setItem:(k,v)=>{m[k]=String(v);}, removeItem:k=>{delete m[k];} }; }
+})();
+const KEY = 'salesmgr_v1_data';
+
+/* ═════════ Data model — 시트 구조 그대로 ═════════
+   sales   : A date | B grocery | C produce | D meat | E houseware | F seafood | G deli | H bakery | I total
+   purchase: A date | B dept | C vendor | D invoice | E amt
+   stock   : A date | B item | C qty | D weight | E cost                                            */
+const STOCK_ROWS = 12;                          // Meat Stock 품목 줄 수 (13→12로 축소)
+/* 저장돼 있던 13줄짜리 배열(구버전/타 기기)도 앞 12개만 취하고 부족하면 채움 */
+function normStockItems(a){
+  const out = Array(STOCK_ROWS).fill('');
+  if (Array.isArray(a)) for (let i=0;i<STOCK_ROWS;i++) out[i] = (typeof a[i]==='string') ? a[i] : '';
+  return out;
+}
+let DB = { sales: [], purchase: [], stock: [], stockItems: Array(STOCK_ROWS).fill('') };
+/* 워크북 sales 시트 기본 데이터 (2026-06-01 ~ 06-06) */
+const SEED_SALES = [
+  {date:'2026-06-01', g:5305.23, p:812.09, m:6883.34, h:37.18, s:null, d:null, b:null, total:13037.84},
+  {date:'2026-06-02', g:1485.46, p:465.55, m:7983.14, h:51.26, s:null, d:null, b:null, total:9985.41},
+  {date:'2026-06-03', g:1145.40, p:29.86, m:8451.50, h:null, s:null, d:null, b:null, total:9626.76},
+  {date:'2026-06-04', g:2498.10, p:731.23, m:6867.72, h:null, s:null, d:null, b:null, total:10097.05},
+  {date:'2026-06-05', g:1971.38, p:211.60, m:13060.85, h:49.98, s:null, d:null, b:null, total:15293.81},
+  {date:'2026-06-06', g:1304.28, p:125.74, m:13807.46, h:79.99, s:null, d:null, b:null, total:15317.47},
+  {date:'2026-06-09', g:669.58, p:441.70, m:7711.22, h:20.60, s:null, d:null, b:null, total:8843.10},
+  {date:'2026-06-10', g:2911.69, p:1635.72, m:5495.52, h:19.90, s:630.02, d:null, b:null, total:10692.85},
+  {date:'2026-06-11', g:1958.64, p:208.43, m:8849.02, h:6.74, s:null, d:null, b:null, total:11022.83},
+  {date:'2026-06-12', g:745.79, p:69.70, m:10762.48, h:null, s:null, d:null, b:null, total:11577.97},
+  {date:'2026-06-13', g:2113.48, p:504.28, m:7608.21, h:40.36, s:null, d:null, b:null, total:10266.33},
+  {date:'2026-06-15', g:1745.07, p:null, m:9745.55, h:null, s:null, d:null, b:null, total:11490.62},
+  {date:'2026-06-16', g:-250.33, p:null, m:-1153.88, h:null, s:null, d:null, b:null, total:-1404.21},
+  {date:'2026-06-17', g:1557.46, p:131.43, m:8309.74, h:null, s:null, d:null, b:null, total:9998.63},
+  {date:'2026-06-18', g:1608.94, p:361.83, m:5846.86, h:null, s:null, d:null, b:null, total:7817.63},
+  {date:'2026-06-19', g:1006.62, p:83.64, m:6020.14, h:null, s:null, d:null, b:null, total:7110.40},
+  {date:'2026-06-20', g:1866.41, p:460.91, m:12442.27, h:49.48, s:null, d:null, b:null, total:14819.07},
+  {date:'2026-06-22', g:2713.23, p:425.51, m:7821.70, h:9.23, s:780.82, d:null, b:null, total:11750.49},
+  {date:'2026-06-23', g:356.88, p:122.70, m:2851.54, h:62.23, s:null, d:null, b:null, total:3393.35},
+  {date:'2026-06-24', g:1899.76, p:593.16, m:5138.07, h:105.91, s:null, d:null, b:null, total:7736.90},
+  {date:'2026-06-25', g:2206.11, p:501.18, m:6468.16, h:89.05, s:318.00, d:null, b:null, total:9582.50},
+  {date:'2026-06-26', g:2459.97, p:118.78, m:4807.82, h:117.00, s:null, d:null, b:null, total:7503.57},
+  {date:'2026-06-27', g:512.94, p:37.86, m:7521.35, h:null, s:null, d:null, b:null, total:8072.15},
+  {date:'2026-06-29', g:1774.88, p:372.50, m:13146.12, h:49.98, s:-224.36, d:null, b:null, total:15119.12},
+  {date:'2026-06-30', g:825.30, p:166.65, m:5835.12, h:null, s:null, d:null, b:null, total:6827.07}
+];
+/* 워크북 purchase 시트 기본 데이터 (2026-06) */
+const SEED_PURCHASE = [
+  {date:'2026-06-01', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260601R", amt:232.44},
+  {date:'2026-06-01', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260601R1", amt:33.16},
+  {date:'2026-06-02', dept:"Grocery", vendor:"STI", invoice:"140042500", amt:3403.20},
+  {date:'2026-06-02', dept:"Grocery", vendor:"JFC", invoice:"14-1327581", amt:551.00},
+  {date:'2026-06-02', dept:"Meat", vendor:"GFC", invoice:"58410", amt:16120.64},
+  {date:'2026-06-02', dept:"Meat", vendor:"GFC", invoice:"58412", amt:7920.42},
+  {date:'2026-06-02', dept:"Produce", vendor:"BooHan", invoice:"20260602B", amt:219.90},
+  {date:'2026-06-02', dept:"Produce", vendor:"99Ranch", invoice:"20260602R99", amt:99.50},
+  {date:'2026-06-02', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260602R", amt:21.62},
+  {date:'2026-06-02', dept:"Produce", vendor:"STI", invoice:"140042495", amt:1554.50},
+  {date:'2026-06-03', dept:"Produce", vendor:"BooHan", invoice:"20260603B", amt:76.46},
+  {date:'2026-06-05', dept:"Grocery", vendor:"STI", invoice:"140042693", amt:3025.60},
+  {date:'2026-06-05', dept:"Meat", vendor:"GFC", invoice:"58473", amt:24951.52},
+  {date:'2026-06-05', dept:"Produce", vendor:"BooHan", invoice:"20260605B", amt:65.99},
+  {date:'2026-06-05', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260605R", amt:15.17},
+  {date:'2026-06-05', dept:"Seafood", vendor:"STI", invoice:"140042660", amt:795.00},
+  {date:'2026-06-06', dept:"Grocery", vendor:"RestaurantDepot", invoice:"20260606R", amt:773.01},
+  {date:'2026-06-06', dept:"Produce", vendor:"BooHan", invoice:"20260606B", amt:435.82},
+  {date:'2026-06-06', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260606R", amt:180.46},
+  {date:'2026-06-06', dept:"Produce", vendor:"99Ranch", invoice:"20260606R99", amt:74.75},
+  {date:'2026-06-09', dept:"Grocery", vendor:"STI", invoice:"140042809", amt:2913.20},
+  {date:'2026-06-09', dept:"Grocery", vendor:"Wismettac", invoice:"15727059", amt:705.00},
+  {date:'2026-06-09', dept:"Meat", vendor:"GFC", invoice:"58542", amt:22239.84},
+  {date:'2026-06-09', dept:"Produce", vendor:"99Ranch", invoice:"20260609R99", amt:74.75},
+  {date:'2026-06-09', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260609R", amt:56.98},
+  {date:'2026-06-09', dept:"Seafood", vendor:"STI", invoice:"140042793", amt:265.00},
+  {date:'2026-06-10', dept:"Grocery", vendor:"SeattleEggRoll", invoice:"11563", amt:1170.00},
+  {date:'2026-06-10', dept:"Grocery", vendor:"RestaurantDepot", invoice:"20260610R", amt:94.44},
+  {date:'2026-06-10', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260610R", amt:22.35},
+  {date:'2026-06-11', dept:"Meat", vendor:"GFC", invoice:"58574", amt:4900.00},
+  {date:'2026-06-11', dept:"Produce", vendor:"99Ranch", invoice:"20260611R99", amt:74.75},
+  {date:'2026-06-12', dept:"Grocery", vendor:"STI", invoice:"140042995", amt:1889.40},
+  {date:'2026-06-12', dept:"Meat", vendor:"GFC", invoice:"58604", amt:17621.82},
+  {date:'2026-06-12', dept:"Produce", vendor:"BooHan", invoice:"20260612B", amt:689.75},
+  {date:'2026-06-12', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260612", amt:214.67},
+  {date:'2026-06-12', dept:"Seafood", vendor:"STI", invoice:"140043029", amt:1285.00},
+  {date:'2026-06-12', dept:"Seafood", vendor:"STI", invoice:"140042982", amt:502.40},
+  {date:'2026-06-13', dept:"Grocery", vendor:"RestaurantDepot", invoice:"20260613RD", amt:22.64},
+  {date:'2026-06-16', dept:"Grocery", vendor:"STI", invoice:"140043126", amt:1863.40},
+  {date:'2026-06-16', dept:"Meat", vendor:"GFC", invoice:"58667", amt:18266.11},
+  {date:'2026-06-16', dept:"Meat", vendor:"GFC", invoice:"58673", amt:9800.00},
+  {date:'2026-06-16', dept:"Produce", vendor:"BooHan", invoice:"20260616B", amt:385.86},
+  {date:'2026-06-16', dept:"Produce", vendor:"99Ranch", invoice:"20260616R99", amt:55.62},
+  {date:'2026-06-16', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260616", amt:22.93},
+  {date:'2026-06-18', dept:"Grocery", vendor:"RestaurantDepot", invoice:"20260618R", amt:23.61},
+  {date:'2026-06-18', dept:"Produce", vendor:"BooHan", invoice:"137048", amt:98.99},
+  {date:'2026-06-18', dept:"Produce", vendor:"99Ranch", invoice:"20260618R99", amt:74.75},
+  {date:'2026-06-19', dept:"Grocery", vendor:"STI", invoice:"140043271", amt:1226.00},
+  {date:'2026-06-19', dept:"Meat", vendor:"GFC", invoice:"58736", amt:9560.00},
+  {date:'2026-06-19', dept:"Produce", vendor:"BooHan", invoice:"137858", amt:53.98},
+  {date:'2026-06-19', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260619R", amt:48.71},
+  {date:'2026-06-19', dept:"Produce", vendor:"STI", invoice:"140043273", amt:2265.00},
+  {date:'2026-06-20', dept:"Grocery", vendor:"RestaurantDepot", invoice:"20260620R", amt:19.64},
+  {date:'2026-06-20', dept:"Produce", vendor:"H-Tacoma", invoice:"14737", amt:224.70},
+  {date:'2026-06-20', dept:"Produce", vendor:"BooHan", invoice:"138674", amt:134.95},
+  {date:'2026-06-20', dept:"Produce", vendor:"99Ranch", invoice:"186398", amt:99.75},
+  {date:'2026-06-22', dept:"Meat", vendor:"GFC", invoice:"58783", amt:9560.00},
+  {date:'2026-06-23', dept:"Grocery", vendor:"STI", invoice:"140043421", amt:2621.00},
+  {date:'2026-06-23', dept:"Grocery", vendor:"JFC", invoice:"14-1333604", amt:578.25},
+  {date:'2026-06-23', dept:"Grocery", vendor:"RestaurantDepot", invoice:"20260623R", amt:146.05},
+  {date:'2026-06-23', dept:"Meat", vendor:"GFC", invoice:"58800", amt:15870.68},
+  {date:'2026-06-23', dept:"Meat", vendor:"GFC", invoice:"58801", amt:3640.29},
+  {date:'2026-06-23', dept:"Produce", vendor:"RestaurantDepot", invoice:"20260623R", amt:275.53},
+  {date:'2026-06-23', dept:"Produce", vendor:"BooHan", invoice:"3140979", amt:134.95},
+  {date:'2026-06-23', dept:"Produce", vendor:"99Ranch", invoice:"152894", amt:119.70}
+];
+(function load(){
+  try { const raw = store.getItem(KEY); if (raw) { const d = JSON.parse(raw);
+    DB.sales = d.sales||[]; DB.purchase = d.purchase||[]; DB.stock = d.stock||[];
+    DB.stockItems = normStockItems(d.stockItems);
+  } } catch(e){}
+  if (!DB.sales.length) DB.sales = SEED_SALES.map(r=>({...r}));
+  else {                                        // 새 워크북 기본 데이터 병합 (날짜 기준, 사용자 수정분 유지)
+    const have = new Set(DB.sales.map(r=>r.date));
+    SEED_SALES.forEach(r=>{ if (!have.has(r.date)) DB.sales.push({...r}); });
+  }
+  {                                             // purchase 시드 병합 (중복 제외)
+    const pk = r => [r.date,r.dept,r.vendor,r.invoice,r.amt].join('|').toLowerCase();
+    const haveP = new Set(DB.purchase.map(pk));
+    SEED_PURCHASE.forEach(r=>{ if (!haveP.has(pk(r))) DB.purchase.push({...r}); });
+  }
+})();
+function persist(){
+  try { store.setItem(KEY, JSON.stringify(DB)); } catch(e){}
+  schedulePush();                              // 실시간 Firestore 저장
+}
+
+/* ═════════ Firebase 실시간 동기화 ═════════
+   Firestore(campeon-wholsale/sales-data)가 원본 저장소.
+   - 문서가 있으면: 파일 내장 데이터 대신 Firestore 데이터를 사용
+   - 문서가 없으면: 현재(시드 포함) 데이터를 최초 업로드
+   - 모든 입력/수정은 즉시 저장, 다른 기기 변경은 실시간 반영           */
+const CID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+let pushTimer = null, remotePending = null, fbConnected = false;
+let netOnline = true, netHideTimer = null, netInitDone = false;
+function setSync(t, on){
+  const e = document.getElementById('syncState');
+  if (e){ e.textContent = t; e.classList.toggle('on', !!on); }
+}
+/* ── 인터넷 끊김/복구 경고 배너 제어 ──
+   양방향 실시간 자료이므로, 연결이 끊긴 채 계속 입력하는 상황을 반드시 알린다. */
+function setNet(online){
+  online = !!online;
+  const first = !netInitDone;
+  netInitDone = true;
+  if (!first && online === netOnline) return;   // 상태 변화 없으면 무시
+  netOnline = online;
+  const w = document.getElementById('netWarn');
+  const m = document.getElementById('netWarnMsg');
+  document.body.classList.toggle('netdown', !online);
+  if (!w || !m) return;
+  clearTimeout(netHideTimer);
+  if (!online){
+    // 끊김: 빨간 배너를 계속 표시(자동으로 사라지지 않음)
+    m.textContent = '⚠ 인터넷 연결 끊김 — 지금 입력하는 내용이 서버에 저장·공유되지 않습니다. 연결을 확인한 뒤 계속하세요.';
+    w.className = 'show off';
+  } else {
+    if (first) { w.className = ''; return; }     // 최초 로드 시 온라인이면 배너 자체를 띄우지 않음
+    // 복구: 초록 배너를 잠깐 보여주고 자동 숨김
+    m.textContent = '✓ 인터넷 연결 복구됨 — 동기화되었습니다.';
+    w.className = 'show ok';
+    netHideTimer = setTimeout(() => { w.className = ''; }, 3000);
+  }
+}
+function fbRef(){ const fb = window.fbSM; return fb ? fb.doc(fb.db, 'campeon-wholsale', 'sales-data') : null; }
+function schedulePush(){
+  if (!window.fbSM) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(pushAll, 500);
+}
+async function pushAll(){
+  const fb = window.fbSM; if (!fb) return;
+  try {
+    await fb.setDoc(fbRef(), {
+      sales: DB.sales, purchase: DB.purchase, stock: DB.stock,
+      stockItems: DB.stockItems, by: CID, updatedAt: Date.now()
+    });
+    setSync('SAVED · LIVE', true);
+    setNet(true);
+  } catch(e){ setSync('SAVE FAILED — CHECK CONNECTION', false); setNet(false); }
+}
+function renderAll(){ renderSalesData(); renderPurchaseData(); renderStockData(); renderDashboard(); }
+function applyRemote(d){
+  if (EDIT.sales || EDIT.purchase || EDIT.stock){ remotePending = d; return; }   // 편집 중엔 보류
+  DB.sales = Array.isArray(d.sales) ? d.sales : [];
+  DB.purchase = Array.isArray(d.purchase) ? d.purchase : [];
+  DB.stock = Array.isArray(d.stock) ? d.stock : [];
+  if (Array.isArray(d.stockItems)) DB.stockItems = normStockItems(d.stockItems);
+  try { store.setItem(KEY, JSON.stringify(DB)); } catch(e){}
+  renderAll();
+}
+function startSync(){
+  const fb = window.fbSM;
+  if (!fb){ return; }
+  // 브라우저 네트워크 이벤트: 가장 빠른 1차 신호(즉각 경고)
+  window.addEventListener('offline', () => setNet(false));
+  window.addEventListener('online',  () => setSync('RECONNECTING…', false)); // 실제 복구는 Firestore가 확인
+  // 페이지 로드 시 이미 오프라인이면 경고
+  if (!navigator.onLine) setNet(false);
+  try {
+    // includeMetadataChanges: 서버 연결이 끊기거나 복구될 때도 콜백이 발생하도록
+    fb.onSnapshot(fbRef(), { includeMetadataChanges: true }, snap => {
+      // fromCache=true → 서버와 연결이 끊겨 캐시에서 읽는 상태 (연결의 '진짜' 상태)
+      const fromCache = !!(snap.metadata && snap.metadata.fromCache);
+      fbConnected = !fromCache;
+      setNet(!fromCache);
+      const exists = snap && snap.exists && snap.exists();
+      if (!exists){ if (!fromCache) pushAll(); return; }     // 최초 업로드는 서버 확인됐을 때만
+      const d = snap.data() || {};
+      if (d.by === CID){ setSync(fromCache ? 'OFFLINE (LOCAL SAVE)' : 'SAVED · LIVE', !fromCache); return; }  // 내 쓰기 에코
+      setSync(fromCache ? 'OFFLINE (LOCAL SAVE)' : 'LIVE SYNC', !fromCache);
+      applyRemote(d);                                        // Firestore 데이터가 원본
+    }, err => { setSync('OFFLINE (LOCAL SAVE)', false); setNet(false); });
+    setSync('CONNECTING…', false);
+  } catch(e){ setSync('OFFLINE (LOCAL SAVE)', false); setNet(false); }
+}
+window.addEventListener('fbsm-ready', startSync);
+
+/* ═════════ Date helpers ═════════ */
+const pad = n => String(n).padStart(2,'0');
+function iso(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function dateSerial(y,m,d){ return new Date(y, m-1, d); }               // Excel DateSerial과 동일한 roll-over
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function today0(){ const t=new Date(); return new Date(t.getFullYear(),t.getMonth(),t.getDate()); }
+function fmtMDY2(d){ return pad(d.getMonth()+1)+'-'+pad(d.getDate())+'-'+String(d.getFullYear()).slice(-2); } // mm-dd-yy
+function fmtMDY4(s){ const [y,m,d]=s.split('-'); return m+'-'+d+'-'+y; }
+
+/* ═════════ Number formats (Excel 서식 그대로) ═════════ */
+function fmtAcct(v, dec){                     // 회계 서식: 음수 (괄호), 0 → "-"
+  if (v === '' || v === null || v === undefined || isNaN(v)) return '';
+  if (Math.abs(v) < 1e-9) return '-';
+  const s = Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:dec, maximumFractionDigits:dec});
+  return v < 0 ? '('+s+')' : s;
+}
+function fmtPct1(v){                          // 0.0%
+  if (v === '' || v === null || v === undefined || isNaN(v)) return '';
+  return (v*100).toFixed(1)+'%';
+}
+function numCell(v, dec){                     // td 생성 + 음수/양수 색
+  const t = fmtAcct(v, dec);
+  const cls = (typeof v==='number' && v<-1e-9) ? ' class="neg"' : '';
+  return '<td'+cls+'>'+t+'</td>';
+}
+function pctCell(v){
+  if (v==='' || v===null || v===undefined || isNaN(v)) return '<td></td>';
+  const cls = v<0 ? ' class="neg"' : ' class="pos"';
+  return '<td'+cls+'>'+fmtPct1(v)+'</td>';
+}
+function fmtMoney(v){                         // $ 표시 + 소수점 2자리
+  if (v === '' || v === null || v === undefined || isNaN(v)) return '';
+  const s = '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+  return v < 0 ? '('+s+')' : s;
+}
+function moneyCell(v){
+  const cls = (typeof v==='number' && v<-1e-9) ? ' class="neg"' : '';
+  return '<td'+cls+'>'+fmtMoney(v)+'</td>';
+}
+
+/* ═════════ Input filtering — VBA checkNumberOnly 그대로 ═════════ */
+function checkNumberOnly(el, enableDot){
+  const re = enableDot ? /[^0-9.\-]/g : /[^0-9]/g;   // 신규 VBA: [0-9.-] 음수 허용
+  const v = el.value.replace(re,'');
+  if (v !== el.value) el.value = v;
+}
+document.querySelectorAll('input[data-num]').forEach(el=>{
+  el.addEventListener('input', ()=> {
+    checkNumberOnly(el, el.dataset.num==='dec');
+    if (el.id.startsWith('s_') && el.dataset.num==='dec' && el.value !== '-') reflashTotal();  // 신규 VBA
+  });
+});
+
+/* ═════════ Tabs ═════════ */
+function showTab(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if (name==='dashboard') renderDashboard();
+}
+
+/* ═════════ FULL SCREEN ═════════
+   브라우저 Fullscreen API로 화면 전체(주소창·탭·메뉴 등 브라우저 UI 숨김)로 전환.
+   전체 페이지(입력폼·검색·리스트·헤더)를 그대로 두고 브라우저 UI만 숨긴다 —
+   특정 카드만 확대하지 않으므로 모든 내용이 보이고 페이지 스크롤/헤더 고정도 그대로. */
+function fsElement(){ return document.fullscreenElement || document.webkitFullscreenElement || null; }
+function reqFull(el){
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  try { return fn ? fn.call(el) : null; } catch(e){ return null; }
+}
+function exitFull(){
+  const fn = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+  if (fsElement() && fn){ try { fn.call(document); } catch(e){} }
+}
+function setFsUI(on, btn){
+  // 전체화면 중에는 어느 탭에서든 모든 버튼이 EXIT로 보인다
+  document.querySelectorAll('.btn-full').forEach(b=>{
+    b.textContent = on ? 'EXIT' : 'FULL SCREEN';
+  });
+}
+function toggleFullView(id, btn){         // id는 호환용(무시): 항상 문서 전체를 전체화면
+  if (fsElement()){ exitFullView(); return; }
+  const p = reqFull(document.documentElement);
+  if (p && p.catch) p.catch(()=>{});      // 거부/미지원이어도 UI는 정상 유지
+  setFsUI(true, btn);
+  document.addEventListener('keydown', fvKey);
+}
+function exitFullView(){
+  setFsUI(false, null);
+  document.removeEventListener('keydown', fvKey);
+  exitFull();
+}
+function fvKey(e){ if (e.key === 'Escape') exitFullView(); }
+/* ESC·브라우저 제스처로 전체화면을 빠져나가도 버튼/EXIT 상태를 동기화 */
+function onFsChange(){
+  if (!fsElement()){
+    setFsUI(false, null);
+    document.removeEventListener('keydown', fvKey);
+  }
+}
+document.addEventListener('fullscreenchange', onFsChange);
+document.addEventListener('webkitfullscreenchange', onFsChange);
+
+/* ═════════ Toast ═════════ */
+let toastTimer=null;
+function toast(msg, ok){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=(ok?'ok':'err')+' show';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ═════════════════════════ SALES (frmSales 그대로) ═════════════════════════ */
+function reflashTotal(){                       // VBA reflashTotal
+  const f = id => { const v=document.getElementById(id).value; return v.length>0 ? parseFloat(v)||0 : 0; };
+  const total = f('s_g')+f('s_p')+f('s_m')+f('s_h')+f('s_s')+f('s_d')+f('s_b');
+  document.getElementById('s_total').value = total.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function salesInit(){                          // UserForm_Initialize: 어제 날짜
+  const y = addDays(today0(),-1);
+  document.getElementById('s_month').value = pad(y.getMonth()+1);
+  document.getElementById('s_day').value   = pad(y.getDate());
+  document.getElementById('s_year').value  = y.getFullYear();
+  salesClear();
+}
+function salesClear(){                         // btnClear_Click
+  ['s_g','s_p','s_m','s_h','s_s','s_d','s_b','s_total'].forEach(id=>document.getElementById(id).value='');
+}
+function salesSave(){                          // cmdSave_Click: 같은 날짜 찾으면 덮어쓰기, 없으면 추가
+  const g=v('s_g'), p=v('s_p'), m=v('s_m'), h=v('s_h'), s=v('s_s'), d=v('s_d'), b=v('s_b');
+  const dt = dateSerial(int('s_year'), int('s_month'), int('s_day'));
+  const key = iso(dt);
+  let row = DB.sales.find(r => r.date === key);
+  if (!row) { row = {date:key, g:null,p:null,m:null,h:null,s:null,d:null,b:null, total:null}; DB.sales.push(row); }
+  row.date = key;
+  if (g!==null) row.g=g;  if (p!==null) row.p=p;  if (m!==null) row.m=m;
+  if (h!==null) row.h=h;  if (s!==null) row.s=s;  if (d!==null) row.d=d;  if (b!==null) row.b=b;
+  const tv = document.getElementById('s_total').value;
+  if (tv.length>0) row.total = parseFloat(tv.replace(/,/g,''))||0;
+  persist(); renderSalesData(); renderDashboard();
+  toast('Sucess!', true);
+  salesClear();                                // 신규 VBA: clearData 후 txtG 포커스
+  document.getElementById('s_g').focus();
+  function v(id){ const x=document.getElementById(id).value; return x.length>0 ? (parseFloat(x)||0) : null; }
+  function int(id){ return parseInt(document.getElementById(id).value,10)||0; }
+}
+/* ===== 검색 · 월별 보기 필터 (DATE 기준) ===== */
+const FILTER = { sales:null, purchase:null, stock:null };
+function rerenderTab(tab){
+  if (tab==='sales') renderSalesData();
+  else if (tab==='purchase') renderPurchaseData();
+  else renderStockData();
+}
+function applyRange(tab){
+  const f = (document.getElementById('f_'+tab+'_from')||{}).value || '';
+  const t = (document.getElementById('f_'+tab+'_to')||{}).value || '';
+  if (!f && !t){ toast('Select start or end date', false); return; }
+  FILTER[tab] = { from: f || '0000-01-01', to: t || '9999-12-31' };
+  rerenderTab(tab);
+}
+function clearFilter(tab){
+  FILTER[tab] = null;
+  const a = document.getElementById('f_'+tab+'_from'); if (a) a.value = '';
+  const b = document.getElementById('f_'+tab+'_to');   if (b) b.value = '';
+  rerenderTab(tab);
+}
+function setMonthFilter(tab, ym){
+  FILTER[tab] = { from: ym+'-01', to: ym+'-31', ym: ym };
+  rerenderTab(tab);
+}
+function filterRows(tab, arr){
+  const f = FILTER[tab]; if (!f) return arr;
+  return arr.filter(x => x.r.date >= f.from && x.r.date <= f.to);
+}
+const MON3 = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+function monthLbl(m, withYear){ return MON3[parseInt(m.slice(5,7),10)-1] + (withYear ? ' '+m.slice(0,4) : ''); }
+/* 리스트 상단 월별 TOTAL (최근 5개월 롤링 — 새 달이 생기면 가장 오래된 달 제거) */
+function renderMonthTotals(tab){
+  const el = document.getElementById('mt_'+tab); if (!el) return;
+  const val = tab==='sales' ? (r=>r.total||0) : (tab==='purchase' ? (r=>r.amt||0) : (r=>r.cost||0));
+  const sums = {};
+  DB[tab].forEach(r => { const m = String(r.date||'').slice(0,7); if (m.length===7) sums[m] = (sums[m]||0) + val(r); });
+  const months = Object.keys(sums).sort().slice(-5);
+  el.innerHTML = months.length
+    ? months.map(m => '<span class="mtot-chip">'+monthLbl(m,true)+' TOTAL<b>'+fmtMoney(sums[m])+'</b></span>').join('')
+    : '<span class="mtot-chip empty">NO DATA</span>';
+}
+function delCell(i){ return '<td class="delc"><button class="row-del" data-idx="'+i+'" type="button">DEL</button></td>'; }
+function bindDel(tableSel, tab){
+  document.querySelectorAll(tableSel+' .row-del').forEach(b=>{
+    b.onclick = () => {
+      const idx = +b.dataset.idx; const r = DB[tab][idx]; if (!r) return;
+      if (!confirm('Delete this row? ('+fmtMDY4(r.date)+')')) return;
+      DB[tab].splice(idx, 1);
+      persist(); rerenderTab(tab); renderDashboard();
+      toast('Row deleted', true);
+    };
+  });
+}
+function renderMonthButtons(tab){
+  const el = document.getElementById('mb_'+tab); if (!el) return;
+  const list = DB[tab];
+  const months = [...new Set(list.map(r => String(r.date||'').slice(0,7)))].filter(m=>m.length===7).sort();
+  const multiYear = new Set(months.map(m => m.slice(0,4))).size > 1;
+  let h = '<button class="flt-btn'+(FILTER[tab]?'':' on')+'" onclick="clearFilter(\''+tab+'\')">VIEW ALL</button>';
+  months.forEach(m => {
+    const lbl = monthLbl(m, multiYear);
+    const on = (FILTER[tab] && FILTER[tab].ym === m) ? ' on' : '';
+    h += '<button class="flt-btn'+on+'" onclick="setMonthFilter(\''+tab+'\',\''+m+'\')">'+lbl+'</button>';
+  });
+  el.innerHTML = h;
+}
+
+/* ===== 편집 모드 (EDIT — 날짜 포함 전 필드 수정) ===== */
+const EDIT = { sales:false, purchase:false, stock:false };
+function toggleEdit(tab){
+  EDIT[tab] = !EDIT[tab];
+  const b = document.getElementById('edit-'+tab);
+  if (b){ b.textContent = EDIT[tab] ? 'DONE' : 'EDIT'; b.classList.toggle('on', EDIT[tab]); }
+  const tblId = { sales:'tblSalesData', purchase:'tblPurchaseData', stock:'tblStockData' }[tab];
+  const tbl = document.getElementById(tblId);
+  if (tbl) tbl.classList.toggle('editing', EDIT[tab]);
+  rerenderTab(tab);
+  if (!EDIT[tab]){
+    if (remotePending && !EDIT.sales && !EDIT.purchase && !EDIT.stock){
+      const d = remotePending; remotePending = null; applyRemote(d);   // 편집 중 보류했던 원격 변경 반영
+    }
+    renderDashboard(); toast('Changes saved', true);
+  }
+}
+function edDate(idx, date){
+  return '<td class="ed"><input type="date" class="edit-date" data-idx="'+idx+'" data-k="date" data-t="d" value="'+esc(date)+'"></td>';
+}
+function edCell(idx, k, v, txt){
+  return '<td class="ed"><input class="edit-in'+(txt?' txt':'')+'" data-idx="'+idx+'" data-k="'+k+'" data-t="'+(txt?'t':'n')+'" value="'+esc(v==null?'':v)+'"></td>';
+}
+function bindEdit(tableSel, commit){
+  document.querySelectorAll(tableSel+' .edit-in, '+tableSel+' .edit-sel, '+tableSel+' .edit-date').forEach(el=>{
+    if (el.dataset.t==='n'){
+      el.addEventListener('input', ()=>{ const f=el.value.replace(/[^0-9.\-]/g,''); if(f!==el.value) el.value=f; });
+    }
+    el.addEventListener('change', ()=>{ commit(+el.dataset.idx, el.dataset.k, el.value, el); });
+  });
+}
+function renderSalesData(){
+  const tb = document.querySelector('#tblSalesData tbody');
+  let rows = DB.sales.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  const totalN = rows.length;
+  rows = filterRows('sales', rows);
+  if (EDIT.sales){
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr>'+edDate(i, r.date)+
+      edCell(i,'g',r.g)+edCell(i,'p',r.p)+edCell(i,'m',r.m)+edCell(i,'h',r.h)+
+      edCell(i,'s',r.s)+edCell(i,'d',r.d)+edCell(i,'b',r.b)+edCell(i,'total',r.total)+delCell(i)+'</tr>'
+    ).join('');
+    bindDel('#tblSalesData','sales');
+    bindEdit('#tblSalesData', (idx,k,val,el)=>{
+      const row = DB.sales[idx]; if(!row) return;
+      if (k==='date'){ if(!val) return; row.date = val; persist(); renderSalesData(); return; }
+      row[k] = (val==='' ? null : (parseFloat(val)||0));
+      if (k!=='total'){
+        row.total = ['g','p','m','h','s','d','b'].reduce((a,kk)=>a+(row[kk]||0),0);
+        const t = document.querySelector('#tblSalesData .edit-in[data-idx="'+idx+'"][data-k="total"]');
+        if (t) t.value = row.total;
+      }
+      persist();
+    });
+  } else {
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td>'+
+      moneyCell(r.g??'')+moneyCell(r.p??'')+moneyCell(r.m??'')+moneyCell(r.h??'')+
+      moneyCell(r.s??'')+moneyCell(r.d??'')+moneyCell(r.b??'')+moneyCell(r.total??'')+delCell(i)+'</tr>'
+    ).join('');
+    bindDel('#tblSalesData','sales');
+  }
+  document.getElementById('salesCount').textContent = (FILTER.sales ? rows.length+' / '+totalN : rows.length)+' ROWS';
+  renderMonthButtons('sales');
+  renderMonthTotals('sales');
+}
+
+/* ═════════════════════════ PURCHASE (frmPurchase 그대로) ═════════════════════════ */
+function purchaseInit(){                       // 오늘 날짜, Dept 기본 Meat
+  const t = today0();
+  document.getElementById('p_month').value = pad(t.getMonth()+1);
+  document.getElementById('p_day').value   = pad(t.getDate());
+  document.getElementById('p_year').value  = t.getFullYear();
+  document.getElementById('p_dept').selectedIndex = 0;
+  document.getElementById('p_vendor').value=''; document.getElementById('p_invoice').value='';
+  document.getElementById('p_amt').value='';
+}
+function purchaseSave(){                       // btnSave_Click: 검증 → 추가
+  const vendor = document.getElementById('p_vendor');
+  const invoice = document.getElementById('p_invoice');
+  const amt = document.getElementById('p_amt');
+  if (vendor.value.length < 1)  { toast('Please input the name of the vendor.', false); vendor.focus(); return; }
+  if (invoice.value.length < 1) { toast('Please input the invoice number.', false); invoice.focus(); return; }
+  if (amt.value.length < 1)     { toast('Please input the amount of the invoice.', false); amt.focus(); return; }
+  const dt = dateSerial(
+    parseInt(document.getElementById('p_year').value,10)||0,
+    parseInt(document.getElementById('p_month').value,10)||0,
+    parseInt(document.getElementById('p_day').value,10)||0);
+  DB.purchase.push({
+    date: iso(dt),
+    dept: document.getElementById('p_dept').value,
+    vendor: vendor.value,
+    invoice: invoice.value,
+    amt: parseFloat(amt.value)||0
+  });
+  persist(); renderPurchaseData(); renderDashboard();
+  toast('Sucess!', true);
+  invoice.value=''; amt.value='';              // VBA와 동일: invoice/amt 초기화 후 vendor 포커스
+  vendor.focus();
+}
+const DEPTS = ['Meat','Grocery','Houseware','Produce','Seafood','Deli','Bakery'];
+function renderPurchaseData(){
+  const tb = document.querySelector('#tblPurchaseData tbody');
+  let rows = DB.purchase.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  const totalN = rows.length;
+  rows = filterRows('purchase', rows);
+  if (EDIT.purchase){
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr>'+edDate(i, r.date)+
+      '<td class="ed"><select class="edit-sel" data-idx="'+i+'" data-k="dept" data-t="t">'+
+        DEPTS.map(d=>'<option'+(String(r.dept).toLowerCase()===d.toLowerCase()?' selected':'')+'>'+d+'</option>').join('')+
+      '</select></td>'+
+      edCell(i,'vendor',r.vendor,true)+edCell(i,'invoice',r.invoice,true)+edCell(i,'amt',r.amt)+delCell(i)+'</tr>'
+    ).join('');
+    bindDel('#tblPurchaseData','purchase');
+    bindEdit('#tblPurchaseData', (idx,k,val)=>{
+      const row = DB.purchase[idx]; if(!row) return;
+      if (k==='date'){ if(!val) return; row.date = val; persist(); renderPurchaseData(); return; }
+      if (k==='amt') row.amt = parseFloat(val)||0;
+      else row[k] = (k==='dept') ? val : val.toUpperCase();
+      persist();
+    });
+  } else {
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.dept))+'</td>'+
+      '<td class="lbl">'+esc(up(r.vendor))+'</td><td class="lbl">'+esc(up(r.invoice))+'</td>'+
+      moneyCell(r.amt)+delCell(i)+'</tr>'
+    ).join('');
+    bindDel('#tblPurchaseData','purchase');
+  }
+  document.getElementById('purchaseCount').textContent = (FILTER.purchase ? rows.length+' / '+totalN : rows.length)+' ROWS';
+  renderMonthButtons('purchase');
+  renderMonthTotals('purchase');
+}
+
+/* ═════════════════════════ STOCK (frmStock 그대로) ═════════════════════════ */
+function stockInit(){
+  const t = today0();
+  document.getElementById('k_month').value = pad(t.getMonth()+1);
+  document.getElementById('k_day').value   = pad(t.getDate());
+  document.getElementById('k_year').value  = t.getFullYear();
+  ['k_item','k_qty','k_weight','k_cost'].forEach(id=>document.getElementById(id).value='');
+}
+function stockSave(){                          // btnSave_Click: 검증 → 추가
+  const item=document.getElementById('k_item'), qty=document.getElementById('k_qty'),
+        wt=document.getElementById('k_weight'), cost=document.getElementById('k_cost');
+  if (item.value.length < 1) { toast('Please input Item Code.', false); item.focus(); return; }
+  if (qty.value.length < 1)  { toast('Please input the quantity of the box.', false); qty.focus(); return; }
+  if (wt.value.length < 1)   { toast('Please input the total weight.', false); wt.focus(); return; }
+  if (cost.value.length < 1) { toast('Please input the cost.', false); cost.focus(); return; }
+  const dt = dateSerial(
+    parseInt(document.getElementById('k_year').value,10)||0,
+    parseInt(document.getElementById('k_month').value,10)||0,
+    parseInt(document.getElementById('k_day').value,10)||0);
+  DB.stock.push({
+    date: iso(dt), item: item.value,
+    qty: parseFloat(qty.value)||0, weight: parseFloat(wt.value)||0, cost: parseFloat(cost.value)||0
+  });
+  persist(); renderStockData(); renderDashboard();
+  toast('Sucess!', true);
+  qty.value=''; wt.value=''; cost.value='';    // VBA와 동일: qty/weight/cost 초기화 후 qty 포커스
+  qty.focus();
+}
+function renderStockData(){
+  const tb = document.querySelector('#tblStockData tbody');
+  let rows = DB.stock.map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  const totalN = rows.length;
+  rows = filterRows('stock', rows);
+  if (EDIT.stock){
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr>'+edDate(i, r.date)+
+      edCell(i,'item',r.item,true)+edCell(i,'qty',r.qty)+edCell(i,'weight',r.weight)+edCell(i,'cost',r.cost)+delCell(i)+'</tr>'
+    ).join('');
+    bindDel('#tblStockData','stock');
+    bindEdit('#tblStockData', (idx,k,val)=>{
+      const row = DB.stock[idx]; if(!row) return;
+      if (k==='date'){ if(!val) return; row.date = val; persist(); renderStockData(); return; }
+      if (k==='item') row.item = val.toUpperCase();
+      else row[k] = parseFloat(val)||0;
+      persist();
+    });
+  } else {
+    tb.innerHTML = rows.map(({r,i}) =>
+      '<tr><td class="dt">'+fmtMDY4(r.date)+'</td><td class="lbl">'+esc(up(r.item))+'</td>'+
+      numCell(r.qty,0)+numCell(r.weight,1)+moneyCell(r.cost)+delCell(i)+'</tr>'
+    ).join('');
+    bindDel('#tblStockData','stock');
+  }
+  document.getElementById('stockCount').textContent = (FILTER.stock ? rows.length+' / '+totalN : rows.length)+' ROWS';
+  renderMonthButtons('stock');
+  renderMonthTotals('stock');
+}
+
+/* ═════════════════════════ DASHBOARD — 수식 그대로 ═════════════════════════ */
+/* dashboard 수식의 열 참조를 그대로 유지:
+   Grocery←sales!B, Produce←C, Meat←D, Seafood←E, Houseware←F, Deli←G, Bakery←H            */
+const DEPT_ROWS = [
+  ['Grocery','g'], ['Produce','p'], ['Meat','m'],
+  ['Seafood','h'], ['Houseware','s'], ['Deli','d'], ['Bakery','b']
+];
+function sumSalesCol(col, from, to){           // SUMIFS(sales!col, date range)
+  let s=0; for (const r of DB.sales){ if (r.date>=from && r.date<=to && typeof r[col]==='number') s+=r[col]; }
+  return s;
+}
+function sumPurchDept(dept, from, to){         // SUMIFS(purchase!E, dept, date range)
+  let s=0; const d=dept.toLowerCase();
+  for (const r of DB.purchase){ if (r.date>=from && r.date<=to && String(r.dept).toLowerCase()===d) s+=r.amt; }
+  return s;
+}
+function sumSalesDay(dateKey){                 // SUMIFS(sales!I, date =)
+  let s=0; for (const r of DB.sales){ if (r.date===dateKey && typeof r.total==='number') s+=r.total; }
+  return s;
+}
+function sumPurchDay(dateKey){                 // SUMIFS(purchase!E, date =)
+  let s=0; for (const r of DB.purchase){ if (r.date===dateKey) s+=r.amt; }
+  return s;
+}
+function monthRange(y,m){                      // DATE(y,m,1) ~ DATE(y,m+1,1)-1
+  return [ iso(dateSerial(y,m,1)), iso(addDays(dateSerial(y,m+1,1),-1)) ];
+}
+
+let DASH = null;                               // 대시보드 계산 결과 스냅샷 (EXPORT 공용)
+function computeDashboard(){
+  const t = today0();
+  const curM = t.getMonth()+1;                                       // F3 =MONTH(B1)
+  const lastM = (curM===1) ? 12 : curM-1;                            // B3 =IF(F3=1,12,F3-1)
+  const lastY = (curM===1) ? t.getFullYear()-1 : t.getFullYear();
+
+  /* Monthly (rows 5–12) */
+  const [lf, lt] = monthRange(lastY, lastM);
+  const [cf, ct] = monthRange(t.getFullYear(), curM);
+  const M=[]; const T={ls:0,lp:0,cs:0,cp:0};
+  for (const [name,col] of DEPT_ROWS){
+    const ls=sumSalesCol(col,lf,lt), lp=sumPurchDept(name,lf,lt);
+    const cs=sumSalesCol(col,cf,ct), cp=sumPurchDept(name,cf,ct);
+    T.ls+=ls; T.lp+=lp; T.cs+=cs; T.cp+=cp;
+    M.push({name, ls, lp, lgp:ls-lp, lpc:(ls===0?null:(ls-lp)/ls),
+                  cs, cp, cgp:cs-cp, cpc:(cs===0?null:(cs-cp)/cs)});
+  }
+  T.lgp=T.ls-T.lp; T.lpc=(T.ls===0?null:T.lgp/T.ls);
+  T.cgp=T.cs-T.cp; T.cpc=(T.cs===0?null:T.cgp/T.cs);
+  /* v3.0: Diff from previous month (13행) — F13=F12-B12, G13, H13, I13=H13/D12
+     (엑셀 I13은 IFERROR가 빠져 있어 지난달 GP=0이면 #DIV/0! — 여기서는 보호 적용) */
+  const mDiff = { s:T.cs-T.ls, p:T.cp-T.lp, gp:T.cgp-T.lgp,
+                  pc:(T.lgp===0?null:(T.cgp-T.lgp)/T.lgp) };
+
+  /* Weekly (v2.0: rows 17–22 — 4주 비교로 확장) */
+  const wd = (t.getDay()+6)%7;                                       // WEEKDAY(TODAY(),2)-1
+  const monCur = addDays(t,-wd);                                     // A20 = 이번 주 월요일
+  function weekRow(mon){
+    const cells=[]; let ts=0, tp=0;
+    for (let i=0;i<6;i++){
+      const k = iso(addDays(mon,i));
+      const s=sumSalesDay(k), p=sumPurchDay(k);
+      ts+=s; tp+=p; cells.push([s,p]);
+    }
+    return {date: iso(mon), cells, ts, tp, gp:ts-tp, pc:(ts===0?null:(ts-tp)/ts)};
+  }
+  /* A17=A18-7, A18=A19-7, A19=A20-7, A20=이번주 월요일 → 4주 (과거→현재) */
+  const weeks = [ weekRow(addDays(monCur,-21)), weekRow(addDays(monCur,-14)),
+                  weekRow(addDays(monCur,-7)),  weekRow(monCur) ];
+  /* Diff: v2.0 = 최신주(B20) 대비 직전주(B19) → weeks[3] vs weeks[2] */
+  const wPrev = weeks[2], wCur = weeks[3];
+  const dAmt=[], dPct=[];
+  for (let i=0;i<6;i++) for (let j=0;j<2;j++){
+    const a=wPrev.cells[i][j], b=wCur.cells[i][j];
+    dAmt.push(b-a); dPct.push(a===0?null:(b-a)/a);
+  }
+  const dTot = {
+    amt:[wCur.ts-wPrev.ts, wCur.tp-wPrev.tp, wCur.gp-wPrev.gp],
+    pct:[wPrev.ts===0?null:(wCur.ts-wPrev.ts)/wPrev.ts, wPrev.tp===0?null:(wCur.tp-wPrev.tp)/wPrev.tp, wPrev.gp===0?null:(wCur.gp-wPrev.gp)/wPrev.gp]
+  };
+
+  /* Meat Stock (v3.0: rows 26–41)
+     - Box/Lbs : 최신 입고일 것만 집계  =SUMIFS(qty, item, date=MAXIFS(date))
+     - Latest Cost : 최신일 첫 건의 단가 (LET+XLOOKUP 의미)
+     - Latest Date : 최신 입고일 (v3에서 엑셀도 버그 수정됨 — 동일 로직)
+     - Avg cost for 4 weeks : v3 신규 — 최근 30일 "중량가중" 평균단가
+         {=SUMPRODUCT((30일내)×(품목)×weight×cost)/SUMIFS(weight,…)}  = Σ(무게×단가)/Σ(무게)
+         (v2의 AVERAGEIFS 단순평균을 대체 — 물량 큰 입고의 단가가 더 반영됨)
+     - Total 행 : Box·Lbs 합계  =SUM(B28:B40), =SUM(C28:C40)                          */
+  const from30 = iso(addDays(t,-30)), toDay = iso(t);
+  const S=[];
+  const ST={box:0, lbs:0, amt:0, amt4w:0};                           // + AMOUNT(4W) 합계
+  for (let i=0;i<STOCK_ROWS;i++){
+    const code = DB.stockItems[i];
+    let row = {code, box:null, lbs:null, lst:null, amt:null, ldate:null, moc:null, amt4w:null};
+    if (code && code.trim().length){
+      const c = code.trim().toLowerCase();
+      const entries = DB.stock.filter(r => String(r.item).trim().toLowerCase()===c);
+      if (entries.length){
+        const mx = entries.reduce((a,r)=>r.date>a?r.date:a, entries[0].date);   // MAXIFS(date)
+        const latest = entries.filter(r=>r.date===mx);
+        row.box = latest.reduce((a,r)=>a+(r.qty||0),0);              // SUMIFS(qty,  date=최신일)
+        row.lbs = latest.reduce((a,r)=>a+(r.weight||0),0);           // SUMIFS(wt,   date=최신일)
+        row.lst = (latest[0].cost ?? null);                          // XLOOKUP: 최신일 첫 건 단가
+        row.amt = (row.lst!==null) ? row.lbs*row.lst : null;         // v3.2 신규: E=C×D (Lbs×단가)
+        row.ldate = mx;                                              // Latest Date
+      } else { row.box = 0; row.lbs = 0; }
+      const mo = entries.filter(r=>r.date>=from30 && r.date<=toDay); // 최근 30일
+      const wSum = mo.reduce((a,r)=>a+(r.weight||0),0);              // Σ무게
+      const wcSum = mo.reduce((a,r)=>a+(r.weight||0)*(r.cost||0),0); // Σ(무게×단가)
+      row.moc = wSum>0 ? wcSum/wSum : null;                          // AVG COST(4W): 가중평균
+      row.amt4w = (row.lbs!==null && row.moc!==null) ? row.lbs*row.moc : null;  // AMOUNT(4W) = Lbs × AVG COST(4W)
+      ST.box += row.box||0; ST.lbs += row.lbs||0; ST.amt += row.amt||0;   // v3.2: E41=SUM(E28:E40)
+      ST.amt4w += row.amt4w||0;                                      // AMOUNT(4W) 12줄 합계 → Total
+    }
+    S.push(row);
+  }
+  return {t, curM, lastM, M, T, mDiff, weeks, dAmt, dPct, dTot, S, ST};
+}
+
+function renderDashboard(){
+  const D = DASH = computeDashboard();
+  document.getElementById('todayLabel').textContent = fmtMDY2(D.t);  // B1 =TODAY(), mm-dd-yy
+  document.getElementById('curMonthNum').textContent = D.curM;
+  document.getElementById('lastMonthNum').textContent = D.lastM;
+
+  /* Monthly */
+  let html='';
+  for (const r of D.M){
+    html += '<tr><td class="lbl">'+r.name+'</td>'+
+      numCell(r.ls,2)+numCell(r.lp,2)+numCell(r.lgp,2)+pctCell(r.lpc===null?'':r.lpc)+
+      numCell(r.cs,2)+numCell(r.cp,2)+numCell(r.cgp,2)+pctCell(r.cpc===null?'':r.cpc)+'</tr>';
+  }
+  html += '<tr class="total"><td class="lbl">Total</td>'+
+    numCell(D.T.ls,2)+numCell(D.T.lp,2)+numCell(D.T.lgp,2)+pctCell(D.T.lpc===null?'':D.T.lpc)+
+    numCell(D.T.cs,2)+numCell(D.T.cp,2)+numCell(D.T.cgp,2)+pctCell(D.T.cpc===null?'':D.T.cpc)+'</tr>';
+  /* v3.0: Diff from previous month — 지난달 4칸 비움, 현재월 위치에 증감 표시 */
+  html += '<tr><td class="lbl">Diff from previous month</td>'+
+    '<td></td><td></td><td></td><td></td>'+
+    numCell(D.mDiff.s,2)+numCell(D.mDiff.p,2)+numCell(D.mDiff.gp,2)+pctCell(D.mDiff.pc===null?'':D.mDiff.pc)+'</tr>';
+  document.querySelector('#tblMonthly tbody').innerHTML = html;
+
+  /* Weekly (v2.0: 4주) */
+  function weekTr(w, hl){
+    let r='<tr'+(hl?' class="wk-hl"':'')+'><td class="lbl">'+w.date+'</td>';
+    for (const [s,p] of w.cells) r += numCell(s,2)+numCell(p,2);
+    r += numCell(w.ts,2)+numCell(w.tp,2)+numCell(w.gp,2)+pctCell(w.pc===null?'':w.pc)+'</tr>';
+    return r;
+  }
+  let d1='<tr class="wk-hl"><td class="lbl">Diff from prev week($)</td>', d2='<tr class="wk-hl"><td class="lbl">Diff from prev week(%)</td>';
+  for (let i=0;i<12;i++){ d1 += numCell(D.dAmt[i],2); d2 += pctCell(D.dPct[i]===null?'':D.dPct[i]); }
+  for (const v of D.dTot.amt) d1 += numCell(v,2);
+  d1 += '<td></td></tr>';
+  for (const v of D.dTot.pct) d2 += pctCell(v===null?'':v);
+  d2 += '<td></td></tr>';
+  /* Diff 계산에 쓰이는 '최근 2주'(마지막 두 행)와 Diff 2줄을 옅은 노란색으로 강조 */
+  document.querySelector('#tblWeekly tbody').innerHTML =
+    D.weeks.map((w,i)=>weekTr(w, i>=D.weeks.length-2)).join('')+d1+d2;
+
+  /* Meat Stock (Inventory 4W 2열: AVG COST(4W) + AMOUNT(4W)=Lbs×AVG) */
+  let sh='';
+  D.S.forEach((r,i)=>{
+    const cells = (r.code && r.code.trim().length)
+      ? numCell(r.box,0)+numCell(r.lbs,1)+numCell(r.lst===null?'':r.lst,2)
+        +numCell(r.amt===null?'':r.amt,2)
+        +'<td>'+(r.ldate?fmtMDY4(r.ldate):'')+'</td>'
+        +numCell(r.moc===null?'':r.moc,2)
+        +numCell(r.amt4w===null?'':r.amt4w,2)
+      : '<td></td><td></td><td></td><td></td><td></td><td></td><td></td>';
+    sh += '<tr><td class="lbl" style="padding:2px 6px"><input class="itm-input" data-idx="'+i+'" value="'+esc(r.code)+'" placeholder="item#"></td>'+cells+'</tr>';
+  });
+  /* Total 행 — Box·Lbs·Amount 합계 + [AVG AMT 라벨 | AMOUNT(4W) 총액] 2필드 */
+  sh += '<tr class="total"><td class="lbl">Total</td>'+numCell(D.ST.box,0)+numCell(D.ST.lbs,1)+'<td></td>'+numCell(D.ST.amt,2)+'<td></td>'
+      + '<td style="text-align:center;font-weight:700">AVG AMT</td>'
+      + numCell(D.ST.amt4w,2)+'</tr>';
+  document.querySelector('#tblStock tbody').innerHTML = sh;
+  document.querySelectorAll('#tblStock .itm-input').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      DB.stockItems[+el.dataset.idx] = el.value;
+      persist(); renderDashboard();
+    });
+  });
+}
+
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function up(s){ return String(s??'').toUpperCase(); }
+
+/* ═════════════════════════ EXPORT ═════════════════════════ */
+function stamp(){ const t=today0(); return t.getFullYear()+pad(t.getMonth()+1)+pad(t.getDate()); }
+function dateUTC(isoStr){ const [y,m,d]=isoStr.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
+function needLib(obj, name){ if(!obj){ toast(name+' library failed to load. Check internet connection.', false); return true; } return false; }
+/* ── CDN 지연 로딩(export 라이브러리) ──
+   ExcelJS / jsPDF / html2canvas 를 버튼 클릭 시점에만 CDN에서 불러온다.
+   버전을 URL에 고정(pin)하여 예전 인라인 버전과 100% 동일한 출력을 보장한다. */
+const LIB_CDN = {
+  exceljs:     'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js',
+  jspdf:       'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js',
+  html2canvas: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+};
+const _libLoading = {};
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    // 이미 로드됐거나 로드 중이면 재사용
+    const existing = document.querySelector('script[data-lib="'+src+'"]');
+    if (existing){
+      if (existing.dataset.loaded === '1') return resolve();
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', () => reject(new Error('load error')));
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = src; s.async = true; s.dataset.lib = src;
+    s.addEventListener('load', () => { s.dataset.loaded = '1'; resolve(); });
+    s.addEventListener('error', () => reject(new Error('load error')));
+    document.head.appendChild(s);
+  });
+}
+async function ensureLib(name){
+  const globals = { exceljs: 'ExcelJS', jspdf: 'jspdf', html2canvas: 'html2canvas' };
+  const g = globals[name];
+  if (window[g]) return true;                 // 이미 있으면 통과
+  const label = name === 'exceljs' ? 'Excel' : 'PDF';
+  try {
+    await loadScript(LIB_CDN[name]);
+    if (window[g]) return true;
+    toast(label + ' library failed to load. Check internet connection.', false);
+    return false;
+  } catch(e){
+    toast(label + ' library failed to load. Check internet connection.', false);
+    return false;
+  }
+}
+function saveBlob(buf, filename, mime){
+  const blob = new Blob([buf], {type: mime||'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 800);
+}
+
+/* ═════════ 전체 백업 / 복원 ═════════
+   DB(sales·purchase·stock·stockItems)가 이 앱의 데이터 전부이며,
+   localStorage와 Firestore(campeon-wholsale/sales-data)에 저장되는 원본과 동일하다.
+   → JSON 한 파일에 통째로 담으므로 한 건도 빠짐없이 보존·복원된다.
+   (탭별 EXCEL EXPORT는 화면 필터/서식이 적용된 '보고서'라 백업용이 아니다.) */
+const BACKUP_APP = 'campeon-wholsale-sales-management';
+
+function backupAll(){
+  try {
+    const data = {
+      sales:      Array.isArray(DB.sales)      ? DB.sales      : [],
+      purchase:   Array.isArray(DB.purchase)   ? DB.purchase   : [],
+      stock:      Array.isArray(DB.stock)      ? DB.stock      : [],
+      stockItems: Array.isArray(DB.stockItems) ? DB.stockItems : []
+    };
+    const payload = {
+      app: BACKUP_APP,
+      formatVersion: 1,
+      exportedAt: new Date().toISOString(),
+      counts: {
+        sales: data.sales.length, purchase: data.purchase.length,
+        stock: data.stock.length, stockItems: data.stockItems.length
+      },
+      data: data                                  // ← 원본 그대로(가공·필터 없음)
+    };
+    const d = new Date();
+    const stamp = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate())
+                + '_' + pad(d.getHours()) + pad(d.getMinutes());
+    saveBlob(JSON.stringify(payload, null, 2),
+             'CAMPEON-SALES-BACKUP_' + stamp + '.json', 'application/json');
+    toast('백업 완료 — SALES ' + data.sales.length + ' · PURCHASE ' + data.purchase.length
+          + ' · STOCK ' + data.stock.length + ' 건', true);
+  } catch(e){
+    toast('백업 실패 — ' + (e && e.message ? e.message : '알 수 없는 오류'), false);
+  }
+}
+
+function restorePick(){
+  if (EDIT.sales || EDIT.purchase || EDIT.stock){
+    toast('EDIT(편집) 중에는 복원할 수 없습니다. 편집을 끝낸 뒤 다시 시도하세요.', false);
+    return;
+  }
+  const f = document.getElementById('restoreFile');
+  if (f){ f.value = ''; f.click(); }
+}
+
+function restoreRun(input){
+  const file = input && input.files && input.files[0];
+  if (input) input.value = '';                   // 같은 파일 재선택 가능하도록
+  if (!file) return;
+  const rd = new FileReader();
+  rd.onerror = () => toast('파일을 읽지 못했습니다.', false);
+  rd.onload = () => {
+    let p;
+    try { p = JSON.parse(rd.result); }
+    catch(e){ toast('백업 파일이 아닙니다 — JSON 형식 오류', false); return; }
+    const d = (p && p.data) ? p.data : p;         // data 래퍼가 있든 없든 처리
+    if (!d || (!Array.isArray(d.sales) && !Array.isArray(d.purchase) && !Array.isArray(d.stock))){
+      toast('백업 파일 형식이 올바르지 않습니다.', false); return;
+    }
+    const ns = Array.isArray(d.sales)    ? d.sales    : [];
+    const np = Array.isArray(d.purchase) ? d.purchase : [];
+    const nk = Array.isArray(d.stock)    ? d.stock    : [];
+    const ni = Array.isArray(d.stockItems) ? normStockItems(d.stockItems) : null;
+    let when = '알 수 없음';
+    try { if (p.exportedAt) when = new Date(p.exportedAt).toLocaleString('ko-KR'); } catch(e){}
+    const msg = '이 백업으로 전체 데이터를 되돌립니다.\n\n'
+      + '백업 시점: ' + when + '\n\n'
+      + '                현재  →  복원 후\n'
+      + 'SALES      : ' + DB.sales.length    + '  →  ' + ns.length + '\n'
+      + 'PURCHASE : ' + DB.purchase.length + '  →  ' + np.length + '\n'
+      + 'STOCK      : ' + DB.stock.length    + '  →  ' + nk.length + '\n\n'
+      + '⚠ 현재 데이터는 이 백업 내용으로 완전히 대체되며,\n'
+      + '   연결된 다른 기기에도 즉시 반영됩니다.\n\n계속할까요?';
+    if (!confirm(msg)) return;
+    DB.sales = ns; DB.purchase = np; DB.stock = nk;
+    if (ni) DB.stockItems = ni;
+    persist();                                    // 로컬 저장 + Firestore 반영
+    renderAll();
+    toast('복원 완료 — SALES ' + ns.length + ' · PURCHASE ' + np.length
+          + ' · STOCK ' + nk.length + ' 건', true);
+  };
+  rd.readAsText(file);
+}
+
+const XF = {                                   // 공통 서식
+  DATE : 'mm-dd-yyyy',
+  MONEY: '"$"#,##0.00',
+  NUM0 : '#,##0',
+  NUM1 : '#,##0.0',
+  thin : {style:'thin', color:{argb:'FFE5E9F0'}},
+  gray : {style:'thin', color:{argb:'FFCBD5E1'}}
+};
+function xBorder(b){ return {top:b, left:b, bottom:b, right:b}; }
+
+/* ── 탭 데이터 EXCEL EXPORT (폭: 15자리 숫자 기준) ── */
+async function exportTabExcel(sheetName, cols, rows){
+  if (!(await ensureLib('exceljs'))) return;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(sheetName);
+  cols.forEach((c,i)=>{ ws.getColumn(i+1).width = 18; });   // 15자리 숫자 폭
+  const hr = ws.getRow(1);
+  cols.forEach((c,i)=>{
+    const cl = hr.getCell(i+1);
+    cl.value = c.h;
+    cl.font = {bold:true, size:10, color:{argb:'FF334155'}};
+    cl.fill = {type:'pattern', pattern:'solid', fgColor:{argb:'FFF1F5F9'}};
+    cl.alignment = {horizontal:'center', vertical:'middle'};
+    cl.border = xBorder(XF.gray);
+  });
+  hr.height = 20;
+  rows.forEach(r=>{
+    const row = ws.addRow(cols.map(c=>{
+      const v = r[c.k];
+      if (v===null || v===undefined || v==='') return null;
+      if (c.t==='date') return dateUTC(v);
+      if (c.t==='text') return up(v);
+      return v;
+    }));
+    cols.forEach((c,i)=>{
+      const cl = row.getCell(i+1);
+      cl.border = xBorder(XF.thin);
+      const rawV = r[c.k];
+      const isNum = (c.t==='money' || c.t==='num0' || c.t==='num1');
+      const neg = isNum && typeof rawV==='number' && rawV < 0;
+      cl.font = neg ? {size:10, color:{argb:'FFDC2626'}} : {size:10};   // 음수 → 빨강
+      if (c.t==='date'){ cl.numFmt = XF.DATE; cl.alignment={horizontal:'center'}; }  // DATE 가운데
+      else if (c.t==='money') cl.numFmt = XF.MONEY;
+      else if (c.t==='num0')  cl.numFmt = XF.NUM0;
+      else if (c.t==='num1')  cl.numFmt = XF.NUM1;
+      else cl.alignment={horizontal:'left'};
+    });
+  });
+  saveBlob(await wb.xlsx.writeBuffer(), sheetName+'_'+stamp()+'.xlsx');
+  toast('EXCEL EXPORT DONE', true);
+}
+function exportSalesExcel(){
+  const rows = [...DB.sales].sort((a,b)=>a.date<b.date?-1:1);
+  exportTabExcel('SALES', [
+    {h:'DATE',k:'date',t:'date'},   {h:'GROCERY',k:'g',t:'money'}, {h:'PRODUCE',k:'p',t:'money'},
+    {h:'MEAT',k:'m',t:'money'},     {h:'HOUSEWARE',k:'h',t:'money'},{h:'SEAFOOD',k:'s',t:'money'},
+    {h:'DELI',k:'d',t:'money'},     {h:'BAKERY',k:'b',t:'money'},  {h:'TOTAL',k:'total',t:'money'}
+  ], rows);
+}
+function exportPurchaseExcel(){
+  const rows = [...DB.purchase].sort((a,b)=>a.date<b.date?-1:1);
+  exportTabExcel('PURCHASE', [
+    {h:'DATE',k:'date',t:'date'}, {h:'DEPT',k:'dept',t:'text'}, {h:'VENDOR',k:'vendor',t:'text'},
+    {h:'INVOICE',k:'invoice',t:'text'}, {h:'AMT',k:'amt',t:'money'}
+  ], rows);
+}
+function exportStockExcel(){
+  const rows = [...DB.stock].sort((a,b)=>a.date<b.date?-1:1);
+  exportTabExcel('STOCK', [
+    {h:'DATE',k:'date',t:'date'}, {h:'ITEM',k:'item',t:'text'}, {h:'QTY',k:'qty',t:'num0'},
+    {h:'WEIGHT',k:'weight',t:'num1'}, {h:'COST',k:'cost',t:'money'}
+  ], rows);
+}
+
+/* ── 인쇄 (현재 화면 목록을 Letter 규격 표로) ── */
+const PRINT_CFG = {
+  sales: { title:'SALES', cols:[
+    {h:'DATE',k:'date',t:'date'}, {h:'GROCERY',k:'g',t:'money'}, {h:'PRODUCE',k:'p',t:'money'},
+    {h:'MEAT',k:'m',t:'money'},   {h:'HOUSEWARE',k:'h',t:'money'}, {h:'SEAFOOD',k:'s',t:'money'},
+    {h:'DELI',k:'d',t:'money'},   {h:'BAKERY',k:'b',t:'money'},   {h:'TOTAL',k:'total',t:'money'}
+  ]},
+  purchase: { title:'PURCHASE', cols:[
+    {h:'DATE',k:'date',t:'date'}, {h:'DEPT',k:'dept',t:'text'}, {h:'VENDOR',k:'vendor',t:'text'},
+    {h:'INVOICE',k:'invoice',t:'text'}, {h:'AMT',k:'amt',t:'money'}
+  ]},
+  stock: { title:'STOCK', cols:[
+    {h:'DATE',k:'date',t:'date'}, {h:'ITEM',k:'item',t:'text'}, {h:'QTY',k:'qty',t:'num0'},
+    {h:'WEIGHT',k:'weight',t:'num1'}, {h:'COST',k:'cost',t:'money'}
+  ]}
+};
+function printFmt(v, t){                     // 화면 표시와 동일한 서식
+  if (v===null || v===undefined || v==='') return '';
+  if (t==='date')  return fmtMDY4(v);
+  if (t==='text')  return up(v);
+  if (t==='money') return fmtMoney(v);
+  if (t==='num0')  return fmtAcct(v, 0);
+  if (t==='num1')  return fmtAcct(v, 1);
+  return String(v);
+}
+function printTab(tab){
+  const cfg = PRINT_CFG[tab]; if (!cfg) return;
+  // 화면과 동일하게 필터+정렬된 현재 목록
+  let rows = DB[tab].map((r,i)=>({r,i})).sort((a,b)=>a.r.date<b.r.date?-1:1);
+  rows = filterRows(tab, rows).map(x => x.r);
+  const cols  = cfg.cols;
+  const align = cols.map(c => c.t==='date' ? 'center' : (c.t==='text' ? 'left' : 'right'));
+  const thead = '<tr>'+cols.map(c=>'<th>'+esc(c.h)+'</th>').join('')+'</tr>';
+  const tbody = rows.length
+    ? rows.map(r => '<tr>'+cols.map((c,i)=>{
+        const raw = r[c.k];
+        const isNum = (c.t==='money' || c.t==='num0' || c.t==='num1');
+        const neg = isNum && typeof raw==='number' && raw < 0;
+        return '<td class="'+align[i]+(neg?' neg':'')+'">'+esc(printFmt(raw, c.t))+'</td>';
+      }).join('')+'</tr>').join('')
+    : '<tr><td colspan="'+cols.length+'" style="text-align:center;color:#666;">NO DATA</td></tr>';
+  const orient = cols.length >= 7 ? 'landscape' : 'portrait';   // 열 많으면 가로 자동
+  const html =
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(cfg.title)+' REPORT</title><style>'+
+    '@page{ size: letter '+orient+'; margin: 0; }'+     /* 브라우저 자동 머리글/바닥글(날짜·주소·제목) 제거 */
+    '*{ box-sizing:border-box; }'+
+    'body{ font-family: Arial,"Malgun Gothic",sans-serif; color:#111; margin:0; padding:12mm; }'+
+    'h1{ font-size:18px; margin:0 0 12px; letter-spacing:.5px; text-align:center; }'+  /* 제목 가운데 */
+    'table{ border-collapse:collapse; width:100%; table-layout:auto; font-size:10px; }'+
+    'th,td{ border:1px solid #555; padding:4px 7px; white-space:nowrap; }'+   /* 라인(테두리) 표시 */
+    'th{ background:#e5e7eb; color:#111; font-weight:700; text-align:center; }'+ /* 필드=옅은 그레이 */
+    'td.left{ text-align:left; } td.right{ text-align:right; } td.center{ text-align:center; }'+
+    'td.neg{ color:#dc2626; }'+
+    'thead{ display:table-header-group; }'+   /* 페이지마다 헤더 반복 */
+    'tr{ page-break-inside:avoid; }'+
+    '</style></head><body>'+
+    '<h1>'+esc(cfg.title)+' REPORT</h1>'+
+    '<table><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table>'+
+    '</body></html>';
+  // 숨김 iframe으로 인쇄(팝업 차단 회피, 라이브러리 불필요)
+  const old = document.getElementById('__printFrame'); if (old) old.remove();
+  const ifr = document.createElement('iframe');
+  ifr.id = '__printFrame';
+  ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+  document.body.appendChild(ifr);
+  ifr.onload = () => setTimeout(() => {
+    try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch(e){}
+    setTimeout(() => { try { ifr.remove(); } catch(e){} }, 1500);
+  }, 60);
+  const d = ifr.contentWindow.document;
+  d.open(); d.write(html); d.close();
+}
+
+/* ── DASHBOARD EXCEL EXPORT — 화면 그대로 (색상·라인·글자색) ── */
+async function exportDashboardExcel(){
+  if (!(await ensureLib('exceljs'))) return;
+  const D = DASH || computeDashboard();
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('DASHBOARD', {views:[{showGridLines:false}]});
+  ws.getColumn(1).width = 15;
+  for (let c=2;c<=18;c++) ws.getColumn(c).width = 12.5;
+
+  const ACCT = '#,##0.00;[Red](#,##0.00);"-"';
+  const ACC0 = '#,##0;[Red](#,##0);"-"';
+  const ACC1 = '#,##0.0;[Red](#,##0.0);"-"';
+  const PCT  = '0.0%';
+  function C(r,c,val,o={}){
+    const cl = ws.getCell(r,c);
+    if (val!==undefined && val!==null) cl.value = val;
+    if (!o.nob) cl.border = xBorder(o.gb ? XF.gray : XF.thin);
+    if (o.fill) cl.fill = {type:'pattern',pattern:'solid',fgColor:{argb:o.fill}};
+    cl.font = {size:10, bold:!!o.b, color:{argb:o.color||'FF1F2937'}};
+    cl.alignment = {horizontal:o.h||'right', vertical:'middle'};
+    if (o.fmt) cl.numFmt = o.fmt;
+    return cl;
+  }
+  const TH   = {fill:'FFF1F5F9', color:'FF334155', b:1, h:'center', gb:1};
+  const LAST = {fill:'FFEEF2F7', color:'FF475569', b:1, h:'center', gb:1};
+  const CUR  = {fill:'FFFEE2E2', color:'FFB91C1C', b:1, h:'center', gb:1};
+  const TOT  = {fill:'FFE0E7FF', color:'FF3730A3', b:1, h:'center', gb:1};
+  const LBL  = {fill:'FFFAFBFD', color:'FF334155', b:1, h:'left'};
+  function pcell(r,c,v,extra={}){                   // GP(%) 셀: 양수 초록/음수 빨강
+    if (v===null){ C(r,c,null,extra); return; }
+    C(r,c,v,{...extra, fmt:PCT, color:(v<0?'FFDC2626':'FF047857'), b:extra.b});
+  }
+
+  /* Month chips (타이틀 라인 제외, 화면의 월 표시부터) */
+  ws.mergeCells(1,1,1,3);
+  C(1,1,'Month '+D.lastM+' · Last month',{fill:'FFE2E8F0', color:'FF475569', b:1, h:'center', nob:0, gb:1});
+  ws.mergeCells(1,4,1,6);
+  C(1,4,'Month '+D.curM+' · Current month',{fill:'FFFEE2E2', color:'FFB91C1C', b:1, h:'center', gb:1});
+  C(1,8,'Today: '+fmtMDY2(D.t),{b:1, h:'left', nob:1});
+
+  /* Monthly Performance */
+  C(3,1,'Monthly Performance',{b:1,h:'left',nob:1});
+  ws.mergeCells(4,1,5,1); C(4,1,'Department',TH);
+  ws.mergeCells(4,2,4,5); C(4,2,'Last month',LAST);
+  ws.mergeCells(4,6,4,9); C(4,6,'Current month',CUR);
+  ['Sales','Purchase','GP($)','GP(%)'].forEach((h,i)=>{ C(5,2+i,h,LAST); C(5,6+i,h,CUR); });
+  D.M.forEach((r,i)=>{
+    const rw = 6+i;
+    C(rw,1,r.name,LBL);
+    C(rw,2,r.ls,{fmt:ACCT}); C(rw,3,r.lp,{fmt:ACCT}); C(rw,4,r.lgp,{fmt:ACCT}); pcell(rw,5,r.lpc);
+    C(rw,6,r.cs,{fmt:ACCT}); C(rw,7,r.cp,{fmt:ACCT}); C(rw,8,r.cgp,{fmt:ACCT}); pcell(rw,9,r.cpc);
+  });
+  const tr = 13;
+  C(tr,1,'Total',{...LBL, fill:'FFF8FAFC'});
+  C(tr,2,D.T.ls,{fmt:ACCT,b:1,fill:'FFF8FAFC'}); C(tr,3,D.T.lp,{fmt:ACCT,b:1,fill:'FFF8FAFC'});
+  C(tr,4,D.T.lgp,{fmt:ACCT,b:1,fill:'FFF8FAFC'}); pcell(tr,5,D.T.lpc,{b:1,fill:'FFF8FAFC'});
+  C(tr,6,D.T.cs,{fmt:ACCT,b:1,fill:'FFF8FAFC'}); C(tr,7,D.T.cp,{fmt:ACCT,b:1,fill:'FFF8FAFC'});
+  C(tr,8,D.T.cgp,{fmt:ACCT,b:1,fill:'FFF8FAFC'}); pcell(tr,9,D.T.cpc,{b:1,fill:'FFF8FAFC'});
+  /* v3.0: Diff from previous month (14행) */
+  C(tr+1,1,'Diff from previous month',LBL);
+  C(tr+1,6,D.mDiff.s,{fmt:ACCT}); C(tr+1,7,D.mDiff.p,{fmt:ACCT});
+  C(tr+1,8,D.mDiff.gp,{fmt:ACCT}); pcell(tr+1,9,D.mDiff.pc);
+
+  /* Meat Stock (모니터 화면처럼 우측 배치) — Inventory 4W 2열 */
+  C(3,11,'Meat Stock',{b:1,h:'left',nob:1});
+  ws.mergeCells(4,11,5,11); C(4,11,'Item#',{...TH, h:'left'});
+  ws.mergeCells(4,12,4,16); C(4,12,'On hand stock',TH);
+  ws.mergeCells(4,17,4,18); C(4,17,'Inventory for 4 Weeks',TOT);
+  ['Box','Lbs','Latest Cost','Amount','Latest Date'].forEach((h,i)=>C(5,12+i,h,TH));
+  C(5,17,'AVG COST(4W)',TOT); C(5,18,'AMOUNT(4W)',TOT);
+  D.S.forEach((r,i)=>{
+    const rw = 6+i;
+    const has = r.code && r.code.trim().length;
+    C(rw,11, has?r.code:null, LBL);
+    C(rw,12, has?r.box:null, {fmt:ACC0});
+    C(rw,13, has?r.lbs:null, {fmt:ACC1});
+    C(rw,14, has&&r.lst!==null?r.lst:null, {fmt:ACCT});
+    C(rw,15, has&&r.amt!==null?r.amt:null, {fmt:ACCT});
+    C(rw,16, has&&r.ldate?fmtMDY4(r.ldate):null, {h:'center'});
+    C(rw,17, has&&r.moc!==null?r.moc:null, {fmt:ACCT});
+    C(rw,18, has&&r.amt4w!==null?r.amt4w:null, {fmt:ACCT,b:1});
+  });
+  /* Total 행 (Box·Lbs·Amount 합계 + AMOUNT(4W) 합계는 2칸 병합 1필드) */
+  const strw = 6 + D.S.length;
+  C(strw,11,'Total',{...LBL, fill:'FFF8FAFC'});
+  C(strw,12,D.ST.box,{fmt:ACC0,b:1,fill:'FFF8FAFC'});
+  C(strw,13,D.ST.lbs,{fmt:ACC1,b:1,fill:'FFF8FAFC'});
+  C(strw,14,null,{});
+  C(strw,15,D.ST.amt,{fmt:ACCT,b:1,fill:'FFF8FAFC'});
+  C(strw,16,null,{});
+  C(strw,17,'AVG AMT',{b:1,fill:'FFF8FAFC',h:'center'});
+  C(strw,18,D.ST.amt4w,{fmt:ACCT,b:1,fill:'FFF8FAFC'});
+
+  /* Compare with the previous week — v2.0: 4주 */
+  C(19,1,'Compare with the previous week',{b:1,h:'left',nob:1});
+  ws.mergeCells(20,1,21,1); C(20,1,'Week',TH);
+  ['Mon','Tue','Wed','Thu','Fri','Sat'].forEach((d,i)=>{
+    ws.mergeCells(20,2+i*2,20,3+i*2); C(20,2+i*2,d,TH);
+    C(21,2+i*2,'Sales',TH); C(21,3+i*2,'Purchase',TH);
+  });
+  ws.mergeCells(20,14,20,17); C(20,14,'Total',TOT);
+  ['Sales','Purchase','GP($)','GP(%)'].forEach((h,i)=>C(21,14+i,h,TOT));
+  D.weeks.forEach((w,wi)=>{
+    const rw = 22+wi;
+    const HL = (wi>=D.weeks.length-2) ? 'FFFFFBEB' : null;   // 최근 2주 옅은 노란색
+    C(rw,1,w.date,HL?{...LBL,fill:HL}:LBL);
+    w.cells.forEach(([s,p],i)=>{ C(rw,2+i*2,s,{fmt:ACCT,fill:HL}); C(rw,3+i*2,p,{fmt:ACCT,fill:HL}); });
+    C(rw,14,w.ts,{fmt:ACCT,fill:HL}); C(rw,15,w.tp,{fmt:ACCT,fill:HL}); C(rw,16,w.gp,{fmt:ACCT,fill:HL}); pcell(rw,17,w.pc,HL?{fill:HL}:{});
+  });
+  const dr = 22 + D.weeks.length;                 // Diff 행 = 26
+  const DHL='FFFFFBEB';
+  C(dr,1,'Diff from prev week($)',{...LBL,fill:DHL});
+  D.dAmt.forEach((v,i)=>C(dr,2+i,v,{fmt:ACCT,fill:DHL}));
+  D.dTot.amt.forEach((v,i)=>C(dr,14+i,v,{fmt:ACCT,fill:DHL}));
+  C(dr,17,null,{fill:DHL});
+  C(dr+1,1,'Diff from prev week(%)',{...LBL,fill:DHL});
+  D.dPct.forEach((v,i)=>pcell(dr+1,2+i,v,{fill:DHL}));
+  D.dTot.pct.forEach((v,i)=>pcell(dr+1,14+i,v,{fill:DHL}));
+  C(dr+1,17,null,{fill:DHL});
+
+  saveBlob(await wb.xlsx.writeBuffer(), 'DASHBOARD_'+stamp()+'.xlsx');
+  toast('EXCEL EXPORT DONE', true);
+}
+
+/* ── DASHBOARD PDF EXPORT — 화면 캡처 그대로 ── */
+async function exportDashboardPDF(){
+  if (!(await ensureLib('html2canvas'))) return;
+  if (!(await ensureLib('jspdf'))) return;
+  const el = document.getElementById('view-dashboard');
+  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#eef1f5', logging:false});
+  const img = canvas.toDataURL('image/jpeg', 0.92);
+  const pdf = new jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
+  const ih = canvas.height * pw / canvas.width;
+  pdf.addImage(img, 'JPEG', 0, ih < ph ? (ph-ih)/2 : 0, pw, ih);
+  pdf.save('DASHBOARD_'+stamp()+'.pdf');
+  toast('PDF EXPORT DONE', true);
+}
+
+/* ═════════ Init ═════════ */
+salesInit(); purchaseInit(); stockInit();
+renderSalesData(); renderPurchaseData(); renderStockData();
+renderDashboard();
+startSync();                                   // Firebase 실시간 동기화 시작
+
+/* 고정 헤더(탭)의 실제 높이를 CSS 변수로 반영 → 왼쪽 열 sticky 오프셋이
+   태블릿에서 헤더가 줄바꿈돼 높아져도 정확히 헤더 바로 아래에 붙도록. */
+(function trackHeaderHeight(){
+  const h = document.querySelector('header');
+  if (!h) return;
+  const set = () => document.documentElement.style.setProperty('--hdr-h', h.offsetHeight + 'px');
+  set();
+  window.addEventListener('resize', set);
+  window.addEventListener('orientationchange', set);
+  if (window.ResizeObserver){ try { new ResizeObserver(set).observe(h); } catch(e){} }
+})();
+/* ?tab=sales|purchase|stock|dashboard 딥링크 */
+(function(){
+  try{
+    var t=new URLSearchParams(location.search).get('tab');
+    if(t && ['dashboard','sales','purchase','stock'].indexOf(t)>=0) showTab(t);
+  }catch(e){}
+})();
+</script>
+</body>
+</html>
