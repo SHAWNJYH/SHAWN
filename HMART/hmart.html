@@ -7,17 +7,23 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   :root {
-    --bg: #fafaf7;
-    --bg-elev: #ffffff;
-    --bg-elev-2: #f3f3ee;
-    --border: #e5e5e0;
-    --border-bright: #c8c8c0;
-    --text: #1a1a1d;
-    --text-dim: #6b6b72;
-    --text-faint: #9a9aa0;
-    --accent: #1a1a1d;
-    --accent-soft: #f0eee5;
-    --accent-warm: #c9a961;
+    /* ── DESIGN SYSTEM "Paper & Pine" (homepage-manager 공통) ── */
+    --bg: #EDEAE3;
+    --bg-elev: #FFFDFA;
+    --bg-elev-2: #F7F4ED;
+    --border: #E4DFD4;
+    --border-bright: #D6CFC0;
+    --text: #1E1B16;
+    --text-dim: #4C463C;
+    --text-faint: #8C8578;
+    --accent: #1E1B16;
+    --accent-soft: #E9EFEA;
+    --accent-warm: #2F5D46;
+    --brass: #A98A55;
+    --danger: #9C3327;
+    --danger-soft: #F5EAE7;
+    --sh-1: 0 1px 2px rgba(30,27,22,.05);
+    --sh-2: 0 1px 2px rgba(30,27,22,.05), 0 14px 30px -20px rgba(30,27,22,.42);
     --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
     --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
   }
@@ -39,7 +45,7 @@
     inset: 0;
     background-image:
       radial-gradient(circle at 20% 10%, rgba(201, 169, 97, 0.05) 0%, transparent 40%),
-      radial-gradient(circle at 80% 90%, rgba(26, 26, 29, 0.03) 0%, transparent 40%);
+      radial-gradient(circle at 80% 90%, rgba(30,27,22,0.03) 0%, transparent 40%);
     pointer-events: none;
     z-index: 0;
   }
@@ -61,14 +67,14 @@
   .hm-home {
     position: relative; z-index: 1; height: 100vh;
     display: flex; flex-direction: column;
-    background: radial-gradient(125% 85% at 50% -12%, #ffffff 0%, var(--bg) 46%, #f1efe6 100%);
+    background: radial-gradient(125% 85% at 50% -12%, #FFFDFA 0%, var(--bg) 46%, #F2EEE5 100%);
   }
   /* ── 상단바 ── */
   .hm-topbar { flex: 0 0 62px; display: flex; align-items: center; justify-content: space-between;
     padding: 0 20px; background: var(--bg-elev); border-bottom: 1px solid var(--border);
-    box-shadow: 0 2px 14px rgba(26,26,29,.05); }
+    box-shadow: 0 2px 14px rgba(30,27,22,.05); }
   .hm-topbar-brand { display: flex; align-items: baseline; gap: 14px; }
-  .hm-topbar .hm-wordmark { font-size: 26px; letter-spacing: .02em; }
+  .hm-topbar .hm-wordmark { font-size: 24px; letter-spacing: .16em; }
   .hm-topbar .hm-substore { font-size: 15px; margin: 0; }
   .hm-topbar-actions { display: flex; align-items: center; gap: 10px; }
   .hm-topbar .hm-fab { position: static; box-shadow: none; }
@@ -78,25 +84,25 @@
     transition: border-color .15s, color .15s, transform .12s; }
   .hm-top-msg:hover { border-color: var(--accent-warm); color: var(--text); }
   .hm-top-msg:active { transform: scale(.97); }
-  .hm-top-msg.alarm { border-color: #c0392b; color: #c0392b; }
+  .hm-top-msg.alarm { border-color: #9C3327; color: #9C3327; }
   .hm-top-msg.alarm .hm-chat-alarm-dot { display: inline-block; }
   /* ── 본문: 사이드바 + 콘텐츠 ── */
   .hm-body { flex: 1; display: grid; grid-template-columns: 230px 1fr; min-height: 0; }
   .hm-side { min-height: 0; overflow-y: auto; padding: 12px 8px 16px; border-right: 1px solid var(--border);
-    background: linear-gradient(180deg, #fbfaf6, var(--bg)); }
+    background: linear-gradient(180deg, #F7F4ED, var(--bg)); }
   .hm-main { min-height: 0; position: relative; background: var(--bg); }
   .hm-frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
   .hm-welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
   .hm-welcome-eyebrow { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .22em; color: var(--text-dim); }
   .hm-welcome-mark { font-size: 58px; font-weight: 900; letter-spacing: .01em; color: var(--text); }
-  .hm-welcome-mark .dot { color: var(--accent-warm, #c9a961); }
+  .hm-welcome-mark .dot { color: var(--accent-warm, #2F5D46); }
   .hm-welcome-sub { font-size: 15px; color: var(--text-dim); }
   /* 로그아웃 확인 팝업 */
   .hm-logout-ov { position: fixed; inset: 0; z-index: 140; display: none; align-items: center; justify-content: center;
-    background: rgba(26,26,29,.34); backdrop-filter: blur(2px); }
+    background: rgba(30,27,22,.34); backdrop-filter: blur(2px); }
   .hm-logout-ov.show { display: flex; }
   .hm-logout-modal { width: 340px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
-    padding: 22px 22px 18px; box-shadow: 0 24px 64px rgba(26,26,29,.28); text-align: center; }
+    padding: 22px 22px 18px; box-shadow: 0 24px 64px rgba(30,27,22,.28); text-align: center; }
   .hm-logout-title { font-weight: 900; font-size: 17px; color: var(--text); margin-bottom: 10px; }
   .hm-logout-text { font-size: 14px; color: var(--text-dim); margin-bottom: 18px; }
   .hm-logout-text b { color: var(--text); letter-spacing: .04em; }
@@ -104,8 +110,8 @@
   .hm-lo-btn { flex: 1; padding: 11px 0; border-radius: 10px; border: 1.5px solid var(--border);
     background: var(--bg); color: var(--text-dim); font-family: var(--mono); font-size: 14px; font-weight: 800; cursor: pointer; }
   .hm-lo-btn:hover { border-color: var(--accent-warm); color: var(--text); }
-  .hm-lo-btn.danger { background: #b04141; border-color: #b04141; color: #fff; }
-  .hm-lo-btn.danger:hover { background: #983434; border-color: #983434; color: #fff; }
+  .hm-lo-btn.danger { background: #9C3327; border-color: #9C3327; color: #fff; }
+  .hm-lo-btn.danger:hover { background: #7E2A20; border-color: #7E2A20; color: #fff; }
 
   /* 마스트헤드 */
   .hm-masthead { text-align: center; margin-bottom: clamp(26px, 4.5vh, 46px); max-width: 760px; }
@@ -123,7 +129,7 @@
   .hm-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; }
   .egmm-card { width: 100%; box-sizing: border-box; background: var(--bg-elev);
     border: 1px solid var(--border); border-radius: 12px; padding: 11px 11px 9px;
-    box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(26,26,29,.07);
+    box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(30,27,22,.07);
     opacity: 0; transform: translateY(14px); animation: hmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
   .egmm-card:nth-child(1) { animation-delay: .05s; }
   .egmm-card:nth-child(2) { animation-delay: .15s; }
@@ -131,7 +137,7 @@
 
   .egmm-card-head { display: flex; align-items: center; gap: 8px; padding-bottom: 7px; margin-bottom: 8px;
     border-bottom: 1px solid var(--border); }
-  .egmm-menu-btn.active, .egmm-menu-btn.active:hover { border-color: #c0392b !important; box-shadow: 0 0 0 1px #c0392b inset; background: var(--accent-soft, #f0eee5); color: var(--text); font-weight: 800; }
+  .egmm-menu-btn.active, .egmm-menu-btn.active:hover { border-color: #9C3327 !important; box-shadow: 0 0 0 1px #9C3327 inset; background: var(--accent-soft, #E9EFEA); color: var(--text); font-weight: 800; }
   .egmm-card-tick { width: 5px; height: 15px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
   .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 15px; letter-spacing: .03em; color: var(--text); }
 
@@ -148,7 +154,7 @@
     overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
   .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
     background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
-  .egmm-menu-btn:hover { border-color: var(--border-bright); background: #fff; box-shadow: 0 6px 18px rgba(26,26,29,.06); }
+  .egmm-menu-btn:hover { border-color: var(--border-bright); background: #fff; box-shadow: 0 6px 18px rgba(30,27,22,.06); }
   .egmm-menu-btn:hover::before { transform: scaleY(1); }
   .egmm-menu-btn:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 2px; }
   .egmm-menu-btn:active { transform: scale(.99); }
@@ -179,24 +185,24 @@
   .hm-fab { position: fixed; top: 22px; right: 22px; z-index: 50; display: inline-flex; align-items: center; gap: 8px;
     background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
     padding: 9px 15px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
-    box-shadow: 0 6px 20px rgba(26,26,29,0.08); transition: border-color .15s, color .15s, transform .12s; }
+    box-shadow: 0 6px 20px rgba(30,27,22,0.08); transition: border-color .15s, color .15s, transform .12s; }
   .hm-fab:hover { border-color: var(--accent-warm); color: var(--text); }
   .hm-fab:active { transform: scale(.97); }
   .hm-fab b { color: var(--text); letter-spacing: .04em; }
 
   /* ===== DELI REQUEST 모달 (정제 리디자인 · 골드 악센트) ===== */
-  .plureq-ov { position: fixed; inset: 0; background: rgba(26,26,29,0.42); backdrop-filter: blur(7px);
+  .plureq-ov { position: fixed; inset: 0; background: rgba(30,27,22,0.42); backdrop-filter: blur(7px);
     display: none; align-items: center; justify-content: center; z-index: 1200; padding: 20px; animation: hmFade .18s ease; }
   .plureq-ov.show { display: flex; }
   @keyframes hmFade { from { opacity: 0; } to { opacity: 1; } }
   .plureq-modal { background: var(--bg-elev); border: 1px solid var(--border-bright); border-radius: 20px;
     width: 96%; max-width: 600px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
-    box-shadow: 0 30px 80px rgba(26,26,29,0.30); animation: hmRiseModal .32s cubic-bezier(.2,.8,.2,1); }
+    box-shadow: 0 30px 80px rgba(30,27,22,0.30); animation: hmRiseModal .32s cubic-bezier(.2,.8,.2,1); }
   @keyframes hmRiseModal { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
 
   /* 헤더: 다크 + 골드 틱 + 골드 헤어라인 */
   .plureq-head { position: relative; display: flex; align-items: center; gap: 12px; padding: 19px 22px;
-    background: linear-gradient(135deg, #1f1d1a, #34302a); color: #fff; flex: 0 0 auto; }
+    background: linear-gradient(135deg, #1E1B16, #332E26); color: #fff; flex: 0 0 auto; }
   .plureq-head::after { content: ""; position: absolute; left: 22px; right: 22px; bottom: 0; height: 1px;
     background: linear-gradient(90deg, transparent, var(--accent-warm) 18%, var(--accent-warm) 82%, transparent); opacity: .7; }
   .plureq-tick { width: 6px; height: 24px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
@@ -211,9 +217,9 @@
   .plureq-x:hover { opacity: 1; background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
 
   /* 본문: 크림 */
-  .plureq-body { padding: 20px 22px 22px; overflow: auto; background: #fbfaf7; }
+  .plureq-body { padding: 20px 22px 22px; overflow: auto; background: #F7F4ED; }
   .plureq-body::-webkit-scrollbar { width: 10px; }
-  .plureq-body::-webkit-scrollbar-thumb { background: #dcdcd4; border-radius: 8px; border: 3px solid #fbfaf7; }
+  .plureq-body::-webkit-scrollbar-thumb { background: #D6CFC0; border-radius: 8px; border: 3px solid #F7F4ED; }
 
   .plureq-field { margin-bottom: 11px; }
   .plureq-field label { display: block; font-family: var(--mono); font-size: 10.5px; font-weight: 800;
@@ -247,9 +253,9 @@
     transition: all .15s; }
   .plureq-check:hover span { border-color: var(--border-bright); color: var(--text); }
   .plureq-check input:focus-visible + span { box-shadow: 0 0 0 3px rgba(201,169,97,.25); }
-  .plureq-check.hot input:checked + span { background: #fdecec; border-color: #d9534f; color: #b3322e; }
-  .plureq-check.cool input:checked + span { background: #e8f0fb; border-color: #3a6fc9; color: #2a52a0; }
-  .plureq-check.room input:checked + span { background: var(--accent-soft); border-color: var(--accent-warm); color: #8a6d2e; }
+  .plureq-check.hot input:checked + span { background: #F5EAE7; border-color: #9C3327; color: #7E2A20; }
+  .plureq-check.cool input:checked + span { background: #EFEBE2; border-color: #2F5D46; color: #24462F; }
+  .plureq-check.room input:checked + span { background: var(--accent-soft); border-color: var(--accent-warm); color: #24462F; }
 
   /* 액션 버튼 */
   .plureq-actions { display: flex; gap: 10px; margin-top: 18px; }
@@ -257,7 +263,7 @@
     font-size: 13.5px; font-weight: 800; letter-spacing: .03em; cursor: pointer; transition: all .15s; }
   .plureq-btn:active { transform: scale(.98); }
   .plureq-btn.primary { background: var(--text); color: #fff; }
-  .plureq-btn.primary:hover { background: #000; box-shadow: 0 6px 18px rgba(26,26,29,.2); }
+  .plureq-btn.primary:hover { background: #000; box-shadow: 0 6px 18px rgba(30,27,22,.2); }
   .plureq-btn.blue { background: #fff; color: var(--text-dim); border-color: var(--border); }
   .plureq-btn.blue:hover { border-color: var(--accent-warm); color: var(--text); }
   .plureq-btn.ghost { background: transparent; color: var(--text-dim); border-color: var(--border); }
@@ -266,15 +272,15 @@
   /* 결과 리스트 */
   .plureq-list { display: flex; flex-direction: column; gap: 9px; }
   .plureq-row { position: relative; border: 1px solid var(--border); border-radius: 13px; padding: 13px 15px;
-    font-size: 14px; background: #fff; box-shadow: 0 2px 8px rgba(26,26,29,.04); transition: border-color .15s, box-shadow .15s; }
-  .plureq-row:hover { border-color: var(--border-bright); box-shadow: 0 6px 18px rgba(26,26,29,.07); }
+    font-size: 14px; background: #fff; box-shadow: 0 2px 8px rgba(30,27,22,.04); transition: border-color .15s, box-shadow .15s; }
+  .plureq-row:hover { border-color: var(--border-bright); box-shadow: 0 6px 18px rgba(30,27,22,.07); }
   .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
   .plureq-row .name { font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--text); }
   .plureq-row .meta { color: var(--text-dim); font-size: 12.5px; margin-top: 3px; line-height: 1.5; }
   .plureq-badge { font-family: var(--mono); font-size: 10.5px; font-weight: 800; letter-spacing: .06em;
     padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
-  .plureq-badge.pending { background: #fff3cd; color: #8a6d00; }
-  .plureq-badge.done { background: #e2f3e6; color: #15803d; }
+  .plureq-badge.pending { background: #FBF6E7; color: #24462F; }
+  .plureq-badge.done { background: #E9EFEA; color: #1F7A44; }
   .plureq-empty { text-align: center; color: var(--text-faint); font-weight: 700; padding: 30px 20px; }
   .rqlbl { color: var(--accent-warm); font-weight: 800; letter-spacing: .04em; }
 
@@ -302,16 +308,25 @@
   }
 
   /* 토스트 */
-  .hm-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: #1a1a1d; color: #fff; padding: 11px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all .25s; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+  .hm-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: #1E1B16; color: #fff; padding: 11px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all .25s; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
   .hm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .hm-toast.success { background: #2a8a4a; } .hm-toast.error { background: #c0392b; }
+  .hm-toast.success { background: #2F6D4F; } .hm-toast.error { background: #9C3327; }
   /* === 진입 게이트 === */
   html.hm-gate-lock body > *:not(#hmGateOv){ visibility: hidden !important; }
   #hmGateOv{ position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
     background: #EDEAE3; visibility: visible !important; }
   #hmGateOv .hmg-card{ width: 340px; background: #FFFDFA; border: 1.5px solid #E4DFD4;
     border-radius: 18px; padding: 30px 30px 26px; box-shadow: 0 14px 30px -20px rgba(30,27,22,.42); }
-  #hmGateOv .hmg-title{ margin: 0 0 18px; font-size: 24px; font-weight: 800; letter-spacing: .14em; text-align: center; color: #1E1B16; }
+  #hmGateOv .hmg-card.hmg-wide{ width: 620px; max-width: 94vw; }
+  #hmGateOv .hmg-cols{ display:flex; gap:26px; }
+  #hmGateOv .hmg-col{ flex:1; min-width:0; }
+  #hmGateOv .hmg-col2{ border-left:1px dashed #D6CFC0; padding-left:26px; }
+  #hmGateOv .hmg-sec{ text-align:center; font-size:11px; font-weight:900; letter-spacing:.16em; color:#2F5D46; margin:2px 0 12px; }
+  #hmGateOv .hmg-foot{ display:flex; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #E4DFD4; }
+  #hmGateOv .hmg-foot .hmg-auto{ margin-bottom:0; }
+  #hmGateOv .hmg-foot .hmg-cancel{ flex:0 0 auto; padding:11px 22px; }
+  @media (max-width:640px){ #hmGateOv .hmg-cols{ flex-direction:column; gap:16px; } #hmGateOv .hmg-col2{ border-left:none; padding-left:0; border-top:1px dashed #D6CFC0; padding-top:16px; } }
+  #hmGateOv .hmg-title{ margin: 0 0 8px; font-size: 24px; font-weight: 800; letter-spacing: .14em; text-align: center; color: #1E1B16; }
   #hmGateOv .hmg-field{ margin-bottom: 12px; }
   #hmGateOv .hmg-field label{ display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8C8578; margin-bottom: 5px; }
   #hmGateOv .hmg-field input{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
@@ -323,6 +338,7 @@
     color: #4C463C; cursor: pointer; user-select: none; margin-bottom: 14px; }
   #hmGateOv .hmg-auto input{ width: 15px; height: 15px; accent-color: #2F5D46; cursor: pointer; }
   #hmGateOv .hmg-btns{ display: flex; gap: 10px; }
+  #hmGateOv .hmg-col .hmg-btn{ width:100%; }
   #hmGateOv .hmg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
     letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
   #hmGateOv .hmg-btn.hmg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
@@ -348,102 +364,240 @@
 <body>
 <script>
 /* 통합 세션 가드 — theShawnStore 없으면 INDEX로 (HMART는 index에서 로그인 후 진입) */
-/* === 진입 게이트(인페이지) === 이 페이지 스스로 아이디/패스워드를 검증한다.
-   직접 URL 접속 시에도 로그인 팝업을 통과해야 화면이 열린다.
-   세션: sessionStorage.hmGateAuth = {store, pin} — 매 진입마다 Firestore(plu-store-pins)와 재대조 */
+/* === 진입 게이트(인페이지) v3 === 메인 화면이 보이기 전 로그인 필수 · 두 방식 중 택1
+   [STORE PIN]     매장 ID + PIN (plu-store-pins) → 기존 매장 입장 권한 그대로 (mode:'pin')
+   [ID/PASSWORD]   HOMEPAGE MANAGER 계정(hmart-users · manager-users) — 아이디가 있고
+                   권한(ACCESS·ANYWHERE·IP) 설정이 허용된 사람만 입장 (mode:'account')
+   세션: sessionStorage.hmGateAuth3 — 매 진입마다 서버 데이터와 재대조 */
 (function(){
   'use strict';
   var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  // 통합 로그인(멀티뷰)에서 ?store=매장 지정 시 세션 매장으로 설정
   try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore && VALID.indexOf(qstore)>=0){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
-  var unified=false; try{ unified = localStorage.getItem('unifiedLogin')==='1'; }catch(e){}
 
-  function creds(){
+  function savedCreds(){
     var c=null;
-    try{ c=JSON.parse(sessionStorage.getItem('hmGateAuth')||'null'); }catch(e){}
-    if(!c){ try{ if(localStorage.getItem('hmartAutoLogin')==='1') c=JSON.parse(localStorage.getItem('hmGateSaved')||'null'); }catch(e){} }
-    return (c && c.store && c.pin && VALID.indexOf(String(c.store).toUpperCase())>=0)
-      ? {store:String(c.store).toUpperCase(), pin:String(c.pin)} : null;
+    try{ c=JSON.parse(sessionStorage.getItem('hmGateAuth3')||'null'); }catch(e){}
+    if(!c){ try{ if(localStorage.getItem('hmartAutoLogin')==='1') c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); }catch(e){} }
+    if(!c) return null;
+    if(c.mode==='pin' && c.store && c.pin && VALID.indexOf(String(c.store).toUpperCase())>=0)
+      return {mode:'pin', store:String(c.store).toUpperCase(), pin:String(c.pin)};
+    if(c.mode==='acct' && c.name && c.hash)
+      return {mode:'acct', name:String(c.name), hash:String(c.hash)};
+    return null;
   }
-  function pass(store){
-    try{ localStorage.setItem('theShawnStore', store); }catch(e){}
-    try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
+  function fbReady(cb){ if(window.firebaseFns && window.firebaseDb) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function getDocData(col,id){
+    return new Promise(function(res,rej){
+      fbReady(function(){
+        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,col,id))
+          .then(function(snap){ res((snap&&snap.exists&&snap.exists())?(snap.data()||{}):null); })
+          .catch(rej);
+      });
+    });
+  }
+  function hashPw(v){
+    v=String(v);
+    if(window.crypto && window.crypto.subtle){
+      return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v)).then(function(buf){
+        return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+      }).catch(function(){ return null; });
+    }
+    return Promise.resolve(null);
+  }
+  function myIp(){
+    return fetch('https://api.ipify.org?format=json').then(function(r){return r.json();})
+      .then(function(j){ return String((j&&j.ip)||'').trim(); }).catch(function(){ return null; });
+  }
+
+  /* 매장 PIN 검증 */
+  function verifyStore(store,pin){
+    return getDocData('plu-store-pins', store).then(function(d){
+      if(!d || d.pin==null) return 'STORE PIN NOT SET · ASK MANAGER';
+      if(String(d.pin)!==String(pin)) return 'WRONG PIN';
+      return null;
+    }).catch(function(){ return 'CONNECTION ERROR — TRY AGAIN'; });
+  }
+  /* 계정 검증 (hmart-users → manager-users) · ACCESS/ANYWHERE/IP */
+  function findUser(name){
+    function pick(d){ var us=(d&&Array.isArray(d.users))?d.users:[];
+      for(var i=0;i<us.length;i++){ if(us[i] && String(us[i].name||'').trim().toUpperCase()===name) return us[i]; } return null; }
+    return getDocData('app-config','hmart-users').then(function(d){
+      var u=pick(d); if(u) return {u:u, tier:'hmart'};
+      return getDocData('app-config','manager-users').then(function(d2){
+        var mm=pick(d2); return mm?{u:mm, tier:'master'}:null;
+      });
+    });
+  }
+  function verifyAcct(name, pw, knownHash){
+    name=String(name).trim().toUpperCase();
+    return findUser(name).then(function(hit){
+      if(!hit) return {err:'ID NOT FOUND'};
+      var u=hit.u, pin=String(u.pin||'');
+      function checks(){
+        var anywhere=!!u.anywhere;
+        if(!anywhere && u.access===false) return Promise.resolve({err:'BLOCKED ID · ASK MANAGER'});
+        if(anywhere) return Promise.resolve(null);
+        var ips=Array.isArray(u.ips)?u.ips.map(function(x){return String(x).trim();}).filter(Boolean):[];
+        if(!ips.length) return Promise.resolve({err:'IP NOT REGISTERED · ASK MANAGER'});
+        return myIp().then(function(ip){
+          if(!ip) return {err:'IP CHECK FAILED — CHECK NETWORK'};
+          if(ips.indexOf(ip)<0) return {err:'IP NOT ALLOWED ('+ip+')'};
+          return null;
+        });
+      }
+      function done(hash){
+        return checks().then(function(bad){
+          if(bad) return bad;
+          return {ok:true, hash:hash, tier:hit.tier,
+            user:{ name:u.name, fullName:u.fullName||'', position:u.position||'', role:u.role||'' },
+            stores:(u.perms&&Array.isArray(u.perms.stores))?u.perms.stores:[] };
+        });
+      }
+      if(knownHash!=null){
+        if(pin===String(knownHash)) return done(String(knownHash));
+        return {err:'WRONG PASSWORD'};
+      }
+      return hashPw(pw).then(function(h){
+        if(h && pin===h) return done(h);
+        if(pin==='p:'+pw || (pin!=='' && pin===pw)) return done(pin);
+        return {err:'WRONG PASSWORD'};
+      });
+    }).catch(function(){ return {err:'CONNECTION ERROR — TRY AGAIN'}; });
+  }
+
+  function unlock(){
     var ov=document.getElementById('hmGateOv'); if(ov) ov.remove();
     document.documentElement.classList.remove('hm-gate-lock');
   }
-  function showLogin(msg){
-    document.documentElement.classList.add('hm-gate-lock');
+  function autoSave(obj){
+    var auto=false;
+    var cb=document.getElementById('hmgAuto');
+    if(cb) auto=cb.checked; else { try{ auto=localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){} }
+    try{
+      if(auto){ localStorage.setItem('hmartAutoLogin','1'); localStorage.setItem('hmGateSaved3', JSON.stringify(obj)); }
+      else{ localStorage.setItem('hmartAutoLogin','0'); localStorage.removeItem('hmGateSaved3'); }
+    }catch(e){}
+  }
+  function passPin(store,pin){
+    try{ localStorage.setItem('theShawnStore', store); }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
+    try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'pin'})); }catch(e){}
+    try{ sessionStorage.setItem('hmGateAuth3', JSON.stringify({mode:'pin',store:store,pin:pin})); }catch(e){}
+    autoSave({mode:'pin',store:store,pin:pin});
+    unlock();
+  }
+  function passAcct(r){
+    // 계정에 특정 매장 권한이 있으면 첫 매장을 페이지 매장으로
+    try{
+      var sp=(r.stores||[]).filter(function(x){ return x!=='*' && VALID.indexOf(String(x).toUpperCase())>=0; });
+      if(sp.length) localStorage.setItem('theShawnStore', String(sp[0]).toUpperCase());
+    }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
+    try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user, stores:r.stores})); }catch(e){}
+    try{ sessionStorage.setItem('hmGateAuth3', JSON.stringify({mode:'acct', name:r.user.name, hash:r.hash})); }catch(e){}
+    autoSave({mode:'acct', name:r.user.name, hash:r.hash});
+    unlock();
+  }
+
+  /* ── UI: 두 방식 동시 표시 (STORE PIN · ID/PASSWORD) ── */
+  function buildUI(){
     var ov=document.getElementById('hmGateOv');
-    if(!ov){
-      ov=document.createElement('div'); ov.id='hmGateOv';
-      ov.innerHTML='<div class="hmg-card">'
-        +'<h1 class="hmg-title">H-MART</h1>'
-        +'<div class="hmg-field"><label>ID</label><input type="text" id="hmgId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
-        +'<div class="hmg-field"><label>PASSWORD</label><input type="password" id="hmgPw" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
-        +'<div class="hmg-err" id="hmgErr"></div>'
+    if(ov) return ov;
+    ov=document.createElement('div'); ov.id='hmGateOv';
+    ov.innerHTML='<div class="hmg-card hmg-wide">'
+      +'<h1 class="hmg-title">H-MART</h1>'
+      +'<div class="hmg-cols">'
+        +'<div class="hmg-col">'
+          +'<div class="hmg-sec">STORE PIN</div>'
+          +'<div class="hmg-field"><label>STORE ID</label><input type="text" id="hmgStoreId" placeholder="STORE ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="hmg-field"><label>PIN</label><input type="password" id="hmgStorePin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
+          +'<div class="hmg-err" id="hmgPinErr"></div>'
+          +'<button class="hmg-btn" id="hmgPinEnter" type="button">ENTER</button>'
+        +'</div>'
+        +'<div class="hmg-col hmg-col2">'
+          +'<div class="hmg-sec">ID / PASSWORD</div>'
+          +'<div class="hmg-field"><label>ID</label><input type="text" id="hmgAcctId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="hmg-field"><label>PASSWORD</label><input type="password" id="hmgAcctPw" placeholder="••••••" autocomplete="off"></div>'
+          +'<div class="hmg-err" id="hmgAcctErr"></div>'
+          +'<button class="hmg-btn" id="hmgAcctEnter" type="button">ENTER</button>'
+        +'</div>'
+      +'</div>'
+      +'<div class="hmg-foot">'
         +'<label class="hmg-auto"><input type="checkbox" id="hmgAuto"><span>AUTO LOGIN</span></label>'
-        +'<div class="hmg-btns"><button class="hmg-btn" id="hmgEnter" type="button">ENTER</button>'
-        +'<button class="hmg-btn hmg-cancel" id="hmgCancel" type="button">CANCEL</button></div>'
-      +'</div>';
-      (document.body||document.documentElement).appendChild(ov);
-      var idIn=document.getElementById('hmgId'), pwIn=document.getElementById('hmgPw');
-      try{ var sv=localStorage.getItem('theShawnStore'); if(sv && VALID.indexOf(sv)>=0) idIn.value=sv; }catch(e){}
-      try{ document.getElementById('hmgAuto').checked = localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){}
-      document.getElementById('hmgEnter').onclick=submit;
-      document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
-      pwIn.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
-      idIn.addEventListener('keydown',function(e){ if(e.key==='Enter'){ pwIn.focus(); } });
-      setTimeout(function(){ (idIn.value?pwIn:idIn).focus(); },80);
-    }
-    var er=document.getElementById('hmgErr'); if(er) er.textContent=msg||'';
+        +'<span style="flex:1"></span>'
+        +'<button class="hmg-btn hmg-cancel" id="hmgCancel" type="button">CANCEL</button>'
+      +'</div>'
+    +'</div>';
+    (document.body||document.documentElement).appendChild(ov);
+    try{ document.getElementById('hmgAuto').checked = localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){}
+    try{ var sv=localStorage.getItem('theShawnStore'); if(sv && VALID.indexOf(sv)>=0) document.getElementById('hmgStoreId').value=sv; }catch(e){}
+    try{ var c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); if(c&&c.mode==='acct'&&c.name) document.getElementById('hmgAcctId').value=c.name; }catch(e){}
+    document.getElementById('hmgPinEnter').onclick=submitPin;
+    document.getElementById('hmgAcctEnter').onclick=submitAcct;
+    document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
+    document.getElementById('hmgStorePin').addEventListener('keydown',function(e){ if(e.key==='Enter') submitPin(); });
+    document.getElementById('hmgStoreId').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('hmgStorePin').focus(); });
+    document.getElementById('hmgAcctPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submitAcct(); });
+    document.getElementById('hmgAcctId').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('hmgAcctPw').focus(); });
+    return ov;
   }
-  function verify(store,pin,onFail){
-    function run(){
-      window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'plu-store-pins',store)).then(function(snap){
-        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
-        if(d && d.pin!=null && String(d.pin)===String(pin)){
-          try{ sessionStorage.setItem('hmGateAuth', JSON.stringify({store:store,pin:pin})); }catch(e){}
-          var auto=document.getElementById('hmgAuto');
-          try{
-            if(auto ? auto.checked : localStorage.getItem('hmartAutoLogin')==='1'){
-              localStorage.setItem('hmartAutoLogin','1');
-              localStorage.setItem('hmGateSaved', JSON.stringify({store:store,pin:pin}));
-            }else{
-              localStorage.setItem('hmartAutoLogin','0');
-              localStorage.removeItem('hmGateSaved');
-            }
-          }catch(e){}
-          pass(store);
-        }else{
-          try{ sessionStorage.removeItem('hmGateAuth'); localStorage.removeItem('hmGateSaved'); }catch(e){}
-          onFail(d && d.pin!=null ? 'WRONG PASSWORD' : 'PASSWORD NOT SET · ASK MANAGER');
-        }
-      }).catch(function(){ onFail('CONNECTION ERROR — TRY AGAIN'); });
-    }
-    if(window.firebaseFns && window.firebaseDb) run();
-    else window.addEventListener('plu-firebase-ready', run, {once:true});
+  function show(pinMsg, acctMsg){
+    document.documentElement.classList.add('hm-gate-lock');
+    buildUI();
+    var pe=document.getElementById('hmgPinErr'); if(pe) pe.textContent=pinMsg||'';
+    var ae=document.getElementById('hmgAcctErr'); if(ae) ae.textContent=acctMsg||'';
   }
-  function submit(){
-    var idIn=document.getElementById('hmgId'), pwIn=document.getElementById('hmgPw'), er=document.getElementById('hmgErr');
-    var store=(idIn&&idIn.value||'').trim().toUpperCase();
-    var pin=(pwIn&&pwIn.value||'').trim();
+  var busy=false;
+  function submitPin(){
+    if(busy) return;
+    var idIn=document.getElementById('hmgStoreId'), pwIn=document.getElementById('hmgStorePin'), er=document.getElementById('hmgPinErr');
+    var idv=(idIn&&idIn.value||'').trim().toUpperCase();
+    var pwv=(pwIn&&pwIn.value||'').trim();
     if(er) er.textContent='';
-    if(!store){ if(er) er.textContent='ENTER ID'; return; }
-    if(!pin){ if(er) er.textContent='ENTER PASSWORD'; return; }
-    if(VALID.indexOf(store)<0){ if(er) er.textContent='ID NOT FOUND'; return; }
-    if(er) er.textContent='CHECKING…';
-    verify(store,pin,function(msg){ showLogin(msg); });
+    if(!idv){ if(er) er.textContent='ENTER STORE ID'; idIn.focus(); return; }
+    if(!pwv){ if(er) er.textContent='ENTER PIN'; pwIn.focus(); return; }
+    if(VALID.indexOf(idv)<0){ if(er) er.textContent='STORE ID NOT FOUND'; return; }
+    busy=true; if(er) er.textContent='CHECKING…';
+    verifyStore(idv,pwv).then(function(bad){
+      busy=false;
+      if(bad){ if(er) er.textContent=bad; pwIn.value=''; pwIn.focus(); return; }
+      passPin(idv,pwv);
+    });
   }
-  // 시작: 통합 로그인은 통과, 그 외에는 저장된 자격을 재검증 — 없거나 틀리면 로그인 팝업
-  if(unified){
-    document.addEventListener('DOMContentLoaded', function(){ pass((localStorage.getItem('theShawnStore')||'').toUpperCase()); });
-    return;
+  function submitAcct(){
+    if(busy) return;
+    var idIn=document.getElementById('hmgAcctId'), pwIn=document.getElementById('hmgAcctPw'), er=document.getElementById('hmgAcctErr');
+    var idv=(idIn&&idIn.value||'').trim().toUpperCase();
+    var pwv=(pwIn&&pwIn.value||'').trim();
+    if(er) er.textContent='';
+    if(!idv){ if(er) er.textContent='ENTER ID'; idIn.focus(); return; }
+    if(!pwv){ if(er) er.textContent='ENTER PASSWORD'; pwIn.focus(); return; }
+    busy=true; if(er) er.textContent='CHECKING…';
+    verifyAcct(idv,pwv,null).then(function(r){
+      busy=false;
+      if(!r || r.err){ if(er) er.textContent=(r&&r.err)||'ERROR'; pwIn.value=''; pwIn.focus(); return; }
+      passAcct(r);
+    });
   }
+
+  /* 시작: 저장된 자격 재검증 (방식별) — 없거나 실패 시 로그인 화면 */
   document.documentElement.classList.add('hm-gate-lock');
   document.addEventListener('DOMContentLoaded', function(){
-    var c=creds();
-    if(c){ showLogin('CHECKING…'); verify(c.store, c.pin, function(msg){ showLogin(msg); }); }
-    else{ showLogin(''); }
+    var c=savedCreds();
+    if(!c){ show('',''); return; }
+    if(c.mode==='pin'){
+      show('CHECKING…','');
+      verifyStore(c.store,c.pin).then(function(bad){
+        if(bad){ try{ sessionStorage.removeItem('hmGateAuth3'); localStorage.removeItem('hmGateSaved3'); }catch(e){} show(bad,''); return; }
+        passPin(c.store,c.pin);
+      });
+    }else{
+      show('','CHECKING…');
+      verifyAcct(c.name, null, c.hash).then(function(r){
+        if(!r || r.err){ try{ sessionStorage.removeItem('hmGateAuth3'); localStorage.removeItem('hmGateSaved3'); }catch(e){} show('',(r&&r.err)||'ERROR'); return; }
+        passAcct(r);
+      });
+    }
   });
 })();
 </script>
@@ -538,22 +692,22 @@
 <style>
   /* EGMM 메시지 */
   /* 메시지 팝업 (상단 버튼) — 투명 오버레이: iframe 위 클릭도 받아 바깥 클릭 닫기 동작 */
-  #hmChatPop { position: fixed; inset: 0; z-index: 130; display: none; background: rgba(26,26,29,.06); }
+  #hmChatPop { position: fixed; inset: 0; z-index: 130; display: none; background: rgba(30,27,22,.06); }
   #hmChatPop.show { display: block; }
   #hmChatPop .hm-chat-card { position: absolute; top: 70px; right: 16px; width: 430px; max-width: calc(100vw - 32px);
-    box-shadow: 0 18px 48px rgba(26,26,29,.22); }
+    box-shadow: 0 18px 48px rgba(30,27,22,.22); }
   .hm-msg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 760px){ .hm-msg-grid { grid-template-columns: 1fr; } }
   .hm-msg-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; }
   .hm-msg-head { font-weight: 800; font-size: 15px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-  .hm-msg-live { font-size: 10px; font-weight: 800; color: #2f7d32; letter-spacing: .1em; }
+  .hm-msg-live { font-size: 10px; font-weight: 800; color: #2F6D4F; letter-spacing: .1em; }
   .hm-msg-text { width: 100%; box-sizing: border-box; min-height: 90px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: vertical; margin-bottom: 10px; }
-  .hm-msg-send { width: 100%; border: none; background: var(--accent-warm, #c9a961); color: #fff; border-radius: 10px; padding: 11px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .hm-msg-send { width: 100%; border: none; background: var(--accent-warm, #2F5D46); color: #fff; border-radius: 10px; padding: 11px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
   .hm-msg-send:active { transform: scale(.99); }
   .hm-msg-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
   .hm-msg-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
   .hm-msg-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .hm-msg-from { font-size: 12px; font-weight: 800; color: var(--accent-warm, #c9a961); letter-spacing: .05em; }
+  .hm-msg-from { font-size: 12px; font-weight: 800; color: var(--accent-warm, #2F5D46); letter-spacing: .05em; }
   .hm-msg-time { font-size: 10px; color: var(--text-dim); }
   .hm-msg-body { font-size: 14px; color: var(--text); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
   .hm-msg-empty { font-size: 13px; color: var(--text-dim); padding: 14px 4px; text-align: center; }
@@ -562,45 +716,45 @@
   .hm-chat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
   .hm-chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 800; font-size: 15px; color: var(--text); }
   .hm-chat-head .hm-msg-live { margin-left: auto; }
-  @keyframes hmChatAlarm { 0%,100%{ background:var(--bg-elev); } 50%{ background:#fdecec; } }
+  @keyframes hmChatAlarm { 0%,100%{ background:var(--bg-elev); } 50%{ background:#F5EAE7; } }
   .hm-chat-head.alarm { animation: hmChatAlarm 1s ease-in-out infinite; }
-  .hm-chat-head.alarm > span:first-child { color:#c0392b; }
-  .hm-chat-alarm-dot { display:none; width:9px; height:9px; border-radius:50%; background:#c0392b; animation: hmDotPulse 1s infinite; }
+  .hm-chat-head.alarm > span:first-child { color:#9C3327; }
+  .hm-chat-alarm-dot { display:none; width:9px; height:9px; border-radius:50%; background:#9C3327; animation: hmDotPulse 1s infinite; }
   .hm-chat-head.alarm .hm-chat-alarm-dot { display:inline-block; }
-  @keyframes hmDotPulse { 0%{ box-shadow:0 0 0 0 rgba(192,57,43,.5);} 70%{ box-shadow:0 0 0 7px rgba(192,57,43,0);} 100%{ box-shadow:0 0 0 0 rgba(192,57,43,0);} }
+  @keyframes hmDotPulse { 0%{ box-shadow:0 0 0 0 rgba(156,51,39,.5);} 70%{ box-shadow:0 0 0 7px rgba(156,51,39,0);} 100%{ box-shadow:0 0 0 0 rgba(156,51,39,0);} }
   .hm-chat-body { height: 340px; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
   .hm-chat-body .chat-wrap-line { display: flex; flex-direction: column; max-width: 96%; }
   .hm-chat-body .chat-wrap-line.me { align-self: flex-end; align-items: flex-end; }
   .hm-chat-body .chat-wrap-line.them { align-self: flex-start; align-items: flex-start; }
   .hm-chat-body .chat-row { display: flex; }
   .hm-chat-body .chat-bubble { padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-  .hm-chat-body .chat-wrap-line.me .chat-bubble { background: var(--accent-warm, #c9a961); color: #fff; border-bottom-right-radius: 4px; }
+  .hm-chat-body .chat-wrap-line.me .chat-bubble { background: var(--accent-warm, #2F5D46); color: #fff; border-bottom-right-radius: 4px; }
   .hm-chat-body .chat-wrap-line.them .chat-bubble { background: var(--bg-elev); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
   .hm-chat-body .chat-meta { font-size: 10px; color: var(--text-dim); margin: 3px 4px 0; }
   .hm-chat-input { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--border); }
   .hm-chat-text { flex: 1; min-height: 42px; max-height: 120px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: none; }
-  .hm-chat-send { flex: 0 0 auto; border: none; background: var(--accent-warm, #c9a961); color: #fff; border-radius: 10px; padding: 0 20px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .hm-chat-send { flex: 0 0 auto; border: none; background: var(--accent-warm, #2F5D46); color: #fff; border-radius: 10px; padding: 0 20px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
   .hm-chat-send:active { transform: scale(.98); }
   .hm-chat-body .chat-img { max-width: 220px; max-height: 220px; border-radius: 10px; display: block; cursor: pointer; }
   .hm-chat-body .chat-bubble.img-bubble { padding: 5px; }
-  .hm-msg-del { cursor: pointer; color: #c0392b; font-weight: 700; }
-  .hm-msg-del:hover { color: #922b21; }
-  .hm-chat-card.dragover .hm-chat-body { outline: 2px dashed var(--accent-warm, #c9a961); outline-offset: -6px; background: var(--accent-soft, #f0eee5); }
+  .hm-msg-del { cursor: pointer; color: #9C3327; font-weight: 700; }
+  .hm-msg-del:hover { color: #7E2A20; }
+  .hm-chat-card.dragover .hm-chat-body { outline: 2px dashed var(--accent-warm, #2F5D46); outline-offset: -6px; background: var(--accent-soft, #E9EFEA); }
   .hm-chat-photo { flex: 0 0 auto; border: 1.5px solid var(--border); background: var(--bg-elev); border-radius: 10px; padding: 0 14px; font-size: 18px; cursor: pointer; }
   .hm-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: none; align-items: center; justify-content: center; z-index: 9999; }
   .hm-lightbox.show { display: flex; }
   .hm-lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
 
   /* 승인 알림: VIEW REQUEST 빨강 점멸 + 도트 */
-  @keyframes hmAlarmBlink { 0%,100%{ background:var(--bg); border-color:var(--border); } 50%{ background:#fdecec; border-color:#c0392b; box-shadow:0 0 0 2px rgba(192,57,43,.22); } }
+  @keyframes hmAlarmBlink { 0%,100%{ background:var(--bg); border-color:var(--border); } 50%{ background:#F5EAE7; border-color:#9C3327; box-shadow:0 0 0 2px rgba(156,51,39,.22); } }
   .egmm-menu-btn.hm-alarm{ animation:hmAlarmBlink 1s ease-in-out infinite; }
-  .egmm-menu-btn.hm-alarm > span:first-child{ color:#c0392b; }
-  .hm-req-dot{ display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; margin-left:8px; border-radius:9px; background:#c0392b; color:#fff; font-family:var(--mono); font-size:10px; font-weight:800; }
-  .plureq-row.pending{ border-color:#e3a3a3 !important; background:#fffafa; }
+  .egmm-menu-btn.hm-alarm > span:first-child{ color:#9C3327; }
+  .hm-req-dot{ display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; margin-left:8px; border-radius:9px; background:#9C3327; color:#fff; font-family:var(--mono); font-size:10px; font-weight:800; }
+  .plureq-row.pending{ border-color:#D8A79C !important; background:#FFFDFA; }
   .rqtop-right{ display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; }
-  .plureq-cancel{ border:1px solid #e3a3a3; background:#fff; color:#c0392b; border-radius:8px; padding:4px 10px; font-family:var(--mono); font-size:12px; font-weight:800; cursor:pointer; }
-  .plureq-cancel:hover{ background:#c0392b; color:#fff; border-color:#c0392b; }
-  @media (prefers-reduced-motion: reduce){ .egmm-menu-btn.hm-alarm{ animation:none; background:#fdecec; border-color:#c0392b; } }
+  .plureq-cancel{ border:1px solid #D8A79C; background:#fff; color:#9C3327; border-radius:8px; padding:4px 10px; font-family:var(--mono); font-size:12px; font-weight:800; cursor:pointer; }
+  .plureq-cancel:hover{ background:#9C3327; color:#fff; border-color:#9C3327; }
+  @media (prefers-reduced-motion: reduce){ .egmm-menu-btn.hm-alarm{ animation:none; background:#F5EAE7; border-color:#9C3327; } }
 </style>
 <div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
   <div class="plureq-head">
@@ -1045,7 +1199,7 @@
 </script>
 <style>
   /* 매입일지 승인 대기 점멸 (매니저 세션) */
-  @keyframes hmPurBlink { 0%,100%{ background:var(--bg-elev); border-color:var(--border); } 50%{ background:#fdecec; border-color:#c0392b; } }
+  @keyframes hmPurBlink { 0%,100%{ background:var(--bg-elev); border-color:var(--border); } 50%{ background:#F5EAE7; border-color:#9C3327; } }
   .egmm-menu-btn.hm-blink { animation: hmPurBlink 1s ease-in-out infinite; }
 </style>
 <script>
