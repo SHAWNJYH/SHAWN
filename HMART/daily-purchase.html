@@ -581,11 +581,15 @@
     if(pos==='MANAGER'||pos==='GENERAL MANAGER') return 'manager';
     return null;
   }
+  function normStore(s){ return String(s==null?'':s).trim().toUpperCase(); }
   function userStores(u, src){
-    if(src==='manager') return ALL_STORES.slice();
-    var p=(u&&u.perms&&Array.isArray(u.perms.stores))?u.perms.stores:[];
-    if(p.indexOf('*')>=0) return ALL_STORES.slice();
-    return p.map(function(s){ return String(s||'').trim(); }).filter(function(s){ return s; });
+    if(src==='manager') return ALL_STORES.slice();   // MANAGER 계정 = 모든 매장
+    var p=(u&&u.perms&&Array.isArray(u.perms.stores))?u.perms.stores.map(function(s){return String(s||'').trim();}).filter(Boolean):[];
+    if(!p.length || p.indexOf('*')>=0) return ALL_STORES.slice();   // 미설정 = 전체 허용
+    return p.map(function(v){
+      for(var i=0;i<ALL_STORES.length;i++){ if(normStore(ALL_STORES[i])===normStore(v)) return ALL_STORES[i]; }
+      return v;
+    });
   }
   async function loadLoginUsers(){
     var sel=$('dpLoginUser'); loginUsers=[];
@@ -619,9 +623,8 @@
     var role=(x.src==='manager')?'manager':positionRole(x.u.position);
     if(!role){ $('dpLoginOv').classList.remove('show'); denyPopup('권한이 없습니다. (ACCOUNT / MANAGER 직급만 사용 가능)','ACCOUNT or MANAGER position required.'); return; }
     var stores=userStores(x.u, x.src);
-    stores=stores.filter(function(s){ return ALL_STORES.indexOf(s)>=0; });
     if(!stores.length){ $('dpLoginOv').classList.remove('show'); denyPopup('접근 가능한 매장이 없습니다.','No store permission on this ID.'); return; }
-    user={ id:x.u.id||x.u.name, name:x.u.fullName||x.u.name, role:role, stores:stores };
+    user={ id:x.u.id||x.u.name, name:x.u.fullName||x.u.name, role:role, master:(x.src==='manager'), stores:stores };
     try{ sessionStorage.setItem('dpUser', JSON.stringify(user)); }catch(e){}
     $('dpLoginOv').classList.remove('show');
     applyUser();
@@ -639,7 +642,7 @@
   function applyUser(){
     var pill=$('dpUserPill');
     if(user){ pill.style.display='inline-flex'; $('dpUserName').textContent=user.name;
-      $('dpUserRole').textContent=(user.role==='manager'?'MANAGER':'ACCOUNT');
+      $('dpUserRole').textContent=user.master?'MANAGER 계정 · MASTER':(user.role==='manager'?'MANAGER':'ACCOUNT');
       $('dpLoginBtn').innerHTML='로그아웃 <span style="opacity:.6">LOGOUT</span>';
       // 매장 전환 (여러 매장 권한 시)
       var sel=$('dpStoreSel');
@@ -704,6 +707,7 @@
   function dayEntered(date){ var d=dayData(date); return !!(d&&d.entered); }
   // 매니저에게는 담당자 확인 전 일자가 보이지 않음 (req: 담당자 체크 전 매니저 비공개)
   function visibleForUser(date){
+    if(user && user.master) return true;   // MANAGER 계정 = 전부 열람
     if(user && user.role==='manager'){ var d=dayData(date); if(d && !d.recorder) return false; }
     return true;
   }
@@ -739,11 +743,11 @@
   }
 
   // ===== 권한 판정 =====
-  function canBaseRecord(){ return !!(user && user.role==='account' && dayStatus(selDate)!=='done'); }
+  function canBaseRecord(){ return !!(user && (user.role==='account'||user.master) && dayStatus(selDate)!=='done'); }
   function canRecord(){ // 기록 가능: ACCOUNT + 미완료 + (입력완료 전이거나 [수정] 편집 중)
     return canBaseRecord() && (!dayEntered(selDate) || editMode);
   }
-  function isAccount(){ return !!(user&&user.role==='account'); }
+  function isAccount(){ return !!(user&&(user.role==='account'||user.master)); }
   function isManager(){ return !!(user&&user.role==='manager'); }
 
   // ===== 담당자 / MANAGER 체크 =====
@@ -1219,10 +1223,11 @@
       try{
         var aj=sessionStorage.getItem('hmartAuth'); var au=aj?JSON.parse(aj):null;
         if(au && au.mode==='account' && au.user){
-          var role=positionRole(au.user.position);
+          var isMaster=(au.tier==='master');
+          var role=isMaster?'manager':positionRole(au.user.position);
           if(role){
-            var sts=(Array.isArray(au.stores)&&au.stores.length)?au.stores:(STORE?[STORE]:[]);
-            user={ id:au.user.id||au.user.name, name:au.user.fullName||au.user.name, role:role, stores:sts };
+            var sts=isMaster?ALL_STORES.slice():((Array.isArray(au.stores)&&au.stores.length)?au.stores:(STORE?[STORE]:[]));
+            user={ id:au.user.id||au.user.name, name:au.user.fullName||au.user.name, role:role, master:isMaster, stores:sts };
             sessionStorage.setItem('dpUser', JSON.stringify(user));
           }
         }

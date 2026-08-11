@@ -952,7 +952,8 @@
   var auth=null;
   try{ var aj=sessionStorage.getItem('hmartAuth'); if(aj) auth=JSON.parse(aj); }catch(e){}
   var ROLE = (auth && auth.mode==='account' && auth.user) ? String(auth.user.position||'').toUpperCase() : 'PIN';
-  var isMgrSession = (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
+  var isMaster = !!(auth && auth.tier==='master');   // MANAGER 계정(매니저 카드) = 전 메뉴·전 매장 무제한
+  var isMgrSession = isMaster || (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
   var MENUS=['hmartToListBtn','hmartToUpcBtn','hmartToPreviewMgrBtn','hmartToQuizBtn','hmartAdViewBtn','hmartNewItemBtn','hmartPurchaseBtn','hmartDeliBtn','hmReqViewBtn'];
   var CARDS=['ITEMS','PURCHASE'];   // REQUEST 카드는 기존 인라인 숨김 유지 — 여기서 관리하지 않음
   function allowed(entry){
@@ -965,6 +966,11 @@
     return null;
   }
   function applyPerms(cfg){
+    if(isMaster){   // MANAGER 계정은 권한 설정과 무관하게 전부 표시
+      MENUS.forEach(function(id){ var el=$(id); if(el) el.style.display=''; });
+      CARDS.forEach(function(name){ var card=cardByName(name); if(card) card.style.display=''; });
+      return;
+    }
     cfg=cfg||{}; var mcfg=cfg.menus||{}, ccfg=cfg.cards||{};
     MENUS.forEach(function(id){ var el=$(id); if(!el) return;
       el.style.display = allowed(mcfg[id]) ? '' : 'none'; });
