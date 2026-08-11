@@ -3207,6 +3207,17 @@
 
   // H-MART 버튼 → 매장 선택 + PIN 팝업(EGMM 형식), 통과 시 hmart.html로 이동
   const HMART_STORES = ['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  // app-config/stores(HOMEPAGE MANAGER 매장 관리)와 동기화 — 권한 팝업의 매장 이름과 동일하게 유지
+  (function syncHmartStores(){
+    if(!window.firebaseFns || !window.firebaseDb){ setTimeout(syncHmartStores, 600); return; }
+    try{
+      window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'app-config','stores')).then(function(snap){
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+        var ls=(Array.isArray(d.list)?d.list:[]).map(function(x){ return String((x&&x.name)||'').trim(); }).filter(Boolean);
+        if(ls.length){ HMART_STORES.length=0; ls.forEach(function(n){ HMART_STORES.push(n); }); fillHmartStores(); fillHmartIdStores(); }
+      }).catch(function(){});
+    }catch(e){}
+  })();
   const HMART_PINS_COL = 'plu-store-pins';
   const HMART_STORE_KEY = 'theShawnStore';
   const HMART_AUTO_KEY = 'hmartAutoLogin';
@@ -3258,11 +3269,18 @@
       var nm=(u.fullName?u.fullName+' · ':'')+u.name+(pos?(' ('+pos+')'):'')+(x.src==='manager'?' [MANAGER]':'');
       return '<option value="'+i+'">'+nm.replace(/</g,'&lt;')+'</option>'; }).join('');
   }
+  function hmNormStore(s){ return String(s==null?'':s).trim().toUpperCase(); }
   function hmIdStoresOf(x){
-    if(x.src==='manager') return HMART_STORES.slice();
-    var p=(x.u&&x.u.perms&&Array.isArray(x.u.perms.stores))?x.u.perms.stores:[];
-    if(p.indexOf('*')>=0) return HMART_STORES.slice();
-    return p.map(function(s){return String(s||'').trim();}).filter(function(s){return HMART_STORES.indexOf(s)>=0;});
+    if(x.src==='manager') return HMART_STORES.slice();   // MANAGER 계정 = 모든 매장
+    var p=(x.u&&x.u.perms&&Array.isArray(x.u.perms.stores))?x.u.perms.stores.map(function(v){return String(v||'').trim();}).filter(Boolean):[];
+    if(!p.length || p.indexOf('*')>=0) return HMART_STORES.slice();   // 매장 권한 미설정 = 전체 허용
+    var out=[];
+    p.forEach(function(v){
+      var hit=null;
+      for(var i=0;i<HMART_STORES.length;i++){ if(hmNormStore(HMART_STORES[i])===hmNormStore(v)){ hit=HMART_STORES[i]; break; } }
+      out.push(hit||v);   // 등록부에 없어도 저장된 이름 그대로 인정 (이름 불일치로 차단 금지)
+    });
+    return out;
   }
   const submitHmartId = async () => {
     var err=$('hmartIdErr'); if(err) err.textContent='';
@@ -3276,10 +3294,11 @@
     if(!(await matchUserPin(pw, x.u.pin))){ if(err) err.textContent='패스워드가 올바르지 않습니다'; return; }
     if(x.u.access===false){ if(err) err.textContent='차단된 아이디입니다 · Blocked'; return; }
     var stores=hmIdStoresOf(x);
-    if(stores.indexOf(store)<0){ if(err) err.textContent='이 매장 접근 권한이 없습니다 · No permission'; return; }
+    var okStore=stores.some(function(v){ return hmNormStore(v)===hmNormStore(store); });
+    if(!okStore){ if(err) err.textContent='이 매장 접근 권한이 없습니다 · HOMEPAGE MANAGER에서 매장 권한을 확인하세요'; return; }
     try{ localStorage.setItem(HMART_STORE_KEY, store); }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1');
-      sessionStorage.setItem('hmartAuth', JSON.stringify({ mode:'account',
+      sessionStorage.setItem('hmartAuth', JSON.stringify({ mode:'account', tier:(x.src==='manager'?'master':'staff'),
         user:{ id:x.u.id||x.u.name, name:x.u.name, fullName:x.u.fullName||x.u.name, position:String(x.u.position||'').toUpperCase() },
         stores:stores })); }catch(e){}
     window.location.href = 'HMART/hmart.html';
