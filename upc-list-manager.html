@@ -1706,6 +1706,20 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       default: return code;
     }
   }
+  // POS DESC 생성 규칙 (공용) — 편집 화면(__posAutoGen)과 NEW ITEM 화면이 동일 규칙을 쓴다.
+  //  기본            : BRAND(ENG) 3자리 + ')' + ENG DESC → 총 18자
+  //  UNIT SIZE·UOM 有 : BRAND(ENG) 3자리 + ')' + ENG DESC 7자리 + '_' + UNIT SIZE + UOM
+  //  BRAND(ENG)가 비어 있으면 생성하지 않음('')
+  function posDescRule(brand, eng, size, uom){
+    brand=String(brand==null?'':brand).toUpperCase().replace(/\s+/g,'');
+    eng=String(eng==null?'':eng).toUpperCase();
+    size=String(size==null?'':size).trim();
+    uom=String(uom==null?'':uom).trim().toUpperCase();
+    if(!brand) return '';
+    var b3=brand.substring(0,3);
+    if(size!=='' && uom!==''){ return (b3+')'+eng.substring(0,7)+'_'+size+uom); }
+    return (b3+')'+eng).substring(0,18);
+  }
   // 조건 함수로 열 탐색
   function findColBy(pred){ var L=editMode?(workLayout||[]):curLayout(); for(var i=0;i<L.length;i++){ if(pred(L[i])) return L[i]; } return null; }
   // NO. 고정 열 위치: UPC(O) 바로 앞 (없으면 맨 앞)
@@ -2387,12 +2401,31 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var maps=cat.mappings||{};
     var aoa=[cat.fields.slice()];
     var total=0;
+    // 매핑 원본 필드의 실제 타입(체크/매장체크)을 카테고리 레이아웃에서 찾아 그대로 넘긴다.
+    // 이전에는 type:'text'로 고정해서 체크 필드가 저장값 'O' 그대로 출력됐다(TAXABLE_A 등). → 1/0으로 정규화.
+    function __normK(s){ return String(s==null?'':s).trim().toUpperCase().replace(/\s+/g,''); }
+    function __expSrcCol(big, mf){
+      var lay=(layoutByCat[big]&&layoutByCat[big].length)?layoutByCat[big]:catDefaultLayout(big);
+      var K=__normK(mf);
+      for(var i=0;i<(lay||[]).length;i++){ var c=lay[i]; if(!c) continue;
+        if(__normK(c.key)===K || __normK(c.label)===K){
+          // 값 조회도 레이아웃의 실제 키로 해야 매핑명 표기 차이(대소문자·공백)에 영향받지 않는다.
+          return { key:c.key, label:(c.label||c.key), type:((c.type==='check'||c.type==='rcheck')?c.type:'text'), aliases:[c.key, c.label, mf] };
+        }
+      }
+      for(var j=0;j<(masterFields||[]).length;j++){ var m=masterFields[j];
+        if(m && __normK(m.key)===K){ return { key:m.key, label:(m.label||m.key), type:((m.type==='check'||m.type==='rcheck')?m.type:'text'), aliases:[m.key, m.label, mf] }; }
+      }
+      return { key:mf, label:mf, type:'text' };
+    }
     list.forEach(function(it){
+      var colCache={};
       var rows=(rowsFor(it.big)||[]).filter(function(r){ return rowSub(it.big, r)===it.sub; }).sort(byPluAsc);
       rows.forEach(function(row){
         aoa.push(cat.fields.map(function(ef){
           var mf=maps[ef]; if(!mf) return '';
-          return exportCell(row, { key:mf, label:mf, type:'text' });
+          var col=colCache[mf] || (colCache[mf]=__expSrcCol(it.big, mf));
+          return exportCell(row, col);
         }));
         total++;
       });
@@ -3867,7 +3900,6 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var __FILL_PICK={'PACK':1,'CATE(ENG)':1,'CATE(KOR)':1,'CATE(NO)':1,'CATEGORY':1,'ORIGIN':1,'VENDER':1};
         if(!mc && __FILL_PICK[key]){
           var old2=document.getElementById('mfCatPick'); if(old2) old2.parentNode.removeChild(old2);
-          var oldF2=document.getElementById('mfFillBtn'); if(oldF2) oldF2.parentNode.removeChild(oldF2);
           // 현재 리스트에서 이 필드의 고유 값 수집
           var seen={}, vals=[];
           (work||[]).forEach(function(row){ if(!row) return;
@@ -3912,30 +3944,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           t.addEventListener('blur', function(){ setTimeout(function(){ var ae=document.activeElement; if(!pick.contains(ae)) closeP(); }, 150); }, { once:true });
           return;
         }
-        if(!mc){
-          // 일반 필드: 입력값을 필드 전체에 채우는 버튼
-          var oldF=document.getElementById('mfFillBtn'); if(oldF) oldF.parentNode.removeChild(oldF);
-          var fb=document.createElement('button'); fb.id='mfFillBtn'; fb.type='button'; fb.textContent='⤓ 전체 채우기';
-          fb.style.cssText='position:fixed;z-index:9500;background:#c9a961;color:#fff;border:0;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.2);';
-          var fr=t.getBoundingClientRect();
-          fb.style.left=Math.min(fr.left, window.innerWidth-110)+'px';
-          fb.style.top=(fr.bottom+4)+'px';
-          document.body.appendChild(fb);
-          fb.onmousedown=function(ev){
-            ev.preventDefault();
-            var val=t.value;
-            var kk=t.getAttribute('data-key'); var bb=t.getAttribute('data-base')==='1';
-            if(!confirm('현재 입력값 "'+val+'" 을(를) '+kk+' 필드 전체('+((work||[]).length)+'행)에 채울까요?')) return;
-            (work||[]).forEach(function(row){ if(!row) return; if(bb){ row[fieldOf(kk)]=val; } else { if(!row.extra) row.extra={}; row.extra[kk]=val; } });
-            var ins=tb.querySelectorAll('input.plu-edit-input[data-key="'+kk.replace(/"/g,'\\"')+'"]');
-            for(var i2=0;i2<ins.length;i2++){ ins[i2].value=val; }
-            markDirty();
-            if(fb.parentNode) fb.parentNode.removeChild(fb);
-          };
-          function rmF(){ if(fb.parentNode) fb.parentNode.removeChild(fb); }
-          t.addEventListener('blur', function(){ setTimeout(rmF, 180); }, { once:true });
-          return;
-        }
+        // 일반 필드: 셀에 포커스만 해도 뜨던 '필드 전체 채움' 버튼 팝업 제거 (2026-08 요청).
+        // 직접 편집 시 셀마다 팝업이 떠서 입력을 방해했음. 일괄 적용은 데이터 변환 팝업에서만 수행.
+        if(!mc){ return; }
         var old=document.getElementById('mfCatPick'); if(old) old.parentNode.removeChild(old);
         var pick=document.createElement('div'); pick.id='mfCatPick';
         pick.style.cssText='position:fixed;z-index:9500;background:#fff;border:1.5px solid #c9a961;border-radius:10px;box-shadow:0 12px 34px rgba(0,0,0,.22);padding:6px;min-width:180px;max-height:240px;overflow:auto;';
@@ -3986,16 +3997,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
           if(r&&r.extra){ for(var k in r.extra){ if(normK(k)===want){ var v=r.extra[k]; if(v!=null&&String(v).trim()!==''){ brand=String(v); return; } } } }
           if(r){ for(var k2 in r){ if(k2==='extra')continue; if(normK(k2)===want){ var v2=r[k2]; if(v2!=null&&String(v2).trim()!==''){ brand=String(v2); return; } } } }
         })();
-        brand=brand.toUpperCase().replace(/\s+/g,'');
-        var eng=String(__gv(r,'ENG DESC')||'').toUpperCase();
-        var size=String(__gv(r,'UNIT SIZE')||'').trim();
-        var uom=String(__gv(r,'UOM')||'').trim().toUpperCase();
-        if(!brand) return '';   // BRAND(ENG) 없으면 생성하지 않음
-        var b3=brand.substring(0,3);
-        if(size!=='' && uom!==''){
-          return (b3+')'+eng.substring(0,7)+'_'+size+uom);
-        }
-        return (b3+')'+eng).substring(0,18);
+        // 규칙 자체는 공용 posDescRule 사용 (NEW ITEM 화면과 100% 동일)
+        return posDescRule(brand, __gv(r,'ENG DESC'), __gv(r,'UNIT SIZE'), __gv(r,'UOM'));
       };
       function __posMaybeAuto(row, rowIdx){
         var cur=__gv(row,'POS DESC');
@@ -4596,6 +4599,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var L=[];
     NI_MAP.forEach(function(m){
       L.push({key:m[1],label:m[1],hidden:false,type:'text'});
+      if(m[1]==='ENG DESC'){ L.push({key:'POS DESC',label:'POS DESC',hidden:false,type:'text'}); }
       if(m[1]==='COST'){ ['MSRP','MSRP(%)','SRP','SRP(%)'].forEach(function(k){ L.push({key:k,label:k,hidden:false,type:'text'}); }); }
     });
     L.push({key:'VENDER',label:'VENDER',hidden:false,type:'text'});
@@ -4616,6 +4620,33 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     }catch(e){}
   }
   function updateNiBlink(){ var b=$('niBtn'); if(b){ if(__ocrHasData) b.classList.add('ni-blink'); else b.classList.remove('ni-blink'); } }
+  // ----- 자동 생성: UPC(C) · POS DESC -----
+  // 값이 비어 있거나 직전에 자동 생성한 값 그대로면 갱신. 사용자가 손으로 고친 값은 보존.
+  // niGen: id -> {'UPC(C)':{v,auto}, 'POS DESC':{v,auto}}  (OCR 라이브 재동기 시 값·자동여부 복원)
+  var niGen={};
+  function niSaveGen(r, key, auto){
+    if(!r||!r.__id) return;
+    (niGen[r.__id]=niGen[r.__id]||{})[key]={v:(r.extra[key]||''), auto:!!auto};
+  }
+  function niAutoUpc(r){
+    if(!r) return false;
+    var cur=String(r.extra['UPC(C)']||'');
+    if(cur!=='' && r.__upcAuto===undefined) return false;                        // 기존/수동값 보호
+    if(cur!=='' && r.__upcAuto!==undefined && cur!==r.__upcAuto) return false;   // 수동 입력 보호
+    var v=upcConvert(String(r.extra['UPC(O)']||''));
+    if(v===cur) return false;
+    r.extra['UPC(C)']=v; r.__upcAuto=v; niSaveGen(r,'UPC(C)',true); return true;
+  }
+  function niAutoPos(r){
+    if(!r) return false;
+    var cur=String(r.extra['POS DESC']||'');
+    if(cur!=='' && r.__posAuto===undefined) return false;
+    if(cur!=='' && r.__posAuto!==undefined && cur!==r.__posAuto) return false;
+    var v=posDescRule(r.extra['BRAND(ENG)'], r.extra['ENG DESC'], r.extra['UNIT SIZE'], r.extra['UOM']);
+    if(v==='' || v===cur) return false;
+    r.extra['POS DESC']=v; r.__posAuto=v; niSaveGen(r,'POS DESC',true); return true;
+  }
+  function niAutoRow(r){ var a=niAutoUpc(r), b=niAutoPos(r); return a||b; }
   function niSyncFromCache(){
     var out=[];
     __ocrCache.forEach(function(dd){
@@ -4624,7 +4655,17 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         ex['VENDER']=dd.vendor;
         var id=niIdOf(o, dd.vendor); var c=niCalc[id]||{};
         ['MSRP','MSRP(%)','SRP','SRP(%)'].forEach(function(k){ ex[k]=(c[k]!=null?c[k]:''); });
-        out.push({extra:ex, sub:'', __id:id, __upd:(o.updatedAt||0)});
+        ex['POS DESC']='';
+        var row={extra:ex, sub:'', __id:id, __upd:(o.updatedAt||0)};
+        // 직전 세션 값 복원 — 자동 생성값이면 자동 마커도 함께 복원해 이후에도 계속 자동 갱신되게 한다.
+        var g=niGen[id]||{};
+        ['UPC(C)','POS DESC'].forEach(function(k){
+          var e=g[k]; if(!e || e.v==null || e.v==='') return;
+          row.extra[k]=e.v;
+          if(e.auto){ if(k==='UPC(C)') row.__upcAuto=e.v; else row.__posAuto=e.v; }
+        });
+        niAutoRow(row);   // UPC(C)·POS DESC 자동 생성/갱신
+        out.push(row);
       });
     });
     niRows=out;
@@ -4645,6 +4686,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     }).join('');
     box.innerHTML='<div class="plu-table-wrap"><table class="plu-table">'+head+'<tbody>'+body+'</tbody></table></div>';
   }
+  var NI_POS_SRC={'BRAND(ENG)':1,'ENG DESC':1,'UNIT SIZE':1,'UOM':1};
   function niOnEdit(i, key, val){
     var r=niRows[i]; if(!r) return; r.extra[key]=val;
     var cost=r.extra['COST']||'';
@@ -4652,16 +4694,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     else if(key==='MSRP(%)'){ r.extra['MSRP']=priceFromMargin(cost, val, []); }
     else if(key==='SRP'){ r.extra['SRP(%)']=calcMargin(val, cost); }
     else if(key==='SRP(%)'){ r.extra['SRP']=priceFromMargin(cost, val, []); }
+    // 자동 갱신: UPC(O) → UPC(C) / BRAND(ENG)·ENG DESC·UNIT SIZE·UOM → POS DESC
+    if(key==='UPC(O)') niAutoUpc(r);
+    if(NI_POS_SRC[key]) niAutoPos(r);
+    // 사용자가 직접 고친 UPC(C)·POS DESC는 수동값으로 보존
+    if(key==='UPC(C)'||key==='POS DESC'){ if(key==='UPC(C)') delete r.__upcAuto; else delete r.__posAuto; niSaveGen(r, key, false); }
     niSaveCalc(r);
   }
   function niReflectLinked(i){
     var r=niRows[i]; if(!r) return;
-    ['MSRP','MSRP(%)','SRP','SRP(%)'].forEach(function(k){
+    ['MSRP','MSRP(%)','SRP','SRP(%)','UPC(C)','POS DESC'].forEach(function(k){
       var el=document.querySelector('.ni-inp[data-i="'+i+'"][data-key="'+k+'"]');
       if(el && el!==document.activeElement){ el.value=r.extra[k]||''; }
     });
   }
-  function niUpcConvert(){ var n=0; niRows.forEach(function(r){ var cc=upcConvert(r.extra['UPC(O)']||''); if(cc){ r.extra['UPC(C)']=cc; n++; } }); renderNiTable(); showToast('UPC(C) '+n+'건 변환','success'); }
+  function niUpcConvert(){ var n=0; niRows.forEach(function(r){ var cc=upcConvert(r.extra['UPC(O)']||''); if(cc){ r.extra['UPC(C)']=cc; r.__upcAuto=cc; niSaveGen(r,'UPC(C)',true); n++; } }); renderNiTable(); showToast('UPC(C) '+n+'건 변환','success'); }
+  function niPosGenAll(){ var n=0; niRows.forEach(function(r){ var v=posDescRule(r.extra['BRAND(ENG)'], r.extra['ENG DESC'], r.extra['UNIT SIZE'], r.extra['UOM']); if(v!==''){ r.extra['POS DESC']=v; r.__posAuto=v; niSaveGen(r,'POS DESC',true); n++; } }); renderNiTable(); showToast('POS DESC '+n+'건 생성','success'); }
   function niConvApply(kind){
     var mEl=$('niCvMargin'); var margin=mEl?mEl.value:'';
     var priceKey=(kind==='msrp')?'MSRP':'SRP', pctKey=(kind==='msrp')?'MSRP(%)':'SRP(%)';
@@ -4791,6 +4839,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     w.innerHTML='<div class="pcm-modal" style="max-width:520px;"><div class="pcm-head">🔧 데이터 변환 (NEW ITEM)<button class="pcm-x" id="niCvX" type="button">✕</button></div>'+
       '<div class="pcm-body" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;">'+
         '<button class="plu-tool-btn" id="niCvUpc" type="button" style="background:var(--accent-soft);border-color:var(--accent-warm);color:var(--text);">🔄 UPC(O) → UPC(C) 변환</button>'+
+        '<button class="plu-tool-btn" id="niCvPos" type="button" style="background:var(--accent-soft);border-color:var(--accent-warm);color:var(--text);" title="BRAND(ENG) 3자리 + ) + ENG DESC 규칙으로 POS DESC 전체 재생성 (UNIT SIZE·UOM 있으면 반영)">🏷 POS DESC 전체 생성</button>'+
         '<div class="dcv-group"><div class="dcv-line"><span class="dcv-lbl">평균 마진(%)</span><input class="dcv-num" id="niCvMargin" type="number" step="any" placeholder="30"></div>'+
           '<div class="dcv-line" style="margin-top:8px;align-items:flex-start;"><span class="dcv-lbl" style="padding-top:6px;">MSRP 끝자리</span><span class="dcv-ends">'+ends('msrp')+'</span><button class="plu-tool-btn" id="niCvMsrp" type="button" style="margin-left:auto;">MSRP 계산</button></div>'+
           '<div class="dcv-line" style="margin-top:10px;align-items:flex-start;"><span class="dcv-lbl" style="padding-top:6px;">SRP 끝자리</span><span class="dcv-ends">'+ends('srp')+'</span><button class="plu-tool-btn" id="niCvSrp" type="button" style="margin-left:auto;">SRP 계산</button></div>'+
@@ -4800,6 +4849,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     w.classList.add('show');
     $('niCvX').onclick=function(){ w.classList.remove('show'); };
     $('niCvUpc').onclick=niUpcConvert;
+    $('niCvPos').onclick=niPosGenAll;
     $('niCvMsrp').onclick=function(){ niConvApply('msrp'); };
     $('niCvSrp').onclick=function(){ niConvApply('srp'); };
     [].slice.call(w.querySelectorAll('.ni-end')).forEach(function(b){ b.onclick=function(){ var kind=b.getAttribute('data-kind'), v=+b.getAttribute('data-v'); var arr=niConvEnds[kind]; var idx=arr.indexOf(v); if(idx>=0){ arr.splice(idx,1); b.classList.remove('on'); } else { arr.push(v); b.classList.add('on'); } }; });
