@@ -333,6 +333,9 @@
     padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; }
   #hmGateOv #hmgId{ text-transform: uppercase; }
   #hmGateOv .hmg-field input:focus{ outline: none; border-color: #2F5D46; }
+  #hmGateOv .hmg-field select{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
+    padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; cursor: pointer; }
+  #hmGateOv .hmg-field select:focus{ outline: none; border-color: #2F5D46; }
   #hmGateOv .hmg-err{ min-height: 18px; font-size: 12px; font-weight: 800; color: #9C3327; letter-spacing: .04em; margin: 2px 0 6px; text-align: center; }
   #hmGateOv .hmg-auto{ display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; letter-spacing: .05em;
     color: #4C463C; cursor: pointer; user-select: none; margin-bottom: 14px; }
@@ -371,15 +374,41 @@
    세션: sessionStorage.hmGateAuth3 — 매 진입마다 서버 데이터와 재대조 */
 (function(){
   'use strict';
-  var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-  try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore && VALID.indexOf(qstore)>=0){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
+  // 매장 목록: HOMEPAGE MANAGER · 매장 관리 (app-config/stores) — 실패 시 예비 목록
+  var FALLBACK_STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var VALID=null, _vp=null;
+  function loadStores(){
+    if(VALID) return Promise.resolve(VALID);
+    if(_vp) return _vp;
+    var timeout=new Promise(function(res){ setTimeout(function(){ res('__timeout__'); }, 6000); });
+    var fetchP=getDocData('app-config','stores').then(function(d){
+      var l=(d&&Array.isArray(d.list))?d.list.map(function(x){return String((x&&x.name)||x||'').trim().toUpperCase();}).filter(Boolean):[];
+      return l.length?l:FALLBACK_STORES.slice();
+    }).catch(function(){ return FALLBACK_STORES.slice(); });
+    _vp=Promise.race([fetchP, timeout]).then(function(r){
+      if(r==='__timeout__'){
+        fetchP.then(function(real){ VALID=real; fillStoreSel(); });
+        VALID=FALLBACK_STORES.slice();
+      }else{ VALID=r; }
+      fillStoreSel();
+      return VALID;
+    });
+    return _vp;
+  }
+  function fillStoreSel(){
+    var sel=document.getElementById('hmgStoreId'); if(!sel || !VALID) return;
+    var cur=sel.value || (function(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } })();
+    sel.innerHTML='<option value="">SELECT STORE</option>'+VALID.map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>'; }).join('');
+    if(cur && VALID.indexOf(String(cur).toUpperCase())>=0) sel.value=String(cur).toUpperCase();
+  }
+  try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
 
   function savedCreds(){
     var c=null;
     try{ c=JSON.parse(sessionStorage.getItem('hmGateAuth3')||'null'); }catch(e){}
     if(!c){ try{ if(localStorage.getItem('hmartAutoLogin')==='1') c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); }catch(e){} }
     if(!c) return null;
-    if(c.mode==='pin' && c.store && c.pin && VALID.indexOf(String(c.store).toUpperCase())>=0)
+    if(c.mode==='pin' && c.store && c.pin)
       return {mode:'pin', store:String(c.store).toUpperCase(), pin:String(c.pin)};
     if(c.mode==='acct' && c.name && c.hash)
       return {mode:'acct', name:String(c.name), hash:String(c.hash)};
@@ -489,7 +518,8 @@
   function passAcct(r){
     // 계정에 특정 매장 권한이 있으면 첫 매장을 페이지 매장으로
     try{
-      var sp=(r.stores||[]).filter(function(x){ return x!=='*' && VALID.indexOf(String(x).toUpperCase())>=0; });
+      var vl=VALID||FALLBACK_STORES;
+      var sp=(r.stores||[]).filter(function(x){ return x!=='*' && vl.indexOf(String(x).toUpperCase())>=0; });
       if(sp.length) localStorage.setItem('theShawnStore', String(sp[0]).toUpperCase());
     }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
@@ -509,7 +539,7 @@
       +'<div class="hmg-cols">'
         +'<div class="hmg-col">'
           +'<div class="hmg-sec">STORE PIN</div>'
-          +'<div class="hmg-field"><label>STORE ID</label><input type="text" id="hmgStoreId" placeholder="STORE ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="hmg-field"><label>STORE ID</label><select id="hmgStoreId"><option value="">LOADING…</option></select></div>'
           +'<div class="hmg-field"><label>PIN</label><input type="password" id="hmgStorePin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
           +'<div class="hmg-err" id="hmgPinErr"></div>'
           +'<button class="hmg-btn" id="hmgPinEnter" type="button">ENTER</button>'
@@ -530,13 +560,13 @@
     +'</div>';
     (document.body||document.documentElement).appendChild(ov);
     try{ document.getElementById('hmgAuto').checked = localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){}
-    try{ var sv=localStorage.getItem('theShawnStore'); if(sv && VALID.indexOf(sv)>=0) document.getElementById('hmgStoreId').value=sv; }catch(e){}
+    fillStoreSel(); loadStores();
     try{ var c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); if(c&&c.mode==='acct'&&c.name) document.getElementById('hmgAcctId').value=c.name; }catch(e){}
     document.getElementById('hmgPinEnter').onclick=submitPin;
     document.getElementById('hmgAcctEnter').onclick=submitAcct;
     document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
     document.getElementById('hmgStorePin').addEventListener('keydown',function(e){ if(e.key==='Enter') submitPin(); });
-    document.getElementById('hmgStoreId').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('hmgStorePin').focus(); });
+    document.getElementById('hmgStoreId').addEventListener('change',function(){ document.getElementById('hmgStorePin').focus(); });
     document.getElementById('hmgAcctPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submitAcct(); });
     document.getElementById('hmgAcctId').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('hmgAcctPw').focus(); });
     return ov;
@@ -554,9 +584,8 @@
     var idv=(idIn&&idIn.value||'').trim().toUpperCase();
     var pwv=(pwIn&&pwIn.value||'').trim();
     if(er) er.textContent='';
-    if(!idv){ if(er) er.textContent='ENTER STORE ID'; idIn.focus(); return; }
+    if(!idv){ if(er) er.textContent='SELECT STORE'; idIn.focus(); return; }
     if(!pwv){ if(er) er.textContent='ENTER PIN'; pwIn.focus(); return; }
-    if(VALID.indexOf(idv)<0){ if(er) er.textContent='STORE ID NOT FOUND'; return; }
     busy=true; if(er) er.textContent='CHECKING…';
     verifyStore(idv,pwv).then(function(bad){
       busy=false;
@@ -583,6 +612,7 @@
   /* 시작: 저장된 자격 재검증 (방식별) — 없거나 실패 시 로그인 화면 */
   document.documentElement.classList.add('hm-gate-lock');
   document.addEventListener('DOMContentLoaded', function(){
+    loadStores();
     var c=savedCreds();
     if(!c){ show('',''); return; }
     if(c.mode==='pin'){
@@ -904,6 +934,10 @@
     try{ localStorage.removeItem('theShawnStore'); }catch(e){}
     try{ localStorage.removeItem('theShawnUpcStore'); }catch(e){}
     try{ localStorage.removeItem('hmartAutoLogin'); }catch(e){}
+    try{ localStorage.removeItem('hmGateSaved3'); }catch(e){}
+    try{ sessionStorage.removeItem('hmGateAuth3'); }catch(e){}
+    try{ sessionStorage.removeItem('hmartAuth'); }catch(e){}
+    try{ sessionStorage.removeItem('hmartGate'); }catch(e){}
     window.location.href = '../index.html';
   }
   $('hmLogoutFab').onclick = function(){
