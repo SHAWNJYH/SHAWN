@@ -2625,25 +2625,71 @@
 
 <!-- H-MART 매장 로그인 팝업 (EGMM 형식 — 매장 선택 + PIN) -->
 <div class="mgr-ov" id="hmartPwOv">
-  <div class="lock-card mgr-login-card mgr-pw-card">
+  <div class="lock-card mgr-login-card mgr-pw-card" style="max-width:680px;width:94%;">
     <button class="mgr-x" id="hmartPwClose" type="button">✕</button>
     <h1 class="lock-title">H-MART</h1>
-    <p class="mgr-pw-sub">매장과 PIN을 입력하세요</p>
-    <div class="field">
-      <label>매장</label>
-      <select id="hmartStore" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;font-family:var(--mono);font-size:15px;color:var(--text);background:var(--bg-elev);">
-        <option value="">SELECT STORE</option>
-      </select>
+    <p class="mgr-pw-sub">매장+PIN 또는 아이디+패스워드로 입장하세요</p>
+    <div class="hm2-grid">
+      <!-- 왼쪽: 매장 + PIN -->
+      <div class="hm2-pane">
+        <div class="hm2-pane-t">매장 + PIN <span class="hm2-en">STORE + PIN</span></div>
+        <div class="field">
+          <label>매장 <span class="hm2-en">STORE</span></label>
+          <select id="hmartStore" class="hm2-sel">
+            <option value="">SELECT STORE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>PIN</label>
+          <input type="password" id="hmartPinInput" inputmode="numeric" placeholder="••••" autocomplete="off">
+        </div>
+        <div class="err" id="hmartPwErr"></div>
+        <label class="egmm-auto-row"><input type="checkbox" id="hmartAutoChk"><span>자동 로그인</span></label>
+        <button class="btn" id="hmartPwBtn">들어가기 · ENTER</button>
+      </div>
+      <!-- 가운데: OR -->
+      <div class="hm2-or"><span>OR</span></div>
+      <!-- 오른쪽: 아이디 + 패스워드 -->
+      <div class="hm2-pane">
+        <div class="hm2-pane-t">아이디 + 패스워드 <span class="hm2-en">ID + PASSWORD</span></div>
+        <div class="field">
+          <label>매장 <span class="hm2-en">STORE</span></label>
+          <select id="hmartIdStore" class="hm2-sel">
+            <option value="">SELECT STORE</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>아이디 <span class="hm2-en">ID</span></label>
+          <select id="hmartIdUser" class="hm2-sel"><option value="">불러오는 중…</option></select>
+        </div>
+        <div class="field">
+          <label>패스워드 <span class="hm2-en">PASSWORD</span></label>
+          <input type="password" id="hmartIdPw" placeholder="••••" autocomplete="off">
+        </div>
+        <div class="err" id="hmartIdErr"></div>
+        <button class="btn" id="hmartIdBtn">들어가기 · ENTER</button>
+      </div>
     </div>
-    <div class="field">
-      <label>PIN</label>
-      <input type="password" id="hmartPinInput" inputmode="numeric" placeholder="••••" autocomplete="off">
-    </div>
-    <div class="err" id="hmartPwErr"></div>
-    <label class="egmm-auto-row"><input type="checkbox" id="hmartAutoChk"><span>자동 로그인</span></label>
-    <button class="btn" id="hmartPwBtn">들어가기</button>
   </div>
 </div>
+<style>
+  .hm2-grid { display:grid; grid-template-columns:1fr 44px 1fr; align-items:stretch; gap:0; text-align:left; }
+  .hm2-pane { display:flex; flex-direction:column; }
+  .hm2-pane .btn { margin-top:auto; }
+  .hm2-pane-t { font-family:var(--mono); font-size:12.5px; font-weight:800; letter-spacing:.06em; color:var(--text); margin-bottom:10px; }
+  .hm2-en { font-size:10px; font-weight:700; color:var(--text-dim); letter-spacing:.05em; }
+  .hm2-sel { width:100%; box-sizing:border-box; border:1.5px solid var(--border); border-radius:10px; padding:12px 14px;
+    font-family:var(--mono); font-size:14px; color:var(--text); background:var(--bg-elev); }
+  .hm2-or { position:relative; display:flex; align-items:center; justify-content:center; }
+  .hm2-or::before { content:""; position:absolute; top:6px; bottom:6px; left:50%; width:1px; background:var(--border); }
+  .hm2-or span { position:relative; z-index:1; background:var(--bg-elev); border:1.5px solid var(--border); color:var(--text-dim);
+    font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.08em; border-radius:999px; padding:6px 9px; }
+  @media (max-width:620px){
+    .hm2-grid { grid-template-columns:1fr; }
+    .hm2-or { padding:10px 0; }
+    .hm2-or::before { top:50%; bottom:auto; left:6px; right:6px; width:auto; height:1px; transform:translateY(-50%); }
+  }
+</style>
 
 <!-- CAMPEON WHOLESALE 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
 <div class="mgr-ov" id="cwLoginOv">
@@ -3168,7 +3214,7 @@
   const isHmartAuto = () => { try{ return localStorage.getItem(HMART_AUTO_KEY)==='1'; }catch(e){ return false; } };
   const savedHmartStore = () => { try{ var s=localStorage.getItem(HMART_STORE_KEY); return (s && HMART_STORES.indexOf(s)>=0)?s:''; }catch(e){ return ''; } };
   const fillHmartStores = () => { if(!hmartStoreSel) return; hmartStoreSel.innerHTML='<option value="">SELECT STORE</option>'+HMART_STORES.map(s=>'<option value="'+s+'">'+s+'</option>').join(''); };
-  const openHmartPw = () => { if(hmartPwErr) hmartPwErr.textContent=''; fillHmartStores(); var sv=savedHmartStore(); if(hmartStoreSel) hmartStoreSel.value=sv; if(hmartPinInput) hmartPinInput.value=''; if(hmartAutoChk) hmartAutoChk.checked=isHmartAuto(); hmartPwOv.classList.add('show'); setTimeout(()=>{ if(hmartStoreSel && !sv) hmartStoreSel.focus(); else if(hmartPinInput) hmartPinInput.focus(); }, 80); };
+  const openHmartPw = () => { if(hmartPwErr) hmartPwErr.textContent=''; var ie=$('hmartIdErr'); if(ie) ie.textContent=''; fillHmartStores(); fillHmartIdStores(); var ip=$('hmartIdPw'); if(ip) ip.value=''; var iu=$('hmartIdUser'); if(iu) iu.innerHTML='<option value="">불러오는 중…</option>'; loadHmartIdUsers(); var sv=savedHmartStore(); if(hmartStoreSel) hmartStoreSel.value=sv; if(hmartPinInput) hmartPinInput.value=''; if(hmartAutoChk) hmartAutoChk.checked=isHmartAuto(); hmartPwOv.classList.add('show'); setTimeout(()=>{ if(hmartStoreSel && !sv) hmartStoreSel.focus(); else if(hmartPinInput) hmartPinInput.focus(); }, 80); };
   const closeHmartPw = () => hmartPwOv.classList.remove('show');
   const submitHmartPw = async () => {
     const store = (hmartStoreSel && hmartStoreSel.value || '').trim();
@@ -3185,11 +3231,63 @@
     if(String(d.pin) !== String(pin)){ if(hmartPwErr) hmartPwErr.textContent='PIN이 일치하지 않습니다'; return; }
     try{ localStorage.setItem(HMART_STORE_KEY, store); }catch(e){}
     try{ localStorage.setItem(HMART_AUTO_KEY, (hmartAutoChk && hmartAutoChk.checked) ? '1' : '0'); }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1'); sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'pin'})); }catch(e){}
+    window.location.href = 'HMART/hmart.html';
+  };
+  // ===== H-MART 아이디+패스워드 입장 (app-config/hmart-users · manager-users) =====
+  var hmIdUsers=[];
+  const fillHmartIdStores = () => { var sel=$('hmartIdStore'); if(!sel) return;
+    sel.innerHTML='<option value="">SELECT STORE</option>'+HMART_STORES.map(s=>'<option value="'+s+'">'+s+'</option>').join('');
+    var sv=savedHmartStore(); if(sv) sel.value=sv; };
+  async function loadHmartIdUsers(){
+    var sel=$('hmartIdUser'); if(!sel) return; hmIdUsers=[];
+    if(!window.firebaseFns || !window.firebaseDb){ setTimeout(loadHmartIdUsers, 500); return; }
+    try{
+      var snaps=await Promise.all([
+        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'app-config','hmart-users')),
+        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'app-config','manager-users'))
+      ]);
+      var h=(snaps[0]&&snaps[0].exists&&snaps[0].exists())?(snaps[0].data()||{}):{};
+      var m=(snaps[1]&&snaps[1].exists&&snaps[1].exists())?(snaps[1].data()||{}):{};
+      (Array.isArray(h.users)?h.users:[]).forEach(function(u){ if(u&&u.name) hmIdUsers.push({src:'hmart',u:u}); });
+      (Array.isArray(m.users)?m.users:[]).forEach(function(u){ if(u&&u.name) hmIdUsers.push({src:'manager',u:u}); });
+    }catch(e){}
+    if(!hmIdUsers.length){ sel.innerHTML='<option value="">등록된 아이디 없음</option>'; return; }
+    sel.innerHTML='<option value="">아이디 선택 · SELECT ID</option>'+hmIdUsers.map(function(x,i){
+      var u=x.u; var pos=String(u.position||'').toUpperCase();
+      var nm=(u.fullName?u.fullName+' · ':'')+u.name+(pos?(' ('+pos+')'):'')+(x.src==='manager'?' [MANAGER]':'');
+      return '<option value="'+i+'">'+nm.replace(/</g,'&lt;')+'</option>'; }).join('');
+  }
+  function hmIdStoresOf(x){
+    if(x.src==='manager') return HMART_STORES.slice();
+    var p=(x.u&&x.u.perms&&Array.isArray(x.u.perms.stores))?x.u.perms.stores:[];
+    if(p.indexOf('*')>=0) return HMART_STORES.slice();
+    return p.map(function(s){return String(s||'').trim();}).filter(function(s){return HMART_STORES.indexOf(s)>=0;});
+  }
+  const submitHmartId = async () => {
+    var err=$('hmartIdErr'); if(err) err.textContent='';
+    var store=($('hmartIdStore')&&$('hmartIdStore').value||'').trim();
+    var i=parseInt(($('hmartIdUser')&&$('hmartIdUser').value)||'',10);
+    var x=(!isNaN(i)&&hmIdUsers[i])?hmIdUsers[i]:null;
+    var pw=($('hmartIdPw')&&$('hmartIdPw').value||'').trim();
+    if(!store){ if(err) err.textContent='매장을 선택하세요'; return; }
+    if(!x){ if(err) err.textContent='아이디를 선택하세요'; return; }
+    if(!pw){ if(err) err.textContent='패스워드를 입력하세요'; return; }
+    if(!(await matchUserPin(pw, x.u.pin))){ if(err) err.textContent='패스워드가 올바르지 않습니다'; return; }
+    if(x.u.access===false){ if(err) err.textContent='차단된 아이디입니다 · Blocked'; return; }
+    var stores=hmIdStoresOf(x);
+    if(stores.indexOf(store)<0){ if(err) err.textContent='이 매장 접근 권한이 없습니다 · No permission'; return; }
+    try{ localStorage.setItem(HMART_STORE_KEY, store); }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1');
+      sessionStorage.setItem('hmartAuth', JSON.stringify({ mode:'account',
+        user:{ id:x.u.id||x.u.name, name:x.u.name, fullName:x.u.fullName||x.u.name, position:String(x.u.position||'').toUpperCase() },
+        stores:stores })); }catch(e){}
     window.location.href = 'HMART/hmart.html';
   };
   const enterHmart = () => {
     if (isHmartAuto() && savedHmartStore()) {
       try { showToast('자동 로그인 합니다', 'success'); } catch(e) {}
+      try{ sessionStorage.setItem('hmartGate','1'); sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'pin'})); }catch(e){}
       setTimeout(()=>{ window.location.href = 'HMART/hmart.html'; }, 600);
       return;
     }
@@ -3200,6 +3298,10 @@
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterHmart(); }
   });
   $('hmartPwBtn').onclick = submitHmartPw;
+  if($('hmartIdBtn')) $('hmartIdBtn').onclick = submitHmartId;
+  if($('hmartIdPw')) $('hmartIdPw').addEventListener('keydown', e => { if (e.key === 'Enter') submitHmartId(); });
+  // 화면을 닫거나 뒤로 가서 index로 돌아오면 H-MART 게이트 해제 → 재인증 필요
+  try{ sessionStorage.removeItem('hmartGate'); sessionStorage.removeItem('hmartAuth'); }catch(e){}
   $('hmartPwClose').onclick = closeHmartPw;
   if(hmartPwOv) hmartPwOv.addEventListener('click', e => { if (e.target === hmartPwOv) closeHmartPw(); });
   if(hmartPinInput) hmartPinInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitHmartPw(); });
