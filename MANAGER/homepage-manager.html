@@ -422,6 +422,21 @@
   .au-r2 .st-in, .mg-r .st-in{ padding:7px 8px; font-size:13px; min-width:0; }
   .au-r2 select.st-in, .mg-r select.st-in{ cursor:pointer; }
   .chipbox{ display:flex; flex-wrap:wrap; gap:6px; min-height:38px; padding:9px; background:var(--bg-elev-2); border:1.5px solid var(--border); border-radius:11px; align-content:flex-start; }
+  .mp-note{ font-size:12.5px; font-weight:700; color:var(--text-dim); line-height:1.55; margin:2px 0 14px; }
+  .mp-note .en{ font-size:11px; color:var(--text-faint); }
+  .mp-tbl{ width:100%; border-collapse:separate; border-spacing:0; background:var(--bg-elev); border:1.5px solid var(--border-bright); border-radius:12px; overflow:hidden; }
+  .mp-tbl th{ position:sticky; top:0; background:var(--bg-elev-2); font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--text-dim); padding:9px 10px; border-bottom:1.5px solid var(--border-bright); text-align:center; white-space:nowrap; }
+  .mp-tbl th:first-child{ text-align:left; padding-left:14px; }
+  .mp-tbl td{ padding:8px 10px; border-bottom:1px solid var(--border); text-align:center; }
+  .mp-tbl tr:last-child td{ border-bottom:none; }
+  .mp-tbl td:first-child{ text-align:left; padding-left:14px; }
+  .mp-tbl tr.mp-card td{ background:var(--accent-soft); font-weight:900; }
+  .mp-tbl tr.mp-card td:first-child{ letter-spacing:.05em; }
+  .mp-menu-name{ font-weight:800; font-size:13.5px; }
+  .mp-menu-name .en{ font-size:10.5px; color:var(--text-faint); font-weight:700; margin-left:6px; }
+  .mp-menu-name.sub{ padding-left:16px; }
+  .mp-ck{ width:16px; height:16px; accent-color:var(--accent-warm); cursor:pointer; }
+  .mp-ck:disabled{ opacity:.3; cursor:default; }
   .chip{ display:inline-flex; align-items:center; gap:7px; background:var(--bg-elev); border:1.5px solid var(--border-bright); border-radius:999px; padding:5px 11px; font-weight:800; font-size:12.5px; letter-spacing:.03em; }
   .chip .cx{ cursor:pointer; color:var(--danger); font-weight:900; line-height:1; }
   .chip .cx:hover{ transform:scale(1.15); }
@@ -471,6 +486,7 @@
   <div class="sm-tabs">
     <button class="sm-tab active" id="smTabAuth" type="button">아이디/패스워드 관리<span class="en">ID · Password</span></button>
     <button class="sm-tab" id="smTabVendors" type="button">벤더 관리<span class="en">Vendors</span></button>
+    <button class="sm-tab" id="smTabMenuPerms" type="button">H-MART 메뉴 권한<span class="en">Menu Access</span></button>
     <button class="sm-tab" id="smTabFields" type="button">필드 관리<span class="en">Fields</span></button>
     <button class="sm-tab" id="smTabExport" type="button">내보내기 설정<span class="en">Export</span></button>
     <button class="sm-tab" id="smTabItemMatch" type="button">가져오기 설정<span class="en">Import</span></button>
@@ -594,6 +610,14 @@
           <label class="vd-cod"><input type="checkbox" id="vdNewCod"> COD</label>
           <button class="ex-btn warm" id="vdAdd" type="button">＋ 벤더 추가 <span class="en" style="color:#fff;opacity:.75;">Add</span></button>
         </div>
+
+        <!-- 매입일지 부서 관리 · app-config/purchase-departments (HMART/daily-purchase.html 부서 선택 목록) -->
+        <div class="sec-title" style="margin-top:26px;">매입 부서 관리 <span class="en">Purchase Departments</span> <span class="fm-count" id="pdCount"></span> <span class="fm-saved" id="pdSaved"></span></div>
+        <div class="chips" id="pdChips" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px;"></div>
+        <div style="display:flex;gap:8px;max-width:420px;">
+          <input class="st-in" id="pdNewIn" placeholder="새 부서 이름 · New department" maxlength="30" autocomplete="off" style="flex:1;">
+          <button class="ex-btn warm" id="pdAdd" type="button">＋ 부서 추가 <span class="en" style="color:#fff;opacity:.75;">Add</span></button>
+        </div>
       </div></div>
     </div>
 
@@ -677,6 +701,20 @@
     </div>
 
     <!-- HTML 관리: 파일이름 · 목적 기록 -->
+    <!-- H-MART 메뉴 권한 · app-config/hmart-menu-perms (HMART/hmart.html 사이드바 표시 제어) -->
+    <div class="sm-panel" id="smPanelMenuPerms">
+      <div class="ex-toolbar">
+        <span class="ex-tb-label">H-MART 메뉴 권한 · Menu Access</span>
+        <span class="ex-spacer"></span>
+        <span class="fm-saved" id="mpSaved"></span>
+      </div>
+      <div class="st-wrap"><div class="panel-max">
+        <div class="mp-note">체크된 권한만 해당 카테고리/메뉴가 보입니다 · 「전체」 체크 = 모든 입장 방식에 표시 · 아무 권한도 없으면 전부 숨김<br>
+          <span class="en">PIN = 매장+PIN 입장 · 직급 = 아이디+패스워드 입장 (직급 목록은 아이디/패스워드 관리 탭에서 관리)</span></div>
+        <div id="mpGrid"><div class="au-empty">불러오는 중…</div></div>
+      </div></div>
+    </div>
+
     <div class="sm-panel" id="smPanelHtml">
       <div class="ex-toolbar">
         <span class="ex-tb-label">HTML 관리 · HTML Files</span>
@@ -857,6 +895,134 @@
     posList.push(v); if(inp)inp.value='';
     await posSave(); posRender(); auRefreshSelects(); if(inp)inp.focus();
   }
+  /* ── H-MART 메뉴 권한 (app-config/hmart-menu-perms) ──
+     HMART/hmart.html 사이드바가 실시간 구독 · roles: 'PIN' + 직급(app-config/positions) + '*'(전체)
+     규칙: 항목 없음/roles 비어있음/'*' 포함 = 전체 표시 · roles 지정 시 해당 권한만 표시 · 'NONE' = 전부 숨김 */
+  var MP_DOC='hmart-menu-perms';
+  var MP_REG=[
+    { card:'ITEMS', menus:[
+      ['hmartToListBtn','PLU ITEM LIST','PLU 아이템 리스트'],
+      ['hmartToUpcBtn','UPC ITEM LIST','UPC 아이템 리스트'],
+      ['hmartToPreviewMgrBtn','PLU PREVIEW MANAGER','매장 PLU 미리보기 관리'],
+      ['hmartToQuizBtn','PLU MEMORIZE','PLU 암기 연습'],
+      ['hmartAdViewBtn','AD ITEMS','광고상품 보기'],
+      ['hmartNewItemBtn','NEW ITEMS','신상품 보기']
+    ]},
+    { card:'PURCHASE', menus:[
+      ['hmartPurchaseBtn','DAILY PURCHASE','매입일지']
+    ]}
+  ];
+  var mpCfg={cards:{},menus:{}};
+  function mpRoles(){ return ['PIN'].concat(posList); }
+  function mpSetSaved(t){ var e=$('mpSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2200); } }
+  function mpEntry(kind,key){ var m=(kind==='card')?(mpCfg.cards||{}):(mpCfg.menus||{}); return m[key]||null; }
+  function mpState(kind,key){   // {all:bool, roles:[]}
+    var e=mpEntry(kind,key);
+    if(!e||!Array.isArray(e.roles)||!e.roles.length||e.roles.indexOf('*')>=0) return {all:true, roles:[]};
+    return {all:false, roles:e.roles.filter(function(r){return r!=='NONE';})};
+  }
+  async function mpLoad(){
+    var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(mpLoad,400); return; }
+    try{ var ps=await fb.getDoc(fb.doc(fb.db,AUTH_COL,'positions'));
+      if(ps&&ps.exists&&ps.exists()){ var pd=ps.data()||{};
+        if(Array.isArray(pd.list)&&pd.list.length) posList=pd.list.map(function(x){return String(x).trim().toUpperCase();}).filter(Boolean); }
+    }catch(e){}
+    try{ var snap=await fb.getDoc(fb.doc(fb.db,AUTH_COL,MP_DOC));
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      mpCfg={ cards:(d.cards&&typeof d.cards==='object')?d.cards:{}, menus:(d.menus&&typeof d.menus==='object')?d.menus:{} };
+    }catch(e){ mpCfg={cards:{},menus:{}}; }
+    mpRender();
+  }
+  async function mpSave(){
+    var fb=window.smFb; if(!fb||!fb.setDoc) return false;
+    try{ await fb.setDoc(fb.doc(fb.db,AUTH_COL,MP_DOC), { cards:mpCfg.cards, menus:mpCfg.menus, updatedAt:Date.now() });
+      return true; }
+    catch(e){ mpSetSaved('저장 실패'); return false; }
+  }
+  function mpApply(kind,key,all,roles){
+    var m=(kind==='card')?mpCfg.cards:mpCfg.menus;
+    if(all){ delete m[key]; }
+    else { m[key]={ roles: roles.length?roles.slice():['NONE'] }; }
+  }
+  function mpRowHtml(kind,key,nameHtml,rowCls,nameCls){
+    var st=mpState(kind,key), roles=mpRoles();
+    var tds='<td><span class="mp-menu-name '+nameCls+'">'+nameHtml+'</span></td>';
+    tds+='<td><input type="checkbox" class="mp-ck" data-kind="'+kind+'" data-key="'+key+'" data-role="*"'+(st.all?' checked':'')+'></td>';
+    roles.forEach(function(r){
+      tds+='<td><input type="checkbox" class="mp-ck" data-kind="'+kind+'" data-key="'+key+'" data-role="'+esc(r)+'"'
+        +((st.all||st.roles.indexOf(r)>=0)?' checked':'')+(st.all?' disabled':'')+'></td>';
+    });
+    return '<tr class="'+rowCls+'">'+tds+'</tr>';
+  }
+  function mpRender(){
+    var box=$('mpGrid'); if(!box) return;
+    var roles=mpRoles();
+    var head='<tr><th>카테고리 / 메뉴 <span class="en">Category / Menu</span></th><th>전체<br><span class="en">ALL</span></th>'
+      +roles.map(function(r){ return '<th>'+esc(r)+'</th>'; }).join('')+'</tr>';
+    var body='';
+    MP_REG.forEach(function(c){
+      body+=mpRowHtml('card', c.card, esc(c.card)+' <span class="en">카테고리 타이틀</span>', 'mp-card','');
+      c.menus.forEach(function(mn){
+        body+=mpRowHtml('menu', mn[0], esc(mn[1])+'<span class="en">'+esc(mn[2])+'</span>', '','sub');
+      });
+    });
+    box.innerHTML='<table class="mp-tbl">'+head+body+'</table>';
+    box.querySelectorAll('.mp-ck').forEach(function(ck){
+      ck.onchange=async function(){
+        var kind=ck.getAttribute('data-kind'), key=ck.getAttribute('data-key'), role=ck.getAttribute('data-role');
+        var st=mpState(kind,key);
+        if(role==='*'){ mpApply(kind,key,ck.checked, st.roles); }
+        else {
+          var roles2=st.all?[]:st.roles.slice();
+          var idx=roles2.indexOf(role);
+          if(ck.checked && idx<0) roles2.push(role);
+          if(!ck.checked && idx>=0) roles2.splice(idx,1);
+          mpApply(kind,key,false,roles2);
+        }
+        if(await mpSave()) mpSetSaved('저장됨 · '+key);
+        mpRender();
+      };
+    });
+  }
+  /* ── 매입 부서 관리 (app-config/purchase-departments) — HMART/daily-purchase.html 부서 선택 목록 ── */
+  var PD_DOC='purchase-departments';
+  var pdList=[];
+  function pdSetSaved(t){ var e=$('pdSaved'); if(e){ e.textContent=t||''; if(t) setTimeout(function(){ e.textContent=''; },2200); } }
+  function pdNorm(x){ return { id:(x&&x.id)||('d_'+Date.now()+'_'+Math.random().toString(36).slice(2,7)), name:String((x&&x.name)||'').trim() }; }
+  async function pdLoad(){
+    var fb=window.smFb; if(!fb||!fb.getDoc){ setTimeout(pdLoad,400); return; }
+    try{ var snap=await fb.getDoc(fb.doc(fb.db,AUTH_COL,PD_DOC));
+      var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+      pdList=(Array.isArray(d.list)?d.list:[]).map(pdNorm).filter(function(x){return x.name;});
+    }catch(e){ pdList=[]; }
+    pdRender();
+  }
+  async function pdSave(){
+    var fb=window.smFb; if(!fb||!fb.setDoc) return false;
+    try{ await fb.setDoc(fb.doc(fb.db,AUTH_COL,PD_DOC), {list:pdList, updatedAt:Date.now()}, {merge:true}); return true; }
+    catch(e){ pdSetSaved('저장 실패'); return false; }
+  }
+  function pdRender(){
+    var box=$('pdChips'); if(!box) return;
+    var c=$('pdCount'); if(c) c.textContent=pdList.length?(pdList.length+'개 부서'):'';
+    box.innerHTML=pdList.map(function(d,i){
+      return '<span class="chip">'+esc(d.name)+'<span class="cx" data-i="'+i+'" title="부서 삭제">✕</span></span>';
+    }).join('')||'<span class="au-empty" style="padding:6px 0;">등록된 부서가 없습니다</span>';
+    box.querySelectorAll('.cx').forEach(function(x){ var i=+x.getAttribute('data-i');
+      x.onclick=async function(){
+        if(!confirm('['+pdList[i].name+'] 부서를 삭제할까요?\n매입일지의 부서 선택에서 제거됩니다')) return;
+        pdList.splice(i,1); if(await pdSave()){ pdSetSaved('부서 삭제됨'); } pdRender(); };
+    });
+  }
+  async function pdAddNew(){
+    var inp=$('pdNewIn'); var v=(inp&&inp.value||'').trim();
+    if(!v){ if(inp)inp.focus(); return; }
+    if(pdList.some(function(d){ return d.name.toUpperCase()===v.toUpperCase(); })){ alert('이미 있는 부서입니다'); if(inp)inp.select(); return; }
+    pdList.push(pdNorm({name:v})); if(inp)inp.value='';
+    if(await pdSave()){ pdSetSaved('부서 추가됨'); } pdRender(); if(inp)inp.focus();
+  }
+  if($('pdAdd')) $('pdAdd').onclick=pdAddNew;
+  if($('pdNewIn')) $('pdNewIn').addEventListener('keydown', function(e){ if(e.key==='Enter') pdAddNew(); });
   /* ── 접속 권한 관리: 폴더 스코프 (app-config/access-scopes) ── */
   async function scLoad(){
     var fb=window.smFb; if(!fb||!fb.getDoc) return;
@@ -1327,7 +1493,9 @@
   document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.addEventListener('change', slSyncDim); });
 
   function activate(which){
-    var isAuth=(which==='auth'), isVendors=(which==='vendors'), isFields=(which==='fields'), isExport=(which==='export'), isHtml=(which==='html'), isItem=(which==='itemmatch');
+    var isAuth=(which==='auth'), isVendors=(which==='vendors'), isFields=(which==='fields'), isExport=(which==='export'), isHtml=(which==='html'), isItem=(which==='itemmatch'), isMenu=(which==='menuperms');
+    if($('smTabMenuPerms')) $('smTabMenuPerms').classList.toggle('active', isMenu);
+    if($('smPanelMenuPerms')) $('smPanelMenuPerms').classList.toggle('active', isMenu);
     $('smTabAuth').classList.toggle('active', isAuth);
     if($('smTabVendors')) $('smTabVendors').classList.toggle('active', isVendors);
     $('smTabFields').classList.toggle('active', isFields);
@@ -1341,7 +1509,8 @@
     if($('smPanelItemMatch')) $('smPanelItemMatch').classList.toggle('active', isItem);
     if($('smPanelHtml')) $('smPanelHtml').classList.toggle('active', isHtml);
     if(isAuth){ authLoad(); storesLoad(); }
-    else if(isVendors){ vdLoad(); }
+    else if(isMenu){ mpLoad(); }
+    else if(isVendors){ vdLoad(); pdLoad(); }
     else if(isFields){ fmOpen(); }
     else if(isHtml){ hmLoad(); }
     else if(isItem){ imxLoad(); requestAnimationFrame(imxDraw); }
@@ -1349,6 +1518,7 @@
   }
   $('smTabAuth').onclick = function(){ activate('auth'); };
   if($('smTabVendors')) $('smTabVendors').onclick = function(){ activate('vendors'); };
+  if($('smTabMenuPerms')) $('smTabMenuPerms').onclick = function(){ activate('menuperms'); };
   $('smTabFields').onclick = function(){ activate('fields'); };
   $('smTabExport').onclick = function(){ activate('export'); };
   if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
