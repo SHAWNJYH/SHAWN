@@ -305,6 +305,27 @@
   .hm-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: #1a1a1d; color: #fff; padding: 11px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all .25s; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
   .hm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .hm-toast.success { background: #2a8a4a; } .hm-toast.error { background: #c0392b; }
+  /* === 진입 게이트 === */
+  html.hm-gate-lock body > *:not(#hmGateOv){ visibility: hidden !important; }
+  #hmGateOv{ position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
+    background: #EDEAE3; visibility: visible !important; }
+  #hmGateOv .hmg-card{ width: 340px; background: #FFFDFA; border: 1.5px solid #E4DFD4;
+    border-radius: 18px; padding: 30px 30px 26px; box-shadow: 0 14px 30px -20px rgba(30,27,22,.42); }
+  #hmGateOv .hmg-title{ margin: 0 0 18px; font-size: 24px; font-weight: 800; letter-spacing: .14em; text-align: center; color: #1E1B16; }
+  #hmGateOv .hmg-field{ margin-bottom: 12px; }
+  #hmGateOv .hmg-field label{ display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8C8578; margin-bottom: 5px; }
+  #hmGateOv .hmg-field input{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
+    padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; }
+  #hmGateOv #hmgId{ text-transform: uppercase; }
+  #hmGateOv .hmg-field input:focus{ outline: none; border-color: #2F5D46; }
+  #hmGateOv .hmg-err{ min-height: 18px; font-size: 12px; font-weight: 800; color: #9C3327; letter-spacing: .04em; margin: 2px 0 6px; text-align: center; }
+  #hmGateOv .hmg-auto{ display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; letter-spacing: .05em;
+    color: #4C463C; cursor: pointer; user-select: none; margin-bottom: 14px; }
+  #hmGateOv .hmg-auto input{ width: 15px; height: 15px; accent-color: #2F5D46; cursor: pointer; }
+  #hmGateOv .hmg-btns{ display: flex; gap: 10px; }
+  #hmGateOv .hmg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
+    letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
+  #hmGateOv .hmg-btn.hmg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
 </style>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -327,16 +348,103 @@
 <body>
 <script>
 /* 통합 세션 가드 — theShawnStore 없으면 INDEX로 (HMART는 index에서 로그인 후 진입) */
+/* === 진입 게이트(인페이지) === 이 페이지 스스로 아이디/패스워드를 검증한다.
+   직접 URL 접속 시에도 로그인 팝업을 통과해야 화면이 열린다.
+   세션: sessionStorage.hmGateAuth = {store, pin} — 매 진입마다 Firestore(plu-store-pins)와 재대조 */
 (function(){
-  try{
-    var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
-    // 통합 로그인(멀티뷰 등)에서 ?store=매장 지정 시 세션 매장으로 설정
-    try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore && VALID.indexOf(qstore)>=0){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
-    var s=localStorage.getItem('theShawnStore');
-    var unified = localStorage.getItem('unifiedLogin')==='1';
-    var gate = sessionStorage.getItem('hmartGate')==='1';
-    if(((!s || VALID.indexOf(s)<0) || !gate) && !unified){ location.replace('../index.html'); }
-  }catch(e){ location.replace('../index.html'); }
+  'use strict';
+  var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  // 통합 로그인(멀티뷰)에서 ?store=매장 지정 시 세션 매장으로 설정
+  try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore && VALID.indexOf(qstore)>=0){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
+  var unified=false; try{ unified = localStorage.getItem('unifiedLogin')==='1'; }catch(e){}
+
+  function creds(){
+    var c=null;
+    try{ c=JSON.parse(sessionStorage.getItem('hmGateAuth')||'null'); }catch(e){}
+    if(!c){ try{ if(localStorage.getItem('hmartAutoLogin')==='1') c=JSON.parse(localStorage.getItem('hmGateSaved')||'null'); }catch(e){} }
+    return (c && c.store && c.pin && VALID.indexOf(String(c.store).toUpperCase())>=0)
+      ? {store:String(c.store).toUpperCase(), pin:String(c.pin)} : null;
+  }
+  function pass(store){
+    try{ localStorage.setItem('theShawnStore', store); }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
+    var ov=document.getElementById('hmGateOv'); if(ov) ov.remove();
+    document.documentElement.classList.remove('hm-gate-lock');
+  }
+  function showLogin(msg){
+    document.documentElement.classList.add('hm-gate-lock');
+    var ov=document.getElementById('hmGateOv');
+    if(!ov){
+      ov=document.createElement('div'); ov.id='hmGateOv';
+      ov.innerHTML='<div class="hmg-card">'
+        +'<h1 class="hmg-title">H-MART</h1>'
+        +'<div class="hmg-field"><label>ID</label><input type="text" id="hmgId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
+        +'<div class="hmg-field"><label>PASSWORD</label><input type="password" id="hmgPw" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
+        +'<div class="hmg-err" id="hmgErr"></div>'
+        +'<label class="hmg-auto"><input type="checkbox" id="hmgAuto"><span>AUTO LOGIN</span></label>'
+        +'<div class="hmg-btns"><button class="hmg-btn" id="hmgEnter" type="button">ENTER</button>'
+        +'<button class="hmg-btn hmg-cancel" id="hmgCancel" type="button">CANCEL</button></div>'
+      +'</div>';
+      (document.body||document.documentElement).appendChild(ov);
+      var idIn=document.getElementById('hmgId'), pwIn=document.getElementById('hmgPw');
+      try{ var sv=localStorage.getItem('theShawnStore'); if(sv && VALID.indexOf(sv)>=0) idIn.value=sv; }catch(e){}
+      try{ document.getElementById('hmgAuto').checked = localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){}
+      document.getElementById('hmgEnter').onclick=submit;
+      document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
+      pwIn.addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+      idIn.addEventListener('keydown',function(e){ if(e.key==='Enter'){ pwIn.focus(); } });
+      setTimeout(function(){ (idIn.value?pwIn:idIn).focus(); },80);
+    }
+    var er=document.getElementById('hmgErr'); if(er) er.textContent=msg||'';
+  }
+  function verify(store,pin,onFail){
+    function run(){
+      window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'plu-store-pins',store)).then(function(snap){
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
+        if(d && d.pin!=null && String(d.pin)===String(pin)){
+          try{ sessionStorage.setItem('hmGateAuth', JSON.stringify({store:store,pin:pin})); }catch(e){}
+          var auto=document.getElementById('hmgAuto');
+          try{
+            if(auto ? auto.checked : localStorage.getItem('hmartAutoLogin')==='1'){
+              localStorage.setItem('hmartAutoLogin','1');
+              localStorage.setItem('hmGateSaved', JSON.stringify({store:store,pin:pin}));
+            }else{
+              localStorage.setItem('hmartAutoLogin','0');
+              localStorage.removeItem('hmGateSaved');
+            }
+          }catch(e){}
+          pass(store);
+        }else{
+          try{ sessionStorage.removeItem('hmGateAuth'); localStorage.removeItem('hmGateSaved'); }catch(e){}
+          onFail(d && d.pin!=null ? 'WRONG PASSWORD' : 'PASSWORD NOT SET · ASK MANAGER');
+        }
+      }).catch(function(){ onFail('CONNECTION ERROR — TRY AGAIN'); });
+    }
+    if(window.firebaseFns && window.firebaseDb) run();
+    else window.addEventListener('plu-firebase-ready', run, {once:true});
+  }
+  function submit(){
+    var idIn=document.getElementById('hmgId'), pwIn=document.getElementById('hmgPw'), er=document.getElementById('hmgErr');
+    var store=(idIn&&idIn.value||'').trim().toUpperCase();
+    var pin=(pwIn&&pwIn.value||'').trim();
+    if(er) er.textContent='';
+    if(!store){ if(er) er.textContent='ENTER ID'; return; }
+    if(!pin){ if(er) er.textContent='ENTER PASSWORD'; return; }
+    if(VALID.indexOf(store)<0){ if(er) er.textContent='ID NOT FOUND'; return; }
+    if(er) er.textContent='CHECKING…';
+    verify(store,pin,function(msg){ showLogin(msg); });
+  }
+  // 시작: 통합 로그인은 통과, 그 외에는 저장된 자격을 재검증 — 없거나 틀리면 로그인 팝업
+  if(unified){
+    document.addEventListener('DOMContentLoaded', function(){ pass((localStorage.getItem('theShawnStore')||'').toUpperCase()); });
+    return;
+  }
+  document.documentElement.classList.add('hm-gate-lock');
+  document.addEventListener('DOMContentLoaded', function(){
+    var c=creds();
+    if(c){ showLogin('CHECKING…'); verify(c.store, c.pin, function(msg){ showLogin(msg); }); }
+    else{ showLogin(''); }
+  });
 })();
 </script>
   <div class="hm-home">
