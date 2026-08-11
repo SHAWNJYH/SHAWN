@@ -334,7 +334,8 @@
     try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore && VALID.indexOf(qstore)>=0){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
     var s=localStorage.getItem('theShawnStore');
     var unified = localStorage.getItem('unifiedLogin')==='1';
-    if((!s || VALID.indexOf(s)<0) && !unified){ location.replace('../index.html'); }
+    var gate = sessionStorage.getItem('hmartGate')==='1';
+    if(((!s || VALID.indexOf(s)<0) || !gate) && !unified){ location.replace('../index.html'); }
   }catch(e){ location.replace('../index.html'); }
 })();
 </script>
@@ -932,6 +933,71 @@
   // 탭 닫힘/이동 시 마지막 활동 기록(best effort)
   window.addEventListener('pagehide', function(){ if(started && activeStore()) writeLog(false); });
   document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden' && started && activeStore()) writeLog(false); });
+})();
+</script>
+<style>
+  /* 매입일지 승인 대기 점멸 (매니저 세션) */
+  @keyframes hmPurBlink { 0%,100%{ background:var(--bg-elev); border-color:var(--border); } 50%{ background:#fdecec; border-color:#c0392b; } }
+  .egmm-menu-btn.hm-blink { animation: hmPurBlink 1s ease-in-out infinite; }
+</style>
+<script>
+/* ===== 입장 방식(PIN/아이디)별 메뉴 표시 + 매입일지 점멸 =====
+   세션: sessionStorage.hmartAuth = {mode:'pin'} | {mode:'account', user:{position,...}, stores:[]}
+   권한 설정: app-config/hmart-menu-perms { cards:{NAME:{roles:[]}}, menus:{buttonId:{roles:[]}} } · '*'=전체 · 항목 없음=전체 표시 */
+(function(){
+  var $=function(id){ return document.getElementById(id); };
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns&&window.firebaseDb) return cb(); window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  var auth=null;
+  try{ var aj=sessionStorage.getItem('hmartAuth'); if(aj) auth=JSON.parse(aj); }catch(e){}
+  var ROLE = (auth && auth.mode==='account' && auth.user) ? String(auth.user.position||'').toUpperCase() : 'PIN';
+  var isMgrSession = (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
+  var MENUS=['hmartToListBtn','hmartToUpcBtn','hmartToPreviewMgrBtn','hmartToQuizBtn','hmartAdViewBtn','hmartNewItemBtn','hmartPurchaseBtn','hmartDeliBtn','hmReqViewBtn'];
+  var CARDS=['ITEMS','PURCHASE'];   // REQUEST 카드는 기존 인라인 숨김 유지 — 여기서 관리하지 않음
+  function allowed(entry){
+    if(!entry || !Array.isArray(entry.roles) || !entry.roles.length) return true;
+    return entry.roles.indexOf('*')>=0 || entry.roles.indexOf(ROLE)>=0;
+  }
+  function cardByName(name){
+    var heads=document.querySelectorAll('.egmm-card .egmm-card-name');
+    for(var i=0;i<heads.length;i++){ if(String(heads[i].textContent||'').trim()===name) return heads[i].closest('.egmm-card'); }
+    return null;
+  }
+  function applyPerms(cfg){
+    cfg=cfg||{}; var mcfg=cfg.menus||{}, ccfg=cfg.cards||{};
+    MENUS.forEach(function(id){ var el=$(id); if(!el) return;
+      el.style.display = allowed(mcfg[id]) ? '' : 'none'; });
+    CARDS.forEach(function(name){ var card=cardByName(name); if(!card) return;
+      var vis=allowed(ccfg[name]);
+      if(vis){ // 카드 허용이어도 내부 메뉴가 전부 숨김이면 카드도 숨김
+        var btns=card.querySelectorAll('.egmm-menu-btn'); var any=false;
+        for(var i=0;i<btns.length;i++){ if(btns[i].style.display!=='none'){ any=true; break; } }
+        vis=any;
+      }
+      card.style.display = vis ? '' : 'none';
+    });
+  }
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().doc(db(),'app-config','hmart-menu-perms'), function(snap){
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+        applyPerms(d);
+      }, function(){});
+    }catch(e){}
+    // 매입일지 점멸: 담당자 확인 후 매니저 완료 전 일자가 있으면 (매니저 세션에서)
+    var store=activeStore();
+    if(store && isMgrSession){
+      try{
+        fns().onSnapshot(fns().collection(db(),'hmart','daily-purchase',store), function(snap){
+          var pending=0;
+          snap.forEach(function(ds){ var d=ds.data()||{}; if(d.recorder && d.status!=='done') pending++; });
+          var b=$('hmartPurchaseBtn'); if(b) b.classList.toggle('hm-blink', pending>0);
+        }, function(){});
+      }catch(e){}
+    }
+  });
 })();
 </script>
 </body>
