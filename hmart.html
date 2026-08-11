@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>H-MART · THE SHAWN</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  :root {
+    /* ── DESIGN SYSTEM "Paper & Pine" (homepage-manager 공통) ── */
+    --bg: #EDEAE3;
+    --bg-elev: #FFFDFA;
+    --bg-elev-2: #F7F4ED;
+    --border: #E4DFD4;
+    --border-bright: #D6CFC0;
+    --text: #1E1B16;
+    --text-dim: #4C463C;
+    --text-faint: #8C8578;
+    --accent: #1E1B16;
+    --accent-soft: #E9EFEA;
+    --accent-warm: #2F5D46;
+    --brass: #A98A55;
+    --danger: #9C3327;
+    --danger-soft: #F5EAE7;
+    --sh-1: 0 1px 2px rgba(30,27,22,.05);
+    --sh-2: 0 1px 2px rgba(30,27,22,.05), 0 14px 30px -20px rgba(30,27,22,.42);
+    --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+    --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(201, 169, 97, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(30,27,22,0.03) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: multiply;
+  }
+
+  /* ===== H-MART 런처 홈 (EGMM 스타일 정제 리디자인) ===== */
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  .hm-home {
+    position: relative; z-index: 1; height: 100vh;
+    display: flex; flex-direction: column;
+    background: radial-gradient(125% 85% at 50% -12%, #FFFDFA 0%, var(--bg) 46%, #F2EEE5 100%);
+  }
+  /* ── 상단바 ── */
+  .hm-topbar { flex: 0 0 62px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; background: var(--bg-elev); border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 14px rgba(30,27,22,.05); }
+  .hm-topbar-brand { display: flex; align-items: baseline; gap: 14px; }
+  .hm-topbar .hm-wordmark { font-size: 24px; letter-spacing: .16em; }
+  .hm-topbar .hm-substore { font-size: 15px; margin: 0; }
+  .hm-topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .hm-topbar .hm-fab { position: static; box-shadow: none; }
+  .hm-top-msg { position: relative; display: inline-flex; align-items: center; gap: 7px;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 9px 15px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: border-color .15s, color .15s, transform .12s; }
+  .hm-top-msg:hover { border-color: var(--accent-warm); color: var(--text); }
+  .hm-top-msg:active { transform: scale(.97); }
+  .hm-top-msg.alarm { border-color: #9C3327; color: #9C3327; }
+  .hm-top-msg.alarm .hm-chat-alarm-dot { display: inline-block; }
+  /* ── 본문: 사이드바 + 콘텐츠 ── */
+  .hm-body { flex: 1; display: grid; grid-template-columns: 230px 1fr; min-height: 0; }
+  .hm-side { min-height: 0; overflow-y: auto; padding: 12px 8px 16px; border-right: 1px solid var(--border);
+    background: linear-gradient(180deg, #F7F4ED, var(--bg)); }
+  .hm-main { min-height: 0; position: relative; background: var(--bg); }
+  .hm-frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+  .hm-welcome { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .hm-welcome-eyebrow { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .22em; color: var(--text-dim); }
+  .hm-welcome-mark { font-size: 58px; font-weight: 900; letter-spacing: .01em; color: var(--text); }
+  .hm-welcome-mark .dot { color: var(--accent-warm, #2F5D46); }
+  .hm-welcome-sub { font-size: 15px; color: var(--text-dim); }
+  /* 로그아웃 확인 팝업 */
+  .hm-logout-ov { position: fixed; inset: 0; z-index: 140; display: none; align-items: center; justify-content: center;
+    background: rgba(30,27,22,.34); backdrop-filter: blur(2px); }
+  .hm-logout-ov.show { display: flex; }
+  .hm-logout-modal { width: 340px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 22px 18px; box-shadow: 0 24px 64px rgba(30,27,22,.28); text-align: center; }
+  .hm-logout-title { font-weight: 900; font-size: 17px; color: var(--text); margin-bottom: 10px; }
+  .hm-logout-text { font-size: 14px; color: var(--text-dim); margin-bottom: 18px; }
+  .hm-logout-text b { color: var(--text); letter-spacing: .04em; }
+  .hm-logout-btns { display: flex; gap: 10px; }
+  .hm-lo-btn { flex: 1; padding: 11px 0; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text-dim); font-family: var(--mono); font-size: 14px; font-weight: 800; cursor: pointer; }
+  .hm-lo-btn:hover { border-color: var(--accent-warm); color: var(--text); }
+  .hm-lo-btn.danger { background: #9C3327; border-color: #9C3327; color: #fff; }
+  .hm-lo-btn.danger:hover { background: #7E2A20; border-color: #7E2A20; color: #fff; }
+
+  /* 마스트헤드 */
+  .hm-masthead { text-align: center; margin-bottom: clamp(26px, 4.5vh, 46px); max-width: 760px; }
+  .hm-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--text-faint); margin-bottom: 14px; }
+  .hm-wordmark { font-family: var(--serif); font-weight: 800; font-size: clamp(42px, 8vw, 64px);
+    line-height: .9; letter-spacing: -.045em; color: var(--text); display: inline-flex; align-items: flex-end; }
+  .hm-wordmark .dot { color: var(--accent-warm); }
+  .hm-substore { margin-top: 16px; font-size: 12px; font-weight: 800; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--text-dim); min-height: 14px; }
+  .hm-rule { width: min(420px, 74%); height: 1px; margin: 22px auto 0;
+    background: linear-gradient(90deg, transparent, var(--accent-warm) 20%, var(--accent-warm) 80%, transparent); opacity: .75; }
+
+  /* 도메인 패널 */
+  .hm-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+  .egmm-card { width: 100%; box-sizing: border-box; background: var(--bg-elev);
+    border: 1px solid var(--border); border-radius: 12px; padding: 11px 11px 9px;
+    box-shadow: 0 1px 0 #fff inset, 0 14px 44px rgba(30,27,22,.07);
+    opacity: 0; transform: translateY(14px); animation: hmRise .55s cubic-bezier(.2,.8,.2,1) forwards; }
+  .egmm-card:nth-child(1) { animation-delay: .05s; }
+  .egmm-card:nth-child(2) { animation-delay: .15s; }
+  @keyframes hmRise { to { opacity: 1; transform: none; } }
+
+  .egmm-card-head { display: flex; align-items: center; gap: 8px; padding-bottom: 7px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--border); }
+  .egmm-menu-btn.active, .egmm-menu-btn.active:hover { border-color: #9C3327 !important; box-shadow: 0 0 0 1px #9C3327 inset; background: var(--accent-soft, #E9EFEA); color: var(--text); font-weight: 800; }
+  .egmm-card-tick { width: 5px; height: 15px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
+  .egmm-card-name { font-family: var(--serif); font-weight: 800; font-size: 15px; letter-spacing: .03em; color: var(--text); }
+
+  .egmm-menu-btn .mlab { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; line-height: 1.15;
+    min-width: 0; width: 100%; word-break: keep-all; overflow-wrap: anywhere; }
+  .egmm-menu-btn .mlab small { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: .02em; }
+  .egmm-menu-btn.active .mlab small { color: var(--text); opacity: .75; }
+
+  .egmm-menu-btn { position: relative; width: 100%; display: flex; align-items: center; gap: 10px;
+    background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 7px 9px; border-radius: 8px; font-family: var(--mono);
+    font-size: 12px; font-weight: 700; cursor: pointer; margin-bottom: 5px; text-align: left;
+    overflow: hidden;
+    overflow: hidden; transition: border-color .16s, background .16s, transform .12s, box-shadow .16s; }
+  .egmm-menu-btn::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent-warm); transform: scaleY(0); transform-origin: center; transition: transform .18s ease; }
+  .egmm-menu-btn:hover { border-color: var(--border-bright); background: #fff; box-shadow: 0 6px 18px rgba(30,27,22,.06); }
+  .egmm-menu-btn:hover::before { transform: scaleY(1); }
+  .egmm-menu-btn:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 2px; }
+  .egmm-menu-btn:active { transform: scale(.99); }
+  .egmm-menu-btn > span:first-child { flex: 1 1 auto; min-width: 0; }
+  .egmm-menu-arrow { margin-left: auto; color: var(--text-faint); font-size: 15px; font-weight: 700;
+    transition: transform .18s ease, color .16s; }
+  .egmm-menu-btn:hover .egmm-menu-arrow { color: var(--accent-warm); transform: translateX(3px); }
+
+  .egmm-menu-btn.soon { color: var(--text-dim); cursor: default; }
+  .egmm-menu-btn.soon::before { display: none; }
+  .egmm-menu-btn.soon:hover { border-color: var(--border); background: var(--bg); box-shadow: none; }
+  .egmm-soon { margin-left: auto; font-size: 10px; font-weight: 800; letter-spacing: .1em; color: var(--accent-warm);
+    border: 1.5px solid var(--accent-warm); border-radius: 999px; padding: 3px 10px; }
+
+  @media (max-width: 720px) {
+    .hm-cards { gap: 14px; }
+    .egmm-card { max-width: 520px; flex-basis: 100%; }
+  }
+  @media (max-width: 480px) {
+    .hm-home { padding-top: 66px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .egmm-card { animation: none; opacity: 1; transform: none; }
+    .egmm-menu-btn, .egmm-menu-arrow, .egmm-menu-btn::before { transition: none; }
+  }
+
+  /* 로그아웃 FAB (정제) */
+  .hm-fab { position: fixed; top: 22px; right: 22px; z-index: 50; display: inline-flex; align-items: center; gap: 8px;
+    background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 9px 15px; border-radius: 999px; font-family: var(--mono); font-size: 13px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 6px 20px rgba(30,27,22,0.08); transition: border-color .15s, color .15s, transform .12s; }
+  .hm-fab:hover { border-color: var(--accent-warm); color: var(--text); }
+  .hm-fab:active { transform: scale(.97); }
+  .hm-fab b { color: var(--text); letter-spacing: .04em; }
+
+  /* ===== DELI REQUEST 모달 (정제 리디자인 · 골드 악센트) ===== */
+  .plureq-ov { position: fixed; inset: 0; background: rgba(30,27,22,0.42); backdrop-filter: blur(7px);
+    display: none; align-items: center; justify-content: center; z-index: 1200; padding: 20px; animation: hmFade .18s ease; }
+  .plureq-ov.show { display: flex; }
+  @keyframes hmFade { from { opacity: 0; } to { opacity: 1; } }
+  .plureq-modal { background: var(--bg-elev); border: 1px solid var(--border-bright); border-radius: 20px;
+    width: 96%; max-width: 600px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(30,27,22,0.30); animation: hmRiseModal .32s cubic-bezier(.2,.8,.2,1); }
+  @keyframes hmRiseModal { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  /* 헤더: 다크 + 골드 틱 + 골드 헤어라인 */
+  .plureq-head { position: relative; display: flex; align-items: center; gap: 12px; padding: 19px 22px;
+    background: linear-gradient(135deg, #1E1B16, #332E26); color: #fff; flex: 0 0 auto; }
+  .plureq-head::after { content: ""; position: absolute; left: 22px; right: 22px; bottom: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-warm) 18%, var(--accent-warm) 82%, transparent); opacity: .7; }
+  .plureq-tick { width: 6px; height: 24px; border-radius: 2px; background: var(--accent-warm); flex: 0 0 auto; }
+  .plureq-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .plureq-eyebrow { font-family: var(--mono); font-size: 10px; font-weight: 800; letter-spacing: .22em;
+    text-transform: uppercase; color: var(--accent-warm); }
+  .plureq-head-title { font-family: var(--serif); font-size: 18px; font-weight: 800; letter-spacing: .01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .plureq-x { margin-left: auto; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.06);
+    width: 32px; height: 32px; border-radius: 9px; font-size: 14px; cursor: pointer; color: #fff; opacity: .9;
+    display: flex; align-items: center; justify-content: center; flex: 0 0 auto; transition: all .15s; }
+  .plureq-x:hover { opacity: 1; background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
+
+  /* 본문: 크림 */
+  .plureq-body { padding: 20px 22px 22px; overflow: auto; background: #F7F4ED; }
+  .plureq-body::-webkit-scrollbar { width: 10px; }
+  .plureq-body::-webkit-scrollbar-thumb { background: #D6CFC0; border-radius: 8px; border: 3px solid #F7F4ED; }
+
+  .plureq-field { margin-bottom: 11px; }
+  .plureq-field label { display: block; font-family: var(--mono); font-size: 10.5px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); margin-bottom: 5px; }
+  .plureq-field input, .plureq-field select, .plureq-field textarea { width: 100%; box-sizing: border-box;
+    border: 1.5px solid var(--border); border-radius: 11px; padding: 10px 12px; font-family: inherit;
+    font-size: 14px; font-weight: 600; color: var(--text); background: #fff; transition: border-color .15s, box-shadow .15s; }
+  .plureq-field input::placeholder, .plureq-field textarea::placeholder { color: var(--text-faint); font-weight: 500; }
+  .plureq-field input:focus, .plureq-field select:focus, .plureq-field textarea:focus { outline: none;
+    border-color: var(--accent-warm); box-shadow: 0 0 0 3px rgba(201,169,97,.18); }
+  .plureq-field select { cursor: pointer; -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9aa0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  .plureq-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0 14px; }
+  .plureq-section-title { position: relative; font-family: var(--mono); font-size: 11px; font-weight: 800;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim); margin: 0 0 12px; padding-left: 12px; }
+  .plureq-section-title::before { content: ""; position: absolute; left: 0; top: 1px; bottom: 1px; width: 4px;
+    border-radius: 2px; background: var(--accent-warm); }
+
+  #plureqFormOv .plureq-body { text-transform: uppercase; }
+  #plureqFormOv .plureq-body input, #plureqFormOv .plureq-body select, #plureqFormOv .plureq-body textarea { text-transform: none; }
+
+  /* STORAGE 토글 pill (:has 미사용 — 호환성) */
+  .plureq-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .plureq-check { display: inline-flex; cursor: pointer; user-select: none; }
+  .plureq-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .plureq-check span { display: inline-flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--border); border-radius: 999px; padding: 8px 17px; background: #fff;
+    font-family: var(--mono); font-size: 12.5px; font-weight: 800; letter-spacing: .04em; color: var(--text-dim);
+    transition: all .15s; }
+  .plureq-check:hover span { border-color: var(--border-bright); color: var(--text); }
+  .plureq-check input:focus-visible + span { box-shadow: 0 0 0 3px rgba(201,169,97,.25); }
+  .plureq-check.hot input:checked + span { background: #F5EAE7; border-color: #9C3327; color: #7E2A20; }
+  .plureq-check.cool input:checked + span { background: #EFEBE2; border-color: #2F5D46; color: #24462F; }
+  .plureq-check.room input:checked + span { background: var(--accent-soft); border-color: var(--accent-warm); color: #24462F; }
+
+  /* 액션 버튼 */
+  .plureq-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .plureq-btn { flex: 1; border: 1.5px solid transparent; border-radius: 12px; padding: 12px; font-family: var(--mono);
+    font-size: 13.5px; font-weight: 800; letter-spacing: .03em; cursor: pointer; transition: all .15s; }
+  .plureq-btn:active { transform: scale(.98); }
+  .plureq-btn.primary { background: var(--text); color: #fff; }
+  .plureq-btn.primary:hover { background: #000; box-shadow: 0 6px 18px rgba(30,27,22,.2); }
+  .plureq-btn.blue { background: #fff; color: var(--text-dim); border-color: var(--border); }
+  .plureq-btn.blue:hover { border-color: var(--accent-warm); color: var(--text); }
+  .plureq-btn.ghost { background: transparent; color: var(--text-dim); border-color: var(--border); }
+  .plureq-btn.ghost:hover { border-color: var(--border-bright); color: var(--text); background: var(--bg-elev-2); }
+
+  /* 결과 리스트 */
+  .plureq-list { display: flex; flex-direction: column; gap: 9px; }
+  .plureq-row { position: relative; border: 1px solid var(--border); border-radius: 13px; padding: 13px 15px;
+    font-size: 14px; background: #fff; box-shadow: 0 2px 8px rgba(30,27,22,.04); transition: border-color .15s, box-shadow .15s; }
+  .plureq-row:hover { border-color: var(--border-bright); box-shadow: 0 6px 18px rgba(30,27,22,.07); }
+  .plureq-row .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .plureq-row .name { font-family: var(--serif); font-weight: 800; font-size: 15px; color: var(--text); }
+  .plureq-row .meta { color: var(--text-dim); font-size: 12.5px; margin-top: 3px; line-height: 1.5; }
+  .plureq-badge { font-family: var(--mono); font-size: 10.5px; font-weight: 800; letter-spacing: .06em;
+    padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+  .plureq-badge.pending { background: #FBF6E7; color: #24462F; }
+  .plureq-badge.done { background: #E9EFEA; color: #1F7A44; }
+  .plureq-empty { text-align: center; color: var(--text-faint); font-weight: 700; padding: 30px 20px; }
+  .rqlbl { color: var(--accent-warm); font-weight: 800; letter-spacing: .04em; }
+
+  /* === 폼 컴팩트(무스크롤) 2열 레이아웃 === */
+  .plureq-3col { display: flex; gap: 10px; }
+  .plureq-col { flex: 1 1 0; min-width: 0; }
+  #plureqFormOv .plureq-modal { max-width: 900px; }
+  #plureqFormOv .plureq-head { padding: 15px 22px; }
+  #plureqFormOv .plureq-body { padding: 16px 22px 18px; overflow: auto; }
+  .plureq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 16px; align-items: start; }
+  .plureq-grid > .span2 { grid-column: 1 / -1; }
+  .plureq-grid .plureq-field { margin-bottom: 0; }
+  #plureqFormOv .plureq-field label { margin-bottom: 3px; }
+  #plureqFormOv .plureq-field input, #plureqFormOv .plureq-field select, #plureqFormOv .plureq-field textarea { padding: 8px 11px; border-radius: 10px; }
+  #plureqFormOv .plureq-divider { margin: 6px 0 2px; }
+  #plureqFormOv .plureq-section-title { margin: 0 0 6px; }
+  .plureq-ingredients { resize: none; min-height: 34px; line-height: 1.35; }
+  .plureq-memo { resize: none; min-height: 32px; line-height: 1.35; }
+  #plureqFormOv .plureq-checks { gap: 7px; }
+  #plureqFormOv .plureq-check span { padding: 7px 14px; }
+  #plureqFormOv .plureq-actions { margin-top: 12px; }
+  @media (max-width: 680px) {
+    #plureqFormOv .plureq-modal { max-width: 600px; }
+    .plureq-grid { grid-template-columns: 1fr; }
+  }
+
+  /* 토스트 */
+  .hm-toast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%) translateY(20px); background: #1E1B16; color: #fff; padding: 11px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: all .25s; z-index: 5000; box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+  .hm-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .hm-toast.success { background: #2F6D4F; } .hm-toast.error { background: #9C3327; }
+  /* === 진입 게이트 === */
+  html.hm-gate-lock body > *:not(#hmGateOv){ visibility: hidden !important; }
+  #hmGateOv{ position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
+    background: #EDEAE3; visibility: visible !important; }
+  #hmGateOv .hmg-card{ width: 340px; background: #FFFDFA; border: 1.5px solid #E4DFD4;
+    border-radius: 18px; padding: 30px 30px 26px; box-shadow: 0 14px 30px -20px rgba(30,27,22,.42); }
+  #hmGateOv .hmg-card.hmg-wide{ width: 620px; max-width: 94vw; }
+  #hmGateOv .hmg-cols{ display:flex; gap:26px; }
+  #hmGateOv .hmg-col{ flex:1; min-width:0; }
+  #hmGateOv .hmg-col2{ border-left:1px dashed #D6CFC0; padding-left:26px; }
+  #hmGateOv .hmg-sec{ text-align:center; font-size:11px; font-weight:900; letter-spacing:.16em; color:#2F5D46; margin:2px 0 12px; }
+  #hmGateOv .hmg-foot{ display:flex; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #E4DFD4; }
+  #hmGateOv .hmg-foot .hmg-auto{ margin-bottom:0; }
+  #hmGateOv .hmg-foot .hmg-cancel{ flex:0 0 auto; padding:11px 22px; }
+  @media (max-width:640px){ #hmGateOv .hmg-cols{ flex-direction:column; gap:16px; } #hmGateOv .hmg-col2{ border-left:none; padding-left:0; border-top:1px dashed #D6CFC0; padding-top:16px; } }
+  #hmGateOv .hmg-title{ margin: 0 0 8px; font-size: 24px; font-weight: 800; letter-spacing: .14em; text-align: center; color: #1E1B16; }
+  #hmGateOv .hmg-field{ margin-bottom: 12px; }
+  #hmGateOv .hmg-field label{ display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8C8578; margin-bottom: 5px; }
+  #hmGateOv .hmg-field input{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
+    padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; }
+  #hmGateOv #hmgId{ text-transform: uppercase; }
+  #hmGateOv .hmg-field input:focus{ outline: none; border-color: #2F5D46; }
+  #hmGateOv .hmg-err{ min-height: 18px; font-size: 12px; font-weight: 800; color: #9C3327; letter-spacing: .04em; margin: 2px 0 6px; text-align: center; }
+  #hmGateOv .hmg-auto{ display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; letter-spacing: .05em;
+    color: #4C463C; cursor: pointer; user-select: none; margin-bottom: 14px; }
+  #hmGateOv .hmg-auto input{ width: 15px; height: 15px; accent-color: #2F5D46; cursor: pointer; }
+  #hmGateOv .hmg-btns{ display: flex; gap: 10px; }
+  #hmGateOv .hmg-col .hmg-btn{ width:100%; }
+  #hmGateOv .hmg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
+    letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
+  #hmGateOv .hmg-btn.hmg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
+</style>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+    authDomain: "the-shawn.firebaseapp.com",
+    projectId: "the-shawn",
+    storageBucket: "the-shawn.firebasestorage.app",
+    messagingSenderId: "519898602513",
+    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0",
+    measurementId: "G-NKGYGC63JN"
+  };
+  const app = initializeApp(firebaseConfig);
+  window.firebaseDb = getFirestore(app);
+  window.firebaseFns = { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot };
+  window.dispatchEvent(new Event('plu-firebase-ready'));
+</script>
+</head>
+<body>
+<script>
+/* 통합 세션 가드 — theShawnStore 없으면 INDEX로 (HMART는 index에서 로그인 후 진입) */
+/* === 진입 게이트(인페이지) v3 === 메인 화면이 보이기 전 로그인 필수 · 두 방식 중 택1
+   [STORE PIN]     매장 ID + PIN (plu-store-pins) → 기존 매장 입장 권한 그대로 (mode:'pin')
+   [ID/PASSWORD]   HOMEPAGE MANAGER 계정(hmart-users · manager-users) — 아이디가 있고
+                   권한(ACCESS·ANYWHERE·IP) 설정이 허용된 사람만 입장 (mode:'account')
+   세션: sessionStorage.hmGateAuth3 — 매 진입마다 서버 데이터와 재대조 */
+(function(){
+  'use strict';
+  // 매장 목록: HOMEPAGE MANAGER · 매장 관리 (app-config/stores) — 실패 시 예비 목록
+  var FALLBACK_STORES=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var VALID=null, _vp=null;
+  function loadStores(){
+    if(VALID) return Promise.resolve(VALID);
+    if(_vp) return _vp;
+    _vp=getDocData('app-config','stores').then(function(d){
+      var l=(d&&Array.isArray(d.list))?d.list.map(function(x){return String((x&&x.name)||'').trim().toUpperCase();}).filter(Boolean):[];
+      VALID=l.length?l:FALLBACK_STORES.slice(); return VALID;
+    }).catch(function(){ VALID=FALLBACK_STORES.slice(); return VALID; });
+    return _vp;
+  }
+  try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
+
+  function savedCreds(){
+    var c=null;
+    try{ c=JSON.parse(sessionStorage.getItem('hmGateAuth3')||'null'); }catch(e){}
+    if(!c){ try{ if(localStorage.getItem('hmartAutoLogin')==='1') c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); }catch(e){} }
+    if(!c) return null;
+    if(c.mode==='pin' && c.store && c.pin)
+      return {mode:'pin', store:String(c.store).toUpperCase(), pin:String(c.pin)};
+    if(c.mode==='acct' && c.name && c.hash)
+      return {mode:'acct', name:String(c.name), hash:String(c.hash)};
+    return null;
+  }
+  function fbReady(cb){ if(window.firebaseFns && window.firebaseDb) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function getDocData(col,id){
+    return new Promise(function(res,rej){
+      fbReady(function(){
+        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,col,id))
+          .then(function(snap){ res((snap&&snap.exists&&snap.exists())?(snap.data()||{}):null); })
+          .catch(rej);
+      });
+    });
+  }
+  function hashPw(v){
+    v=String(v);
+    if(window.crypto && window.crypto.subtle){
+      return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v)).then(function(buf){
+        return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+      }).catch(function(){ return null; });
+    }
+    return Promise.resolve(null);
+  }
+  function myIp(){
+    return fetch('https://api.ipify.org?format=json').then(function(r){return r.json();})
+      .then(function(j){ return String((j&&j.ip)||'').trim(); }).catch(function(){ return null; });
+  }
+
+  /* 매장 PIN 검증 */
+  function verifyStore(store,pin){
+    return getDocData('plu-store-pins', store).then(function(d){
+      if(!d || d.pin==null) return 'STORE PIN NOT SET · ASK MANAGER';
+      if(String(d.pin)!==String(pin)) return 'WRONG PIN';
+      return null;
+    }).catch(function(){ return 'CONNECTION ERROR — TRY AGAIN'; });
+  }
+  /* 계정 검증 (hmart-users → manager-users) · ACCESS/ANYWHERE/IP */
+  function findUser(name){
+    function pick(d){ var us=(d&&Array.isArray(d.users))?d.users:[];
+      for(var i=0;i<us.length;i++){ if(us[i] && String(us[i].name||'').trim().toUpperCase()===name) return us[i]; } return null; }
+    return getDocData('app-config','hmart-users').then(function(d){
+      var u=pick(d); if(u) return {u:u, tier:'hmart'};
+      return getDocData('app-config','manager-users').then(function(d2){
+        var mm=pick(d2); return mm?{u:mm, tier:'master'}:null;
+      });
+    });
+  }
+  function verifyAcct(name, pw, knownHash){
+    name=String(name).trim().toUpperCase();
+    return findUser(name).then(function(hit){
+      if(!hit) return {err:'ID NOT FOUND'};
+      var u=hit.u, pin=String(u.pin||'');
+      function checks(){
+        var anywhere=!!u.anywhere;
+        if(!anywhere && u.access===false) return Promise.resolve({err:'BLOCKED ID · ASK MANAGER'});
+        if(anywhere) return Promise.resolve(null);
+        var ips=Array.isArray(u.ips)?u.ips.map(function(x){return String(x).trim();}).filter(Boolean):[];
+        if(!ips.length) return Promise.resolve({err:'IP NOT REGISTERED · ASK MANAGER'});
+        return myIp().then(function(ip){
+          if(!ip) return {err:'IP CHECK FAILED — CHECK NETWORK'};
+          if(ips.indexOf(ip)<0) return {err:'IP NOT ALLOWED ('+ip+')'};
+          return null;
+        });
+      }
+      function done(hash){
+        return checks().then(function(bad){
+          if(bad) return bad;
+          return {ok:true, hash:hash, tier:hit.tier,
+            user:{ name:u.name, fullName:u.fullName||'', position:u.position||'', role:u.role||'' },
+            stores:(u.perms&&Array.isArray(u.perms.stores))?u.perms.stores:[] };
+        });
+      }
+      if(knownHash!=null){
+        if(pin===String(knownHash)) return done(String(knownHash));
+        return {err:'WRONG PASSWORD'};
+      }
+      return hashPw(pw).then(function(h){
+        if(h && pin===h) return done(h);
+        if(pin==='p:'+pw || (pin!=='' && pin===pw)) return done(pin);
+        return {err:'WRONG PASSWORD'};
+      });
+    }).catch(function(){ return {err:'CONNECTION ERROR — TRY AGAIN'}; });
+  }
+
+  function unlock(){
+    var ov=document.getElementById('hmGateOv'); if(ov) ov.remove();
+    document.documentElement.classList.remove('hm-gate-lock');
+  }
+  function autoSave(obj){
+    var auto=false;
+    var cb=document.getElementById('hmgAuto');
+    if(cb) auto=cb.checked; else { try{ auto=localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){} }
+    try{
+      if(auto){ localStorage.setItem('hmartAutoLogin','1'); localStorage.setItem('hmGateSaved3', JSON.stringify(obj)); }
+      else{ localStorage.setItem('hmartAutoLogin','0'); localStorage.removeItem('hmGateSaved3'); }
+    }catch(e){}
+  }
+  function passPin(store,pin){
+    try{ localStorage.setItem('theShawnStore', store); }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
+    try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'pin'})); }catch(e){}
+    try{ sessionStorage.setItem('hmGateAuth3', JSON.stringify({mode:'pin',store:store,pin:pin})); }catch(e){}
+    autoSave({mode:'pin',store:store,pin:pin});
+    unlock();
+  }
+  function passAcct(r){
+    // 계정에 특정 매장 권한이 있으면 첫 매장을 페이지 매장으로
+    try{
+      var vl=VALID||FALLBACK_STORES;
+      var sp=(r.stores||[]).filter(function(x){ return x!=='*' && vl.indexOf(String(x).toUpperCase())>=0; });
+      if(sp.length) localStorage.setItem('theShawnStore', String(sp[0]).toUpperCase());
+    }catch(e){}
+    try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
+    try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user, stores:r.stores})); }catch(e){}
+    try{ sessionStorage.setItem('hmGateAuth3', JSON.stringify({mode:'acct', name:r.user.name, hash:r.hash})); }catch(e){}
+    autoSave({mode:'acct', name:r.user.name, hash:r.hash});
+    unlock();
+  }
+
+  /* ── UI: 두 방식 동시 표시 (STORE PIN · ID/PASSWORD) ── */
+  function buildUI(){
+    var ov=document.getElementById('hmGateOv');
+    if(ov) return ov;
+    ov=document.createElement('div'); ov.id='hmGateOv';
+    ov.innerHTML='<div class="hmg-card hmg-wide">'
+      +'<h1 class="hmg-title">H-MART</h1>'
+      +'<div class="hmg-cols">'
+        +'<div class="hmg-col">'
+          +'<div class="hmg-sec">STORE PIN</div>'
+          +'<div class="hmg-field"><label>STORE ID</label><input type="text" id="hmgStoreId" placeholder="STORE ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="hmg-field"><label>PIN</label><input type="password" id="hmgStorePin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
+          +'<div class="hmg-err" id="hmgPinErr"></div>'
+          +'<button class="hmg-btn" id="hmgPinEnter" type="button">ENTER</button>'
+        +'</div>'
+        +'<div class="hmg-col hmg-col2">'
+          +'<div class="hmg-sec">ID / PASSWORD</div>'
+          +'<div class="hmg-field"><label>ID</label><input type="text" id="hmgAcctId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="hmg-field"><label>PASSWORD</label><input type="password" id="hmgAcctPw" placeholder="••••••" autocomplete="off"></div>'
+          +'<div class="hmg-err" id="hmgAcctErr"></div>'
+          +'<button class="hmg-btn" id="hmgAcctEnter" type="button">ENTER</button>'
+        +'</div>'
+      +'</div>'
+      +'<div class="hmg-foot">'
+        +'<label class="hmg-auto"><input type="checkbox" id="hmgAuto"><span>AUTO LOGIN</span></label>'
+        +'<span style="flex:1"></span>'
+        +'<button class="hmg-btn hmg-cancel" id="hmgCancel" type="button">CANCEL</button>'
+      +'</div>'
+    +'</div>';
+    (document.body||document.documentElement).appendChild(ov);
+    try{ document.getElementById('hmgAuto').checked = localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){}
+    try{ var sv=localStorage.getItem('theShawnStore'); if(sv) document.getElementById('hmgStoreId').value=sv; }catch(e){}
+    try{ var c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); if(c&&c.mode==='acct'&&c.name) document.getElementById('hmgAcctId').value=c.name; }catch(e){}
+    document.getElementById('hmgPinEnter').onclick=submitPin;
+    document.getElementById('hmgAcctEnter').onclick=submitAcct;
+    document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
+    document.getElementById('hmgStorePin').addEventListener('keydown',function(e){ if(e.key==='Enter') submitPin(); });
+    document.getElementById('hmgStoreId').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('hmgStorePin').focus(); });
+    document.getElementById('hmgAcctPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submitAcct(); });
+    document.getElementById('hmgAcctId').addEventListener('keydown',function(e){ if(e.key==='Enter') document.getElementById('hmgAcctPw').focus(); });
+    return ov;
+  }
+  function show(pinMsg, acctMsg){
+    document.documentElement.classList.add('hm-gate-lock');
+    buildUI();
+    var pe=document.getElementById('hmgPinErr'); if(pe) pe.textContent=pinMsg||'';
+    var ae=document.getElementById('hmgAcctErr'); if(ae) ae.textContent=acctMsg||'';
+  }
+  var busy=false;
+  function submitPin(){
+    if(busy) return;
+    var idIn=document.getElementById('hmgStoreId'), pwIn=document.getElementById('hmgStorePin'), er=document.getElementById('hmgPinErr');
+    var idv=(idIn&&idIn.value||'').trim().toUpperCase();
+    var pwv=(pwIn&&pwIn.value||'').trim();
+    if(er) er.textContent='';
+    if(!idv){ if(er) er.textContent='ENTER STORE ID'; idIn.focus(); return; }
+    if(!pwv){ if(er) er.textContent='ENTER PIN'; pwIn.focus(); return; }
+    busy=true; if(er) er.textContent='CHECKING…';
+    loadStores().then(function(list){
+      if(list.indexOf(idv)<0){ busy=false; if(er) er.textContent='STORE ID NOT FOUND'; return; }
+      verifyStore(idv,pwv).then(function(bad){
+        busy=false;
+        if(bad){ if(er) er.textContent=bad; pwIn.value=''; pwIn.focus(); return; }
+        passPin(idv,pwv);
+      });
+    });
+  }
+  function submitAcct(){
+    if(busy) return;
+    var idIn=document.getElementById('hmgAcctId'), pwIn=document.getElementById('hmgAcctPw'), er=document.getElementById('hmgAcctErr');
+    var idv=(idIn&&idIn.value||'').trim().toUpperCase();
+    var pwv=(pwIn&&pwIn.value||'').trim();
+    if(er) er.textContent='';
+    if(!idv){ if(er) er.textContent='ENTER ID'; idIn.focus(); return; }
+    if(!pwv){ if(er) er.textContent='ENTER PASSWORD'; pwIn.focus(); return; }
+    busy=true; if(er) er.textContent='CHECKING…';
+    verifyAcct(idv,pwv,null).then(function(r){
+      busy=false;
+      if(!r || r.err){ if(er) er.textContent=(r&&r.err)||'ERROR'; pwIn.value=''; pwIn.focus(); return; }
+      passAcct(r);
+    });
+  }
+
+  /* 시작: 저장된 자격 재검증 (방식별) — 없거나 실패 시 로그인 화면 */
+  document.documentElement.classList.add('hm-gate-lock');
+  document.addEventListener('DOMContentLoaded', function(){
+    loadStores();
+    var c=savedCreds();
+    if(!c){ show('',''); return; }
+    if(c.mode==='pin'){
+      show('CHECKING…','');
+      verifyStore(c.store,c.pin).then(function(bad){
+        if(bad){ try{ sessionStorage.removeItem('hmGateAuth3'); localStorage.removeItem('hmGateSaved3'); }catch(e){} show(bad,''); return; }
+        passPin(c.store,c.pin);
+      });
+    }else{
+      show('','CHECKING…');
+      verifyAcct(c.name, null, c.hash).then(function(r){
+        if(!r || r.err){ try{ sessionStorage.removeItem('hmGateAuth3'); localStorage.removeItem('hmGateSaved3'); }catch(e){} show('',(r&&r.err)||'ERROR'); return; }
+        passAcct(r);
+      });
+    }
+  });
+})();
+</script>
+  <div class="hm-home">
+    <!-- 상단바: H-MART + 매장명 / 우측 메시지·로그아웃 -->
+    <header class="hm-topbar">
+      <div class="hm-topbar-brand">
+        <div class="hm-wordmark">H-MART<span class="dot">.</span></div>
+      </div>
+      <div class="hm-topbar-actions">
+        <button class="hm-top-msg" id="hmMsgOpenBtn" type="button">💬 메시지<span class="hm-chat-alarm-dot"></span></button>
+        <button class="hm-fab" id="hmLogoutFab" type="button" title="로그아웃">👤 <b id="hmFabStore"></b></button>
+      </div>
+    </header>
+
+    <div class="hm-body">
+    <!-- 왼쪽 사이드바 -->
+    <aside class="hm-side">
+    <div class="hm-cards">
+      <!-- 카드 1: H-MART -->
+      <div class="egmm-card">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">ITEMS</span></div>
+
+        <button class="egmm-menu-btn" id="hmartToListBtn"><span class="mlab">PLU ITEM LIST<small>PLU 아이템 리스트</small></span></button>
+        <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC ITEM LIST<small>UPC 아이템 리스트</small></span></button>
+        <button class="egmm-menu-btn" id="hmartToPreviewMgrBtn"><span class="mlab">PLU PREVIEW MANAGER<small>매장 PLU 미리보기 관리</small></span></button>
+
+        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span class="mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
+
+        <button class="egmm-menu-btn" id="hmartAdViewBtn"><span class="mlab">AD ITEMS<small>광고상품 보기</small></span></button>
+
+        <button class="egmm-menu-btn" id="hmartNewItemBtn"><span class="mlab">NEW ITEMS<small>신상품 보기</small></span><span class="hm-req-dot" id="hmNewDot"></span></button>
+      </div>
+
+      <!-- 카드: PURCHASE — 매입일지 -->
+      <div class="egmm-card">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">PURCHASE</span></div>
+
+        <button class="egmm-menu-btn" id="hmartPurchaseBtn"><span class="mlab">DAILY PURCHASE<small>매입일지</small></span></button>
+      </div>
+
+      <!-- 카드: REQUEST — 숨김 처리 (표시 안함 · 기능 코드는 유지) -->
+      <div class="egmm-card" id="hmReqCard" style="display:none">
+        <div class="egmm-card-head"><span class="egmm-card-tick"></span><span class="egmm-card-name">REQUEST</span></div>
+
+        <button class="egmm-menu-btn" id="hmartDeliBtn"><span class="mlab">DELI REQUEST<small>델리 PLU 요청</small></span></button>
+
+        <button class="egmm-menu-btn" id="hmReqViewBtn"><span class="mlab">VIEW REQUEST<small>요청 결과 보기</small></span><span class="hm-req-dot" id="hmReqDot"></span></button>
+      </div>
+
+    </div>
+    </aside>
+
+    <!-- 오른쪽 콘텐츠 화면 -->
+    <main class="hm-main">
+      <div class="hm-welcome" id="hmWelcome">
+        <div class="hm-welcome-eyebrow">매장 콘솔 · STORE OPERATIONS</div>
+        <div class="hm-welcome-mark">H-MART<span class="dot">.</span></div>
+        <div class="hm-welcome-sub">왼쪽 메뉴에서 기능을 선택하세요</div>
+      </div>
+      <iframe class="hm-frame" id="hmFrame" src="about:blank" title="content" style="display:none"></iframe>
+    </main>
+    </div><!-- /.hm-body -->
+
+    <!-- EGMM 메시지 팝업 (상단 💬 버튼) -->
+    <div class="hm-msg-wrap" id="hmChatPop">
+      <div class="hm-chat-card">
+        <div class="hm-chat-head" id="hmChatHead"><span>💬 EGMM 메시지</span><span class="hm-chat-alarm-dot"></span><span class="hm-msg-live">● LIVE</span></div>
+        <div class="hm-chat-body" id="hmChatBody"></div>
+        <div class="hm-chat-input">
+          <button class="hm-chat-photo" id="hmMsgPhotoBtn" title="사진 보내기">📷</button>
+          <input type="file" id="hmMsgFile" accept="image/*" style="display:none">
+          <textarea id="hmMsgText" class="hm-chat-text" placeholder=""></textarea>
+          <button class="hm-chat-send" id="hmMsgSendBtn">전송</button>
+        </div>
+      </div>
+    </div>
+    <div class="hm-lightbox" id="hmLightbox"><img id="hmLightboxImg" src="" alt=""></div>
+    <!-- 로그아웃 확인 팝업 -->
+    <div class="hm-logout-ov" id="hmLogoutOv">
+      <div class="hm-logout-modal">
+        <div class="hm-logout-title">👤 로그아웃</div>
+        <div class="hm-logout-text"><b id="hmLoStore"></b> 계정에서 로그아웃할까요?</div>
+        <div class="hm-logout-btns">
+          <button class="hm-lo-btn" id="hmLoCancel" type="button">취소</button>
+          <button class="hm-lo-btn danger" id="hmLoOk" type="button">로그아웃</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<style>
+  /* EGMM 메시지 */
+  /* 메시지 팝업 (상단 버튼) — 투명 오버레이: iframe 위 클릭도 받아 바깥 클릭 닫기 동작 */
+  #hmChatPop { position: fixed; inset: 0; z-index: 130; display: none; background: rgba(30,27,22,.06); }
+  #hmChatPop.show { display: block; }
+  #hmChatPop .hm-chat-card { position: absolute; top: 70px; right: 16px; width: 430px; max-width: calc(100vw - 32px);
+    box-shadow: 0 18px 48px rgba(30,27,22,.22); }
+  .hm-msg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px){ .hm-msg-grid { grid-template-columns: 1fr; } }
+  .hm-msg-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 16px; }
+  .hm-msg-head { font-weight: 800; font-size: 15px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .hm-msg-live { font-size: 10px; font-weight: 800; color: #2F6D4F; letter-spacing: .1em; }
+  .hm-msg-text { width: 100%; box-sizing: border-box; min-height: 90px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: vertical; margin-bottom: 10px; }
+  .hm-msg-send { width: 100%; border: none; background: var(--accent-warm, #2F5D46); color: #fff; border-radius: 10px; padding: 11px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .hm-msg-send:active { transform: scale(.99); }
+  .hm-msg-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  .hm-msg-item { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--bg); }
+  .hm-msg-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .hm-msg-from { font-size: 12px; font-weight: 800; color: var(--accent-warm, #2F5D46); letter-spacing: .05em; }
+  .hm-msg-time { font-size: 10px; color: var(--text-dim); }
+  .hm-msg-body { font-size: 14px; color: var(--text); white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+  .hm-msg-empty { font-size: 13px; color: var(--text-dim); padding: 14px 4px; text-align: center; }
+  /* 대화형 채팅 */
+
+  .hm-chat-card { background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .hm-chat-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); font-weight: 800; font-size: 15px; color: var(--text); }
+  .hm-chat-head .hm-msg-live { margin-left: auto; }
+  @keyframes hmChatAlarm { 0%,100%{ background:var(--bg-elev); } 50%{ background:#F5EAE7; } }
+  .hm-chat-head.alarm { animation: hmChatAlarm 1s ease-in-out infinite; }
+  .hm-chat-head.alarm > span:first-child { color:#9C3327; }
+  .hm-chat-alarm-dot { display:none; width:9px; height:9px; border-radius:50%; background:#9C3327; animation: hmDotPulse 1s infinite; }
+  .hm-chat-head.alarm .hm-chat-alarm-dot { display:inline-block; }
+  @keyframes hmDotPulse { 0%{ box-shadow:0 0 0 0 rgba(156,51,39,.5);} 70%{ box-shadow:0 0 0 7px rgba(156,51,39,0);} 100%{ box-shadow:0 0 0 0 rgba(156,51,39,0);} }
+  .hm-chat-body { height: 340px; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; background: var(--bg); }
+  .hm-chat-body .chat-wrap-line { display: flex; flex-direction: column; max-width: 96%; }
+  .hm-chat-body .chat-wrap-line.me { align-self: flex-end; align-items: flex-end; }
+  .hm-chat-body .chat-wrap-line.them { align-self: flex-start; align-items: flex-start; }
+  .hm-chat-body .chat-row { display: flex; }
+  .hm-chat-body .chat-bubble { padding: 9px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .hm-chat-body .chat-wrap-line.me .chat-bubble { background: var(--accent-warm, #2F5D46); color: #fff; border-bottom-right-radius: 4px; }
+  .hm-chat-body .chat-wrap-line.them .chat-bubble { background: var(--bg-elev); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
+  .hm-chat-body .chat-meta { font-size: 10px; color: var(--text-dim); margin: 3px 4px 0; }
+  .hm-chat-input { display: flex; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .hm-chat-text { flex: 1; min-height: 42px; max-height: 120px; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); font-size: 14px; resize: none; }
+  .hm-chat-send { flex: 0 0 auto; border: none; background: var(--accent-warm, #2F5D46); color: #fff; border-radius: 10px; padding: 0 20px; font-family: var(--mono); font-weight: 700; font-size: 14px; cursor: pointer; }
+  .hm-chat-send:active { transform: scale(.98); }
+  .hm-chat-body .chat-img { max-width: 220px; max-height: 220px; border-radius: 10px; display: block; cursor: pointer; }
+  .hm-chat-body .chat-bubble.img-bubble { padding: 5px; }
+  .hm-msg-del { cursor: pointer; color: #9C3327; font-weight: 700; }
+  .hm-msg-del:hover { color: #7E2A20; }
+  .hm-chat-card.dragover .hm-chat-body { outline: 2px dashed var(--accent-warm, #2F5D46); outline-offset: -6px; background: var(--accent-soft, #E9EFEA); }
+  .hm-chat-photo { flex: 0 0 auto; border: 1.5px solid var(--border); background: var(--bg-elev); border-radius: 10px; padding: 0 14px; font-size: 18px; cursor: pointer; }
+  .hm-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: none; align-items: center; justify-content: center; z-index: 9999; }
+  .hm-lightbox.show { display: flex; }
+  .hm-lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
+
+  /* 승인 알림: VIEW REQUEST 빨강 점멸 + 도트 */
+  @keyframes hmAlarmBlink { 0%,100%{ background:var(--bg); border-color:var(--border); } 50%{ background:#F5EAE7; border-color:#9C3327; box-shadow:0 0 0 2px rgba(156,51,39,.22); } }
+  .egmm-menu-btn.hm-alarm{ animation:hmAlarmBlink 1s ease-in-out infinite; }
+  .egmm-menu-btn.hm-alarm > span:first-child{ color:#9C3327; }
+  .hm-req-dot{ display:none; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; margin-left:8px; border-radius:9px; background:#9C3327; color:#fff; font-family:var(--mono); font-size:10px; font-weight:800; }
+  .plureq-row.pending{ border-color:#D8A79C !important; background:#FFFDFA; }
+  .rqtop-right{ display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .plureq-cancel{ border:1px solid #D8A79C; background:#fff; color:#9C3327; border-radius:8px; padding:4px 10px; font-family:var(--mono); font-size:12px; font-weight:800; cursor:pointer; }
+  .plureq-cancel:hover{ background:#9C3327; color:#fff; border-color:#9C3327; }
+  @media (prefers-reduced-motion: reduce){ .egmm-menu-btn.hm-alarm{ animation:none; background:#F5EAE7; border-color:#9C3327; } }
+</style>
+<div class="plureq-ov" id="plureqFormOv"><div class="plureq-modal">
+  <div class="plureq-head">
+    <span class="plureq-tick"></span>
+    <span class="plureq-head-text">
+      <span class="plureq-eyebrow">DELI · REQUEST</span>
+      <span class="plureq-head-title" id="rqTitle">DELI · PLU REQUEST</span>
+    </span>
+    <button class="plureq-x" id="rqFormX" type="button">✕</button>
+  </div>
+  <div class="plureq-body">
+    <div class="plureq-grid">
+      <div class="plureq-field"><label>REQUESTER</label><input id="rqRequester" maxlength="30" autocomplete="off"></div>
+      <div class="plureq-field"><label>CATEGORY</label><select id="rqCategory"><option value="">SELECT</option><option>PRODUCE</option><option>DELI</option><option>FISH</option><option>MEAT</option><option>HOUSEWARE</option></select></div>
+      <div class="plureq-field"><label>KOR DESC</label><input id="rqKor" maxlength="60" autocomplete="off"></div>
+      <div class="plureq-field"><label>ENG DESC</label><input id="rqEng" maxlength="60" autocomplete="off"></div>
+      <div class="plureq-field"><label>ORIGIN</label><input id="rqOrigin" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field"><label>VENDER</label><input id="rqVender" maxlength="40" autocomplete="off"></div>
+      <div class="plureq-field"><label>PRICE</label><input id="rqPrice" maxlength="20" autocomplete="off"></div>
+      <div class="plureq-field"><label>STORAGE</label>
+        <div class="plureq-checks">
+          <label class="plureq-check hot"><input type="checkbox" id="rqHot"><span>HOT</span></label>
+          <label class="plureq-check cool"><input type="checkbox" id="rqCool"><span>COOL</span></label>
+          <label class="plureq-check room"><input type="checkbox" id="rqAmbient"><span>ROOM</span></label>
+        </div>
+      </div>
+      <hr class="plureq-divider span2">
+      <div class="plureq-section-title span2">Additional info for DELI PLU requests</div>
+      <div class="plureq-field span2"><label>INGREDIENTS (English only)</label><textarea id="rqIngredients" class="plureq-ingredients" maxlength="200" rows="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea></div>
+      <div class="plureq-3col span2">
+        <div class="plureq-field plureq-col"><label>TARE (weight)</label><input id="rqTare" maxlength="12" autocomplete="off"></div>
+        <div class="plureq-field plureq-col"><label>SELL BY TIME</label><input id="rqSellByTime" maxlength="40" autocomplete="off"></div>
+        <div class="plureq-field plureq-col"><label>SELL BY DATE</label><input id="rqSellByDate" maxlength="40" autocomplete="off"></div>
+      </div>
+      <div class="plureq-field span2"><label>MEMO</label><textarea id="rqMemo" class="plureq-memo" maxlength="500" rows="2" autocomplete="off"></textarea></div>
+      <div class="plureq-actions span2">
+        <button class="plureq-btn ghost" id="rqCancel">CANCEL</button>
+        <button class="plureq-btn blue" id="rqViewOpen">VIEW REQUEST</button>
+        <button class="plureq-btn primary" id="rqSubmit">SUBMIT</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+<div class="plureq-ov" id="plureqViewOv"><div class="plureq-modal">
+  <div class="plureq-head">
+    <span class="plureq-tick"></span>
+    <span class="plureq-head-text">
+      <span class="plureq-eyebrow">DELI · REQUEST</span>
+      <span class="plureq-head-title">PLU REQUEST RESULTS</span>
+    </span>
+    <button class="plureq-x" id="rqViewX" type="button">✕</button>
+  </div>
+  <div class="plureq-body">
+    <div class="plureq-list" id="rqList"></div>
+    <div class="plureq-actions"><button class="plureq-btn ghost" id="rqViewClose">CLOSE</button></div>
+  </div>
+</div></div>
+<div class="hm-toast" id="hmToast"></div>
+
+<script>
+(function(){
+  'use strict';
+  var $ = function(id){ return document.getElementById(id); };
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+
+  // 타이틀 · FAB · 문서 제목에 매장명
+  var st = activeStore();
+  var suf = $('hmStoreSuffix'); if(suf) suf.textContent = st || '';
+  var fabName = $('hmFabStore'); if(fabName) fabName.textContent = st || 'MANAGER';
+  document.title = 'H-MART' + (st ? (' - ' + st) : '') + ' · THE SHAWN';
+
+  // 토스트 / 얼럿
+  var toastTimer;
+  function showToast(msg, type){ var t=$('hmToast'); if(!t) return; clearTimeout(toastTimer); t.textContent=msg; t.className='hm-toast show '+(type||''); toastTimer=setTimeout(function(){ t.className='hm-toast '+(type||''); }, 2500); }
+  function uiAlert(msg){ showToast(msg, 'error'); }
+
+  // ===== 알림음(Web Audio) + 승인 점멸 =====
+  var audioCtx=null;
+  function ensureAudio(){ try{ if(!audioCtx){ var AC=window.AudioContext||window.webkitAudioContext; if(AC) audioCtx=new AC(); } if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} return audioCtx; }
+  document.addEventListener('click', function(){ ensureAudio(); });   // 자동재생 정책: 첫 클릭에서 오디오 활성화
+  function playBeep(){ var ctx=ensureAudio(); if(!ctx) return; try{ var now=ctx.currentTime; function tone(freq,start,dur){ var o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.setValueAtTime(freq, now+start); g.gain.setValueAtTime(0.0001, now+start); g.gain.exponentialRampToValueAtTime(0.32, now+start+0.02); g.gain.exponentialRampToValueAtTime(0.0001, now+start+dur); o.connect(g); g.connect(ctx.destination); o.start(now+start); o.stop(now+start+dur+0.05); } tone(1318.5, 0, 0.55);   /* 딩 (E6) */ tone(1046.5, 0.5, 0.9);  /* 동 (C6) */ }catch(e){} }
+  var newApprovals=0;
+  // ===== 신상품(upc-ocr-list) 알람 =====
+  var OCR_COL='upc-ocr-list', niNew=0, niMaxTs=0;
+  function niSeen(){ try{ return parseInt(localStorage.getItem('hmNewItemSeen')||'0',10)||0; }catch(e){ return 0; } }
+  function refreshNewDot(){ var d=$('hmNewDot'), b=$('hmartNewItemBtn'); if(!d||!b) return; if(niNew>0){ d.textContent=niNew; d.style.display='inline-flex'; b.classList.add('hm-alarm'); } else { d.textContent=''; d.style.display='none'; b.classList.remove('hm-alarm'); } }
+  var niFirst=true;
+  function watchNewItems(){ try{ fns().onSnapshot(fns().collection(db(), OCR_COL), function(snap){
+    var mx=0, list=[]; snap.forEach(function(ds){ var v=ds.data()||{}; var rows=Array.isArray(v.rows)?v.rows:[]; rows.forEach(function(r){ var ts=+r.updatedAt||0; if(ts>mx) mx=ts; list.push(ts); }); });
+    niMaxTs=mx;
+    var stored=null; try{ stored=localStorage.getItem('hmNewItemSeen'); }catch(e){}
+    if(niFirst && stored==null){ niFirst=false; try{ localStorage.setItem('hmNewItemSeen', String(mx)); }catch(e){} niNew=0; refreshNewDot(); return; }
+    niFirst=false; var seen=niSeen(), cnt=0; list.forEach(function(ts){ if(ts>seen) cnt++; }); niNew=cnt; refreshNewDot();
+  }, function(){}); }catch(e){} }
+  function refreshDot(){ var d=$('hmReqDot'), b=$('hmReqViewBtn'); if(!d||!b) return; if(newApprovals>0){ d.textContent=newApprovals; d.style.display='inline-flex'; b.classList.add('hm-alarm'); } else { d.textContent=''; d.style.display='none'; b.classList.remove('hm-alarm'); } }
+
+  // 네비게이션
+  // 중첩 방지: 하위 페이지의 '돌아가기'로 iframe 안에 hmart가 다시 열리면 전체 화면으로 복귀
+  try{ if(window.top!==window.self){ window.top.location.href=window.location.href; } }catch(e){}
+  // 왼쪽 메뉴 → 오른쪽 화면(iframe) 표시. 기능 페이지 자체는 기존 그대로.
+  // iframe 안 페이지의 자체 타이틀·하단 로그아웃 버튼 숨김 (왼쪽 메뉴·상단 로그아웃과 중복 방지)
+  function __trimFrame(f){
+    try{
+      var d=f.contentDocument; if(!d) return;
+      var st=d.createElement('style');
+      st.textContent='.page-title{display:none !important;} #stlFab,.stl-fab{display:none !important;}'
+        +'.page-topbar .plu-tabs{margin-left:0 !important;}'
+        +'.page-topbar{padding-left:32px !important;}';   /* 중간 카테고리(32px)와 세로 시작선 일치 */
+      (d.head||d.documentElement).appendChild(st);
+    }catch(e){}
+  }
+  // 메뉴별 iframe을 유지(캐시): PLU↔UPC 전환 시 다시 불러오지 않고 즉시 표시
+  var __frames={};
+  function openInFrame(url, btn){
+    var w=$('hmWelcome'); if(w) w.style.display='none';
+    var base=$('hmFrame'); if(base){ base.style.display='none'; }
+    for(var k in __frames){ __frames[k].style.display='none'; }
+    var f=__frames[url];
+    if(!f){
+      f=document.createElement('iframe');
+      f.className='hm-frame'; f.title='content'; f.src=url;
+      f.addEventListener('load', function(){ __trimFrame(f); });
+      var host=document.querySelector('.hm-main'); if(host) host.appendChild(f);
+      __frames[url]=f;
+    }
+    f.style.display='block';
+    Array.prototype.forEach.call(document.querySelectorAll('.hm-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
+    if(btn) btn.classList.add('active');
+  }
+  $('hmartToListBtn').onclick = function(){ openInFrame('../plu-list-store.html', this); };
+  $('hmartToUpcBtn').onclick = function(){ openInFrame('../upc-list-store.html', this); };
+  // PLU PREVIEW MANAGER — 이 매장(theShawnStore)의 미리보기 관리 화면 (매장별 독립)
+  if($('hmartToPreviewMgrBtn')) $('hmartToPreviewMgrBtn').onclick = function(){
+    var store=activeStore();
+    openInFrame('../tablet-plu-preview.html?mode=manager&store='+encodeURIComponent(store), this);
+  };
+  $('hmartToQuizBtn').onclick = function(){ openInFrame('../plu-quiz.html', this); };
+  $('hmartAdViewBtn').onclick = function(){ openInFrame('../advertising-viewer.html', this); };
+  $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('../newitem-viewer.html', this); };
+  var __dpBtn=$('hmartPurchaseBtn'); if(__dpBtn) __dpBtn.onclick = function(){ openInFrame('daily-purchase.html', this); };
+  ready(watchNewItems);
+
+  // 로그아웃 → 세션 정리 후 INDEX
+  // 로그아웃 확인 팝업
+  function doLogout(){
+    try{ if(window.__endAccessLog) window.__endAccessLog(); }catch(e){}
+    try{ localStorage.removeItem('theShawnStore'); }catch(e){}
+    try{ localStorage.removeItem('theShawnUpcStore'); }catch(e){}
+    try{ localStorage.removeItem('hmartAutoLogin'); }catch(e){}
+    try{ localStorage.removeItem('hmGateSaved3'); }catch(e){}
+    try{ sessionStorage.removeItem('hmGateAuth3'); }catch(e){}
+    try{ sessionStorage.removeItem('hmartAuth'); }catch(e){}
+    try{ sessionStorage.removeItem('hmartGate'); }catch(e){}
+    window.location.href = '../index.html';
+  }
+  $('hmLogoutFab').onclick = function(){
+    var ov=$('hmLogoutOv'); if(ov){ $('hmLoStore').textContent=(localStorage.getItem('theShawnStore')||''); ov.classList.add('show'); }
+  };
+  (function(){
+    var ov=$('hmLogoutOv'); if(!ov) return;
+    $('hmLoCancel').onclick=function(){ ov.classList.remove('show'); };
+    $('hmLoOk').onclick=function(){ ov.classList.remove('show'); doLogout(); };
+    ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); });
+  })();
+
+  // ===== PLU REQUEST (DELI) — plu-requests 컬렉션 =====
+  var REQ_COL='plu-requests';
+  var reqs=[], seenDone={}, firstSnap=true;
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  function genId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
+
+  function openForm(){ var s=activeStore(); var ti=$('rqTitle'); if(ti) ti.textContent=(s?(s+' STORE · '):'')+'PLU REQUEST'; ['rqRequester','rqCategory','rqKor','rqEng','rqOrigin','rqVender','rqPrice','rqIngredients','rqTare','rqSellByTime','rqSellByDate','rqMemo'].forEach(function(id){ if($(id)) $(id).value=''; }); ['rqHot','rqCool','rqAmbient'].forEach(function(id){ if($(id)) $(id).checked=false; }); $('plureqFormOv').classList.add('show'); }
+  function closeForm(){ $('plureqFormOv').classList.remove('show'); }
+  function submitReq(){
+    var store=activeStore(); var requester=($('rqRequester').value||'').trim();
+    if(!store){ uiAlert('매장 로그인이 필요합니다'); return; }
+    if(!requester){ uiAlert('Please enter REQUESTER'); return; }
+    var storage=[]; if($('rqHot')&&$('rqHot').checked)storage.push('HOT'); if($('rqCool')&&$('rqCool').checked)storage.push('COOL'); if($('rqAmbient')&&$('rqAmbient').checked)storage.push('ROOM');
+    var data={ store:store, requester:requester, category:($('rqCategory')?($('rqCategory').value||'').trim():''), kor:($('rqKor').value||'').trim(), eng:($('rqEng').value||'').trim(), origin:($('rqOrigin').value||'').trim(), vender:($('rqVender').value||'').trim(), price:($('rqPrice').value||'').trim(),
+      ingredients:($('rqIngredients').value||'').trim(), storage:storage.join(', '), tare:($('rqTare').value||'').trim(), sellByTime:($('rqSellByTime').value||'').trim(), sellByDate:($('rqSellByDate').value||'').trim(), memo:($('rqMemo').value||'').trim(),
+      status:'pending', plu:'', mgrKor:'', mgrEng:'', createdAt:Date.now(), updatedAt:Date.now() };
+    if(!fns()||!db()){ uiAlert('연결 준비 중 — 잠시 후 다시'); return; }
+    try{ fns().setDoc(fns().doc(db(), REQ_COL, genId()), data).then(function(){ closeForm(); showToast('PLU request submitted','success'); }).catch(function(){ uiAlert('Submit failed (check network/permission)'); }); }
+    catch(e){ uiAlert('Submit failed'); }
+  }
+  function statusBadge(s){ return s==='done' ? '<span class="plureq-badge done">DONE</span>' : '<span class="plureq-badge pending">PENDING</span>'; }
+  function openView(){
+    var myStore=activeStore();
+    var mine=reqs.filter(function(r){ return myStore ? (r.store===myStore) : true; });
+    mine.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; });
+    newApprovals=0; refreshDot();
+    var el=$('rqList');
+    var sorted=mine.slice().sort(function(a,b){ var ap=a.status!=='done'?0:1, bp=b.status!=='done'?0:1; if(ap!==bp) return ap-bp; return (b.updatedAt||b.createdAt||0)-(a.updatedAt||a.createdAt||0); });
+    el.innerHTML = sorted.length ? sorted.map(function(r){
+      var done=r.status==='done', id=esc(r.__id);
+      var kor=done?(r.mgrKor||r.kor||''):(r.kor||'');
+      var eng=done?(r.mgrEng||r.eng||''):(r.eng||'');
+      var L=function(t){ return '<span class="rqlbl">'+t+'</span> '; };
+      var topName='<span class="rqlbl">PLU</span> '+esc(done?(r.plu||'-'):'-')+' / '+esc(kor||'-')+' / '+esc(eng||'-');
+      var lines=[];
+      var m=[]; if(r.price)m.push(L('PRICE')+esc(r.price)); if(r.storage)m.push(L('STORAGE')+esc(r.storage)); if(r.tare)m.push(L('TARE')+esc(r.tare)); if(r.sellByTime)m.push(L('SELL BY TIME')+esc(r.sellByTime)); if(r.sellByDate)m.push(L('SELL BY DATE')+esc(r.sellByDate)); if(m.length) lines.push(m.join(' · '));
+      if(r.ingredients) lines.push(L('INGREDIENTS')+esc(r.ingredients));
+      if(r.memo) lines.push(L('MEMO')+esc(r.memo));
+      var metaHtml=lines.map(function(s){ return '<div class="meta">'+s+'</div>'; }).join('');
+      var cancelBtn = done ? '' : '<button class="plureq-cancel" data-cancel="'+id+'">신청취소</button>';
+      return '<div class="plureq-row '+(done?'':'pending')+'"><div class="top"><span class="name">'+topName+'</span><span class="rqtop-right">'+statusBadge(r.status)+cancelBtn+'</span></div>'+metaHtml+'</div>';
+    }).join('') : '<div class="plureq-empty">No requests.</div>';
+    $('plureqViewOv').classList.add('show');
+  }
+  function closeView(){ $('plureqViewOv').classList.remove('show'); }
+  function cancelReq(id){
+    if(!window.confirm('이 신청을 취소할까요?\n취소하면 EGMM 받은 목록에서도 사라집니다.')) return;
+    if(!fns()||!fns().deleteDoc){ uiAlert('취소 불가 — 잠시 후 다시'); return; }
+    try{ fns().deleteDoc(fns().doc(db(), REQ_COL, id)).then(function(){ showToast('신청이 취소되었습니다','success'); }).catch(function(){ uiAlert('취소 실패 — 권한/네트워크 확인'); }); }
+    catch(e){ uiAlert('취소 실패'); }
+  }
+  document.addEventListener('click', function(e){ var t=e.target; var cid=t.getAttribute&&t.getAttribute('data-cancel'); if(cid){ cancelReq(cid); } });
+
+  $('hmartDeliBtn').onclick = openForm;
+  $('rqCancel').onclick = closeForm;
+  $('rqFormX').onclick = closeForm;
+  $('rqSubmit').onclick = submitReq;
+  $('rqViewOpen').onclick = openView;
+  var __vb=$('hmReqViewBtn'); if(__vb) __vb.onclick = openView;
+  // STORAGE: 하나만 선택 (한 개 체크 시 나머지 해제)
+  ['rqHot','rqCool','rqAmbient'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', function(){ if(el.checked){ ['rqHot','rqCool','rqAmbient'].forEach(function(o){ if(o!==id && $(o)) $(o).checked=false; }); } }); });
+  $('rqViewClose').onclick = closeView;
+  $('rqViewX').onclick = closeView;
+  $('plureqFormOv').addEventListener('click', function(e){ if(e.target===$('plureqFormOv')) closeForm(); });
+  $('plureqViewOv').addEventListener('click', function(e){ if(e.target===$('plureqViewOv')) closeView(); });
+
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), REQ_COL), function(snap){ reqs=[]; snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg') return; reqs.push(d); });
+        if(firstSnap){ reqs.forEach(function(r){ if(r.status==='done') seenDone[r.__id]=1; }); firstSnap=false; }
+        else { var myStore=activeStore(); var fresh=0; reqs.forEach(function(r){ if(r.status==='done' && !seenDone[r.__id]){ seenDone[r.__id]=1; if(!myStore || r.store===myStore) fresh++; } }); if(fresh>0){ newApprovals+=fresh; playBeep(); } }
+        refreshDot();
+        var ov=$('plureqViewOv'); if(ov && ov.classList.contains('show')) openView(); }, function(){});
+    }catch(e){}
+  });
+})();
+</script>
+
+<script>
+/* ===== EGMM 메시지 (H-MART 매장 ↔ EGMM) — 대화형 ===== */
+(function(){
+  'use strict';
+  var $=function(id){ return document.getElementById(id); };
+  var MSG_COL='plu-requests';
+  var allMsgs=[];
+  function db(){ return window.firebaseDb; }
+  function fns(){ return window.firebaseFns; }
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+  function fmtTime(ts){ if(!ts) return ''; var d=new Date(ts); var mm=('0'+(d.getMonth()+1)).slice(-2), dd=('0'+d.getDate()).slice(-2), hh=('0'+d.getHours()).slice(-2), mi=('0'+d.getMinutes()).slice(-2); return mm+'/'+dd+' '+hh+':'+mi; }
+  function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
+
+  // 띵동 알림음
+  var actx=null;
+  function ding(){
+    try{
+      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      if(actx.state==='suspended') actx.resume();
+      var now=actx.currentTime;
+      [[988,0],[1319,0.14]].forEach(function(p){
+        var o=actx.createOscillator(), g=actx.createGain();
+        o.type='sine'; o.frequency.value=p[0];
+        o.connect(g); g.connect(actx.destination);
+        var t=now+p[1];
+        g.gain.setValueAtTime(0.0001,t);
+        g.gain.exponentialRampToValueAtTime(0.35,t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+        o.start(t); o.stop(t+0.4);
+      });
+    }catch(e){}
+  }
+  var head=$('hmChatHead');
+  function alarmOn(){ if(head) head.classList.add('alarm'); var mb=$('hmMsgOpenBtn'); if(mb) mb.classList.add('alarm'); }
+  function alarmOff(){ if(head) head.classList.remove('alarm'); var mb=$('hmMsgOpenBtn'); if(mb) mb.classList.remove('alarm'); }
+  // 상단 💬 버튼: 메시지 팝업 열기/닫기
+  (function(){
+    var pop=$('hmChatPop'), btn=$('hmMsgOpenBtn');
+    if(!pop||!btn) return;
+    btn.onclick=function(e){
+      e.stopPropagation();
+      var opening=!pop.classList.contains('show');
+      pop.classList.toggle('show');
+      if(opening){ alarmOff(); var b=$('hmChatBody'); if(b) b.scrollTop=b.scrollHeight; }
+    };
+    // 오버레이(카드 밖) 클릭 시 닫기 — iframe 위 클릭도 오버레이가 받음
+    pop.addEventListener('click', function(e){
+      alarmOff();
+      if(e.target===pop) pop.classList.remove('show');
+    });
+  })();
+
+  function sendMsg(){
+    var store=activeStore();
+    var ta=$('hmMsgText'); var text=(ta.value||'').trim();
+    if(!store){ alert('매장 로그인이 필요합니다'); return; }
+    if(!text) return;
+    var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    try{
+      fns().setDoc(fns().doc(db(), MSG_COL, id), { kind:'chatmsg', store:store, dir:'toEgmm', text:text, createdAt:Date.now() });
+      ta.value='';
+    }catch(e){ alert('전송 실패: '+e.message); }
+  }
+  var sendBtn=$('hmMsgSendBtn'); if(sendBtn) sendBtn.onclick=sendMsg;
+  var ta=$('hmMsgText');
+  if(ta) ta.addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey && !e.isComposing && e.keyCode!==229){ e.preventDefault(); sendMsg(); } });
+
+  // 이미지 압축 → base64 → 전송
+  function compressImage(file, cb){
+    var reader=new FileReader();
+    reader.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var max=1024, w=img.width, h=img.height;
+        if(w>max || h>max){ if(w>=h){ h=Math.round(h*max/w); w=max; } else { w=Math.round(w*max/h); h=max; } }
+        var cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        var q=0.75, data=cv.toDataURL('image/jpeg',q);
+        while(data.length>900000 && q>0.35){ q-=0.1; data=cv.toDataURL('image/jpeg',q); }
+        cb(data);
+      };
+      img.onerror=function(){ alert('이미지를 읽을 수 없습니다'); };
+      img.src=reader.result;
+    };
+    reader.onerror=function(){ alert('파일 읽기 실패'); };
+    reader.readAsDataURL(file);
+  }
+  function sendImage(file){
+    var store=activeStore();
+    if(!store){ alert('매장 로그인이 필요합니다'); return; }
+    if(!file || !/^image\//.test(file.type)){ alert('이미지 파일만 보낼 수 있습니다'); return; }
+    compressImage(file, function(data){
+      if(data.length>1000000){ alert('사진 용량이 너무 큽니다. 더 작은 사진을 사용하세요.'); return; }
+      var id='msg_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      try{ fns().setDoc(fns().doc(db(), MSG_COL, id), { kind:'chatmsg', store:store, dir:'toEgmm', img:data, createdAt:Date.now() }); }
+      catch(e){ alert('전송 실패: '+e.message); }
+    });
+  }
+  var photoBtn=$('hmMsgPhotoBtn'); if(photoBtn) photoBtn.onclick=function(){ $('hmMsgFile').click(); };
+  var fileIn=$('hmMsgFile'); if(fileIn) fileIn.onchange=function(e){ if(e.target.files&&e.target.files[0]) sendImage(e.target.files[0]); e.target.value=''; };
+  var lb=$('hmLightbox'); if(lb) lb.onclick=function(){ lb.classList.remove('show'); };
+
+  // 드래그앤드롭
+  var card=document.querySelector('.hm-chat-card');
+  if(card){
+    ['dragenter','dragover'].forEach(function(ev){ card.addEventListener(ev, function(e){ e.preventDefault(); card.classList.add('dragover'); }); });
+    ['dragleave','drop'].forEach(function(ev){ card.addEventListener(ev, function(e){ e.preventDefault(); if(ev==='drop'||e.target===card) card.classList.remove('dragover'); }); });
+    card.addEventListener('drop', function(e){ e.preventDefault(); card.classList.remove('dragover'); var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) sendImage(f); });
+  }
+
+  // 내 매장의 대화(EGMM이 보낸 toStore + 내가 보낸 toEgmm) 시간순
+  function render(){
+    var box=$('hmChatBody'); if(!box) return;
+    var my=activeStore();
+    var thread=allMsgs.filter(function(m){ return m.store===my; }).sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    if(!thread.length){ box.innerHTML=''; return; }
+    box.innerHTML=thread.map(function(m){
+      var mine=(m.dir==='toEgmm'); // 내가 보낸 것(오른쪽)
+      var side=mine?'me':'them';
+      var inner = m.img ? '<div class="chat-bubble img-bubble"><img class="chat-img" src="'+esc(m.img)+'" alt=""></div>'
+                        : '<div class="chat-bubble">'+esc(m.text||'')+'</div>';
+      return '<div class="chat-wrap-line '+side+'">'
+        +'<div class="chat-row '+side+'">'+inner+'</div>'
+        +'<div class="chat-meta">'+(mine?'':'EGMM · ')+fmtTime(m.createdAt)+(mine?' <span class="hm-msg-del" data-id="'+esc(m.__id)+'">· 삭제</span>':'')+'</div>'
+        +'</div>';
+    }).join('');
+    box.scrollTop=box.scrollHeight;
+    Array.prototype.forEach.call(box.querySelectorAll('.hm-msg-del'), function(b){
+      b.onclick=function(){ if(confirm('이 메시지를 삭제할까요?')){ try{ fns().deleteDoc(fns().doc(db(), MSG_COL, b.getAttribute('data-id'))); }catch(e){} } };
+    });
+    Array.prototype.forEach.call(box.querySelectorAll('.chat-img'), function(im){
+      im.onclick=function(){ var lb=$('hmLightbox'); if(lb){ $('hmLightboxImg').src=im.src; lb.classList.add('show'); } };
+    });
+  }
+  var msgInit=false, seenIds={};
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().collection(db(), MSG_COL), function(snap){
+        allMsgs=[];
+        var my=activeStore(); var incoming=[];
+        snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; if(d.kind==='chatmsg'){ allMsgs.push(d); if(d.dir==='toStore' && d.store===my) incoming.push(d); } });
+        var fresh=0;
+        incoming.forEach(function(m){ if(!seenIds[m.__id]){ seenIds[m.__id]=1; if(msgInit) fresh++; } });
+        if(fresh>0){ ding(); alarmOn(); }
+        msgInit=true;
+        render();
+      }, function(err){ console.error('[HMART 메시지 실시간 오류]', err && err.message ? err.message : err); });
+    }catch(e){ console.error('[HMART 메시지 구독 실패]', e); }
+  });
+})();
+</script>
+</body>
+
+<script>
+/* ===== 접속 로그 (매장 세션: 날짜·시간·매장·사용시간) ===== */
+(function(){
+  'use strict';
+  var LOG_COL='access-logs';
+  function db(){ return window.firebaseDb; }
+  function fns(){ return window.firebaseFns; }
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  function ready(cb){ if(window.firebaseDb && window.firebaseFns) return cb(); window.addEventListener('plu-firebase-ready', cb, { once:true }); setTimeout(function(){ if(window.firebaseDb && window.firebaseFns) cb(); }, 800); }
+
+  var store=activeStore();
+  if(!store) return;
+
+  var sid, loginAt;
+  try{ sid=localStorage.getItem('hmSessionId'); loginAt=parseInt(localStorage.getItem('hmLoginAt'),10); }catch(e){}
+  if(!sid || !loginAt){ sid='sess_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); loginAt=Date.now(); try{ localStorage.setItem('hmSessionId',sid); localStorage.setItem('hmLoginAt',String(loginAt)); }catch(e){} }
+
+  function ymd(ts){ var d=new Date(ts); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function writeLog(ended){
+    try{
+      var now=Date.now();
+      var data={ store:store, loginAt:loginAt, lastSeen:now, date:ymd(loginAt), updatedAt:now };
+      if(ended){ data.logoutAt=now; }
+      data.durationMs=(data.logoutAt||now)-loginAt;
+      fns().setDoc(fns().doc(db(), LOG_COL, sid), data, { merge:true });
+    }catch(e){}
+  }
+
+  var started=false;
+  ready(function(){
+    started=true;
+    writeLog(false);
+    // 주기적으로 마지막 활동 시각 갱신(사용시간 근사)
+    setInterval(function(){ if(activeStore()) writeLog(false); }, 30000);
+  });
+
+  // 세션 종료(로그아웃 버튼에서 호출)
+  window.__endAccessLog=function(){
+    if(started){ writeLog(true); }
+    try{ localStorage.removeItem('hmSessionId'); localStorage.removeItem('hmLoginAt'); }catch(e){}
+  };
+  // 탭 닫힘/이동 시 마지막 활동 기록(best effort)
+  window.addEventListener('pagehide', function(){ if(started && activeStore()) writeLog(false); });
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden' && started && activeStore()) writeLog(false); });
+})();
+</script>
+<style>
+  /* 매입일지 승인 대기 점멸 (매니저 세션) */
+  @keyframes hmPurBlink { 0%,100%{ background:var(--bg-elev); border-color:var(--border); } 50%{ background:#F5EAE7; border-color:#9C3327; } }
+  .egmm-menu-btn.hm-blink { animation: hmPurBlink 1s ease-in-out infinite; }
+</style>
+<script>
+/* ===== 입장 방식(PIN/아이디)별 메뉴 표시 + 매입일지 점멸 =====
+   세션: sessionStorage.hmartAuth = {mode:'pin'} | {mode:'account', user:{position,...}, stores:[]}
+   권한 설정: app-config/hmart-menu-perms { cards:{NAME:{roles:[]}}, menus:{buttonId:{roles:[]}} } · '*'=전체 · 항목 없음=전체 표시 */
+(function(){
+  var $=function(id){ return document.getElementById(id); };
+  function fns(){ return window.firebaseFns; }
+  function db(){ return window.firebaseDb; }
+  function ready(cb){ if(window.firebaseFns&&window.firebaseDb) return cb(); window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+  var auth=null;
+  try{ var aj=sessionStorage.getItem('hmartAuth'); if(aj) auth=JSON.parse(aj); }catch(e){}
+  var ROLE = (auth && auth.mode==='account' && auth.user) ? String(auth.user.position||'').toUpperCase() : 'PIN';
+  var isMaster = !!(auth && auth.tier==='master');   // MANAGER 계정(매니저 카드) = 전 메뉴·전 매장 무제한
+  var isMgrSession = isMaster || (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
+  var MENUS=['hmartToListBtn','hmartToUpcBtn','hmartToPreviewMgrBtn','hmartToQuizBtn','hmartAdViewBtn','hmartNewItemBtn','hmartPurchaseBtn','hmartDeliBtn','hmReqViewBtn'];
+  var CARDS=['ITEMS','PURCHASE'];   // REQUEST 카드는 기존 인라인 숨김 유지 — 여기서 관리하지 않음
+  function allowed(entry){
+    if(!entry || !Array.isArray(entry.roles) || !entry.roles.length) return true;
+    return entry.roles.indexOf('*')>=0 || entry.roles.indexOf(ROLE)>=0;
+  }
+  function cardByName(name){
+    var heads=document.querySelectorAll('.egmm-card .egmm-card-name');
+    for(var i=0;i<heads.length;i++){ if(String(heads[i].textContent||'').trim()===name) return heads[i].closest('.egmm-card'); }
+    return null;
+  }
+  function applyPerms(cfg){
+    if(isMaster){   // MANAGER 계정은 권한 설정과 무관하게 전부 표시
+      MENUS.forEach(function(id){ var el=$(id); if(el) el.style.display=''; });
+      CARDS.forEach(function(name){ var card=cardByName(name); if(card) card.style.display=''; });
+      return;
+    }
+    cfg=cfg||{}; var mcfg=cfg.menus||{}, ccfg=cfg.cards||{};
+    MENUS.forEach(function(id){ var el=$(id); if(!el) return;
+      el.style.display = allowed(mcfg[id]) ? '' : 'none'; });
+    CARDS.forEach(function(name){ var card=cardByName(name); if(!card) return;
+      var vis=allowed(ccfg[name]);
+      if(vis){ // 카드 허용이어도 내부 메뉴가 전부 숨김이면 카드도 숨김
+        var btns=card.querySelectorAll('.egmm-menu-btn'); var any=false;
+        for(var i=0;i<btns.length;i++){ if(btns[i].style.display!=='none'){ any=true; break; } }
+        vis=any;
+      }
+      card.style.display = vis ? '' : 'none';
+    });
+  }
+  function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  ready(function(){
+    try{
+      fns().onSnapshot(fns().doc(db(),'app-config','hmart-menu-perms'), function(snap){
+        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+        applyPerms(d);
+      }, function(){});
+    }catch(e){}
+    // 매입일지 점멸: 담당자 확인 후 매니저 완료 전 일자가 있으면 (매니저 세션에서)
+    var store=activeStore();
+    if(store && isMgrSession){
+      try{
+        fns().onSnapshot(fns().collection(db(),'hmart','daily-purchase',store), function(snap){
+          var pending=0;
+          snap.forEach(function(ds){ var d=ds.data()||{}; if(d.recorder && d.status!=='done') pending++; });
+          var b=$('hmartPurchaseBtn'); if(b) b.classList.toggle('hm-blink', pending>0);
+        }, function(){});
+      }catch(e){}
+    }
+  });
+})();
+</script>
+</body>
+</html>
