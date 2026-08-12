@@ -350,6 +350,8 @@
   .dp-in::placeholder, .dp-title small, .dp-date-line{ text-transform: uppercase; }
 
   .dp-checks-row{ display:flex; gap:8px; margin-left:8px; }
+
+  #dpEditBtn:disabled, #dpClearAllBtn:disabled{ opacity:.4; cursor:not-allowed; pointer-events:none; }
 </style>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -392,14 +394,15 @@
     </div>
     <div class="dp-top-right">
       <select class="dp-store-sel" id="dpStoreSel" style="display:none"></select>
-      <span class="dp-user-pill" id="dpUserPill" style="display:none">👤 <b id="dpUserName"></b> <span class="role" id="dpUserRole"></span></span>
-      <button class="dp-mini-btn" id="dpPrintBtn" type="button" disabled>🖨 프린트 <span style="opacity:.6">PRINT</span></button>
       <div class="dp-checks-row">
         <label class="dp-ckbox" id="dpRecorderBox"><input type="checkbox" id="dpRecorderCk">
           <span class="ck2"><em>어카운트</em><small>ACCOUNT</small></span></label>
         <label class="dp-ckbox" id="dpManagerBox"><input type="checkbox" id="dpManagerCk">
           <span class="ck2"><em>점장</em><small>GENERAL MANAGER</small></span></label>
       </div>
+      <span class="dp-user-pill" id="dpUserPill" style="display:none">👤 <b id="dpUserName"></b> <span class="role" id="dpUserRole"></span></span>
+      <button class="dp-mini-btn" id="dpPrintBtn" type="button" disabled>🖨 프린트 <span style="opacity:.6">PRINT</span></button>
+      <button class="dp-mini-btn" id="dpExportBtn" type="button" disabled>⇩ 내보내기 <span style="opacity:.6">EXPORT</span></button>
     </div>
   </header>
 
@@ -671,7 +674,7 @@
   function switchStore(s){
     if(!s||s===STORE) { renderAll(); return; }
     STORE=s;
-    try{ localStorage.setItem('dpLastStore', s); }catch(e){}
+    try{ localStorage.setItem('dpLastStore', s); localStorage.setItem('theShawnStore', s); }catch(e){}   // 다른 메뉴와 매장 동기화
     $('dpStoreName').textContent=STORE;
     document.title=STORE+' 매입일지 · DAILY PURCHASE';
     subscribeDays();
@@ -799,6 +802,30 @@
     });
   };
 
+  // ===== EXPORT (당일 CSV — 엑셀 호환) =====
+  function exportDayCsv(){
+    if(!visibleForUser(selDate)){ denyPopup('담당자 확인 전에는 내보낼 수 없습니다.'); return; }
+    var rows=dayRows(selDate);
+    if(!rows.length){ toast('내보낼 내역이 없습니다','error'); return; }
+    function q(v){ v=String(v==null?'':v); return '"'+v.replace(/"/g,'""')+'"'; }
+    var lines=[['업체 VENDOR','인보이스 INVOICE','금액 AMOUNT','부서 DEPT','비고 MEMO'].map(q).join(',')];
+    var tot=0;
+    rows.forEach(function(r){
+      var vn=(r.vendor==='__manual__')?(r.vendorName||r.manualName||'(직접입력)'):(r.vendor||'');
+      tot+=(+r.amount||0);
+      lines.push([vn, r.invoice||'', (+r.amount||0).toFixed(2), r.dept||'', r.memo||''].map(q).join(','));
+    });
+    lines.push(['합계 TOTAL','', tot.toFixed(2),'',''].map(q).join(','));
+    var csv='\uFEFF'+lines.join('\r\n');
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download=(STORE||'STORE')+'_'+selDate+'_매입일지.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+    toast('내보내기 완료','success');
+  }
+  var __xb=$('dpExportBtn'); if(__xb) __xb.onclick=exportDayCsv;
+
   // ===== 렌더 =====
   function renderAll(){ renderHead(); renderList(); renderRight(); renderCal(); }
 
@@ -830,7 +857,12 @@
     $('dpEntryDoneBtn').style.display=(canBaseRecord() && rows>0 && (!ent||editMode))?'':'none';
     $('dpEditBtn').style.display=(canBaseRecord() && ent && !editMode)?'':'none';
     $('dpClearAllBtn').style.display=(canBaseRecord() && ent)?'':'none';
+    // 어카운트 확인 또는 점장 결재 후에는 수정/전체지우기 비활성
+    var lockEdit=!!(d&&d.recorder) || st==='done';
+    $('dpEditBtn').disabled=lockEdit;
+    $('dpClearAllBtn').disabled=lockEdit;
     $('dpPrintBtn').disabled=(st!=='done'||!vis);
+    var xb=$('dpExportBtn'); if(xb) xb.disabled=(!vis || !dayRows(selDate).length);
   }
 
   function renderFootTotals(hidden){
@@ -893,7 +925,7 @@
       }
       return '<tr class="'+(r.manual?'r-manual':'')+'">'
         +'<td class="c-no">'+(i+1)+'</td>'
-        +'<td class="c-vendor">'+esc(r.vendor)+(r.manual?'<span class="dp-manual-mark">수동 MANUAL</span>':'')+'</td>'
+        +'<td class="c-vendor">'+esc(r.vendor)+'</td>'
         +'<td class="c-invoice">'+esc(r.invoice)+'</td>'
         +'<td class="num">'+fmt$(r.amount)+'</td>'
         +'<td class="c-dept">'+esc(r.dept)+'</td>'
