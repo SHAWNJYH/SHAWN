@@ -499,6 +499,7 @@
     try{ localStorage.setItem('theShawnStore', store); }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
     try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'pin'})); }catch(e){}
+    try{ window.dispatchEvent(new Event('hmart-auth-ready')); }catch(e){}
     unlock();
   }
   function passAcct(r){
@@ -510,6 +511,7 @@
     }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
     try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user, stores:r.stores})); }catch(e){}
+    try{ window.dispatchEvent(new Event('hmart-auth-ready')); }catch(e){}
     unlock();
   }
 
@@ -1214,11 +1216,15 @@
   function fns(){ return window.firebaseFns; }
   function db(){ return window.firebaseDb; }
   function ready(cb){ if(window.firebaseFns&&window.firebaseDb) return cb(); window.addEventListener('plu-firebase-ready', cb, {once:true}); }
-  var auth=null;
-  try{ var aj=sessionStorage.getItem('hmartAuth'); if(aj) auth=JSON.parse(aj); }catch(e){}
-  var ROLE = (auth && auth.mode==='account' && auth.user) ? String(auth.user.position||'').toUpperCase() : 'PIN';
-  var isMaster = !!(auth && auth.tier==='master');   // MANAGER 계정(매니저 카드) = 전 메뉴·전 매장 무제한
-  var isMgrSession = isMaster || (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
+  var auth=null, ROLE='PIN', isMaster=false, isMgrSession=false;
+  function refreshAuth(){
+    auth=null;
+    try{ var aj=sessionStorage.getItem('hmartAuth'); if(aj) auth=JSON.parse(aj); }catch(e){}
+    ROLE = (auth && auth.mode==='account' && auth.user) ? String(auth.user.position||'').toUpperCase() : 'PIN';
+    isMaster = !!(auth && auth.tier==='master');   // MANAGER 계정(매니저 카드) = 전 메뉴·전 매장 무제한
+    isMgrSession = isMaster || (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
+  }
+  refreshAuth();
   var MENUS=['hmartToListBtn','hmartToUpcBtn','hmartToPreviewMgrBtn','hmartToQuizBtn','hmartAdViewBtn','hmartNewItemBtn','hmartPurchaseBtn','hmartDeliBtn','hmReqViewBtn'];
   var CARDS=['ITEMS','PURCHASE'];   // REQUEST 카드는 기존 인라인 숨김 유지 — 여기서 관리하지 않음
   function allowed(entry){
@@ -1250,24 +1256,35 @@
     });
   }
   function activeStore(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } }
+  var lastCfg={}, blinkSubbed=false;
+  function setupBlink(){
+    // 매입일지 점멸: 담당자 확인 후 매니저 완료 전 일자가 있으면 (매니저 세션에서 1회 구독)
+    if(blinkSubbed) return;
+    var store=activeStore();
+    if(!store || !isMgrSession) return;
+    blinkSubbed=true;
+    try{
+      fns().onSnapshot(fns().collection(db(),'hmart','daily-purchase',store), function(snap){
+        var pending=0;
+        snap.forEach(function(ds){ var d=ds.data()||{}; if(d.recorder && d.status!=='done') pending++; });
+        var b=$('hmartPurchaseBtn'); if(b) b.classList.toggle('hm-blink', pending>0);
+      }, function(){});
+    }catch(e){}
+  }
   ready(function(){
     try{
       fns().onSnapshot(fns().doc(db(),'app-config','hmart-menu-perms'), function(snap){
-        var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
-        applyPerms(d);
+        lastCfg=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{};
+        applyPerms(lastCfg);
       }, function(){});
     }catch(e){}
-    // 매입일지 점멸: 담당자 확인 후 매니저 완료 전 일자가 있으면 (매니저 세션에서)
-    var store=activeStore();
-    if(store && isMgrSession){
-      try{
-        fns().onSnapshot(fns().collection(db(),'hmart','daily-purchase',store), function(snap){
-          var pending=0;
-          snap.forEach(function(ds){ var d=ds.data()||{}; if(d.recorder && d.status!=='done') pending++; });
-          var b=$('hmartPurchaseBtn'); if(b) b.classList.toggle('hm-blink', pending>0);
-        }, function(){});
-      }catch(e){}
-    }
+    setupBlink();
+  });
+  // 인페이지 게이트 로그인 완료 → 직급 다시 읽어 메뉴 권한 재적용
+  window.addEventListener('hmart-auth-ready', function(){
+    refreshAuth();
+    applyPerms(lastCfg);
+    ready(setupBlink);
   });
 })();
 </script>
