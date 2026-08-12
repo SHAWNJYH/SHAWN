@@ -333,6 +333,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -345,7 +346,15 @@
   const app = initializeApp(firebaseConfig);
   window.firebaseDb = getFirestore(app);
   window.firebaseFns = { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot };
-  window.dispatchEvent(new Event('dp-firebase-ready'));
+  /* Firestore 보안규칙이 로그인(익명 포함)을 요구하므로 — 익명 인증 완료 후 준비 신호 */
+  var fired=false;
+  function fire(){ if(fired) return; fired=true; window.dispatchEvent(new Event('dp-firebase-ready')); }
+  try{
+    const auth=getAuth(app);
+    onAuthStateChanged(auth, function(u){ if(u) fire(); });
+    signInAnonymously(auth).catch(function(e){ console.warn('[매입일지] 익명 인증 실패:', e&&e.code||e); fire(); });
+  }catch(e){ fire(); }
+  setTimeout(fire, 3000);   // 폴백: 규칙이 공개인 경우에도 진행
 </script>
 </head>
 <body>
@@ -637,7 +646,7 @@
       allDocs={};
       snap.forEach(function(ds){ var d=ds.data()||{}; d.__id=ds.id; allDocs[ds.id]=d; });
       renderAll();
-    }, function(err){ console.error('[매입일지 구독 오류]', err&&err.message?err.message:err); });
+    }, function(err){ console.error('[매입일지 구독 오류]', err&&err.message?err.message:err); toast('서버 접근 실패 · '+((err&&err.code)||'')+' — 새로고침 또는 관리자 문의','error'); });
   }
   function switchStore(s){
     if(!s||s===STORE) { renderAll(); return; }
