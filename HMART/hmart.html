@@ -349,6 +349,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -361,7 +362,15 @@
   const app = initializeApp(firebaseConfig);
   window.firebaseDb = getFirestore(app);
   window.firebaseFns = { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot };
-  window.dispatchEvent(new Event('plu-firebase-ready'));
+  /* Firestore 보안규칙(로그인 필요) 대응: 익명 인증 후 준비 신호 · 3초 폴백 */
+  var __fired=false;
+  function __fire(){ if(__fired) return; __fired=true; window.dispatchEvent(new Event('plu-firebase-ready')); }
+  try{
+    const __auth=getAuth(app);
+    onAuthStateChanged(__auth, function(u){ if(u) __fire(); });
+    signInAnonymously(__auth).catch(function(e){ console.warn('[익명 인증 실패]', e&&e.code||e); __fire(); });
+  }catch(e){ __fire(); }
+  setTimeout(__fire, 3000);
 </script>
 </head>
 <body>
@@ -503,11 +512,14 @@
     unlock();
   }
   function passAcct(r){
-    // 계정에 특정 매장 권한이 있으면 첫 매장을 페이지 매장으로
+    // 매장값 보장: 하위 메뉴들이 theShawnStore 없으면 index로 튕기므로 반드시 설정
     try{
       var vl=VALID||FALLBACK_STORES;
       var sp=(r.stores||[]).filter(function(x){ return x!=='*' && vl.indexOf(String(x).toUpperCase())>=0; });
-      if(sp.length) localStorage.setItem('theShawnStore', String(sp[0]).toUpperCase());
+      var cur=''; try{ cur=String(localStorage.getItem('theShawnStore')||'').toUpperCase(); }catch(e2){}
+      var allowed = sp.length ? sp.map(function(x){return String(x).toUpperCase();}) : vl;
+      if(cur && allowed.indexOf(cur)>=0){ /* 기존 매장 유지 */ }
+      else if(allowed.length){ localStorage.setItem('theShawnStore', String(allowed[0]).toUpperCase()); }
     }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
     try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user, stores:r.stores})); }catch(e){}
@@ -592,12 +604,20 @@
     });
   }
 
-  /* 시작: 항상 로그인 화면 — 자동 로그인·자동 재검증 없음 (반복 로그인 원천 차단) */
+  /* 시작: 같은 탭에서 로그인한 세션(sessionStorage)이 있으면 유지 — 새로고침해도 로그인 화면 재요청 없음.
+     탭을 닫으면 세션 소멸, 로그아웃 시 즉시 삭제 → 기기 자동 로그인은 여전히 없음 */
   document.documentElement.classList.add('hm-gate-lock');
   document.addEventListener('DOMContentLoaded', function(){
     try{ sessionStorage.removeItem('hmGateAuth3'); }catch(e){}
     try{ localStorage.removeItem('hmGateSaved3'); localStorage.removeItem('hmartAutoLogin'); }catch(e){}
     loadStores();
+    var ok=false;
+    try{ ok = sessionStorage.getItem('hmartGate')==='1' && !!sessionStorage.getItem('hmartAuth'); }catch(e){}
+    if(ok){
+      try{ window.dispatchEvent(new Event('hmart-auth-ready')); }catch(e){}
+      unlock();
+      return;
+    }
     show('','');
   });
 })();
