@@ -2250,6 +2250,24 @@
     .today-btn { padding: 0 10px; height: 32px; font-size: 11px; }
     #addEventBtn { width: 100%; }
   }
+  /* === 진입 게이트 === */
+  html.eg-gate-lock body > *:not(#egGateOv){ visibility: hidden !important; }
+  #egGateOv{ position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
+    background: #EDEAE3; visibility: visible !important; }
+  #egGateOv .egg-card{ width: 340px; background: #FFFDFA; border: 1.5px solid #E4DFD4;
+    border-radius: 18px; padding: 30px 30px 26px; box-shadow: 0 14px 30px -20px rgba(30,27,22,.42); }
+  #egGateOv .egg-title{ margin: 0 0 18px; font-size: 24px; font-weight: 800; letter-spacing: .16em; text-align: center; color: #1E1B16; }
+  #egGateOv .egg-field{ margin-bottom: 12px; }
+  #egGateOv .egg-field label{ display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8C8578; margin-bottom: 5px; }
+  #egGateOv .egg-field input{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
+    padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; }
+  #egGateOv #eggId{ text-transform: uppercase; }
+  #egGateOv .egg-field input:focus{ outline: none; border-color: #2F5D46; }
+  #egGateOv .egg-err{ min-height: 18px; font-size: 12px; font-weight: 800; color: #9C3327; letter-spacing: .04em; margin: 2px 0 10px; text-align: center; }
+  #egGateOv .egg-btns{ display: flex; gap: 10px; }
+  #egGateOv .egg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
+    letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
+  #egGateOv .egg-btn.egg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
 </style>
 <style>
 /* === EGMM 영역 === */
@@ -2636,13 +2654,131 @@
 </head>
 <body>
 <script>
-  /* === 진입 가드 === index.html에서 EGMM PIN 인증을 거치지 않으면 되돌림.
-     (자동로그인 ON인 본인 기기는 통과 / 다른 컴퓨터·미인증은 차단) */
+  /* === 진입 게이트(인페이지) === 메인 화면이 보이기 전 ID/PASSWORD 로그인 필수.
+     계정: HOMEPAGE MANAGER · app-config/egmm-users (MANAGER 계정 manager-users 포함 — 전체 권한)
+     ACCESS 차단 · ANYWHERE · 등록 IP 검사 그대로 적용.
+     자동 로그인 없음 — 매 진입마다 직접 로그인 (자동 반복 원천 차단) */
   (function(){
-    try{
-      var ok = sessionStorage.getItem('egmmGate')==='1' || localStorage.getItem('egmmAutoLogin')==='1' || localStorage.getItem('unifiedLogin')==='1';
-      if(!ok){ location.replace('../index.html'); }
-    }catch(e){ try{ location.replace('../index.html'); }catch(_){} }
+    'use strict';
+    function fbReady(cb){ if(window.firebaseFns && window.firebaseDb) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
+    function getDocData(col,id){
+      return new Promise(function(res,rej){
+        fbReady(function(){
+          window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,col,id))
+            .then(function(snap){ res((snap&&snap.exists&&snap.exists())?(snap.data()||{}):null); })
+            .catch(rej);
+        });
+      });
+    }
+    function hashPw(v){
+      v=String(v);
+      if(window.crypto && window.crypto.subtle){
+        return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v)).then(function(buf){
+          return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+        }).catch(function(){ return null; });
+      }
+      return Promise.resolve(null);
+    }
+    function myIp(){
+      return fetch('https://api.ipify.org?format=json').then(function(r){return r.json();})
+        .then(function(j){ return String((j&&j.ip)||'').trim(); }).catch(function(){ return null; });
+    }
+    function findUser(name){
+      function pick(d){ var us=(d&&Array.isArray(d.users))?d.users:[];
+        for(var i=0;i<us.length;i++){ if(us[i] && String(us[i].name||'').trim().toUpperCase()===name) return us[i]; } return null; }
+      return getDocData('app-config','egmm-users').then(function(d){
+        var u=pick(d); if(u) return {u:u, tier:'egmm'};
+        return getDocData('app-config','manager-users').then(function(d2){
+          var mm=pick(d2); return mm?{u:mm, tier:'master'}:null;
+        });
+      });
+    }
+    function verifyAcct(name, pw){
+      name=String(name).trim().toUpperCase();
+      return findUser(name).then(function(hit){
+        if(!hit) return {err:'ID NOT FOUND'};
+        var u=hit.u, pin=String(u.pin||'');
+        function checks(){
+          var anywhere=!!u.anywhere;
+          if(!anywhere && u.access===false) return Promise.resolve({err:'BLOCKED ID · ASK MANAGER'});
+          if(anywhere) return Promise.resolve(null);
+          var ips=Array.isArray(u.ips)?u.ips.map(function(x){return String(x).trim();}).filter(Boolean):[];
+          if(!ips.length) return Promise.resolve({err:'IP NOT REGISTERED · ASK MANAGER'});
+          return myIp().then(function(ip){
+            if(!ip) return {err:'IP CHECK FAILED — CHECK NETWORK'};
+            if(ips.indexOf(ip)<0) return {err:'IP NOT ALLOWED ('+ip+')'};
+            return null;
+          });
+        }
+        function done(){
+          return checks().then(function(bad){
+            if(bad) return bad;
+            return {ok:true, tier:hit.tier,
+              user:{ name:u.name, fullName:u.fullName||'', position:u.position||'', role:u.role||'' },
+              menus:(u.menus&&typeof u.menus==='object')?u.menus:{} };
+          });
+        }
+        return hashPw(pw).then(function(h){
+          if(h && pin===h) return done();
+          if(pin==='p:'+pw || (pin!=='' && pin===pw)) return done();
+          return {err:'WRONG PASSWORD'};
+        });
+      }).catch(function(){ return {err:'CONNECTION ERROR — TRY AGAIN'}; });
+    }
+    function unlock(){
+      var ov=document.getElementById('egGateOv'); if(ov) ov.remove();
+      document.documentElement.classList.remove('eg-gate-lock');
+    }
+    function pass(r){
+      try{ sessionStorage.setItem('egmmGate','1'); }catch(e){}
+      try{ sessionStorage.setItem('egmmUser', JSON.stringify({name:r.user.name, menus:r.menus})); }catch(e){}
+      try{ sessionStorage.setItem('egmmAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user})); }catch(e){}
+      unlock();
+    }
+    function show(msg){
+      document.documentElement.classList.add('eg-gate-lock');
+      var ov=document.getElementById('egGateOv');
+      if(!ov){
+        ov=document.createElement('div'); ov.id='egGateOv';
+        ov.innerHTML='<div class="egg-card">'
+          +'<h1 class="egg-title">EGMM</h1>'
+          +'<div class="egg-field"><label>ID</label><input type="text" id="eggId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="egg-field"><label>PASSWORD</label><input type="password" id="eggPw" placeholder="••••••" autocomplete="off"></div>'
+          +'<div class="egg-err" id="eggErr"></div>'
+          +'<div class="egg-btns"><button class="egg-btn" id="eggEnter" type="button">ENTER</button>'
+          +'<button class="egg-btn egg-cancel" id="eggCancel" type="button">CANCEL</button></div>'
+        +'</div>';
+        (document.body||document.documentElement).appendChild(ov);
+        document.getElementById('eggEnter').onclick=submit;
+        document.getElementById('eggCancel').onclick=function(){ location.replace('../index.html'); };
+        document.getElementById('eggPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+        document.getElementById('eggId').addEventListener('keydown',function(e){ if(e.key==='Enter'){ document.getElementById('eggPw').focus(); } });
+        setTimeout(function(){ document.getElementById('eggId').focus(); },80);
+      }
+      var er=document.getElementById('eggErr'); if(er) er.textContent=msg||'';
+    }
+    var busy=false;
+    function submit(){
+      if(busy) return;
+      var idIn=document.getElementById('eggId'), pwIn=document.getElementById('eggPw'), er=document.getElementById('eggErr');
+      var idv=(idIn&&idIn.value||'').trim().toUpperCase();
+      var pwv=(pwIn&&pwIn.value||'').trim();
+      if(er) er.textContent='';
+      if(!idv){ if(er) er.textContent='ENTER ID'; idIn.focus(); return; }
+      if(!pwv){ if(er) er.textContent='ENTER PASSWORD'; pwIn.focus(); return; }
+      busy=true; if(er) er.textContent='CHECKING…';
+      verifyAcct(idv,pwv).then(function(r){
+        busy=false;
+        if(!r || r.err){ if(er) er.textContent=(r&&r.err)||'ERROR'; pwIn.value=''; pwIn.focus(); return; }
+        pass(r);
+      });
+    }
+    document.documentElement.classList.add('eg-gate-lock');
+    document.addEventListener('DOMContentLoaded', function(){
+      try{ localStorage.removeItem('egmmAutoLogin'); }catch(e){}
+      try{ sessionStorage.removeItem('egmmGate'); sessionStorage.removeItem('egmmAuth'); }catch(e){}
+      show('');
+    });
   })();
 </script>
 <div class="toast" id="toast"></div>
@@ -3302,7 +3438,7 @@
     $('egmmExitBtn').onclick = function(){ ov.classList.add('show'); };
     ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); });
     document.getElementById('egExCancel').onclick=function(){ ov.classList.remove('show'); };
-    document.getElementById('egExOk').onclick=function(){ ov.classList.remove('show'); window.location.href='../index.html'; };
+    document.getElementById('egExOk').onclick=function(){ ov.classList.remove('show'); try{ sessionStorage.removeItem('egmmGate'); sessionStorage.removeItem('egmmAuth'); sessionStorage.removeItem('egmmUser'); }catch(e){} window.location.href='../index.html'; };
   })();
   $('odpLogoutBtn').onclick = showMenu;
   $('itemBackBtn').onclick = showMenu;
