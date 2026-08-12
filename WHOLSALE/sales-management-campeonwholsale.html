@@ -378,6 +378,16 @@
   #cwGateOv .cwg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
     letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
   #cwGateOv .cwg-btn.cwg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
+  #cwGateOv .cwg-card.cwg-wide{ width: 620px; max-width: 94vw; }
+  #cwGateOv .cwg-cols{ display:flex; gap:26px; }
+  #cwGateOv .cwg-col{ flex:1; min-width:0; }
+  #cwGateOv .cwg-col2{ border-left:1px dashed #D6CFC0; padding-left:26px; }
+  #cwGateOv .cwg-sec{ text-align:center; font-size:11px; font-weight:900; letter-spacing:.16em; color:#2F5D46; margin:2px 0 12px; }
+  #cwGateOv .cwg-col .cwg-btn{ width:100%; }
+  #cwGateOv #cwgPinId{ background:#F2EEE5; color:#4C463C; letter-spacing:.1em; font-weight:800; cursor:default; }
+  #cwGateOv .cwg-foot{ display:flex; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #E4DFD4; }
+  #cwGateOv .cwg-foot .cwg-cancel{ flex:0 0 auto; padding:11px 22px; }
+  @media (max-width:640px){ #cwGateOv .cwg-cols{ flex-direction:column; gap:16px; } #cwGateOv .cwg-col2{ border-left:none; padding-left:0; border-top:1px dashed #D6CFC0; padding-top:16px; } }
 </style>
 </head>
 <body>
@@ -426,6 +436,14 @@
       }
       return next();
     }
+    /* CAMPEON PIN (plu-store-pins/CAMPEON — HOMEPAGE MANAGER 매장 관리에서 설정) */
+    function verifyPin(pin){
+      return getDocData('plu-store-pins','CAMPEON').then(function(d){
+        if(!d || d.pin==null) return 'PIN NOT SET · ASK MANAGER';
+        if(String(d.pin)!==String(pin)) return 'WRONG PIN';
+        return null;
+      }).catch(function(){ return 'CONNECTION ERROR — TRY AGAIN'; });
+    }
     function verifyAcct(name, pw){
       name=String(name).trim().toUpperCase();
       return findUser(name).then(function(hit){
@@ -466,6 +484,11 @@
       var ov=document.getElementById('cwGateOv'); if(ov) ov.remove();
       document.documentElement.classList.remove('cw-gate-lock');
     }
+    function passPin(){
+      try{ sessionStorage.setItem('campeonGate','1'); }catch(e){}
+      try{ sessionStorage.setItem('campeonAuth', JSON.stringify({mode:'pin'})); }catch(e){}
+      unlock();
+    }
     function pass(r){
       try{ sessionStorage.setItem('campeonGate','1'); }catch(e){}
       try{ sessionStorage.setItem('campeonAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user})); }catch(e){}
@@ -476,22 +499,50 @@
       var ov=document.getElementById('cwGateOv');
       if(!ov){
         ov=document.createElement('div'); ov.id='cwGateOv';
-        ov.innerHTML='<div class="cwg-card">'
-          +'<h1 class="cwg-title">CAMPEON<br>WHOLESALE</h1>'
-          +'<div class="cwg-field"><label>ID</label><input type="text" id="cwgId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
-          +'<div class="cwg-field"><label>PASSWORD</label><input type="password" id="cwgPw" placeholder="••••••" autocomplete="off"></div>'
-          +'<div class="cwg-err" id="cwgErr"></div>'
-          +'<div class="cwg-btns"><button class="cwg-btn" id="cwgEnter" type="button">ENTER</button>'
+        ov.innerHTML='<div class="cwg-card cwg-wide">'
+          +'<h1 class="cwg-title">CAMPEON WHOLESALE</h1>'
+          +'<div class="cwg-cols">'
+            +'<div class="cwg-col">'
+              +'<div class="cwg-sec">PIN</div>'
+              +'<div class="cwg-field"><label>ID</label><input type="text" id="cwgPinId" value="CAMPEON" readonly tabindex="-1"></div>'
+              +'<div class="cwg-field"><label>PIN</label><input type="password" id="cwgPin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
+              +'<div class="cwg-err" id="cwgPinErr"></div>'
+              +'<button class="cwg-btn" id="cwgPinEnter" type="button">ENTER</button>'
+            +'</div>'
+            +'<div class="cwg-col cwg-col2">'
+              +'<div class="cwg-sec">ID / PASSWORD</div>'
+              +'<div class="cwg-field"><label>ID</label><input type="text" id="cwgId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
+              +'<div class="cwg-field"><label>PASSWORD</label><input type="password" id="cwgPw" placeholder="••••••" autocomplete="off"></div>'
+              +'<div class="cwg-err" id="cwgErr"></div>'
+              +'<button class="cwg-btn" id="cwgEnter" type="button">ENTER</button>'
+            +'</div>'
+          +'</div>'
+          +'<div class="cwg-foot"><span style="flex:1"></span>'
           +'<button class="cwg-btn cwg-cancel" id="cwgCancel" type="button">CANCEL</button></div>'
         +'</div>';
         (document.body||document.documentElement).appendChild(ov);
+        document.getElementById('cwgPinEnter').onclick=submitPin;
         document.getElementById('cwgEnter').onclick=submit;
         document.getElementById('cwgCancel').onclick=function(){ location.replace('../index.html'); };
+        document.getElementById('cwgPin').addEventListener('keydown',function(e){ if(e.key==='Enter') submitPin(); });
         document.getElementById('cwgPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
         document.getElementById('cwgId').addEventListener('keydown',function(e){ if(e.key==='Enter'){ document.getElementById('cwgPw').focus(); } });
-        setTimeout(function(){ document.getElementById('cwgId').focus(); },80);
+        setTimeout(function(){ document.getElementById('cwgPin').focus(); },80);
       }
       var er=document.getElementById('cwgErr'); if(er) er.textContent=msg||'';
+    }
+    function submitPin(){
+      if(busy) return;
+      var pwIn=document.getElementById('cwgPin'), er=document.getElementById('cwgPinErr');
+      var pin=(pwIn&&pwIn.value||'').trim();
+      if(er) er.textContent='';
+      if(!pin){ if(er) er.textContent='ENTER PIN'; pwIn.focus(); return; }
+      busy=true; if(er) er.textContent='CHECKING…';
+      verifyPin(pin).then(function(bad){
+        busy=false;
+        if(bad){ if(er) er.textContent=bad; pwIn.value=''; pwIn.focus(); return; }
+        passPin();
+      });
     }
     var busy=false;
     function submit(){
