@@ -875,14 +875,14 @@
     Array.prototype.forEach.call(document.querySelectorAll('.hm-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
     if(btn) btn.classList.add('active');
   }
-  $('hmartToListBtn').onclick = function(){ openInFrame('../plu-list-store.html', this); };
-  $('hmartToUpcBtn').onclick = function(){ openInFrame('../upc-list-store.html', this); };
+  $('hmartToListBtn').onclick = function(){ openInFrame('plu-list-store.html', this); };
+  $('hmartToUpcBtn').onclick = function(){ openInFrame('upc-list-store.html', this); };
   // PLU PREVIEW MANAGER — 이 매장(theShawnStore)의 미리보기 관리 화면 (매장별 독립)
   if($('hmartToPreviewMgrBtn')) $('hmartToPreviewMgrBtn').onclick = function(){
     var store=activeStore();
     openInFrame('../tablet-plu-preview.html?mode=manager&store='+encodeURIComponent(store), this);
   };
-  $('hmartToQuizBtn').onclick = function(){ openInFrame('../plu-quiz.html', this); };
+  $('hmartToQuizBtn').onclick = function(){ openInFrame('../TOOLS/plu-quiz.html', this); };
   $('hmartAdViewBtn').onclick = function(){ openInFrame('../advertising-viewer.html', this); };
   $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('../newitem-viewer.html', this); };
   var __dpBtn=$('hmartPurchaseBtn'); if(__dpBtn) __dpBtn.onclick = function(){ openInFrame('daily-purchase.html', this); };
