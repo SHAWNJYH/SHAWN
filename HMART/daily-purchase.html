@@ -706,9 +706,7 @@
   function dayEntered(date){ var d=dayData(date); return !!(d&&d.entered); }
   // 매니저에게는 담당자 확인 전 일자가 보이지 않음 (req: 담당자 체크 전 매니저 비공개)
   function visibleForUser(date){
-    if(user && user.master) return true;   // MANAGER 계정 = 전부 열람
-    if(user && user.role==='manager'){ var d=dayData(date); if(d && !d.recorder) return false; }
-    return true;
+    return true;   // 어카운트 입력이 점장 화면에도 실시간 반영 (숨김 없음)
   }
   function dayTotal(date){ return dayRows(date).reduce(function(a,r){ return a+(+r.amount||0); },0); }
   function monthTotal(y,m){ var pfx=y+'-'+('0'+m).slice(-2)+'-'; var t=0;
@@ -767,8 +765,10 @@
         });
       }
     } else {
-      saveDay(selDate,{ recorder:{id:user.id,name:user.name,checkedAt:Date.now()}, status:'progress' })
-        .then(function(ok){ if(ok) toast('담당자 확인 완료','success'); });
+      uiConfirm('어카운트 확인','최종 완료하겠습니까?','','확인 · OK',function(){
+        saveDay(selDate,{ recorder:{id:user.id,name:user.name,checkedAt:Date.now()}, status:'progress' })
+          .then(function(ok){ if(ok) toast('담당자 확인 완료','success'); });
+      });
     }
   });
   $('dpManagerCk').addEventListener('change', function(){
@@ -783,7 +783,7 @@
       return;
     }
     if(!d||!d.recorder){ denyPopup('담당자 확인이 없어 완료 처리할 수 없습니다.','Recorder confirmation is required before approval.'); return; }
-    uiConfirm('결재 완료','['+fmtDateKo(selDate)+'] 매입일지를 완료 처리할까요?\n완료 후에는 매니저 외 수정이 불가능합니다.','Finalize this daily purchase log?','완료 · APPROVE',function(){
+    uiConfirm('점장 확인','최종 완료하겠습니까?','','완료 · APPROVE',function(){
       saveDay(selDate,{ status:'done', manager:{id:user.id,name:user.name,doneAt:Date.now()} })
         .then(function(ok){ if(ok) toast('결재 완료','success'); });
     });
@@ -792,7 +792,7 @@
   $('dpEntryDoneBtn').onclick=function(){
     if(!canBaseRecord()) return;
     if(!dayRows(selDate).length){ toast('입력된 내역이 없습니다','error'); return; }
-    saveDay(selDate,{ entered:true }).then(function(ok){ if(ok){ editMode=false; toast('입력완료 (T)','success'); } });
+    saveDay(selDate,{ entered:true }).then(function(ok){ if(ok){ editMode=false; toast('입력완료','success'); } });
   };
   $('dpEditBtn').onclick=function(){ if(!canBaseRecord()) return; editMode=true; renderAll(); };
   $('dpClearAllBtn').onclick=function(){
@@ -832,8 +832,8 @@
   function renderHead(){
     $('dpDateText').textContent=fmtDateKo(selDate);
     var st=dayStatus(selDate), ent=dayEntered(selDate), b=$('dpStatusBadge'), vis=visibleForUser(selDate);
-    if(st==='done'){ b.className='dp-status done'; b.textContent='완료 F · FINALIZED'; }
-    else if(ent){ b.className='dp-status progress'; b.textContent='입력완료 T · ENTRY DONE'; }
+    if(st==='done'){ b.className='dp-status done'; b.textContent='완료 · FINALIZED'; }
+    else if(ent){ b.className='dp-status progress'; b.textContent='입력완료 · ENTRY DONE'; }
     else if(st==='progress'){ b.className='dp-status progress'; b.textContent='진행중 · IN PROGRESS'; }
     else { b.className='dp-status none'; b.textContent='기록 없음 · NO RECORD'; }
     var d=dayData(selDate);
@@ -858,7 +858,8 @@
     $('dpEditBtn').style.display=(canBaseRecord() && ent && !editMode)?'':'none';
     $('dpClearAllBtn').style.display=(canBaseRecord() && ent)?'':'none';
     // 어카운트 확인 또는 점장 결재 후에는 수정/전체지우기 비활성
-    var lockEdit=!!(d&&d.recorder) || st==='done';
+    var recChecked=!!(d&&d.recorder);
+    var lockEdit=(st==='done') || (isManager() ? !recChecked : recChecked);   // 점장: 어카운트 확인 후 활성 · 어카운트: 확인 전 활성
     $('dpEditBtn').disabled=lockEdit;
     $('dpClearAllBtn').disabled=lockEdit;
     $('dpPrintBtn').disabled=(st!=='done'||!vis);
@@ -942,11 +943,11 @@
     var ib=$('dpInBody'); if(!ib) return;
     var d=dayData(selDate), st=dayStatus(selDate);
     if(st==='done'){
-      ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">✓ 완료된 일자입니다 — 점장만 진행중으로 변경 가능</div></td></tr>'; return;
+      ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">✓ 완료된 일자입니다</div></td></tr>'; return;
     }
     if(!user){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">아이디/패스워드 입장 계정만 기록할 수 있습니다</div></td></tr>'; return; }
     if(!isAccount() && !isManager()){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">기록 권한이 없습니다</div></td></tr>'; return; }
-    if(dayEntered(selDate)&&!editMode){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">입력완료(T)된 일자입니다 — [수정] 을 누르면 편집할 수 있습니다</div></td></tr>'; return; }
+    if(dayEntered(selDate)&&!editMode){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">입력완료된 일자입니다</div></td></tr>'; return; }
     // 기존 입력값 보존
     var keep={ vendor:'', manual:false, manualName:'', invoice:'', amount:'', dept:'', memo:'' };
     var old=ib.querySelector('tr[data-inrow]');
