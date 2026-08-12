@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLU PREVIEW MANAGER</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<script>
+/* H-MART 로그인 세션 필수 (hmart 안에서만 사용) */
+(function(){
+  try{
+    if(sessionStorage.getItem('hmartGate')!=='1'){ location.replace('../index.html'); }
+  }catch(e){ location.replace('../index.html'); }
+})();
+</script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
+    authDomain: "the-shawn.firebaseapp.com",
+    projectId: "the-shawn",
+    storageBucket: "the-shawn.firebasestorage.app",
+    messagingSenderId: "519898602513",
+    appId: "1:519898602513:web:0f35e3dc9c29dce21665b0"
+  };
+  const app = initializeApp(firebaseConfig);
+  window.pmFb = { db:getFirestore(app), doc, getDoc, setDoc };
+  var fired=false;
+  function fire(){ if(fired) return; fired=true; window.dispatchEvent(new Event('pm-ready')); }
+  try{
+    const auth=getAuth(app);
+    onAuthStateChanged(auth, function(u){ if(u) fire(); });
+    signInAnonymously(auth).catch(function(){ fire(); });
+  }catch(e){ fire(); }
+  setTimeout(fire, 3000);
+</script>
+<style>
+  :root{
+    --bg:#EDEAE3; --bg-elev:#FFFDFA; --bg-elev-2:#F7F4ED;
+    --border:#E4DFD4; --border-bright:#D6CFC0;
+    --text:#1E1B16; --text-dim:#4C463C; --text-faint:#8C8578;
+    --pine:#2F5D46; --pine-soft:#E9EFEA; --danger:#9C3327;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); color:var(--text); font-family:'Pretendard','Malgun Gothic',system-ui,sans-serif; min-height:100vh; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:22px 22px 80px; }
+  .top{ display:flex; align-items:flex-end; gap:14px; padding-bottom:14px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+  .top h1{ font-size:22px; font-weight:800; letter-spacing:.06em; }
+  .top h1 small{ display:block; font-size:11px; font-weight:800; letter-spacing:.16em; color:var(--text-faint); margin-top:3px; text-transform:uppercase; }
+  .top .store{ margin-left:auto; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:9px; padding:8px 14px; font-size:13px; font-weight:800; }
+  .tabs{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .tab{ display:inline-flex; flex-direction:column; align-items:center; line-height:1.2; border:1px solid var(--border); background:var(--bg-elev); color:var(--text);
+    border-radius:9px; padding:8px 18px; font-size:13px; font-weight:800; cursor:pointer; }
+  .tab small{ font-size:9.5px; font-weight:700; color:var(--text-faint); letter-spacing:.04em; text-transform:uppercase; }
+  .tab.on{ background:var(--pine); border-color:var(--pine); color:#fff; }
+  .tab.on small{ color:rgba(255,255,255,.75); }
+  .panel{ display:none; background:var(--bg-elev); border:1.5px solid var(--border); border-radius:14px; padding:18px; }
+  .panel.on{ display:block; }
+  .sec{ font-size:13px; font-weight:800; letter-spacing:.04em; margin-bottom:10px; color:var(--text-dim); }
+  .sec b{ color:var(--pine); }
+  /* 입력 행 */
+  .add-row{ display:grid; grid-template-columns:150px 1fr 1fr auto; gap:8px; margin-bottom:14px; }
+  .in{ width:100%; border:1.5px solid var(--border); border-radius:9px; padding:11px 12px; font:inherit; font-size:14px; font-weight:700; background:var(--bg-elev); color:var(--text); }
+  .in:focus{ outline:none; border-color:var(--pine); }
+  .btn{ border:none; border-radius:9px; padding:11px 18px; font:inherit; font-size:13px; font-weight:800; letter-spacing:.04em; cursor:pointer; background:var(--pine); color:#fff; white-space:nowrap; }
+  .btn.ghost{ background:var(--bg-elev); color:var(--text); border:1.5px solid var(--border); }
+  .btn.ghost:hover{ border-color:var(--pine); }
+  .btn.danger{ background:var(--bg-elev); color:var(--danger); border:1.5px solid var(--border); }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  /* 목록 */
+  table{ width:100%; border-collapse:collapse; }
+  th{ text-align:left; font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--border); text-transform:uppercase; }
+  td{ padding:9px 10px; border-bottom:1px solid var(--bg-elev-2); font-size:14px; font-weight:700; }
+  td.plu{ font-variant-numeric:tabular-nums; width:140px; }
+  td.act{ width:70px; text-align:right; }
+  .del{ border:1px solid var(--border); background:var(--bg-elev); color:var(--danger); border-radius:7px; padding:5px 10px; font:inherit; font-size:12px; font-weight:800; cursor:pointer; }
+  .empty{ text-align:center; padding:34px 12px; color:var(--text-faint); font-weight:700; font-size:13px; border:2px dashed var(--border); border-radius:10px; }
+  /* WEEKLY */
+  .wk-add{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
+  .wk-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
+  .wk-card{ border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--bg-elev-2); display:flex; flex-direction:column; }
+  .wk-card img{ width:100%; height:150px; object-fit:contain; background:#fff; display:block; }
+  .wk-card .cap{ display:flex; gap:6px; align-items:center; padding:8px 10px; border-top:1px solid var(--border); }
+  .wk-card .cap input{ flex:1; min-width:0; border:1px solid var(--border); border-radius:7px; padding:6px 8px; font:inherit; font-size:12px; font-weight:700; }
+  .hint{ font-size:12px; color:var(--text-faint); font-weight:700; margin-top:10px; line-height:1.7; }
+  /* 저장바 */
+  .savebar{ position:fixed; left:0; right:0; bottom:0; background:var(--bg-elev); border-top:1.5px solid var(--border); padding:12px 22px; display:flex; align-items:center; gap:12px; }
+  .savebar .msg{ font-size:12.5px; font-weight:800; color:var(--text-faint); }
+  .savebar .msg.ok{ color:var(--pine); }
+  .savebar .msg.err{ color:var(--danger); }
+  .savebar .sp{ flex:1; }
+  .toast{ position:fixed; left:50%; bottom:74px; transform:translateX(-50%); background:#1E1B16; color:#fff; padding:11px 22px; border-radius:10px;
+    font-size:13.5px; font-weight:800; opacity:0; pointer-events:none; transition:opacity .25s; z-index:99; }
+  .toast.show{ opacity:1; }
+  .toast.ok{ background:var(--pine); } .toast.err{ background:var(--danger); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>PLU PREVIEW MANAGER<small>미리보기 콘텐츠 관리</small></h1>
+    <span class="store" id="pmStore">—</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="sales" type="button">SALES ITEM<small>광고상품</small></button>
+    <button class="tab" data-tab="etc" type="button">ETC<small>기타상품</small></button>
+    <button class="tab" data-tab="weekly" type="button">WEEKLY SALES<small>주간광고상품</small></button>
+  </div>
+
+  <!-- SALES ITEM -->
+  <div class="panel on" id="pnSales">
+    <div class="sec"><b>SALES ITEM</b> · PLU 번호와 상품명을 직접 입력하면 PREVIEW의 SALES ITEM 카테고리에 표시됩니다</div>
+    <div class="add-row">
+      <input class="in" id="saPlu" inputmode="numeric" placeholder="PLU 번호" maxlength="10">
+      <input class="in" id="saKor" placeholder="상품명 (한글)" maxlength="60">
+      <input class="in" id="saEng" placeholder="상품명 (영문 · 선택)" maxlength="60">
+      <button class="btn" id="saAdd" type="button">＋ 추가</button>
+    </div>
+    <table><thead><tr><th>PLU</th><th>한글명</th><th>영문명</th><th></th></tr></thead><tbody id="saBody"></tbody></table>
+    <div class="empty" id="saEmpty" style="display:none">등록된 SALES ITEM이 없습니다</div>
+  </div>
+
+  <!-- ETC -->
+  <div class="panel" id="pnEtc">
+    <div class="sec"><b>ETC</b> · PLU 번호와 상품명을 직접 입력하면 PREVIEW의 ETC(기타상품) 카테고리에 표시됩니다</div>
+    <div class="add-row">
+      <input class="in" id="etPlu" inputmode="numeric" placeholder="PLU 번호" maxlength="10">
+      <input class="in" id="etKor" placeholder="상품명 (한글)" maxlength="60">
+      <input class="in" id="etEng" placeholder="상품명 (영문 · 선택)" maxlength="60">
+      <button class="btn" id="etAdd" type="button">＋ 추가</button>
+    </div>
+    <table><thead><tr><th>PLU</th><th>한글명</th><th>영문명</th><th></th></tr></thead><tbody id="etBody"></tbody></table>
+    <div class="empty" id="etEmpty" style="display:none">등록된 ETC 상품이 없습니다</div>
+  </div>
+
+  <!-- WEEKLY -->
+  <div class="panel" id="pnWeekly">
+    <div class="sec"><b>WEEKLY SALES</b> · 주간광고 이미지를 올리면 PREVIEW의 WEEKLY SALES 화면에 그대로 표시됩니다</div>
+    <div class="wk-add">
+      <input type="file" id="wkFile" accept="image/*" multiple style="display:none">
+      <button class="btn" id="wkUpload" type="button">🖼 이미지 업로드</button>
+      <input class="in" id="wkUrl" placeholder="또는 이미지 주소(URL) 붙여넣기" style="flex:1;min-width:220px;">
+      <button class="btn ghost" id="wkUrlAdd" type="button">＋ 주소 추가</button>
+    </div>
+    <div class="wk-grid" id="wkGrid"></div>
+    <div class="empty" id="wkEmpty" style="display:none">등록된 주간광고 이미지가 없습니다</div>
+    <div class="hint">업로드한 이미지는 자동으로 축소·압축되어 저장됩니다. 이미지가 많거나 용량이 큰 경우 저장이 거부될 수 있으니(저장 한도 약 1MB) 필요한 이미지만 등록하세요.</div>
+  </div>
+</div>
+
+<div class="savebar">
+  <span class="msg" id="pmMsg">불러오는 중…</span>
+  <span class="sp"></span>
+  <button class="btn ghost" id="pmBack" type="button">← 뒤로</button>
+  <button class="btn" id="pmSave" type="button" disabled>저장 · SAVE</button>
+</div>
+<div class="toast" id="pmToast"></div>
+
+<script>
+(function(){
+  'use strict';
+  var $=function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  var tt;
+  function toast(m,k){ var t=$('pmToast'); t.textContent=m; t.className='toast show '+(k||''); clearTimeout(tt); tt=setTimeout(function(){ t.className='toast '+(k||''); },2200); }
+  function msg(m,k){ var e=$('pmMsg'); e.textContent=m; e.className='msg '+(k||''); }
+
+  /* 매장: ?store= → theShawnStore */
+  var STORE='';
+  try{ STORE=String(new URLSearchParams(location.search).get('store')||'').trim().toUpperCase(); }catch(e){}
+  if(!STORE){ try{ STORE=String(localStorage.getItem('theShawnStore')||'').trim().toUpperCase(); }catch(e){} }
+  $('pmStore').textContent=STORE||'매장 미선택';
+  document.title='PLU PREVIEW MANAGER · '+STORE;
+
+  var DOC_COL='plu-preview-config';
+  var data={ sales:{items:[]}, etc:{items:[]}, weekly:[] };
+  var dirty=false;
+  function markDirty(){ dirty=true; $('pmSave').disabled=false; msg('저장되지 않은 변경사항이 있습니다'); }
+
+  function fb(cb){ if(window.pmFb) cb(); else window.addEventListener('pm-ready', cb, {once:true}); }
+
+  /* ── 렌더 ── */
+  function renderItems(kind){
+    var items=data[kind].items||[];
+    var body=$(kind==='sales'?'saBody':'etBody'), empty=$(kind==='sales'?'saEmpty':'etEmpty');
+    body.innerHTML=items.map(function(it,i){
+      return '<tr><td class="plu">'+esc(it.plu)+'</td><td>'+esc(it.kor)+'</td><td>'+esc(it.eng)+'</td>'
+        +'<td class="act"><button class="del" data-kind="'+kind+'" data-i="'+i+'" type="button">삭제</button></td></tr>';
+    }).join('');
+    empty.style.display=items.length?'none':'block';
+  }
+  function renderWeekly(){
+    var g=$('wkGrid');
+    g.innerHTML=(data.weekly||[]).map(function(w,i){
+      var u=(typeof w==='string')?w:(w&&w.url)||'';
+      var t=(w&&w.title)||'';
+      return '<div class="wk-card"><img src="'+esc(u)+'" alt="">'
+        +'<div class="cap"><input data-i="'+i+'" class="wk-title" placeholder="제목(선택)" value="'+esc(t)+'">'
+        +'<button class="del wk-del" data-i="'+i+'" type="button">삭제</button></div></div>';
+    }).join('');
+    $('wkEmpty').style.display=(data.weekly||[]).length?'none':'block';
+    g.querySelectorAll('.wk-del').forEach(function(b){ b.onclick=function(){ data.weekly.splice(+b.dataset.i,1); renderWeekly(); markDirty(); }; });
+    g.querySelectorAll('.wk-title').forEach(function(inp){ inp.oninput=function(){ var i=+inp.dataset.i; var w=data.weekly[i]; if(typeof w==='string'){ data.weekly[i]={url:w,title:inp.value}; } else { w.title=inp.value; } markDirty(); }; });
+  }
+  function renderAll(){ renderItems('sales'); renderItems('etc'); renderWeekly(); }
+
+  document.addEventListener('click', function(e){
+    var d=e.target.closest('.del[data-kind]');
+    if(d){ data[d.dataset.kind].items.splice(+d.dataset.i,1); renderItems(d.dataset.kind); markDirty(); }
+  });
+
+  /* ── 추가 ── */
+  function wireAdd(kind, pluId, korId, engId, btnId){
+    function add(){
+      var plu=($(pluId).value||'').trim(), kor=($(korId).value||'').trim(), eng=($(engId).value||'').trim();
+      if(!plu && !kor && !eng){ toast('PLU 또는 상품명을 입력하세요','err'); $(pluId).focus(); return; }
+      data[kind].items.push({plu:plu, kor:kor, eng:eng});
+      $(pluId).value=''; $(korId).value=''; $(engId).value='';
+      renderItems(kind); markDirty(); $(pluId).focus();
+    }
+    $(btnId).onclick=add;
+    [$(pluId),$(korId),$(engId)].forEach(function(el){ el.addEventListener('keydown',function(ev){ if(ev.key==='Enter') add(); }); });
+  }
+  wireAdd('sales','saPlu','saKor','saEng','saAdd');
+  wireAdd('etc','etPlu','etKor','etEng','etAdd');
+
+  /* ── WEEKLY 이미지 ── */
+  function fileToDataUrl(file){
+    return new Promise(function(res,rej){
+      var img=new Image(), rd=new FileReader();
+      rd.onload=function(){ img.src=rd.result; };
+      rd.onerror=rej;
+      img.onload=function(){
+        var MAX=1200, w=img.width, h=img.height;
+        if(w>MAX){ h=Math.round(h*MAX/w); w=MAX; }
+        var c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        res(c.toDataURL('image/jpeg',0.82));
+      };
+      img.onerror=rej;
+      rd.readAsDataURL(file);
+    });
+  }
+  $('wkUpload').onclick=function(){ $('wkFile').click(); };
+  $('wkFile').onchange=async function(){
+    var fs=Array.from(this.files||[]); this.value='';
+    for(var i=0;i<fs.length;i++){
+      try{
+        var du=await fileToDataUrl(fs[i]);
+        data.weekly.push({url:du, title:''});
+      }catch(e){ toast('이미지 처리 실패: '+fs[i].name,'err'); }
+    }
+    renderWeekly(); markDirty();
+  };
+  $('wkUrlAdd').onclick=function(){
+    var u=($('wkUrl').value||'').trim();
+    if(!u){ toast('이미지 주소를 입력하세요','err'); return; }
+    data.weekly.push({url:u, title:''});
+    $('wkUrl').value=''; renderWeekly(); markDirty();
+  };
+
+  /* ── 탭 ── */
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.onclick=function(){
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('on', x===t); });
+      $('pnSales').classList.toggle('on', t.dataset.tab==='sales');
+      $('pnEtc').classList.toggle('on', t.dataset.tab==='etc');
+      $('pnWeekly').classList.toggle('on', t.dataset.tab==='weekly');
+    };
+  });
+
+  /* ── 로드/저장 ── */
+  function load(){
+    if(!STORE){ msg('매장이 지정되지 않았습니다 — H-MART에서 다시 열어주세요','err'); return; }
+    fb(function(){
+      var F=window.pmFb;
+      F.getDoc(F.doc(F.db, DOC_COL, STORE)).then(function(sn){
+        var d=(sn&&sn.exists&&sn.exists())?(sn.data()||{}):{};
+        data.sales={ items:(d.sales&&Array.isArray(d.sales.items))?d.sales.items.slice():[] };
+        data.etc  ={ items:(d.etc  &&Array.isArray(d.etc.items ))?d.etc.items.slice() :[] };
+        data.weekly=Array.isArray(d.weekly)?d.weekly.slice():[];
+        renderAll();
+        dirty=false; $('pmSave').disabled=true;
+        msg('불러오기 완료 · '+STORE,'ok');
+      }).catch(function(e){
+        renderAll();
+        msg('불러오기 실패: '+((e&&e.code)||e),'err');
+      });
+    });
+  }
+  function save(){
+    if(!STORE){ toast('매장이 지정되지 않았습니다','err'); return; }
+    var b=$('pmSave'); b.disabled=true; msg('저장 중…');
+    fb(function(){
+      var F=window.pmFb;
+      F.setDoc(F.doc(F.db, DOC_COL, STORE), {
+        sales:{ items:data.sales.items },
+        etc:{ items:data.etc.items },
+        weekly:data.weekly,
+        updatedAt:Date.now()
+      }, {merge:true}).then(function(){
+        dirty=false; msg('저장 완료 — PREVIEW에 반영됩니다','ok'); toast('저장 완료','ok');
+      }).catch(function(e){
+        b.disabled=false;
+        var c=String((e&&e.code)||e);
+        if(c.indexOf('invalid-argument')>=0 || c.indexOf('too large')>=0 || c.indexOf('exceeds')>=0){
+          msg('저장 실패 — 이미지 용량 초과. 이미지 수를 줄여주세요','err'); toast('용량 초과 — 이미지를 줄여주세요','err');
+        } else {
+          msg('저장 실패: '+c,'err'); toast('저장 실패','err');
+        }
+      });
+    });
+  }
+  $('pmSave').onclick=save;
+  $('pmBack').onclick=function(){
+    if(dirty && !confirm('저장하지 않은 변경사항이 있습니다. 나갈까요?')) return;
+    try{ if(window.parent && window.parent!==window){ history.back(); return; } }catch(e){}
+    location.href='hmart.html';
+  };
+  window.addEventListener('beforeunload', function(e){ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+
+  load();
+})();
+</script>
+</body>
+</html>
