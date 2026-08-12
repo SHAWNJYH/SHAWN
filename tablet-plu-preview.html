@@ -623,6 +623,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -644,7 +645,15 @@
     return out;
   };
   window.ppFb = { db, doc, getDoc };
-  window.dispatchEvent(new Event('fb-ready'));
+  /* Firestore 보안규칙(로그인 필요) 대응: 익명 인증 후 준비 신호 · 3초 폴백 */
+  var __fired=false;
+  function __fire(){ if(__fired) return; __fired=true; window.dispatchEvent(new Event('fb-ready')); }
+  try{
+    const __auth=getAuth(app);
+    onAuthStateChanged(__auth, function(u){ if(u) __fire(); });
+    signInAnonymously(__auth).catch(function(e){ console.warn('[익명 인증 실패]', e&&e.code||e); __fire(); });
+  }catch(e){ __fire(); }
+  setTimeout(__fire, 3000);
 </script>
 
 <script>
@@ -1609,11 +1618,17 @@
       if(!d || d.pin==null){ if(er) er.textContent='PIN NOT SET · ASK MANAGER'; return; }
       if(String(d.pin)!==String(pin)){ if(er) er.textContent='WRONG PIN'; var pi=document.getElementById('ppgPin'); pi.value=''; pi.focus(); return; }
       try{ localStorage.setItem('theShawnStore', st); }catch(e){}
+      try{ sessionStorage.setItem('ppGate','1'); }catch(e){}
       unlock();
     }).catch(function(){ busy=false; if(er) er.textContent='CONNECTION ERROR — TRY AGAIN'; });
   }
   document.documentElement.classList.add('pp-gate-lock');
-  document.addEventListener('DOMContentLoaded', function(){ show(''); });
+  document.addEventListener('DOMContentLoaded', function(){
+    var ok=false;
+    try{ ok = sessionStorage.getItem('ppGate')==='1' && !!localStorage.getItem('theShawnStore'); }catch(e){}
+    if(ok){ unlock(); return; }   // 같은 탭 새로고침 = 로그인 유지
+    show('');
+  });
 })();
 </script>
 </body>
