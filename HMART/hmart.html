@@ -371,7 +371,7 @@
    [STORE PIN]     매장 ID + PIN (plu-store-pins) → 기존 매장 입장 권한 그대로 (mode:'pin')
    [ID/PASSWORD]   HOMEPAGE MANAGER 계정(hmart-users · manager-users) — 아이디가 있고
                    권한(ACCESS·ANYWHERE·IP) 설정이 허용된 사람만 입장 (mode:'account')
-   세션: sessionStorage.hmGateAuth3 — 매 진입마다 서버 데이터와 재대조 */
+   자동 로그인 없음 — 매 진입마다 직접 로그인 (자동 반복 원천 차단) */
 (function(){
   'use strict';
   // 매장 목록: HOMEPAGE MANAGER · 매장 관리 (app-config/stores) — 실패 시 예비 목록
@@ -403,17 +403,6 @@
   }
   try{ var qs=new URLSearchParams(location.search); var qstore=(qs.get('store')||'').toUpperCase(); if(qstore){ localStorage.setItem('theShawnStore', qstore); } }catch(e){}
 
-  function savedCreds(){
-    var c=null;
-    try{ c=JSON.parse(sessionStorage.getItem('hmGateAuth3')||'null'); }catch(e){}
-    if(!c){ try{ if(localStorage.getItem('hmartAutoLogin')==='1') c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); }catch(e){} }
-    if(!c) return null;
-    if(c.mode==='pin' && c.store && c.pin)
-      return {mode:'pin', store:String(c.store).toUpperCase(), pin:String(c.pin)};
-    if(c.mode==='acct' && c.name && c.hash)
-      return {mode:'acct', name:String(c.name), hash:String(c.hash)};
-    return null;
-  }
   function fbReady(cb){ if(window.firebaseFns && window.firebaseDb) cb(); else window.addEventListener('plu-firebase-ready', cb, {once:true}); }
   function getDocData(col,id){
     return new Promise(function(res,rej){
@@ -498,21 +487,10 @@
     var ov=document.getElementById('hmGateOv'); if(ov) ov.remove();
     document.documentElement.classList.remove('hm-gate-lock');
   }
-  function autoSave(obj){
-    var auto=false;
-    var cb=document.getElementById('hmgAuto');
-    if(cb) auto=cb.checked; else { try{ auto=localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){} }
-    try{
-      if(auto){ localStorage.setItem('hmartAutoLogin','1'); localStorage.setItem('hmGateSaved3', JSON.stringify(obj)); }
-      else{ localStorage.setItem('hmartAutoLogin','0'); localStorage.removeItem('hmGateSaved3'); }
-    }catch(e){}
-  }
   function passPin(store,pin){
     try{ localStorage.setItem('theShawnStore', store); }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
     try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'pin'})); }catch(e){}
-    try{ sessionStorage.setItem('hmGateAuth3', JSON.stringify({mode:'pin',store:store,pin:pin})); }catch(e){}
-    autoSave({mode:'pin',store:store,pin:pin});
     unlock();
   }
   function passAcct(r){
@@ -524,8 +502,6 @@
     }catch(e){}
     try{ sessionStorage.setItem('hmartGate','1'); }catch(e){}
     try{ sessionStorage.setItem('hmartAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user, stores:r.stores})); }catch(e){}
-    try{ sessionStorage.setItem('hmGateAuth3', JSON.stringify({mode:'acct', name:r.user.name, hash:r.hash})); }catch(e){}
-    autoSave({mode:'acct', name:r.user.name, hash:r.hash});
     unlock();
   }
 
@@ -553,15 +529,12 @@
         +'</div>'
       +'</div>'
       +'<div class="hmg-foot">'
-        +'<label class="hmg-auto"><input type="checkbox" id="hmgAuto"><span>AUTO LOGIN</span></label>'
         +'<span style="flex:1"></span>'
         +'<button class="hmg-btn hmg-cancel" id="hmgCancel" type="button">CANCEL</button>'
       +'</div>'
     +'</div>';
     (document.body||document.documentElement).appendChild(ov);
-    try{ document.getElementById('hmgAuto').checked = localStorage.getItem('hmartAutoLogin')==='1'; }catch(e){}
     fillStoreSel(); loadStores();
-    try{ var c=JSON.parse(localStorage.getItem('hmGateSaved3')||'null'); if(c&&c.mode==='acct'&&c.name) document.getElementById('hmgAcctId').value=c.name; }catch(e){}
     document.getElementById('hmgPinEnter').onclick=submitPin;
     document.getElementById('hmgAcctEnter').onclick=submitAcct;
     document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
@@ -609,25 +582,13 @@
     });
   }
 
-  /* 시작: 저장된 자격 재검증 (방식별) — 없거나 실패 시 로그인 화면 */
+  /* 시작: 항상 로그인 화면 — 자동 로그인·자동 재검증 없음 (반복 로그인 원천 차단) */
   document.documentElement.classList.add('hm-gate-lock');
   document.addEventListener('DOMContentLoaded', function(){
+    try{ sessionStorage.removeItem('hmGateAuth3'); }catch(e){}
+    try{ localStorage.removeItem('hmGateSaved3'); localStorage.removeItem('hmartAutoLogin'); }catch(e){}
     loadStores();
-    var c=savedCreds();
-    if(!c){ show('',''); return; }
-    if(c.mode==='pin'){
-      show('CHECKING…','');
-      verifyStore(c.store,c.pin).then(function(bad){
-        if(bad){ try{ sessionStorage.removeItem('hmGateAuth3'); localStorage.removeItem('hmGateSaved3'); }catch(e){} show(bad,''); return; }
-        passPin(c.store,c.pin);
-      });
-    }else{
-      show('','CHECKING…');
-      verifyAcct(c.name, null, c.hash).then(function(r){
-        if(!r || r.err){ try{ sessionStorage.removeItem('hmGateAuth3'); localStorage.removeItem('hmGateSaved3'); }catch(e){} show('',(r&&r.err)||'ERROR'); return; }
-        passAcct(r);
-      });
-    }
+    show('','');
   });
 })();
 </script>
