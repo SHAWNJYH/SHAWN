@@ -3042,8 +3042,8 @@
 
   // CAMPEON WHOLESALE 박스 → index 팝업 로그인
   if($('toCampeonBtn')){
-    $('toCampeonBtn').onclick = () => openCampeonPw();
-    $('toCampeonBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCampeonPw(); } });
+    $('toCampeonBtn').onclick = () => { window.location.href = 'WHOLSALE/sales-management-campeonwholsale.html'; };
+    $('toCampeonBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = 'WHOLSALE/sales-management-campeonwholsale.html'; } });
   }
   // PLU PREVIEW 박스 → 매장 선택 팝업
   if($('toPluPreviewBtn')){
