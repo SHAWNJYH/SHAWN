@@ -1624,6 +1624,14 @@
   }
   document.documentElement.classList.add('pp-gate-lock');
   document.addEventListener('DOMContentLoaded', function(){
+    /* H-MART에서 이미 로그인한 세션(iframe 포함)이면 PIN 없이 바로 입장 */
+    var hm=false; try{ hm = sessionStorage.getItem('hmartGate')==='1'; }catch(e){}
+    if(hm){
+      try{ var q=new URLSearchParams(location.search).get('store'); if(q) localStorage.setItem('theShawnStore', String(q).toUpperCase()); }catch(e){}
+      try{ if(!localStorage.getItem('theShawnStore')) localStorage.setItem('theShawnStore','TACOMA'); }catch(e){}
+      try{ sessionStorage.setItem('ppGate','1'); }catch(e){}
+      unlock(); return;
+    }
     var ok=false;
     try{ ok = sessionStorage.getItem('ppGate')==='1' && !!localStorage.getItem('theShawnStore'); }catch(e){}
     if(ok){ unlock(); return; }   // 같은 탭 새로고침 = 로그인 유지
