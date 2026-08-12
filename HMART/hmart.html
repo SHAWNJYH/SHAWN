@@ -437,7 +437,7 @@
   }
   /* 계정 검증 (hmart-users → manager-users) · ACCESS/ANYWHERE/IP */
   var REQUIRED_SCOPE='HMART';
-  var GATE_COLS=[['egmm-users','egmm'],['hmart-users','hmart'],['vender-users','vender'],['manager-users','master']];
+  var GATE_COLS=[['egmm-users','egmm'],['hmart-users','hmart'],['manager-users','master']];   // H-MART: MANAGER·EGMM·H-MART 계정 + 매장 PIN
   function findUser(name){
     function pick(d){ var us=(d&&Array.isArray(d.users))?d.users:[];
       for(var i=0;i<us.length;i++){ if(us[i] && String(us[i].name||'').trim().toUpperCase()===name) return us[i]; } return null; }
@@ -626,7 +626,6 @@
         <button class="egmm-menu-btn" id="hmartToUpcBtn"><span class="mlab">UPC ITEM LIST<small>UPC 아이템 리스트</small></span></button>
         <button class="egmm-menu-btn" id="hmartToPreviewMgrBtn"><span class="mlab">PLU PREVIEW MANAGER<small>매장 PLU 미리보기 관리</small></span></button>
 
-        <button class="egmm-menu-btn" id="hmartToQuizBtn"><span class="mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
 
         <button class="egmm-menu-btn" id="hmartAdViewBtn"><span class="mlab">AD ITEMS<small>광고상품 보기</small></span></button>
 
@@ -892,7 +891,6 @@
     var store=activeStore();
     openInFrame('../tablet-plu-preview.html?mode=manager&store='+encodeURIComponent(store), this);
   };
-  $('hmartToQuizBtn').onclick = function(){ openInFrame('../TOOLS/plu-quiz.html', this); };
   $('hmartAdViewBtn').onclick = function(){ openInFrame('../advertising-viewer.html', this); };
   $('hmartNewItemBtn').onclick = function(){ try{ localStorage.setItem('hmNewItemSeen', String(niMaxTs||Date.now())); }catch(e){} niNew=0; refreshNewDot(); openInFrame('../newitem-viewer.html', this); };
   var __dpBtn=$('hmartPurchaseBtn'); if(__dpBtn) __dpBtn.onclick = function(){ openInFrame('daily-purchase.html', this); };
@@ -1225,7 +1223,7 @@
     isMgrSession = isMaster || (ROLE==='MANAGER' || ROLE==='GENERAL MANAGER');
   }
   refreshAuth();
-  var MENUS=['hmartToListBtn','hmartToUpcBtn','hmartToPreviewMgrBtn','hmartToQuizBtn','hmartAdViewBtn','hmartNewItemBtn','hmartPurchaseBtn','hmartDeliBtn','hmReqViewBtn'];
+  var MENUS=['hmartToListBtn','hmartToUpcBtn','hmartToPreviewMgrBtn','hmartAdViewBtn','hmartNewItemBtn','hmartPurchaseBtn','hmartDeliBtn','hmReqViewBtn'];
   var CARDS=['ITEMS','PURCHASE'];   // REQUEST 카드는 기존 인라인 숨김 유지 — 여기서 관리하지 않음
   function allowed(entry){
     if(!entry || !Array.isArray(entry.roles) || !entry.roles.length) return true;
@@ -1285,6 +1283,8 @@
     refreshAuth();
     applyPerms(lastCfg);
     ready(setupBlink);
+    // 안전 재적용: 설정 스냅샷/세션 기록 순서가 어긋나는 드문 경우 대비
+    setTimeout(function(){ refreshAuth(); applyPerms(lastCfg); }, 1500);
   });
 })();
 </script>

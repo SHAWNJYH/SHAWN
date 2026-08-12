@@ -303,6 +303,32 @@
   @media (max-width: 1100px) {
     .dp-body { grid-template-columns: 1fr 340px; }
   }
+
+  /* === 재배치/확대 스타일 (요청 6·7·8·11·12) === */
+  .dp-strip-lbl.lbl2{ display:inline-flex; flex-direction:column; align-items:center; line-height:1.15; }
+  .dp-strip-lbl.lbl2 em{ font-style:normal; }
+  .dp-strip-lbl.lbl2 small{ font-size:9px; letter-spacing:.14em; color:var(--text-faint,#8C8578); font-weight:800; }
+  .dp-ckbox{ padding:10px 16px !important; border-radius:10px !important; }
+  .dp-ckbox .ck2{ display:inline-flex; flex-direction:column; line-height:1.15; }
+  .dp-ckbox .ck2 em{ font-style:normal; font-weight:800; }
+  .dp-ckbox .ck2 small{ font-size:9px; letter-spacing:.1em; opacity:.75; font-weight:800; }
+  .dp-ckbox input:disabled{ cursor:not-allowed; }
+  .dp-user-pill{ padding:10px 14px !important; border-radius:10px !important; }
+  .dp-foot2{ display:flex; flex-direction:column; gap:8px; align-items:stretch !important; }
+  .dp-foot-line{ height:44px; display:flex; align-items:center; gap:12px; background:var(--bg-elev,#FFFDFA);
+    border:1.5px solid var(--border,#E4DFD4); border-radius:10px; padding:0 14px; overflow:hidden; }
+  .dp-foot-line .fl-lbl{ flex:0 0 auto; display:inline-flex; flex-direction:column; line-height:1.1; font-weight:800; font-size:12.5px; }
+  .dp-foot-line .fl-lbl small{ font-size:9px; letter-spacing:.12em; color:var(--text-faint,#8C8578); }
+  .dp-foot-line .fl-scroll{ flex:1 1 auto; min-width:0; display:flex; gap:8px; overflow-x:auto; align-items:center; }
+  .fl-chip{ flex:0 0 auto; display:inline-flex; align-items:center; gap:8px; background:var(--bg-elev-2,#F7F4ED);
+    border:1px solid var(--border,#E4DFD4); border-radius:8px; padding:5px 10px; font-size:12px; white-space:nowrap; }
+  .fl-chip em{ font-style:normal; font-weight:700; color:var(--text-dim,#4C463C); }
+  .fl-chip b{ font-weight:800; font-variant-numeric:tabular-nums; }
+  .fl-none{ font-size:12px; color:var(--text-faint,#8C8578); font-weight:700; }
+  .dp-mon-prev{ margin-top:8px; font-size:12.5px; font-weight:700; color:var(--text-dim,#4C463C); }
+  .dp-mon-prev b{ font-variant-numeric:tabular-nums; }
+  .dp-mon-prev .up{ color:#1F7A44; font-weight:800; }
+  .dp-mon-prev .down{ color:#9C3327; font-weight:800; }
 </style>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -337,27 +363,31 @@
     <div class="dp-checks">
       <span class="dp-checks-lbl">확인<small>CONFIRM</small></span>
       <label class="dp-ckbox" id="dpRecorderBox"><input type="checkbox" id="dpRecorderCk">
-        <span>담당자 <small>RECORDER</small></span><b id="dpRecorderNm"></b></label>
+        <span class="ck2"><em>어카운트</em><small>ACCOUNT</small></span><b id="dpRecorderNm"></b></label>
       <label class="dp-ckbox" id="dpManagerBox"><input type="checkbox" id="dpManagerCk">
-        <span>매니저 <small>MANAGER</small></span><b id="dpManagerNm"></b></label>
+        <span class="ck2"><em>점장</em><small>GENERAL MANAGER</small></span><b id="dpManagerNm"></b></label>
     </div>
     <div class="dp-top-right">
       <select class="dp-store-sel" id="dpStoreSel" style="display:none"></select>
       <span class="dp-user-pill" id="dpUserPill" style="display:none">👤 <b id="dpUserName"></b> <span class="role" id="dpUserRole"></span></span>
       <button class="dp-mini-btn" id="dpPrintBtn" type="button" disabled>🖨 프린트 <span style="opacity:.6">PRINT</span></button>
-      <button class="dp-mini-btn" id="dpLoginBtn" type="button">로그인 <span style="opacity:.6">LOGIN</span></button>
     </div>
   </header>
 
   <!-- 보기 스트립 -->
   <div class="dp-strip">
-    <span class="dp-strip-lbl">보기 · VIEW</span>
+    <span class="dp-strip-lbl lbl2"><em>보기</em><small>VIEW</small></span>
     <button class="dp-strip-btn" id="stAllBtn" type="button">전체 통계<small>ALL STATS</small></button>
     <button class="dp-strip-btn" id="stMonBtn" type="button">월별 통계<small>MONTHLY STATS</small></button>
     <button class="dp-strip-btn" id="stVenBtn" type="button">총 벤더리스트<small>ALL VENDORS</small></button>
     <button class="dp-strip-btn" id="stVenEtcBtn" type="button">기타 벤더리스트<small>MANUAL VENDORS</small></button>
     <button class="dp-strip-btn" id="stDeptBtn" type="button">총 부서리스트<small>ALL DEPTS</small></button>
     <button class="dp-strip-btn" id="stDeptEtcBtn" type="button">기타 부서리스트<small>ETC DEPTS</small></button>
+    <span class="dp-strip-lbl lbl2" style="margin-left:18px"><em>정리</em><small>SORT</small></span>
+    <button class="dp-strip-btn dp-sort-btn on" data-sort="time" type="button">시간별<small>TIME</small></button>
+    <button class="dp-strip-btn dp-sort-btn" data-sort="vendor" type="button">업체별<small>VENDOR</small></button>
+    <button class="dp-strip-btn dp-sort-btn" data-sort="dept" type="button">부서별<small>DEPT</small></button>
+    <button class="dp-strip-btn dp-sort-btn" data-sort="amount" type="button">금액별<small>AMOUNT</small></button>
   </div>
 
   <!-- 본문 -->
@@ -365,13 +395,7 @@
     <!-- 왼쪽: 리스트 -->
     <section class="dp-left">
       <div class="dp-sort">
-        <span class="dp-sort-lbl">정리 · SORT</span>
-        <button class="dp-sort-btn on" data-sort="time" type="button">시간별<small>TIME</small></button>
-        <button class="dp-sort-btn" data-sort="vendor" type="button">업체별<small>VENDOR</small></button>
-        <button class="dp-sort-btn" data-sort="dept" type="button">부서별<small>DEPT</small></button>
-        <button class="dp-sort-btn" data-sort="amount" type="button">금액별<small>AMOUNT</small></button>
         <span class="sp"></span>
-        <span class="dp-list-date" id="dpListDate">—</span>
         <span class="dp-cnt" id="dpRowCnt"></span>
         <button class="dp-mini-btn warm" id="dpEntryDoneBtn" type="button" style="display:none">입력완료 <span style="opacity:.7">ENTRY DONE</span></button>
         <button class="dp-mini-btn" id="dpEditBtn" type="button" style="display:none">수정 <span style="opacity:.6">EDIT</span></button>
@@ -395,9 +419,9 @@
         </table>
         <div class="dp-empty" id="dpEmpty" style="display:none">등록된 매입 내역이 없습니다 · No purchase records</div>
       </div>
-      <div class="dp-left-foot">
-        <span class="lbl">당일 매입 총액<small>DAILY TOTAL</small></span>
-        <span class="val" id="dpDayTotal">$0.00</span>
+      <div class="dp-left-foot dp-foot2">
+        <div class="dp-foot-line"><span class="fl-lbl">벤더별<small>BY VENDOR</small></span><div class="fl-scroll" id="dpVenTotals"></div></div>
+        <div class="dp-foot-line"><span class="fl-lbl">부서별<small>BY DEPT</small></span><div class="fl-scroll" id="dpDeptTotals"></div></div>
       </div>
     </section>
 
@@ -422,38 +446,14 @@
       </div>
 
       <div class="dp-card">
-        <div class="dp-card-h"><span class="dp-card-tick"></span><span class="dp-card-t">부서별 총액<small>BY DEPARTMENT</small></span></div>
-        <table class="dp-dept-tbl" id="dpDeptTbl"></table>
-        <div class="dp-dept-empty" id="dpDeptEmpty">내역 없음 · No data</div>
-      </div>
-
-      <div class="dp-card">
         <div class="dp-card-h"><span class="dp-card-tick"></span><span class="dp-card-t">월 매입 총액<small>MONTHLY TOTAL</small></span></div>
         <div class="dp-big-amt" id="dpMonTotal">$0.00</div>
         <div class="dp-sub-note" id="dpMonNote">—</div>
+        <div class="dp-mon-prev" id="dpMonPrev"></div>
       </div>
     </aside>
   </div>
 </div>
-
-<!-- 로그인 팝업 -->
-<div class="dp-ov" id="dpLoginOv"><div class="dp-modal" style="max-width:420px">
-  <div class="dp-mhead"><span class="dp-mtick"></span>
-    <span class="dp-mhead-tx"><span class="dp-meyebrow">DAILY PURCHASE</span><span class="dp-mtitle">계정 로그인 · ACCOUNT LOGIN</span></span>
-  </div>
-  <div class="dp-mbody">
-    <div class="dp-mrow"><label>아이디 · ID</label>
-      <select class="dp-in" id="dpLoginUser"><option value="">불러오는 중…</option></select>
-    </div>
-    <div class="dp-mrow"><label>패스워드 · PASSWORD</label>
-      <input class="dp-in" type="password" id="dpLoginPw" autocomplete="off" placeholder="••••">
-    </div>
-    <div class="dp-merr" id="dpLoginErr"></div>
-    <div class="dp-macts">
-      <button class="dp-mbtn primary" id="dpLoginOk" type="button">로그인 · LOGIN</button>
-    </div>
-  </div>
-</div></div>
 
 <!-- 권한 없음 팝업 -->
 <div class="dp-ov" id="dpDenyOv"><div class="dp-modal" style="max-width:380px">
@@ -591,59 +591,27 @@
       return v;
     });
   }
-  async function loadLoginUsers(){
-    var sel=$('dpLoginUser'); loginUsers=[];
-    try{
-      var snaps=await Promise.all([
-        fns().getDoc(fns().doc(db(),'app-config','hmart-users')),
-        fns().getDoc(fns().doc(db(),'app-config','manager-users'))
-      ]);
-      var h=(snaps[0]&&snaps[0].exists&&snaps[0].exists())?(snaps[0].data()||{}):{};
-      var m=(snaps[1]&&snaps[1].exists&&snaps[1].exists())?(snaps[1].data()||{}):{};
-      (Array.isArray(h.users)?h.users:[]).forEach(function(u){ if(u&&u.name) loginUsers.push({src:'hmart',u:u}); });
-      (Array.isArray(m.users)?m.users:[]).forEach(function(u){ if(u&&u.name) loginUsers.push({src:'manager',u:u}); });
-    }catch(e){}
-    if(!loginUsers.length){ sel.innerHTML='<option value="">등록된 아이디 없음 · No accounts</option>'; return; }
-    sel.innerHTML='<option value="">아이디 선택 · SELECT ID</option>'+loginUsers.map(function(x,i){
-      var u=x.u; var pos=String(u.position||'').toUpperCase();
-      var nm=(u.fullName?u.fullName+' · ':'')+u.name+(pos?(' ('+pos+')'):'')+(x.src==='manager'?' [MANAGER]':'');
-      return '<option value="'+i+'">'+esc(nm)+'</option>'; }).join('');
-  }
-  function openLogin(){ $('dpLoginErr').textContent=''; $('dpLoginPw').value=''; $('dpLoginOv').classList.add('show');
-    $('dpLoginUser').innerHTML='<option value="">불러오는 중… · Loading</option>'; ready(loadLoginUsers); }
-  async function submitLogin(){
-    var err=$('dpLoginErr'); err.textContent='';
-    var i=parseInt($('dpLoginUser').value,10);
-    var x=(!isNaN(i)&&loginUsers[i])?loginUsers[i]:null;
-    var pw=($('dpLoginPw').value||'').trim();
-    if(!x){ err.textContent='아이디를 선택하세요 · Select an ID'; return; }
-    if(!pw){ err.textContent='패스워드를 입력하세요 · Enter password'; $('dpLoginPw').focus(); return; }
-    if(!(await matchPin(pw, x.u.pin))){ err.textContent='패스워드가 올바르지 않습니다 · Wrong password'; $('dpLoginPw').select(); return; }
-    if(x.u.access===false){ $('dpLoginOv').classList.remove('show'); denyPopup('차단된 아이디입니다.','This ID is blocked.'); return; }
-    var role=(x.src==='manager')?'manager':positionRole(x.u.position);
-    if(!role){ $('dpLoginOv').classList.remove('show'); denyPopup('권한이 없습니다. (ACCOUNT / MANAGER 직급만 사용 가능)','ACCOUNT or MANAGER position required.'); return; }
-    var stores=userStores(x.u, x.src);
-    if(!stores.length){ $('dpLoginOv').classList.remove('show'); denyPopup('접근 가능한 매장이 없습니다.','No store permission on this ID.'); return; }
-    user={ id:x.u.id||x.u.name, name:x.u.fullName||x.u.name, role:role, master:(x.src==='manager'), stores:stores };
-    try{ sessionStorage.setItem('dpUser', JSON.stringify(user)); }catch(e){}
-    $('dpLoginOv').classList.remove('show');
-    applyUser();
-    toast('로그인 완료 · Logged in','success');
-  }
-  $('dpLoginOk').onclick=submitLogin;
-  $('dpLoginPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submitLogin(); });
-  $('dpLoginBtn').onclick=function(){
-    if(user){ uiConfirm('로그아웃','로그아웃할까요?','Log out of this account?','로그아웃 · LOGOUT',function(){
-      user=null; try{ sessionStorage.removeItem('dpUser'); }catch(e){} applyUser(); });
-    } else openLogin();
-  };
-  $('dpLoginOv').addEventListener('click',function(e){ if(e.target===$('dpLoginOv')) $('dpLoginOv').classList.remove('show'); });
 
+  function userFromHmartAuth(){
+    var a=null; try{ a=JSON.parse(sessionStorage.getItem('hmartAuth')||'null'); }catch(e){}
+    if(!a || a.mode!=='account' || !a.user) return null;
+    var master=(a.tier==='master');
+    var role=master?'manager':positionRole(a.user.position);
+    if(master) role='manager';
+    if(!role) return null;   // ACCOUNT/MANAGER/GM 직급 아님 → 조회만
+    var stores;
+    if(master){ stores=ALL_STORES.slice(); }
+    else{
+      var p=Array.isArray(a.stores)?a.stores.map(function(x){return String(x||'').trim();}).filter(Boolean):[];
+      if(!p.length || p.indexOf('*')>=0) stores=ALL_STORES.slice();
+      else stores=p.map(function(v){ for(var i=0;i<ALL_STORES.length;i++){ if(normStore(ALL_STORES[i])===normStore(v)) return ALL_STORES[i]; } return v; });
+    }
+    return { id:a.user.name, name:a.user.fullName||a.user.name, role:role, master:master, stores:stores };
+  }
   function applyUser(){
     var pill=$('dpUserPill');
     if(user){ pill.style.display='inline-flex'; $('dpUserName').textContent=user.name;
-      $('dpUserRole').textContent=user.master?'MANAGER 계정 · MASTER':(user.role==='manager'?'MANAGER':'ACCOUNT');
-      $('dpLoginBtn').innerHTML='로그아웃 <span style="opacity:.6">LOGOUT</span>';
+      $('dpUserRole').textContent=user.master?'MANAGER 계정 · MASTER':(user.role==='manager'?'GENERAL MANAGER':'ACCOUNT');
       // 매장 전환 (여러 매장 권한 시)
       var sel=$('dpStoreSel');
       if(user.stores.length>1){
@@ -653,7 +621,6 @@
       if(user.stores.indexOf(STORE)<0){ switchStore(user.stores[0]); }
     } else {
       pill.style.display='none';
-      $('dpLoginBtn').innerHTML='로그인 <span style="opacity:.6">LOGIN</span>';
       $('dpStoreSel').style.display='none';
     }
     renderAll();
@@ -743,18 +710,18 @@
   }
 
   // ===== 권한 판정 =====
-  function canBaseRecord(){ return !!(user && (user.role==='account'||user.master) && dayStatus(selDate)!=='done'); }
+  function canBaseRecord(){ return !!(user && (user.role==='account'||user.role==='manager'||user.master) && dayStatus(selDate)!=='done'); }
   function canRecord(){ // 기록 가능: ACCOUNT + 미완료 + (입력완료 전이거나 [수정] 편집 중)
     return canBaseRecord() && (!dayEntered(selDate) || editMode);
   }
   function isAccount(){ return !!(user&&(user.role==='account'||user.master)); }
-  function isManager(){ return !!(user&&user.role==='manager'); }
+  function isManager(){ return !!(user&&(user.role==='manager'||user.master)); }
 
   // ===== 담당자 / MANAGER 체크 =====
   $('dpRecorderCk').addEventListener('change', function(){
     var ck=this; var d=dayData(selDate);
     ck.checked=!!(d&&d.recorder);   // 실제 상태로 되돌리고 로직으로 처리
-    if(!user){ openLogin(); return; }
+    if(!user){ denyPopup('아이디/패스워드로 입장한 계정만 사용할 수 있습니다.','Enter with ID/PASSWORD to use this.'); return; }
     if(!isAccount()){ denyPopup('담당자 확인은 ACCOUNT 권한만 가능합니다.','Only ACCOUNT position can confirm as recorder.'); return; }
     if(dayStatus(selDate)==='done'){ denyPopup('완료된 일자입니다. 매니저가 진행중으로 변경해야 합니다.','This day is finalized. Ask manager to reopen.'); return; }
     if(d&&d.recorder){
@@ -774,7 +741,7 @@
   });
   $('dpManagerCk').addEventListener('change', function(){
     var ck=this; ck.checked=(dayStatus(selDate)==='done');   // 실제 상태로 되돌리고 로직으로 처리
-    if(!user){ openLogin(); return; }
+    if(!user){ denyPopup('아이디/패스워드로 입장한 계정만 사용할 수 있습니다.','Enter with ID/PASSWORD to use this.'); return; }
     if(!isManager()){ denyPopup('매니저 확인(완료 결재)은 MANAGER 권한만 가능합니다.','Only MANAGER can approve.'); return; }
     var d=dayData(selDate);
     if(dayStatus(selDate)==='done'){
@@ -819,14 +786,17 @@
     rb.classList.toggle('on', !!(d&&d.recorder));
     rn.textContent=(d&&d.recorder)?(d.recorder.name||''):'';
     rb.classList.toggle('dim', !isAccount());
+    rc.disabled = !(user && isAccount());          // ACCOUNT/최고권한만 담당자 체크
+
     var mb=$('dpManagerBox'), mc=$('dpManagerCk'), mn=$('dpManagerNm');
     mc.checked=(st==='done');
     mb.classList.toggle('done-on', st==='done');
     mb.classList.remove('on');
     mn.textContent=(st==='done'&&d&&d.manager)?(d.manager.name||''):'';
     mb.classList.toggle('dim', !isManager());
+    mc.disabled = !(user && isManager());          // GENERAL MANAGER/최고권한만 점장 결재
+
     // 리스트 상단: 기록 일자(YYYY/MM/DD) + 입력완료/수정/전체지우기
-    $('dpListDate').textContent=selDate.replace(/-/g,'/');
     var rows=dayRows(selDate).length;
     $('dpEntryDoneBtn').style.display=(canBaseRecord() && rows>0 && (!ent||editMode))?'':'none';
     $('dpEditBtn').style.display=(canBaseRecord() && ent && !editMode)?'':'none';
@@ -834,6 +804,20 @@
     $('dpPrintBtn').disabled=(st!=='done'||!vis);
   }
 
+  function renderFootTotals(hidden){
+    var v=$('dpVenTotals'), d=$('dpDeptTotals');
+    if(!v||!d) return;
+    if(hidden){ v.innerHTML='<span class="fl-none">담당자 확인 전 · Hidden</span>'; d.innerHTML='<span class="fl-none">담당자 확인 전 · Hidden</span>'; return; }
+    var rows=dayRows(selDate);
+    function agg(keyFn){ var m={}; rows.forEach(function(r){ var k=keyFn(r); if(!k) k='(없음)'; m[k]=(m[k]||0)+(+r.amount||0); }); return m; }
+    function chips(map){
+      var ks=Object.keys(map).sort(function(a,b){ return map[b]-map[a]; });
+      if(!ks.length) return '<span class="fl-none">내역 없음 · No data</span>';
+      return ks.map(function(k){ return '<span class="fl-chip"><em>'+esc(k)+'</em><b>'+fmt$(map[k])+'</b></span>'; }).join('');
+    }
+    v.innerHTML=chips(agg(function(r){ return r.vendor==='__manual__'?(r.vendorName||r.manualName||'(직접입력)'):(r.vendor||''); }));
+    d.innerHTML=chips(agg(function(r){ return r.dept||''; }));
+  }
   function sortedRows(){
     var rows=dayRows(selDate).slice();
     if(sortMode==='vendor') rows.sort(function(a,b){ var x=String(a.vendor||'').localeCompare(String(b.vendor||'')); return x!==0?x:((a.createdAt||0)-(b.createdAt||0)); });
@@ -860,7 +844,7 @@
     var st=dayStatus(selDate);
     if(!visibleForUser(selDate)){
       tb.innerHTML=''; $('dpInBody').innerHTML='<tr><td colspan="7"><div class="dp-lock-note">담당자 확인 전입니다 — 확인 후 열람 가능 · Hidden until recorder confirms</div></td></tr>';
-      $('dpEmpty').style.display='none'; $('dpRowCnt').textContent=''; $('dpDayTotal').textContent='—';
+      $('dpEmpty').style.display='none'; $('dpRowCnt').textContent=''; renderFootTotals(true);
       return;
     }
     $('dpRowCnt').textContent=rows.length? (rows.length+'건 · '+fmt$(dayTotal(selDate))) : '';
@@ -889,7 +873,7 @@
           +'<button class="dp-row-btn del" data-del="'+esc(r.id)+'" type="button">삭제</button>'):'')+'</td></tr>';
     }).join('');
     $('dpEmpty').style.display=rows.length?'none':'block';
-    $('dpDayTotal').textContent=fmt$(dayTotal(selDate));
+    renderFootTotals(false);
     renderInputRow();
   }
 
@@ -900,7 +884,7 @@
       ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">✓ 완료된 일자입니다 · Finalized — MANAGER만 진행중으로 변경 가능</div></td></tr>'; return;
     }
     if(!user){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">로그인 후 기록할 수 있습니다 · Login required</div></td></tr>'; return; }
-    if(!isAccount()){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">기록은 ACCOUNT 권한만 가능합니다 · ACCOUNT position only</div></td></tr>'; return; }
+    if(!isAccount() && !isManager()){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">기록 권한이 없습니다 · No recording permission</div></td></tr>'; return; }
     if(dayEntered(selDate)&&!editMode){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">입력완료(T)된 일자입니다 — [수정] 을 누르면 편집할 수 있습니다 · Press EDIT to change</div></td></tr>'; return; }
     // 기존 입력값 보존
     var keep={ vendor:'', manual:false, manualName:'', invoice:'', amount:'', dept:'', memo:'' };
@@ -924,7 +908,15 @@
       +'<td><input class="dp-in n-memo" maxlength="60" placeholder="비고 · Memo" value="'+esc(keep.memo)+'"></td>'
       +'<td class="c-act"><button class="dp-add-btn" id="dpAddRowBtn" type="button">＋ 추가 <span style="opacity:.7">ADD</span></button></td></tr>';
     var vsel=ib.querySelector('.n-vendor'), vman=ib.querySelector('.n-vendor-manual');
-    vsel.onchange=function(){ vman.style.display=(vsel.value==='__manual__')?'block':'none'; if(vsel.value==='__manual__') vman.focus(); };
+    function syncManual(){
+      var m=(vsel.value==='__manual__');
+      vsel.style.display=m?'none':'';
+      vman.style.display=m?'block':'none';
+      if(m) vman.focus();
+    }
+    vsel.onchange=syncManual;
+    vman.addEventListener('blur',function(){ if(!vman.value.trim()){ vsel.value=''; syncManual(); } });
+    syncManual();
     var memoIn=ib.querySelector('.n-memo');
     memoIn.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.isComposing) addRow(); });
     ib.querySelector('.n-amount').addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.isComposing) addRow(); });
@@ -1009,32 +1001,29 @@
   });
 
   // ===== 오른쪽: 누계 =====
+  function renderMonPrev(y,m){
+    var py=m===1?y-1:y, pm=m===1?12:m-1;
+    var cur=visMonthTotal(y,m), prev=visMonthTotal(py,pm);
+    var diff=cur-prev, up=diff>=0;
+    $('dpMonPrev').innerHTML='전달 '+py+'년 '+pm+'월 <b>'+fmt$(prev)+'</b>'
+      +' <span class="'+(up?'up':'down')+'">'+(up?'▲ +':'▼ −')+fmt$(Math.abs(diff)).replace('$','$')+'</span>';
+  }
   function renderRight(){
     if(!visibleForUser(selDate)){
       $('dpDayTotal2').textContent='—'; $('dpDayNote').textContent='담당자 확인 전 · Hidden';
-      $('dpDeptTbl').innerHTML=''; $('dpDeptEmpty').style.display='block';
       var pp=selDate.split('-');
       $('dpMonTotal').textContent=fmt$(visMonthTotal(+pp[0], +pp[1]));
       $('dpMonNote').textContent=pp[0]+'년 '+(+pp[1])+'월 · '+(STORE||'');
+      renderMonPrev(+pp[0], +pp[1]);
       return;
     }
     var t=dayTotal(selDate);
     $('dpDayTotal2').textContent=fmt$(t);
     $('dpDayNote').textContent=fmtDateKo(selDate)+' · '+dayRows(selDate).length+'건';
-    // 부서별
-    var map={}; dayRows(selDate).forEach(function(r){ var k=r.dept||'(부서없음)'; map[k]=(map[k]||0)+(+r.amount||0); });
-    var keys=Object.keys(map).sort();
-    var tbl=$('dpDeptTbl');
-    if(!keys.length){ tbl.innerHTML=''; $('dpDeptEmpty').style.display='block'; }
-    else {
-      $('dpDeptEmpty').style.display='none';
-      tbl.innerHTML=keys.map(function(k){ return '<tr><td class="dn">'+esc(k)+'</td><td class="dv">'+fmt$(map[k])+'</td></tr>'; }).join('')
-        +'<tr class="tot"><td class="dn">전체 금액 · TOTAL</td><td class="dv">'+fmt$(t)+'</td></tr>';
-    }
-    // 월 총액 (매니저는 담당자 확인 일자만 합산)
     var p=selDate.split('-');
     $('dpMonTotal').textContent=fmt$(visMonthTotal(+p[0], +p[1]));
     $('dpMonNote').textContent=p[0]+'년 '+(+p[1])+'월 · '+(STORE||'');
+    renderMonPrev(+p[0], +p[1]);
   }
 
   // ===== 달력 =====
@@ -1217,26 +1206,12 @@
     document.title=(STORE?STORE+' ':'')+'매입일지 · DAILY PURCHASE';
     $('dpApp').style.visibility='visible';
     var p=selDate.split('-'); calY=+p[0]; calM=+p[1];
-    // 세션 복원 (dp 자체 세션 → 없으면 H-MART 아이디 입장 세션 자동 적용)
-    try{ var uj=sessionStorage.getItem('dpUser'); if(uj){ user=JSON.parse(uj); } }catch(e){}
-    if(!user){
-      try{
-        var aj=sessionStorage.getItem('hmartAuth'); var au=aj?JSON.parse(aj):null;
-        if(au && au.mode==='account' && au.user){
-          var isMaster=(au.tier==='master');
-          var role=isMaster?'manager':positionRole(au.user.position);
-          if(role){
-            var sts=isMaster?ALL_STORES.slice():((Array.isArray(au.stores)&&au.stores.length)?au.stores:(STORE?[STORE]:[]));
-            user={ id:au.user.id||au.user.name, name:au.user.fullName||au.user.name, role:role, master:isMaster, stores:sts };
-            sessionStorage.setItem('dpUser', JSON.stringify(user));
-          }
-        }
-      }catch(e){}
-    }
+    // H-MART 아이디 입장 세션을 그대로 사용 (별도 로그인/로그아웃 없음)
+    user=userFromHmartAuth();
     ready(function(){
       loadConfigs();
       subscribeDays();
-      if(user) applyUser(); else { renderAll(); openLogin(); }   // 입장 시 계정 로그인 (ACCOUNT 권한 확인 · req 21)
+      applyUser();   // user 없음(매장 PIN 입장) = 조회 전용
     });
     renderAll();
   }

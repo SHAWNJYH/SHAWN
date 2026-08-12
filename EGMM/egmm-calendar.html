@@ -5,71 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
-<script>
-/* hmartus.com 등 다른 페이지의 iframe 안에서 열렸을 때:
-   1) 같은 도메인이면 → 이 iframe을 화면 전체로 확대해 부모의 상/하단 프레임을 덮는다
-   2) 다른 도메인이면 → iframe을 벗어나 탭 전체로 전환한다 */
-(function(){
-  if (window.self === window.top) return;   // iframe이 아니면 아무것도 안 함
-  try {
-    var pd = window.parent.document;        // 다른 도메인이면 여기서 예외 발생
-    var ifs = pd.querySelectorAll('iframe'), me = null;
-    for (var i = 0; i < ifs.length; i++) { if (ifs[i].contentWindow === window) { me = ifs[i]; break; } }
-    if (me) {
-      me.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;border:0;margin:0;padding:0;z-index:2147483647;background:#fff;';
-      pd.documentElement.style.overflow = 'hidden';
-      pd.body.style.overflow = 'hidden';
-    }
-  } catch (e) {
-    try { window.top.location.href = window.location.href; } catch (e2) {}
-  }
-})();
-</script>
-<link rel="manifest" href="TABLET-manifest.json">
-<meta name="theme-color" content="#9C3327">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="TABLET-icon-192.png">
-<script>
-/* ── PWA: 서비스워커 등록 + 우상단 원탭 설치 버튼 ── */
-(function(){
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    try { navigator.serviceWorker.register('TABLET-sw.js'); } catch(e){}
-  }
-  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
-  if (standalone) return;                       // 이미 앱으로 실행 중
-  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  var deferred = null;
-
-  function makeBtn(){
-    if (document.getElementById('pwaInstallBtn')) return;
-    var b = document.createElement('button');
-    b.id = 'pwaInstallBtn'; b.type = 'button';
-    b.textContent = '📲 앱 설치';
-    b.style.cssText = 'position:fixed;top:12px;right:12px;z-index:2147483000;'
-      + 'background:#9C3327;color:#fff;border:0;border-radius:10px;padding:9px 14px;'
-      + 'font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.3);font-family:inherit;';
-    b.onclick = function(){
-      if (deferred) {                            // 안드로이드: 원탭 설치
-        deferred.prompt();
-        deferred.userChoice.then(function(r){ if (r && r.outcome === 'accepted') hide(); });
-      } else if (isIOS) {                        // 아이폰/아이패드: 설치 안내
-        alert('아이폰/아이패드 설치 방법\n\n1. 하단(또는 상단)의 공유 버튼 ⬆︎ 을 누르세요\n2. "홈 화면에 추가"를 선택하세요\n3. 오른쪽 위 "추가"를 누르면 완료!');
-      } else {
-        alert('브라우저 메뉴(⋮)에서 "앱 설치" 또는 "홈 화면에 추가"를 선택하세요.');
-      }
-    };
-    var add=function(){ document.body.appendChild(b); };
-    if (document.body) add(); else document.addEventListener('DOMContentLoaded', add);
-  }
-  function hide(){ var b=document.getElementById('pwaInstallBtn'); if (b && b.parentNode) b.parentNode.removeChild(b); }
-
-  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); deferred = e; makeBtn(); });
-  if (isIOS) makeBtn();                          // iOS는 이벤트가 없으므로 항상 버튼 표시
-  window.addEventListener('appinstalled', hide);
-})();
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/korean-lunar-calendar/dist/korean-lunar-calendar.min.js"></script>
 <script type="module">
@@ -91,8 +26,7 @@
     getDocs,
     query,
     where,
-    deleteDoc,
-    onSnapshot
+    deleteDoc
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -124,31 +58,25 @@
     getDocs,
     query,
     where,
-    deleteDoc,
-    onSnapshot
+    deleteDoc
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
 <style>
   :root {
-    /* ── DESIGN SYSTEM "Paper & Pine" (homepage-manager · tablet-plu-preview 공통) ── */
-    --bg: #EDEAE3;
-    --bg-elev: #FFFDFA;
-    --bg-elev-2: #F7F4ED;
-    --border: #E4DFD4;
-    --border-bright: #D6CFC0;
-    --text: #1E1B16;
-    --text-dim: #4C463C;
-    --text-faint: #8C8578;
-    --accent: #1E1B16;
-    --accent-soft: #E9EFEA;
-    --accent-warm: #2F5D46;
-    --brass: #A98A55;
-    --danger: #9C3327;
-    --danger-soft: #F5EAE7;
+    --bg: #fafaf7;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #f3f3ee;
+    --border: #e5e5e0;
+    --border-bright: #c8c8c0;
+    --text: #1a1a1d;
+    --text-dim: #6b6b72;
+    --text-faint: #9a9aa0;
+    --accent: #1a1a1d;
+    --accent-soft: #f0eee5;
+    --accent-warm: #c9a961;
+    --danger: #c83a3a;
     --success: #2a8a4a;
-    --sh-1: 0 1px 2px rgba(30,27,22,.05);
-    --sh-2: 0 1px 2px rgba(30,27,22,.05), 0 14px 30px -20px rgba(30,27,22,.42);
     /* 카테고리 색상 */
     --cat-work: #4a6cc9;
     --cat-work-soft: #e5ebfa;
@@ -177,8 +105,8 @@
     position: fixed;
     inset: 0;
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(169,138,85,0.06) 0%, transparent 40%),
-      radial-gradient(circle at 80% 90%, rgba(30,27,22,0.03) 0%, transparent 40%);
+      radial-gradient(circle at 20% 10%, rgba(201, 169, 97, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(26, 26, 29, 0.03) 0%, transparent 40%);
     pointer-events: none;
     z-index: 0;
   }
@@ -212,7 +140,7 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 40px 32px 32px;
-    box-shadow: 0 10px 40px rgba(30,27,22,0.06);
+    box-shadow: 0 10px 40px rgba(26,26,29,0.06);
   }
 
   /* 로그인(THE SHAWN) + EGMM 두 박스를 나란히 */
@@ -224,7 +152,7 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 28px; cursor: pointer; transition: border-color .15s, box-shadow .15s, transform .12s;
   }
-  .lock-card-egmm:hover { border-color: var(--accent-warm); box-shadow: 0 12px 44px rgba(30,27,22,0.1); }
+  .lock-card-egmm:hover { border-color: var(--accent-warm); box-shadow: 0 12px 44px rgba(26,26,29,0.1); }
   .lock-card-egmm:active { transform: scale(0.99); }
   .lock-card-egmm:focus-visible { outline: 2px solid var(--accent-warm); outline-offset: 2px; }
   .lock-card-egmm .lock-title { margin-bottom: 0; }
@@ -251,7 +179,7 @@
     color: var(--text-dim);
     margin-bottom: 6px;
   }
-  .field input, .field textarea, .field select {
+  .field input, .field textarea {
     width: 100%;
     background: var(--bg);
     border: 1.5px solid var(--border);
@@ -263,7 +191,6 @@
     transition: border-color 0.2s, background 0.2s;
     resize: vertical;
   }
-  .field select:focus,
   .field input:focus, .field textarea:focus {
     outline: none;
     border-color: var(--accent-warm);
@@ -296,7 +223,7 @@
     transition: transform 0.15s, background 0.2s;
     margin-top: 8px;
   }
-  .btn:hover { background: #332E26; }
+  .btn:hover { background: #2d2d33; }
   .btn:active { transform: scale(0.98); }
   .btn.ghost {
     background: transparent;
@@ -361,12 +288,10 @@
   }
   .menu-brand {
     font-family: var(--serif);
-    font-size: 40px;
-    font-weight: 800;
+    font-size: 42px;
+    font-weight: 700;
     line-height: 1;
     color: var(--text);
-    letter-spacing: .14em;
-    text-transform: uppercase;
   }
   .menu-brand-sub {
     font-family: var(--mono);
@@ -401,7 +326,7 @@
   .menu-card:hover {
     border-color: var(--accent-warm);
     transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(30,27,22,0.08);
+    box-shadow: 0 20px 40px rgba(26,26,29,0.08);
   }
   .menu-card.disabled {
     cursor: not-allowed;
@@ -516,11 +441,9 @@
   }
   .brand {
     font-family: var(--serif);
-    font-size: 32px;
-    font-weight: 800;
+    font-size: 34px;
+    font-weight: 700;
     line-height: 1;
-    letter-spacing: .14em;
-    text-transform: uppercase;
   }
   .brand em { font-style: normal; color: var(--accent-warm); }
   .brand-meta {
@@ -584,7 +507,7 @@
   .sync-status.synced::before { background: var(--success); }
   .sync-status.syncing {
     color: var(--accent-warm);
-    border-color: rgba(47,93,70,0.28);
+    border-color: rgba(201,169,97,0.3);
     background: var(--accent-soft);
   }
   .sync-status.syncing::before {
@@ -645,7 +568,7 @@
     align-items: center;
     gap: 6px;
   }
-  .add-note-btn:hover { background: #332E26; }
+  .add-note-btn:hover { background: #2d2d33; }
   .add-note-btn:active { transform: scale(0.96); }
 
   .notes-grid {
@@ -1048,12 +971,12 @@
     align-items: center;
     gap: 6px;
     min-width: 120px;
-    box-shadow: 0 4px 16px rgba(30,27,22,0.15);
+    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
   }
   .upc-convert-btn:hover {
     background: var(--accent-warm);
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(47,93,70,0.28);
+    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
   }
   .upc-convert-btn:active {
     transform: scale(0.98);
@@ -1086,12 +1009,12 @@
     align-items: center;
     gap: 4px;
     min-width: 130px;
-    box-shadow: 0 4px 16px rgba(30,27,22,0.15);
+    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
   }
   .case-convert-btn:hover {
     background: var(--accent-warm);
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(47,93,70,0.28);
+    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
   }
   .case-convert-btn:active {
     transform: scale(0.98);
@@ -1207,12 +1130,12 @@
     cursor: pointer;
     border-radius: 10px;
     transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(30,27,22,0.15);
+    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
   }
   .claude-add-btn:hover {
     background: var(--accent-warm);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(47,93,70,0.28);
+    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
   }
 
   .claude-notes-grid {
@@ -1264,7 +1187,7 @@
     font-family: var(--mono);
     font-size: 17px;
     font-weight: 800;
-    color: #332E26;
+    color: #2a2a2a;
     outline: none;
   }
   .claude-note-title-input:focus {
@@ -1284,7 +1207,7 @@
     font-family: var(--mono);
     font-size: 14px;
     line-height: 1.55;
-    color: #332E26;
+    color: #2a2a2a;
     outline: none;
   }
   .claude-note-body::placeholder {
@@ -1323,7 +1246,7 @@
   }
   .claude-note-action:hover {
     background: rgba(0,0,0,0.06);
-    color: #332E26;
+    color: #2a2a2a;
     border-color: rgba(0,0,0,0.45);
   }
   .claude-note-action.danger:hover {
@@ -1432,7 +1355,7 @@
     transition: background 0.2s;
     white-space: nowrap;
   }
-  .bible-go-btn:hover { background: #332E26; }
+  .bible-go-btn:hover { background: #2d2d33; }
 
   .bible-quick {
     display: flex;
@@ -1816,7 +1739,7 @@
   .panel-bg {
     position: fixed;
     inset: 0;
-    background: rgba(30,27,22,0.35);
+    background: rgba(26, 26, 29, 0.35);
     backdrop-filter: blur(6px);
     z-index: 200;
     display: none;
@@ -1838,7 +1761,7 @@
     overflow-y: auto;
     padding: 28px 28px 24px;
     position: relative;
-    box-shadow: 0 30px 80px rgba(30,27,22,0.15);
+    box-shadow: 0 30px 80px rgba(26,26,29,0.15);
     animation: cardIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @keyframes cardIn {
@@ -2205,7 +2128,7 @@
     pointer-events: none;
     transition: all 0.3s;
     z-index: 9999;
-    box-shadow: 0 10px 40px rgba(30,27,22,0.3);
+    box-shadow: 0 10px 40px rgba(26,26,29,0.3);
     min-width: 200px;
     text-align: center;
   }
@@ -2229,7 +2152,7 @@
   .modal-bg {
     position: fixed;
     inset: 0;
-    background: rgba(30,27,22,0.45);
+    background: rgba(26, 26, 29, 0.45);
     backdrop-filter: blur(4px);
     z-index: 500;
     display: none;
@@ -2245,7 +2168,7 @@
     padding: 28px;
     max-width: 380px;
     width: 100%;
-    box-shadow: 0 30px 80px rgba(30,27,22,0.15);
+    box-shadow: 0 30px 80px rgba(26,26,29,0.15);
   }
   .modal h3 {
     font-family: var(--serif);
@@ -2382,13 +2305,13 @@
   }
 
   /* 좌상단 MANAGER 아이콘 */
-  .topbar-left { position: fixed; top: 16px; left: 16px; z-index: 1200; display: flex; align-items: center; gap: 8px; }
   .mgr-fab {
+    position: fixed; top: 16px; left: 16px; z-index: 1200;
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--bg-elev); border: 1.5px solid var(--border); color: var(--text-dim);
     padding: 8px 12px; border-radius: 999px; cursor: pointer;
     font-family: var(--mono); font-size: 12px; font-weight: 800; letter-spacing: .04em;
-    box-shadow: 0 6px 20px rgba(30,27,22,0.10);
+    box-shadow: 0 6px 20px rgba(26,26,29,0.10);
     transition: border-color .15s, color .15s, transform .12s;
   }
   .mgr-fab:hover { border-color: var(--accent-warm); color: var(--text); }
@@ -2410,134 +2333,110 @@
   }
   .mgr-x:hover { color: var(--text); }
   .mgr-pw-sub { margin: 2px 0 16px; font-size: 13px; color: var(--text-faint); }
-  .egmm-auto-row { display: flex; align-items: center; gap: 8px; margin: 2px 0 14px; font-size: 13px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none; }
-  .egmm-auto-row input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-warm); }
 
-  /* === 랜딩 포털 (미니멀) === */
-  .portal-wrap{
-    width:100%; max-width:1160px; position:relative; z-index:1;
-    display:flex; flex-direction:column; align-items:center;
-    animation: portalIn .55s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  @keyframes portalIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
-  .portal-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; width:100%; max-width:660px; margin:0 auto; }
-  /* 구역(섹션) 레이아웃 — 구역별 한 줄 · 라인 구분 */
-  .portal-cats{ display:flex; flex-direction:column; width:100%; max-width:1120px; margin:0 auto; }
-  .portal-cat{ display:grid; grid-template-columns:220px 1fr; gap:26px; align-items:center; padding:20px 4px; }
-  .portal-cat + .portal-cat{ border-top:1px solid var(--border); }
-  .portal-cat-title{
-    font-family:var(--mono); font-size:13px; font-weight:800; letter-spacing:.12em;
-    color:var(--text-dim); text-transform:uppercase;
-    display:flex; align-items:center; gap:8px; padding-left:2px;
-  }
-  .portal-cat-title::before{ content:''; width:4px; height:14px; background:var(--accent-warm); border-radius:2px; flex:0 0 auto; }
-  .portal-cat-title .ko{ text-transform:none; letter-spacing:.02em; color:var(--text-faint); font-size:12px; }
-  .portal-cat-cards{ display:flex; gap:14px; flex-wrap:wrap; }
-  .portal-cat .portal-card{ flex:0 0 262px; min-height:100px; padding:18px 20px; flex-direction:column; }
-  .portal-cat .portal-name{ font-size:21px; }
-  .portal-ko{ margin-top:7px; font-family:var(--mono); font-size:13px; font-weight:700; color:var(--text-dim); letter-spacing:.02em; }
-  .portal-card-wide{ grid-column:1 / -1; min-height:118px; }
-  .portal-card{
-    position:relative; overflow:hidden; background:var(--bg-elev);
-    border:1.5px solid var(--border); border-radius:18px;
-    min-height:150px; display:flex; align-items:center; justify-content:center;
-    cursor:pointer; text-align:center; padding:24px;
-    box-shadow:0 8px 30px rgba(30,27,22,0.05);
-    transition:border-color .22s, transform .22s cubic-bezier(0.2,0.8,0.2,1), box-shadow .22s;
-  }
-  .portal-card::before{
-    content:''; position:absolute; top:0; left:0; right:0; height:3px;
-    background:var(--accent-warm); transform:scaleX(0); transform-origin:center;
-    transition:transform .25s cubic-bezier(0.2,0.8,0.2,1);
-  }
-  .portal-card:hover{ border-color:var(--accent-warm); transform:translateY(-5px); box-shadow:0 24px 48px rgba(30,27,22,0.10); }
-  .portal-card:hover::before{ transform:scaleX(1); }
-  .portal-card:active{ transform:translateY(-2px) scale(.99); }
-  .portal-card:focus-visible{ outline:2px solid var(--accent-warm); outline-offset:2px; }
-  .portal-name{
-    font-family:var(--serif); font-size:27px; font-weight:700; color:var(--text);
-    line-height:1.25; letter-spacing:.02em; word-break:keep-all;
-  }
-  .portal-tablet-badge{
-    display:block; margin-top:8px;
-    color:#9C3327;
-    font-family:var(--mono); font-size:12px; font-weight:800; letter-spacing:.03em;
-  }
-  /* PLU PREVIEW 카드: 이름 + 배지를 세로로 (배지가 이름 아래에 오도록) */
-  #toPluPreviewBtn{ flex-direction:column; }
-  @media (max-width:900px){
-    .portal-grid{ grid-template-columns:1fr; max-width:400px; }
-    .portal-cats{ max-width:400px; }
-    .portal-cat{ grid-template-columns:1fr; gap:10px; padding:16px 2px; }
-    .portal-cat .portal-card{ flex:1 1 100%; }
-    .portal-card{ min-height:96px; }
-  }
-  @media (min-width:901px) and (max-width:1180px){
-    .portal-cats{ max-width:900px; }
-    .portal-cat .portal-card{ flex:1 1 240px; max-width:300px; }
-  }
+  /* EGMM 캘린더 전체화면 (1080 한 화면, 스크롤 없음) */
+  html, body { height: 100vh; overflow: hidden; }
+  .app { max-width: 100% !important; height: 100vh; padding: 12px 28px 14px !important; margin: 0 !important; display: flex; flex-direction: column; overflow: hidden; }
+  .app .topbar { flex: 0 0 auto; margin-bottom: 8px !important; align-items: flex-start; }
+  .app .brand { font-size: 24px !important; margin: 0 !important; }
+  .app .brand-meta { margin-top: 2px !important; }
+  .app .cal-header { flex: 0 0 auto; margin-bottom: 8px !important; }
+  .cal-layout { grid-template-columns: 1fr 280px !important; flex: 1 1 auto; min-height: 0; margin-bottom: 0 !important; }
+  .cal-main { display: flex; flex-direction: column; min-height: 0; }
+  .cal-main .weekdays { flex: 0 0 auto; }
+  .calendar { flex: 1 1 auto; min-height: 0; margin-bottom: 0 !important; grid-auto-rows: 1fr; }
+  .day { min-height: 0 !important; overflow: hidden; }
+  .cal-side { overflow-y: auto; min-height: 0; }
+  .topbar-actions { align-items: center; }
+  .mgr-fab { display: none !important; }
+
+  /* 메모 팝업 모달 */
+  .notes-ov { position: fixed; inset: 0; z-index: 3000; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; padding: 24px; }
+  .notes-ov.show { display: flex; }
+  .notes-modal { width: 100%; max-width: 900px; max-height: 86vh; overflow-y: auto; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: 0 !important; }
+  .notes-head-btns { display: flex; gap: 8px; }
+  .notes-close-btn { background: transparent !important; color: var(--text-dim) !important; border: 1.5px solid var(--border) !important; }
 </style>
 </head>
 <body>
 
-<!-- 좌상단 MANAGER · EGMM · ITEM ANALYZE -->
-<div class="topbar-left">
-  <button class="mgr-fab" id="toOdpBtn" type="button" title="EGMM" aria-label="EGMM"><span>EGMM</span></button>
-</div>
+<!-- 좌상단 MANAGER 아이콘 -->
+<button class="mgr-fab" id="mgrFab" type="button" title="MANAGER 로그인">👤 <span>MANAGER</span></button>
 
 <!-- LOGIN SCREEN -->
 <div class="lock-screen" id="lockScreen">
-  <div class="portal-wrap">
-    <div class="portal-cats">
-      <!-- 구역 1: 매장·도매 관리 -->
-      <div class="portal-cat">
-        <div class="portal-cat-title">MANAGEMENT <span class="ko">매장 · 도매 관리</span></div>
-        <div class="portal-cat-cards">
-          <div class="portal-card" id="toHmartBtn" role="button" tabindex="0" aria-label="H-MART">
-            <div class="portal-name">H-MART</div>
-            <div class="portal-ko">매장 관리</div>
-          </div>
-          <div class="portal-card" id="toCampeonBtn" role="button" tabindex="0" aria-label="CAMPEON WHOLESALE">
-            <div class="portal-name">CAMPEON WHOLESALE</div>
-            <div class="portal-ko">도매 관리</div>
-          </div>
-        </div>
-      </div>
-      <!-- 구역 2: 광고 · 신상품 · 퀴즈 -->
-      <div class="portal-cat">
-        <div class="portal-cat-title">STORE SUPPORT <span class="ko">매장 지원</span></div>
-        <div class="portal-cat-cards">
-          <div class="portal-card" id="toAdViewerBtn" role="button" tabindex="0" aria-label="ADVERTISING VIEWER">
-            <div class="portal-name">ADVERTISING VIEWER</div>
-            <div class="portal-ko">광고상품 보기</div>
-          </div>
-          <div class="portal-card" id="toNewViewerBtn" role="button" tabindex="0" aria-label="NEW ITEM VIEWER">
-            <div class="portal-name">NEW ITEM VIEWER</div>
-            <div class="portal-ko">신상품 보기</div>
-          </div>
-          <div class="portal-card" id="toPluQuizBtn" role="button" tabindex="0" aria-label="PLU MEMORIZE">
-            <div class="portal-name">PLU MEMORIZE</div>
-            <div class="portal-ko">PLU 암기 연습</div>
-          </div>
-        </div>
-      </div>
-      <!-- 구역 3: 태블릿 전용 -->
-      <div class="portal-cat">
-        <div class="portal-cat-title">TABLET ONLY <span class="ko">태블릿 전용</span></div>
-        <div class="portal-cat-cards">
-          <div class="portal-card" id="toPluPreviewBtn" role="button" tabindex="0" aria-label="PLU PREVIEW">
-            <div class="portal-name">PLU PREVIEW</div>
-            <div class="portal-ko">PLU 미리보기</div>
-          </div>
-        </div>
-      </div>
+  <div class="lock-stage">
+    <!-- EGMM 박스 — 박스 전체 클릭 -->
+    <div class="lock-card lock-card-egmm" id="toOdpBtn" role="button" tabindex="0">
+      <h1 class="lock-title">EGMM</h1>
+    </div>
+
+    <!-- H-MART 박스 — 박스 전체 클릭 -->
+    <div class="lock-card lock-card-egmm" id="toHmartBtn" role="button" tabindex="0">
+      <h1 class="lock-title">H-MART</h1>
     </div>
   </div>
 </div>
 
-<!-- CAMPEON WHOLESALE 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
-<!-- PLU PREVIEW 매장 선택 팝업 (조회 전용 · PIN 없이 매장만 선택) -->
-<!-- ITEM ANALYZE 로그인 팝업 (index 화면 팝업 · 아이디/패스워드) -->
+<!-- THE SHAWN 로그인 팝업 (MANAGER 아이콘으로 염) -->
+<div class="mgr-ov" id="mgrLoginOv">
+  <div class="lock-card mgr-login-card">
+    <button class="mgr-x" id="mgrLoginClose" type="button">✕</button>
+    <h1 class="lock-title" id="lockTitle">THE SHAWN</h1>
+
+    <!-- LOGIN MODE -->
+    <div id="loginMode">
+      <div class="field">
+        <label>이메일</label>
+        <input type="email" id="loginEmail" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>비밀번호</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="btn-split">
+        <button class="btn btn-half" id="loginBtn">들어가기</button>
+        <button class="btn btn-half btn-half-light" id="toSignupBtn">사용하기</button>
+      </div>
+    </div>
+
+    <!-- SIGNUP MODE -->
+    <div id="signupMode" style="display:none;">
+      <div class="field">
+        <label>이메일</label>
+        <input type="email" id="signupEmail" placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>비밀번호 (6자 이상)</label>
+        <input type="password" id="signupPassword" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="field">
+        <label>비밀번호 확인</label>
+        <input type="password" id="signupPasswordConfirm" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="btn" id="signupBtn">계정 만들기</button>
+      <button class="btn ghost" id="toLoginBtn" style="margin-top: 8px;">← 로그인으로</button>
+    </div>
+
+    <div class="err" id="lockErr"></div>
+  </div>
+</div>
+
+<!-- EGMM 비밀번호 팝업 -->
+<div class="mgr-ov" id="egmmPwOv">
+  <div class="lock-card mgr-login-card mgr-pw-card">
+    <button class="mgr-x" id="egmmPwClose" type="button">✕</button>
+    <h1 class="lock-title">EGMM</h1>
+    <p class="mgr-pw-sub">비밀번호를 입력하세요</p>
+    <div class="field">
+      <label>비밀번호</label>
+      <input type="password" id="egmmPwInput" inputmode="numeric" placeholder="••••••" autocomplete="off">
+    </div>
+    <div class="err" id="egmmPwErr"></div>
+    <button class="btn" id="egmmPwBtn">들어가기</button>
+  </div>
+</div>
+
 
 <!-- ODP 작업용 모드: 변환기 메뉴(UPC·대소문자·용량·계산기)만, 4개를 한 화면에 -->
 <style>
@@ -2561,6 +2460,625 @@
     padding: 18px 16px;
   }
 </style>
+
+<!-- MENU SCREEN -->
+<div class="menu-screen" id="menuScreen">
+  <div class="menu-topbar">
+    <div>
+      <h1 class="menu-brand">THE SHAWN</h1>
+      <div class="menu-brand-sub" id="menuUserInfo">무엇을 하시겠어요?</div>
+    </div>
+    <div class="topbar-actions">
+      <span class="sync-status" id="syncStatus" title="동기화 상태"></span>
+      <button class="icon-btn" id="menuSaveBtn" title="파일로 백업 (Ctrl+S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="menuLockBtn" title="로그아웃">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- 관리자 승인 패널 (관리자 계정에서만 노출) -->
+  <style>
+    #adminPanel {
+      max-width: 640px;
+      margin: 0 auto 20px;
+      background: var(--bg-elev);
+      border: 1.5px solid var(--accent-warm);
+      border-radius: 14px;
+      padding: 18px 20px;
+    }
+    .admin-title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 14px; }
+    .admin-empty { font-size: 14px; color: var(--text-dim); padding: 8px 0; }
+    .admin-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 10px 0; border-top: 1px solid var(--border);
+    }
+    .admin-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .admin-email { font-family: var(--mono); font-size: 14px; color: var(--text); word-break: break-all; }
+    .admin-badge {
+      align-self: flex-start; font-size: 11px; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px; font-family: var(--mono);
+    }
+    .admin-badge.pending { background: var(--accent-soft); color: #8a6d1f; }
+    .admin-badge.approved { background: #e3f0e3; color: #2f7d32; }
+    .admin-badge.rejected { background: #f3e3e3; color: #b04141; }
+    .admin-acts { display: flex; gap: 8px; flex-shrink: 0; }
+    .admin-approve, .admin-reject, .admin-delete {
+      border: none; border-radius: 8px; padding: 8px 12px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: var(--mono);
+    }
+    .admin-approve { background: var(--accent); color: #fff; }
+    .admin-reject { background: transparent; color: var(--text-dim); border: 1.5px solid var(--border); }
+    .admin-delete { background: transparent; color: #b04141; border: 1.5px solid #d9a3a3; }
+    .admin-approve:active, .admin-reject:active, .admin-delete:active { transform: scale(0.97); }
+  </style>
+  <div id="adminPanel" style="display:none;"></div>
+
+  <div class="menu-grid">
+    <div class="menu-card" data-target="todo">
+      <div>
+        <div class="menu-icon">📅</div>
+        <div class="menu-card-title">일정표</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="bible">
+      <div>
+        <div class="menu-icon">📖</div>
+        <div class="menu-card-title">성경찾기</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="upc">
+      <div>
+        <div class="menu-icon">🏷️</div>
+        <div class="menu-card-title">UPC 변환</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="case">
+      <div>
+        <div class="menu-icon">🔤</div>
+        <div class="menu-card-title">대소문자 변환</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="weight">
+      <div>
+        <div class="menu-icon">⚖️</div>
+        <div class="menu-card-title">용량 변환</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="calc">
+      <div>
+        <div class="menu-icon">🧮</div>
+        <div class="menu-card-title">계산기</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="claude">
+      <div>
+        <div class="menu-icon">📝</div>
+        <div class="menu-card-title">CLAUDE 작업 지침서</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+
+    <div class="menu-card" data-target="plushawn">
+      <div>
+        <div class="menu-icon">🗂️</div>
+        <div class="menu-card-title">PLU 보기</div>
+      </div>
+      <div class="menu-card-arrow">→</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- BIBLE SCREEN -->
+<div class="bible-screen" id="bibleScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="bibleBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">📖 성경찾기</h1>
+      <div class="brand-meta">개역개정 (KRV) · 66권 전체</div>
+    </div>
+  </header>
+
+  <div class="bible-controls">
+    <div class="bible-row">
+      <div class="field">
+        <label>책</label>
+        <select class="bible-select" id="bibleBook"></select>
+      </div>
+      <div class="field">
+        <label>장</label>
+        <input type="number" class="bible-num" id="bibleChapter" min="1" placeholder="1">
+      </div>
+      <div class="field">
+        <label>절 (선택)</label>
+        <input type="text" class="bible-num" id="bibleVerse" placeholder="예: 16 또는 16-18">
+      </div>
+      <button class="bible-go-btn" id="bibleGoBtn">찾기</button>
+    </div>
+
+    <div class="bible-quick">
+      <span class="bible-quick-label">빠른 찾기</span>
+      <button class="bible-quick-btn" data-quick="요한복음|3|16">요 3:16</button>
+      <button class="bible-quick-btn" data-quick="시편|23|1-6">시 23편</button>
+      <button class="bible-quick-btn" data-quick="고린도전서|13|4-7">고전 13:4-7</button>
+      <button class="bible-quick-btn" data-quick="잠언|3|5-6">잠 3:5-6</button>
+      <button class="bible-quick-btn" data-quick="로마서|8|28">롬 8:28</button>
+      <button class="bible-quick-btn" data-quick="빌립보서|4|13">빌 4:13</button>
+      <button class="bible-quick-btn" data-quick="이사야|41|10">사 41:10</button>
+      <button class="bible-quick-btn" data-quick="마태복음|6|33">마 6:33</button>
+    </div>
+  </div>
+
+  <div class="bible-result" id="bibleResult">
+    <div class="bible-empty">
+      <div class="bible-empty-icon">📖</div>
+      <div class="bible-empty-text">책과 장을 선택하고<br>"찾기" 버튼을 눌러주세요</div>
+    </div>
+  </div>
+
+  <div class="bible-nav" id="bibleNav" style="display:none;">
+    <button class="bible-nav-btn" id="biblePrevBtn">← 이전 장</button>
+    <span class="bible-nav-info" id="bibleNavInfo"></span>
+    <button class="bible-nav-btn" id="bibleNextBtn">다음 장 →</button>
+  </div>
+</div>
+
+<!-- UPC SCREEN -->
+<div class="upc-screen" id="upcScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="upcBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">🔢 UPC 변환</h1>
+      <div class="brand-meta">바코드 일괄 변환 · UPC-A / UPC-E / EAN-8 / EAN-13</div>
+    </div>
+  </header>
+
+  <div class="upc-grid">
+    <!-- 입력 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">📋 입력 (한 줄에 하나씩)</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="upcPasteBtn" title="클립보드에서 붙여넣기">📥 붙여넣기</button>
+          <button class="upc-mini-btn" id="upcClearInputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="upcInput" placeholder="바코드를 한 줄에 하나씩 붙여넣으세요&#10;&#10;예시:&#10;0123456000189&#10;1234567890123&#10;01234565"></textarea>
+      <div class="upc-status" id="upcInputStatus">0줄</div>
+    </div>
+
+    <!-- 변환 버튼 -->
+    <div class="upc-arrow-section">
+      <button class="upc-convert-btn" id="upcConvertBtn">
+        변환하기
+        <span class="upc-arrow">→</span>
+      </button>
+    </div>
+
+    <!-- 결과 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">✅ 변환 결과</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="upcCopyAllBtn" title="모두 복사">📋 모두 복사</button>
+          <button class="upc-mini-btn" id="upcClearOutputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="upcOutput" placeholder="결과가 여기에 표시됩니다..." readonly></textarea>
+      <div class="upc-status" id="upcOutputStatus">0줄</div>
+    </div>
+  </div>
+
+  <div class="upc-info">
+    <h4 class="upc-info-title">변환 규칙</h4>
+    <ul class="upc-info-list">
+      <li><strong>14자리 이상</strong>: 그대로 유지 (Code 128 등)</li>
+      <li><strong>13자리 (EAN-13)</strong>: 체크디짓 제거 → 12자리</li>
+      <li><strong>12자리 (UPC-A)</strong>: 체크디짓 제거 → 11자리</li>
+      <li><strong>10~11자리</strong>: 첫자리 0 제거 + 체크디짓 제거</li>
+      <li><strong>8자리 (첫자리 0, UPC-E)</strong>: 11자리 UPC-A 본체로 확장</li>
+      <li><strong>8자리 (그 외, EAN-8)</strong>: 체크디짓 제거 → 7자리</li>
+      <li>숫자가 아닌 문자는 자동 제거됩니다</li>
+    </ul>
+  </div>
+</div>
+
+<!-- CASE CONVERTER SCREEN -->
+<div class="upc-screen" id="caseScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="caseBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">🔠 대소문자 변환</h1>
+      <div class="brand-meta">대문자 ↔ 소문자 ↔ 첫글자 대문자</div>
+    </div>
+  </header>
+
+  <div class="upc-grid">
+    <!-- 입력 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">📝 입력</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="casePasteBtn" title="클립보드에서 붙여넣기">📥 붙여넣기</button>
+          <button class="upc-mini-btn" id="caseClearInputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="caseInput" placeholder="변환할 텍스트를 입력하거나 붙여넣으세요&#10;&#10;예: Hello World&#10;THE SHAWN&#10;apple banana"></textarea>
+      <div class="upc-status" id="caseInputStatus">0자</div>
+    </div>
+
+    <!-- 변환 버튼들 -->
+    <div class="case-btn-section">
+      <button class="case-convert-btn" id="caseUpperBtn">
+        <span class="case-btn-label">전부 대문자</span>
+        <span class="case-btn-example">ABC</span>
+      </button>
+      <button class="case-convert-btn" id="caseLowerBtn">
+        <span class="case-btn-label">전부 소문자</span>
+        <span class="case-btn-example">abc</span>
+      </button>
+      <button class="case-convert-btn" id="caseTitleBtn">
+        <span class="case-btn-label">첫글자 대문자</span>
+        <span class="case-btn-example">Abc</span>
+      </button>
+    </div>
+
+    <!-- 결과 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">✅ 변환 결과</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="caseCopyBtn" title="결과 복사">📋 복사</button>
+          <button class="upc-mini-btn" id="caseClearOutputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="caseOutput" placeholder="결과가 여기에 표시됩니다..." readonly></textarea>
+      <div class="upc-status" id="caseOutputStatus">0자</div>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT CONVERTER SCREEN (용량 변환) -->
+<style>
+  .weight-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .weight-row { display: flex; align-items: center; gap: 10px; }
+  .weight-label { display: flex; flex-direction: column; min-width: 64px; }
+  .weight-name { font-weight: 700; font-size: 15px; color: var(--text); line-height: 1.2; }
+  .weight-sym { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .weight-input {
+    flex: 1; min-width: 0; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 18px; font-family: var(--mono);
+    background: var(--bg); color: var(--text);
+  }
+  .weight-input:focus { outline: none; border-color: var(--accent-warm); }
+  .weight-input::placeholder { color: var(--text-faint); }
+  .weight-hint { margin-top: 14px; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+</style>
+<div class="upc-screen" id="weightScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="weightBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">⚖️ 용량 변환</h1>
+      <div class="brand-meta">OZ · G · KG · LB · ML · FL OZ 서로 변환</div>
+    </div>
+  </header>
+
+  <div class="upc-box">
+    <div class="weight-rows">
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">온스</span><span class="weight-sym">OZ</span></div>
+        <input class="weight-input" id="wOz" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">액량 온스</span><span class="weight-sym">FL OZ</span></div>
+        <input class="weight-input" id="wFlOz" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">그램</span><span class="weight-sym">G</span></div>
+        <input class="weight-input" id="wG" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">킬로그램</span><span class="weight-sym">KG</span></div>
+        <input class="weight-input" id="wKg" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">밀리리터</span><span class="weight-sym">ML</span></div>
+        <input class="weight-input" id="wMl" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">파운드</span><span class="weight-sym">LB</span></div>
+        <input class="weight-input" id="wLb" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="upc-box-actions" style="margin-top: 16px;">
+      <button class="upc-mini-btn" id="weightClearBtn">지우기</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALCULATOR SCREEN (계산기) -->
+<style>
+  .calc-display {
+    background: var(--bg-elev-2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: right;
+    margin-bottom: 14px;
+    min-height: 64px;
+  }
+  .calc-expr { font-family: var(--mono); font-size: 14px; color: var(--text-dim); min-height: 18px; word-break: break-all; }
+  .calc-result { font-family: var(--mono); font-size: 34px; font-weight: 700; color: var(--text); word-break: break-all; line-height: 1.2; }
+  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .calc-key {
+    padding: 18px 0; font-size: 20px; font-weight: 700;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    background: var(--bg-elev); color: var(--text);
+    cursor: pointer; font-family: var(--mono);
+    transition: transform 0.1s, background 0.15s;
+  }
+  .calc-key:hover { background: var(--bg-elev-2); }
+  .calc-key:active { transform: scale(0.96); }
+  .calc-key.func { color: var(--text-dim); }
+  .calc-key.op { background: var(--accent-soft); color: var(--text); }
+  .calc-key.op.active { background: var(--accent-warm); color: #ffffff; }
+  .calc-key.equal { background: var(--accent); color: #ffffff; }
+  .calc-key.equal:hover { background: #2d2d33; }
+</style>
+<div class="upc-screen" id="calcScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="calcBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">🧮 계산기</h1>
+      <div class="brand-meta">기본 사칙연산 계산기</div>
+    </div>
+  </header>
+
+  <div class="upc-box">
+    <div class="calc-display">
+      <div class="calc-expr" id="calcExpr"></div>
+      <div class="calc-result" id="calcResult">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-key func" data-k="ac">AC</button>
+      <button class="calc-key func" data-k="back">⌫</button>
+      <button class="calc-key func" data-k="pct">%</button>
+      <button class="calc-key op" data-k="div">÷</button>
+
+      <button class="calc-key" data-k="7">7</button>
+      <button class="calc-key" data-k="8">8</button>
+      <button class="calc-key" data-k="9">9</button>
+      <button class="calc-key op" data-k="mul">×</button>
+
+      <button class="calc-key" data-k="4">4</button>
+      <button class="calc-key" data-k="5">5</button>
+      <button class="calc-key" data-k="6">6</button>
+      <button class="calc-key op" data-k="sub">−</button>
+
+      <button class="calc-key" data-k="1">1</button>
+      <button class="calc-key" data-k="2">2</button>
+      <button class="calc-key" data-k="3">3</button>
+      <button class="calc-key op" data-k="add">+</button>
+
+      <button class="calc-key" data-k="sign">±</button>
+      <button class="calc-key" data-k="0">0</button>
+      <button class="calc-key" data-k="dot">.</button>
+      <button class="calc-key equal" data-k="eq">=</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLAUDE NOTES SCREEN -->
+<div class="claude-screen" id="claudeScreen">
+  <header class="bible-topbar">
+    <div>
+      <button class="back-btn" id="claudeBackBtn" style="margin-bottom: 12px;">← 메뉴</button>
+      <h1 class="brand">📝 CLAUDE 작업 지침서</h1>
+      <div class="brand-meta">새 Claude 대화를 위한 컨텍스트 메모 모음</div>
+    </div>
+    <div class="claude-add-btn-wrap">
+      <button class="claude-add-btn" id="claudeAddBtn">+ 새 지침 추가</button>
+    </div>
+  </header>
+
+  <div class="claude-notes-grid" id="claudeNotesGrid"></div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <header class="topbar">
+    <div>
+      <h1 class="brand">CALENDER</h1>
+      <div class="brand-meta">EGMM · 일정</div>
+    </div>
+    <div class="topbar-actions">
+      <span class="sync-status" id="syncStatus2" title="동기화 상태"></span>
+      <button class="icon-btn" id="saveBtn" title="파일로 백업 (Ctrl+S)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="cal-header">
+    <div>
+      <h2 class="cal-title" id="calMonth">May <em>2026</em></h2>
+    </div>
+    <div class="cal-nav">
+      <button class="today-btn" id="openNotesBtn" title="메모장">📝 메모</button>
+      <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
+      <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
+      <button class="today-btn" id="todayBtn">TODAY</button>
+      <button class="nav-btn" id="nextBtn" title="다음 달">›</button>
+    </div>
+  </div>
+
+  <div class="cal-layout">
+    <div class="cal-main">
+      <div class="weekdays">
+        <div class="weekday sun">SUN</div>
+        <div class="weekday">MON</div>
+        <div class="weekday">TUE</div>
+        <div class="weekday">WED</div>
+        <div class="weekday">THU</div>
+        <div class="weekday">FRI</div>
+        <div class="weekday sat">SAT</div>
+      </div>
+      <div class="calendar" id="calendar"></div>
+    </div>
+
+    <aside class="cal-side">
+      <div class="mini-cal" id="miniPrev">
+        <div class="mini-cal-title" id="miniPrevTitle"></div>
+        <div class="mini-cal-grid" id="miniPrevGrid"></div>
+      </div>
+      <div class="month-summary">
+        <div class="month-summary-title" id="monthSummaryTitle">이번 달 일정</div>
+        <div class="month-summary-list" id="monthSummaryList"></div>
+      </div>
+      <div class="mini-cal" id="miniNext">
+        <div class="mini-cal-title" id="miniNextTitle"></div>
+        <div class="mini-cal-grid" id="miniNextGrid"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- NOTES 팝업 -->
+<div class="notes-ov" id="notesOv">
+  <section class="notes-section notes-modal">
+    <div class="notes-header">
+      <h2 class="notes-title">메모장 <em id="notesCount">0</em></h2>
+      <div class="notes-head-btns">
+        <button class="add-note-btn" id="addNoteBtn">+ 새 메모</button>
+        <button class="add-note-btn notes-close-btn" id="notesCloseBtn">닫기</button>
+      </div>
+    </div>
+    <div class="notes-grid" id="notesGrid"></div>
+  </section>
+</div>
+
+<!-- DAY PANEL -->
+<div class="panel-bg" id="panelBg">
+  <div class="panel">
+    <div class="panel-head">
+      <div>
+        <div class="panel-date" id="panelDate">May <em>27</em></div>
+        <div class="panel-day-name" id="panelDayName">Wednesday</div>
+      </div>
+      <button class="panel-close" id="panelClose" title="닫기">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="section-label">일정 (<span id="panelCount">0</span>)</div>
+    <ul class="ev-list" id="evList"></ul>
+
+    <div class="section-label">+ 새 일정 추가</div>
+    <div class="add-form">
+      <div class="field">
+        <label>카테고리</label>
+        <div class="cat-picker">
+          <button type="button" class="cat-btn cat-work active" data-cat="work">회사</button>
+          <button type="button" class="cat-btn cat-personal" data-cat="personal">개인</button>
+          <button type="button" class="cat-btn cat-birthday" data-cat="birthday">생일 🎂</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>제목</label>
+        <input type="text" id="evTitle" placeholder="예: 회의, 점심 약속...">
+      </div>
+
+      <!-- 시작/종료 (생일이 아닐 때만) -->
+      <div id="dateTimeFields">
+        <div class="field">
+          <label>시작</label>
+          <div class="dt-row">
+            <input type="date" id="evStartDate">
+            <div class="time-input-group">
+              <input type="number" id="evStartH" min="0" max="23" placeholder="시" maxlength="2">
+              <span class="time-colon">:</span>
+              <input type="number" id="evStartM" min="0" max="59" placeholder="분" maxlength="2">
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label>종료 (선택)</label>
+          <div class="dt-row">
+            <input type="date" id="evEndDate">
+            <div class="time-input-group">
+              <input type="number" id="evEndH" min="0" max="23" placeholder="시" maxlength="2">
+              <span class="time-colon">:</span>
+              <input type="number" id="evEndM" min="0" max="59" placeholder="분" maxlength="2">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 음력/양력 선택 (생일일 때만) -->
+      <div class="field" id="lunarField" style="display:none;">
+        <label>날짜 종류</label>
+        <div class="lunar-picker">
+          <button type="button" class="lunar-btn active" data-lunar="solar">양력</button>
+          <button type="button" class="lunar-btn" data-lunar="lunar">음력</button>
+        </div>
+        <div class="lunar-hint" id="lunarHint"></div>
+      </div>
+
+      <!-- 색상 선택 -->
+      <div class="field" id="colorField">
+        <label>색상</label>
+        <div class="color-picker" id="colorPicker">
+          <button type="button" class="color-btn active" data-color="default" style="background:var(--text);" title="기본"></button>
+          <button type="button" class="color-btn" data-color="red" style="background:#e85d5d;" title="빨강"></button>
+          <button type="button" class="color-btn" data-color="orange" style="background:#f0a04b;" title="주황"></button>
+          <button type="button" class="color-btn" data-color="yellow" style="background:#e8c547;" title="노랑"></button>
+          <button type="button" class="color-btn" data-color="green" style="background:#5ca853;" title="초록"></button>
+          <button type="button" class="color-btn" data-color="teal" style="background:#3aa8a8;" title="청록"></button>
+          <button type="button" class="color-btn" data-color="blue" style="background:#4a6cc9;" title="파랑"></button>
+          <button type="button" class="color-btn" data-color="purple" style="background:#8b5cf6;" title="보라"></button>
+          <button type="button" class="color-btn" data-color="pink" style="background:#e57ba5;" title="분홍"></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>메모 (선택)</label>
+        <textarea id="evNotes" rows="2" placeholder="상세 내용..."></textarea>
+      </div>
+      <button class="btn" id="addEvBtn">+ 추가</button>
+    </div>
+  </div>
+</div>
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
@@ -2719,183 +3237,53 @@
   // ========== LOCK ==========
   // ========== AUTH MODES ==========
   function setLoginMode() {
-    if(!$('loginMode')) return;   // 팝업 이식됨(EGMM 콘솔)
     $('loginMode').style.display = 'block';
     $('signupMode').style.display = 'none';
-    if(lockTitle) lockTitle.textContent = 'MANAGER';
-    if(lockErr) lockErr.textContent = '';
-    setTimeout(() => { var el=$('loginEmail'); if(el) el.focus(); }, 100);
+    lockTitle.textContent = 'THE SHAWN';
+    lockErr.textContent = '';
+    setTimeout(() => $('loginEmail').focus(), 100);
   }
   function setSignupMode() {
-    if(!$('loginMode')) return;
     $('loginMode').style.display = 'none';
     $('signupMode').style.display = 'block';
-    lockTitle.textContent = 'MANAGER';
+    lockTitle.textContent = 'THE SHAWN';
     lockErr.textContent = '';
     setTimeout(() => $('signupEmail').focus(), 100);
   }
 
   // 모드 전환 버튼
-  if($('toSignupBtn')) $('toSignupBtn').onclick = setSignupMode;
-  if($('toLoginBtn')) $('toLoginBtn').onclick = setLoginMode;
-  // EGMM 박스 → 비밀번호 확인(팝업) 후 별도 페이지(EGMM/egmm.html)로 이동
-  let egmmPin = '10041004';                        // EGMM 마스터 PIN(이름 선택 안 함=관리자). 저장값은 해시/레거시평문. 절대 DOM 노출 안 함
-  // PIN 해시 (안전컨텍스트=HTTPS면 SHA-256, 아니면 평문 폴백). 저장값은 'h:'/'p:'/레거시평문 중 하나.
-  async function hashPin(v){
-    v=String(v);
-    if(window.crypto && window.crypto.subtle){
-      try{ var buf=await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v));
-        return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join(''); }catch(e){}
-    }
-    return 'p:'+v;
-  }
-  async function verifyPin(entered){
-    entered=String(entered||'').trim(); var stored=String(egmmPin||'').trim();
-    if(stored.slice(0,2)==='h:' || stored.slice(0,2)==='p:') return (await hashPin(entered))===stored;
-    return entered===stored;   // 레거시 평문/기본값(첫 변경 시 해시로 전환됨)
-  }
-  // ===== EGMM 사용자 (app-config/egmm-users) =====
-  var egmmUsers=[];
-  function fillEgmmUserPick(){ var sel=$('egmmUserPick'); if(!sel) return; var opts='<option value="">MANAGER</option>'; egmmUsers.forEach(function(u){ opts+='<option value="'+u.id+'">'+String(u.name||'').replace(/</g,'&lt;')+'</option>'; }); var keep=sel.value; sel.innerHTML=opts; sel.value=keep||''; }
-  function loadEgmmUsers(){ fillEgmmUserPick(); if(!window.firebaseFns || !window.firebaseDb) return; try{ window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'app-config','egmm-users')).then(function(snap){ var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):{}; egmmUsers=Array.isArray(d.users)?d.users:[]; fillEgmmUserPick(); }).catch(function(){}); }catch(e){} }
-  async function matchUserPin(entered, stored){ entered=String(entered||'').trim(); stored=String(stored||''); if(stored.slice(0,2)==='h:'||stored.slice(0,2)==='p:') return (await hashPin(entered))===stored; return entered===stored; }
-  const EGMM_PIN_COL = 'app-config', EGMM_PIN_DOC = 'egmm';
-  function loadEgmmPin(){
-    if(!window.firebaseFns || !window.firebaseDb){ setTimeout(loadEgmmPin, 600); return; }
-    try{
-      if(window.firebaseFns.onSnapshot){
-        window.firebaseFns.onSnapshot(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), function(snap){
-          var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
-          if(d && d.pin!=null && String(d.pin).trim()!=='') egmmPin=String(d.pin).trim();
-        }, function(){});
-      } else {
-        window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC)).then(function(snap){
-          var d=(snap&&snap.exists&&snap.exists())?(snap.data()||{}):null;
-          if(d && d.pin!=null && String(d.pin).trim()!=='') egmmPin=String(d.pin).trim();
-        }).catch(function(){});
-      }
-    }catch(e){}
-  }
-  loadEgmmPin();
-  const EGMM_AUTO_KEY = 'egmmAutoLogin';
-  const egmmPwOv = $('egmmPwOv'), egmmPwInput = $('egmmPwInput'), egmmPwErr = $('egmmPwErr'), egmmAutoChk = $('egmmAutoChk');
-  const isEgmmAuto = () => { try{ return localStorage.getItem(EGMM_AUTO_KEY)==='1'; }catch(e){ return false; } };
-  const openEgmmPw = () => { if(egmmPwErr) egmmPwErr.textContent=''; if(egmmPwInput) egmmPwInput.value=''; if(egmmAutoChk) egmmAutoChk.checked=isEgmmAuto(); var __up=$('egmmUserPick'); if(__up) __up.value=''; loadEgmmUsers(); egmmPwOv.classList.add('show'); setTimeout(()=>{ if(egmmPwInput) egmmPwInput.focus(); }, 80); };
+  $('toSignupBtn').onclick = setSignupMode;
+  $('toLoginBtn').onclick = setLoginMode;
+  // EGMM 박스 → 비밀번호 확인(팝업) 후 별도 페이지(egmm.html)로 이동
+  const EGMM_PASSWORD = '98001';
+  const egmmPwOv = $('egmmPwOv'), egmmPwInput = $('egmmPwInput'), egmmPwErr = $('egmmPwErr');
+  const openEgmmPw = () => { if(egmmPwErr) egmmPwErr.textContent=''; if(egmmPwInput) egmmPwInput.value=''; egmmPwOv.classList.add('show'); setTimeout(()=>{ if(egmmPwInput) egmmPwInput.focus(); }, 80); };
   const closeEgmmPw = () => egmmPwOv.classList.remove('show');
-  const submitEgmmPw = async () => {
+  const submitEgmmPw = () => {
     const p = (egmmPwInput && egmmPwInput.value || '').trim();
-    const sel = $('egmmUserPick'); const uid = sel ? sel.value : '';
-    try{ localStorage.setItem(EGMM_AUTO_KEY, (egmmAutoChk && egmmAutoChk.checked) ? '1' : '0'); }catch(e){}
-    if(!uid){
-      // 이름 선택 안 함 → 관리자 (마스터 PIN)
-      if (await verifyPin(p)) {
-        try{ localStorage.setItem('unifiedLogin','1'); sessionStorage.setItem('egmmGate','1'); sessionStorage.setItem('egmmUser', JSON.stringify({name:'', menus:{}})); }catch(e){}
-        window.location.href = 'EGMM/egmm.html';
-      } else { if(egmmPwErr) egmmPwErr.textContent = '마스터 PIN이 올바르지 않습니다'; }
-      return;
-    }
-    // 사용자 선택 → 해당 사용자 PIN 이어야 함
-    var u = egmmUsers.filter(function(x){ return String(x.id)===uid; })[0];
-    if (u && await matchUserPin(p, u.pin)) {
-      try{ localStorage.setItem('unifiedLogin','1'); sessionStorage.setItem('egmmGate','1'); sessionStorage.setItem('egmmUser', JSON.stringify({name:u.name, menus:u.menus||{}})); }catch(e){}
-      window.location.href = 'EGMM/egmm.html';
-    } else { if(egmmPwErr) egmmPwErr.textContent = '해당 사용자의 PIN이 아닙니다'; }
+    if (p === EGMM_PASSWORD) { window.location.href = 'egmm.html'; }
+    else { if(egmmPwErr) egmmPwErr.textContent = '비밀번호가 올바르지 않습니다'; }
   };
-  // EGMM → 바로 이동 (ID/PASSWORD 검증은 EGMM/egmm.html 자체 게이트가 담당)
-  const enterEgmm = () => { window.location.href = 'EGMM/egmm.html'; };
+  const enterEgmm = () => openEgmmPw();
   $('toOdpBtn').onclick = () => enterEgmm();
   $('toOdpBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
   });
-
-  // CAMPEON WHOLESALE 박스 → index 팝업 로그인
-  if($('toCampeonBtn')){
-    $('toCampeonBtn').onclick = () => { window.location.href = 'WHOLSALE/sales-management-campeonwholsale.html'; };
-    $('toCampeonBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = 'WHOLSALE/sales-management-campeonwholsale.html'; } });
-  }
-  // PLU PREVIEW 박스 → 바로 이동 (매장 선택·PIN 검증은 tablet-plu-preview.html 자체 게이트가 담당)
-  if($('toPluPreviewBtn')){
-    $('toPluPreviewBtn').onclick = () => { window.location.href = 'tablet-plu-preview.html'; };
-    $('toPluPreviewBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = 'tablet-plu-preview.html'; } });
-  }
-  // ADVERTISING VIEWER 박스 → 접속권한 불필요 · 누구나 바로 보기
-  if($('toAdViewerBtn')){
-    const openAdViewer = () => { window.location.href = 'advertising-viewer.html'; };
-    $('toAdViewerBtn').onclick = openAdViewer;
-    $('toAdViewerBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openAdViewer(); } });
-  }
-  // NEW ITEM VIEWER 박스 → 접속권한 불필요 · 누구나 바로 보기
-  if($('toNewViewerBtn')){
-    const openNewViewer = () => { window.location.href = 'newitem-viewer.html'; };
-    $('toNewViewerBtn').onclick = openNewViewer;
-    $('toNewViewerBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNewViewer(); } });
-  }
-  // PLU MEMORIZE 박스 → TOOLS 폴더 · 퀴즈 내 매장 선택 사용
-  if($('toPluQuizBtn')){
-    const openPluQuiz = () => { window.location.href = 'TOOLS/plu-quiz.html'; };
-    $('toPluQuizBtn').onclick = openPluQuiz;
-    $('toPluQuizBtn').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPluQuiz(); } });
-  }
-  // (MANAGER · ITEM ANALYZE — EGMM 콘솔 메뉴로 이식됨. 레거시 EGMM PIN 팝업 와이어링 제거)
-  if($('egmmPwBtn')) $('egmmPwBtn').onclick = submitEgmmPw;
-  if($('egmmPwClose')) $('egmmPwClose').onclick = closeEgmmPw;
-  if(egmmPwOv) egmmPwOv.addEventListener('click', e => { if (e.target === egmmPwOv) closeEgmmPw(); });
+  $('egmmPwBtn').onclick = submitEgmmPw;
+  $('egmmPwClose').onclick = closeEgmmPw;
+  egmmPwOv.addEventListener('click', e => { if (e.target === egmmPwOv) closeEgmmPw(); });
   if(egmmPwInput) egmmPwInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitEgmmPw(); });
-
-  // EGMM PIN 변경 (MANAGER 로그인 후 상단 🔑 버튼)
-  const egmmPinOv = $('egmmPinOv');
-  const openEgmmPin = () => {
-    var m=$('egmmPinMsg'); if(m){ m.textContent=''; m.style.color=''; }
-    var o=$('egmmPinOld'), n1=$('egmmPinNew'), n2=$('egmmPinNew2');
-    if(o) o.value=''; if(n1) n1.value=''; if(n2) n2.value='';
-    if(egmmPinOv) egmmPinOv.classList.add('show');
-    setTimeout(()=>{ if(o) o.focus(); }, 80);
-  };
-  const closeEgmmPin = () => { if(egmmPinOv) egmmPinOv.classList.remove('show'); };
-  const saveEgmmPin = async () => {
-    var msg=$('egmmPinMsg');
-    var oldv=($('egmmPinOld')&&$('egmmPinOld').value||'').trim();
-    var a=($('egmmPinNew')&&$('egmmPinNew').value||'').trim();
-    var b=($('egmmPinNew2')&&$('egmmPinNew2').value||'').trim();
-    var fail=function(t){ if(msg){ msg.style.color='#b04141'; msg.textContent=t; } };
-    if(!(await verifyPin(oldv))){ fail('현재 PIN이 올바르지 않습니다'); return; }
-    if(!/^[0-9]{4,8}$/.test(a)){ fail('새 PIN은 숫자 4~8자리'); return; }
-    if(a!==b){ fail('새 PIN이 일치하지 않습니다'); return; }
-    if(!window.firebaseFns || !window.firebaseDb){ fail('연결 준비 중 — 잠시 후 다시'); return; }
-    var btn=$('egmmPinSave'); var old=btn?btn.textContent:''; if(btn){ btn.textContent='저장 중…'; btn.disabled=true; }
-    try{
-      var hashed=await hashPin(a);
-      await window.firebaseFns.setDoc(window.firebaseFns.doc(window.firebaseDb, EGMM_PIN_COL, EGMM_PIN_DOC), { pin:hashed, updatedAt:Date.now() }, { merge:true });
-      egmmPin=hashed;
-      if(msg){ msg.style.color='#2f7d32'; msg.textContent='변경되었습니다 (안전하게 해시로 저장됨)'; }
-      setTimeout(closeEgmmPin, 1200);
-    }catch(e){ fail('저장 실패: '+((e&&e.message)||e)); }
-    finally{ if(btn){ btn.textContent=old; btn.disabled=false; } }
-  };
-  if($('egmmPinBtn')) $('egmmPinBtn').onclick = openEgmmPin;
-  if($('egmmPinClose')) $('egmmPinClose').onclick = closeEgmmPin;
-  if(egmmPinOv) egmmPinOv.addEventListener('click', e => { if (e.target === egmmPinOv) closeEgmmPin(); });
-  if($('egmmPinSave')) $('egmmPinSave').onclick = saveEgmmPin;
-  if($('egmmPinNew2')) $('egmmPinNew2').addEventListener('keydown', e => { if (e.key === 'Enter') saveEgmmPin(); });
 
   // 좌상단 MANAGER 아이콘 → THE SHAWN 로그인 팝업
   const mgrLoginOv = $('mgrLoginOv');
-  const openMgrLogin = () => { mgrLoginOv.style.display = 'flex'; mgrLoginOv.classList.add('show'); setTimeout(()=>{ var el=$('loginEmail'); if(el) el.focus(); }, 80); };
-  const closeMgrLogin = () => {
-    mgrLoginOv.classList.remove('show');
-    mgrLoginOv.style.display = 'none';   // 인라인 강제로 확실히 닫기
-    try{ if(menuScreen) scrCL('menuScreen').remove('active'); }catch(e){}
-    try{ if(app && scrCL('app')) scrCL('app').remove('active'); }catch(e){}
-    try{ if(lockScreen) lockScreen.style.display='flex'; }catch(e){}
-    try{ if(lockErr) lockErr.textContent=''; }catch(e){}
-    try{ var f=$('mgrFab'); if(f) f.style.display=''; }catch(e){}
-  };
-  if($('mgrFab')) $('mgrFab').onclick = () => { openMgrLogin(); };
-  if($('mgrLoginClose')) $('mgrLoginClose').onclick = closeMgrLogin;
-  if(mgrLoginOv) mgrLoginOv.addEventListener('click', e => { if (e.target === mgrLoginOv) closeMgrLogin(); });
+  const openMgrLogin = () => { mgrLoginOv.classList.add('show'); setTimeout(()=>{ var el=$('loginEmail'); if(el) el.focus(); }, 80); };
+  const closeMgrLogin = () => mgrLoginOv.classList.remove('show');
+  $('mgrFab').onclick = openMgrLogin;
+  $('mgrLoginClose').onclick = closeMgrLogin;
+  mgrLoginOv.addEventListener('click', e => { if (e.target === mgrLoginOv) closeMgrLogin(); });
 
-  // H-MART 버튼 → 바로 이동 (아이디/패스워드 검증은 hmart.html 자체 게이트가 담당)
-  const enterHmart = () => { window.location.href = 'HMART/hmart.html'; };
+  // H-MART 버튼 → 별도 페이지(hmart.html)로 이동
+  const enterHmart = () => { window.location.href = 'hmart.html'; };
   $('toHmartBtn').onclick = () => enterHmart();
   $('toHmartBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterHmart(); }
@@ -3025,8 +3413,8 @@
     return err.message || '오류가 발생했습니다';
   }
 
-  // 회원가입 (팝업은 EGMM 콘솔로 이식됨 — 요소 없으면 스킵)
-  if($('signupBtn')) $('signupBtn').onclick = async () => {
+  // 회원가입
+  $('signupBtn').onclick = async () => {
     if (!firebaseReady) {
       lockErr.textContent = 'Firebase 로딩 중... 잠시만 기다려주세요';
       return;
@@ -3067,9 +3455,9 @@
   };
 
   // 로그인
-  if($('loginBtn')) $('loginBtn').onclick = doLogin;
-  if($('loginPassword')) $('loginPassword').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
-  if($('signupPasswordConfirm')) $('signupPasswordConfirm').onkeydown = e => { if (e.key === 'Enter') $('signupBtn').click(); };
+  $('loginBtn').onclick = doLogin;
+  $('loginPassword').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+  $('signupPasswordConfirm').onkeydown = e => { if (e.key === 'Enter') $('signupBtn').click(); };
 
   async function doLogin() {
     if (!firebaseReady) {
@@ -3112,10 +3500,12 @@
             : '승인되지 않은 계정입니다. 관리자에게 문의하세요.';
           return;
         }
-        // MANAGER 로그인 성공 → THE SHAWN 앱으로
         currentUser = user;
         isAdmin = res.admin;
-        window.location.href = 'shawn.html';
+        state.mode = 'cloud';
+        await loadFromCloud();
+        enterApp();
+        showToast('환영합니다!', 'success');
       } else {
         // 로그아웃 상태
         currentUser = null;
@@ -3124,20 +3514,27 @@
     });
   }
 
-  // firebase-ready 이벤트 대기
-  if (window.firebaseAuth) {
-    initFirebaseAuth();
+  // EGMM 캘린더: 로그인 없이 바로 캘린더 표시 + egmm-calendar/main 데이터 로드
+  function bootEgmmCalendar(){
+    state.mode = 'cloud';
+    var __fab=$('mgrFab'); if(__fab) __fab.style.display='none';
+    var __lock=$('lockScreen'); if(__lock) __lock.style.display='none';
+    try{ loadFromCloud().then(function(){ showTodo(); }); }
+    catch(e){ showTodo(); }
+  }
+  if (window.firebaseFns) {
+    bootEgmmCalendar();
   } else {
-    window.addEventListener('firebase-ready', initFirebaseAuth);
+    window.addEventListener('firebase-ready', bootEgmmCalendar);
   }
 
   function enterApp() {
     var __ov=$('mgrLoginOv'); if(__ov) __ov.classList.remove('show');
     var __fab=$('mgrFab'); if(__fab) __fab.style.display='none';
     lockScreen.style.display = 'none';
-    scrCL('app').remove('active');
-    scrCL('menuScreen').remove('odp-only');
-    scrCL('menuScreen').add('active');
+    app.classList.remove('active');
+    menuScreen.classList.remove('odp-only');
+    menuScreen.classList.add('active');
     $('loginEmail').value = '';
     $('loginPassword').value = '';
     $('signupEmail').value = '';
@@ -3154,12 +3551,8 @@
     } catch (e) {}
   }
 
-  // 제거된 THE SHAWN 앱 화면(달력/성경/도구 — shawn.html로 이동) 참조를 널-세이프로 처리
-  function scrCL(id){ var el=document.getElementById(id);
-    return el?el.classList:{add:function(){},remove:function(){},toggle:function(){},contains:function(){return false;}}; }
   function updateUserInfo() {
     const info = $('menuUserInfo');
-    if (!info) return;
     if (state.mode === 'odp') {
       info.textContent = 'ODP 작업용';
     } else if (state.mode === 'cloud' && currentUser) {
@@ -3170,27 +3563,27 @@
   }
 
   function showMenu() {
-    scrCL('app').remove('active');
-    scrCL('panelBg').remove('show');
-    scrCL('bibleScreen').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
-    scrCL('menuScreen').add('active');
+    app.classList.remove('active');
+    panelBg.classList.remove('show');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    menuScreen.classList.add('active');
     window.scrollTo(0, 0);
   }
 
   function showTodo() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').add('active');
-    scrCL('bibleScreen').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
+    menuScreen.classList.remove('active');
+    app.classList.add('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
     const now = new Date();
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
@@ -3200,14 +3593,14 @@
   }
 
   function showBible() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
-    scrCL('bibleScreen').add('active');
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('bibleScreen').classList.add('active');
     window.scrollTo(0, 0);
     // 성경 화면 초기화 (한 번만)
     if (window.__bibleApp && !window.__bibleApp.initialized) {
@@ -3216,14 +3609,14 @@
   }
 
   function showUpc() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').remove('active');
-    scrCL('bibleScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
-    scrCL('upcScreen').add('active');
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('upcScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__upcApp && !window.__upcApp.initialized) {
       window.__upcApp.init();
@@ -3231,14 +3624,14 @@
   }
 
   function showCase() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').remove('active');
-    scrCL('bibleScreen').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
-    scrCL('caseScreen').add('active');
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('caseScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__caseApp && !window.__caseApp.initialized) {
       window.__caseApp.init();
@@ -3246,14 +3639,14 @@
   }
 
   function showWeight() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').remove('active');
-    scrCL('bibleScreen').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
-    scrCL('weightScreen').add('active');
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('weightScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__weightApp && !window.__weightApp.initialized) {
       window.__weightApp.init();
@@ -3261,14 +3654,14 @@
   }
 
   function showCalc() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').remove('active');
-    scrCL('bibleScreen').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('claudeScreen').remove('active');
-    scrCL('calcScreen').add('active');
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('claudeScreen').classList.remove('active');
+    $('calcScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__calcApp && !window.__calcApp.initialized) {
       window.__calcApp.init();
@@ -3276,14 +3669,14 @@
   }
 
   function showClaude() {
-    scrCL('menuScreen').remove('active');
-    scrCL('app').remove('active');
-    scrCL('bibleScreen').remove('active');
-    scrCL('upcScreen').remove('active');
-    scrCL('caseScreen').remove('active');
-    scrCL('weightScreen').remove('active');
-    scrCL('calcScreen').remove('active');
-    scrCL('claudeScreen').add('active');
+    menuScreen.classList.remove('active');
+    app.classList.remove('active');
+    $('bibleScreen').classList.remove('active');
+    $('upcScreen').classList.remove('active');
+    $('caseScreen').classList.remove('active');
+    $('weightScreen').classList.remove('active');
+    $('calcScreen').classList.remove('active');
+    $('claudeScreen').classList.add('active');
     window.scrollTo(0, 0);
     if (window.__claudeApp && !window.__claudeApp.initialized) {
       window.__claudeApp.init();
@@ -3314,13 +3707,18 @@
 
   // 화면 안의 "← 메뉴" 버튼들은 브라우저 뒤로가기와 동일하게 동작시킨다.
   // (popstate 핸들러가 메뉴로 되돌리므로 화면 정리도 거기서 일괄 처리됨)
-  ['backToMenuBtn','bibleBackBtn','upcBackBtn','caseBackBtn','weightBackBtn','calcBackBtn','claudeBackBtn']
-    .forEach(id => { const b = $(id); if (b) b.onclick = () => history.back(); });
+  if($('backToMenuBtn')) $('backToMenuBtn').onclick = () => { window.location.href = 'egmm.html'; };
+  $('bibleBackBtn').onclick = () => history.back();
+  $('upcBackBtn').onclick = () => history.back();
+  $('caseBackBtn').onclick = () => history.back();
+  $('weightBackBtn').onclick = () => history.back();
+  $('calcBackBtn').onclick = () => history.back();
+  $('claudeBackBtn').onclick = () => history.back();
 
   // showMenu에서 bible 화면도 닫기
   const _origShowMenu = showMenu;
   window.__showMenuExtra = () => {
-    scrCL('bibleScreen').remove('active');
+    $('bibleScreen').classList.remove('active');
   };
 
   // ========== CALENDAR ==========
@@ -3564,24 +3962,24 @@
     }
   });
 
-  if(calendarEl) calendarEl.addEventListener('click', e => {
+  calendarEl.addEventListener('click', e => {
     const day = e.target.closest('.day');
     if (!day) return;
     const key = day.dataset.key;
     openDayPanel(key);
   });
 
-  ($('prevBtn')||{}).onclick = () => {
+  $('prevBtn').onclick = () => {
     state.viewMonth--;
     if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear--; }
     renderCalendar();
   };
-  ($('nextBtn')||{}).onclick = () => {
+  $('nextBtn').onclick = () => {
     state.viewMonth++;
     if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear++; }
     renderCalendar();
   };
-  ($('todayBtn')||{}).onclick = () => {
+  $('todayBtn').onclick = () => {
     const now = new Date();
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
@@ -3589,7 +3987,7 @@
   };
 
   // 일정 추가 버튼 (헤더에 있는) → 오늘 날짜 패널 열기
-  ($('addEventBtn')||{}).onclick = () => {
+  $('addEventBtn').onclick = () => {
     openDayPanel(todayKey());
   };
 
@@ -3621,8 +4019,8 @@
     formState.lunar = 'solar';
     formState.color = 'default';
     updateFormUI();
-    const wasOpen = scrCL('panelBg').contains('show');
-    scrCL('panelBg').add('show');
+    const wasOpen = panelBg.classList.contains('show');
+    panelBg.classList.add('show');
     setTimeout(() => $('evTitle').focus(), 50);
     renderCalendar();
     // 패널을 새로 열 때만 히스토리에 기록 → 뒤로가기로 패널만 닫힘
@@ -3694,18 +4092,18 @@
   });
 
   function closeDayPanel() {
-    scrCL('panelBg').remove('show');
+    panelBg.classList.remove('show');
     state.selectedDate = null;
     renderCalendar();
   }
 
   // 닫기 동작은 모두 브라우저 뒤로가기로 통일 (popstate에서 실제로 닫음)
-  ($('panelClose')||{}).onclick = () => history.back();
-  if(panelBg) panelBg.addEventListener('click', e => {
+  $('panelClose').onclick = () => history.back();
+  panelBg.addEventListener('click', e => {
     if (e.target === panelBg) history.back();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && scrCL('panelBg').contains('show')) history.back();
+    if (e.key === 'Escape' && panelBg.classList.contains('show')) history.back();
   });
 
   function renderDayEvents() {
@@ -3784,7 +4182,7 @@
     return `${m}/${d}`;
   }
 
-  ($('evList')||document.createElement('i')).addEventListener('click', e => {
+  $('evList').addEventListener('click', e => {
     const row = e.target.closest('.ev-row');
     if (!row) return;
     const id = row.dataset.id;
@@ -3885,8 +4283,8 @@
     $('evTitle').focus();
   }
 
-  ($('addEvBtn')||{}).onclick = addEvent;
-  ($('evTitle')||{}).onkeydown = e => { if (e.key === 'Enter') addEvent(); };
+  $('addEvBtn').onclick = addEvent;
+  $('evTitle').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
 
   // ========== NOTES ==========
   const NOTE_COLORS = ['c-yellow', 'c-pink', 'c-blue', 'c-green', 'c-purple', 'c-orange'];
@@ -3930,7 +4328,11 @@
     return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  function openNotes(){ var ov=$('notesOv'); if(ov){ ov.classList.add('show'); renderNotes(); } }
+  function closeNotes(){ var ov=$('notesOv'); if(ov) ov.classList.remove('show'); }
+
   function addNote() {
+    openNotes();   // 새 메모는 팝업 안에서
     const color = NOTE_COLORS[state.notes.length % NOTE_COLORS.length];
     const newNote = {
       id: uid(),
@@ -3949,10 +4351,13 @@
     }, 50);
   }
 
-  ($('addNoteBtn')||{}).onclick = addNote;
+  $('addNoteBtn').onclick = addNote;
+  var __openNotesBtn=$('openNotesBtn'); if(__openNotesBtn) __openNotesBtn.onclick = openNotes;
+  var __notesCloseBtn=$('notesCloseBtn'); if(__notesCloseBtn) __notesCloseBtn.onclick = closeNotes;
+  var __notesOv=$('notesOv'); if(__notesOv) __notesOv.addEventListener('click', function(e){ if(e.target===__notesOv) closeNotes(); });
 
   // 메모 textarea 입력 / 삭제 처리 (이벤트 위임)
-  ($('notesGrid')||document.createElement('i')).addEventListener('input', e => {
+  $('notesGrid').addEventListener('input', e => {
     if (e.target.dataset.action === 'edit') {
       const noteEl = e.target.closest('.note');
       const id = noteEl.dataset.id;
@@ -3969,7 +4374,7 @@
     }
   });
 
-  ($('notesGrid')||document.createElement('i')).addEventListener('click', e => {
+  $('notesGrid').addEventListener('click', e => {
     const delBtn = e.target.closest('[data-action="delete"]');
     if (delBtn) {
       const noteEl = delBtn.closest('.note');
@@ -4062,10 +4467,10 @@
     }, 50);
   }
 
-  ($('claudeAddBtn')||{}).onclick = addClaudeNote;
+  $('claudeAddBtn').onclick = addClaudeNote;
 
   // 입력 이벤트 (제목 + 본문)
-  ($('claudeNotesGrid')||document.createElement('i')).addEventListener('input', e => {
+  $('claudeNotesGrid').addEventListener('input', e => {
     const action = e.target.dataset.action;
     if (action !== 'edit-title' && action !== 'edit-body') return;
     const noteEl = e.target.closest('.claude-note');
@@ -4083,7 +4488,7 @@
   });
 
   // 클릭 이벤트 (복사, 삭제)
-  ($('claudeNotesGrid')||document.createElement('i')).addEventListener('click', async e => {
+  $('claudeNotesGrid').addEventListener('click', async e => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
@@ -4152,10 +4557,9 @@
   }
 
   async function loadFromCloud() {
-    if (!currentUser) return;
     setSyncStatus('syncing', '불러오는 중...');
     try {
-      const docRef = window.firebaseFns.doc(window.firebaseDb, 'users', currentUser.uid);
+      const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
       const snap = await window.firebaseFns.getDoc(docRef);
       if (snap.exists()) {
         const data = snap.data();
@@ -4163,7 +4567,6 @@
         state.notes = Array.isArray(data.notes) ? data.notes : [];
         state.claudeNotes = Array.isArray(data.claudeNotes) ? data.claudeNotes : [];
       } else {
-        // 새 사용자
         state.events = [];
         state.notes = [];
         state.claudeNotes = [];
@@ -4178,13 +4581,12 @@
   }
 
   async function saveToCloud(immediate = false) {
-    if (state.mode !== 'cloud' || !currentUser) return;
     clearTimeout(saveTimeout);
     const delay = immediate ? 0 : 800;  // debounce
     saveTimeout = setTimeout(async () => {
       setSyncStatus('syncing', '저장 중...');
       try {
-        const docRef = window.firebaseFns.doc(window.firebaseDb, 'users', currentUser.uid);
+        const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
         await window.firebaseFns.setDoc(docRef, {
           events: state.events,
           notes: state.notes,
@@ -4262,8 +4664,8 @@
       $('modalConfirm').removeEventListener('click', confirmHandler);
       doFileSave(pw);
     };
-    ($('modalConfirm')||document.createElement('i')).addEventListener('click', confirmHandler);
-    ($('modalCancel')||{}).onclick = () => {
+    $('modalConfirm').addEventListener('click', confirmHandler);
+    $('modalCancel').onclick = () => {
       modal.classList.remove('show');
       input.remove();
       $('modalConfirm').removeEventListener('click', confirmHandler);
@@ -4271,8 +4673,8 @@
     input.onkeydown = e => { if (e.key === 'Enter') confirmHandler(); };
   }
 
-  ($('saveBtn')||{}).onclick = saveVault;
-  ($('menuSaveBtn')||{}).onclick = saveVault;
+  $('saveBtn').onclick = saveVault;
+  $('menuSaveBtn').onclick = saveVault;
 
   // LOCK
   function lockNow() {
@@ -4290,20 +4692,19 @@
       state.mode = null;
       isAdmin = false;
       $('adminPanel').style.display = 'none';
-      scrCL('panelBg').remove('show');
-      scrCL('app').remove('active');
-      scrCL('menuScreen').remove('active');
-      scrCL('menuScreen').remove('odp-only');
-      scrCL('bibleScreen').remove('active');
-      scrCL('upcScreen').remove('active');
-      scrCL('caseScreen').remove('active');
-      scrCL('weightScreen').remove('active');
-      scrCL('calcScreen').remove('active');
-      scrCL('claudeScreen').remove('active');
+      panelBg.classList.remove('show');
+      app.classList.remove('active');
+      menuScreen.classList.remove('active');
+      menuScreen.classList.remove('odp-only');
+      $('bibleScreen').classList.remove('active');
+      $('upcScreen').classList.remove('active');
+      $('caseScreen').classList.remove('active');
+      $('weightScreen').classList.remove('active');
+      $('calcScreen').classList.remove('active');
+      $('claudeScreen').classList.remove('active');
       lockScreen.style.display = 'flex';
       setSyncStatus('', '');
       // Firebase 로그아웃
-      try{ localStorage.removeItem('unifiedLogin'); }catch(e){}
       if (window.firebaseAuth && currentUser) {
         try { await window.firebaseFns.signOut(window.firebaseAuth); } catch (e) {}
       }
@@ -4311,12 +4712,12 @@
     };
     doLock();
   }
-  ($('lockBtn')||{}).onclick = lockNow;
-  ($('menuLockBtn')||{}).onclick = lockNow;
+  if($('lockBtn')) $('lockBtn').onclick = lockNow;
+  $('menuLockBtn').onclick = lockNow;
 
   // Shortcuts
   document.addEventListener('keydown', e => {
-    const isUnlocked = scrCL('app').contains('active') || scrCL('menuScreen').contains('active');
+    const isUnlocked = app.classList.contains('active') || menuScreen.classList.contains('active');
     if (!isUnlocked) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
@@ -4338,7 +4739,6 @@
   }
 
   function renderScreen(name) {
-    if (!document.getElementById('menuScreen')) return; // THE SHAWN 앱 화면은 index에서 제거됨(shawn.html에서 처리)
     switch (name) {
       case 'todo':   showTodo();   break;
       case 'bible':  showBible();  break;
@@ -4363,7 +4763,7 @@
     }
 
     // 날짜 패널이 열려 있으면 화면 이동 대신 패널만 닫는다
-    if (scrCL('panelBg').contains('show')) {
+    if (panelBg.classList.contains('show')) {
       closeDayPanel();
       __currentScreen = 'todo';
       return;
@@ -4386,7 +4786,7 @@
 
   // Init
   setLoginMode();
-  setTimeout(() => { var el=$('loginEmail'); if(el) el.focus(); }, 200);
+  setTimeout(() => $('loginEmail').focus(), 200);
 
 })();
 </script>
@@ -4401,7 +4801,6 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const data = window.__bibleData;
-  if (!data) return;   // 성경 데이터 없음 — 성경 화면은 shawn.html에서 처리
   const books = data.books;
 
   const app = {

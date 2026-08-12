@@ -2268,6 +2268,18 @@
   #egGateOv .egg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
     letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
   #egGateOv .egg-btn.egg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
+  /* MANAGER(THE SHAWN) 로그인 팝업 */
+  #egMgrOv{ position:fixed; inset:0; z-index:99998; display:none; align-items:center; justify-content:center; background:rgba(30,27,22,.45); }
+  #egMgrOv.show{ display:flex; }
+  #egMgrOv .egm-card{ position:relative; width:340px; background:#FFFDFA; border:1.5px solid #E4DFD4; border-radius:18px; padding:30px 30px 26px; box-shadow:0 14px 30px -20px rgba(30,27,22,.42); }
+  #egMgrOv .egm-x{ position:absolute; top:12px; right:12px; border:none; background:none; font-size:16px; color:#8C8578; cursor:pointer; }
+  #egMgrOv .egm-title{ margin:0 0 18px; font-size:24px; font-weight:800; letter-spacing:.16em; text-align:center; color:#1E1B16; }
+  #egMgrOv .egm-field{ margin-bottom:12px; }
+  #egMgrOv .egm-field label{ display:block; font-size:11px; font-weight:800; letter-spacing:.08em; color:#8C8578; margin-bottom:5px; }
+  #egMgrOv .egm-field input{ width:100%; box-sizing:border-box; border:1.5px solid #E4DFD4; border-radius:10px; padding:12px 14px; font:inherit; font-size:15px; font-weight:700; color:#1E1B16; background:#FFFDFA; }
+  #egMgrOv .egm-field input:focus{ outline:none; border-color:#2F5D46; }
+  #egMgrOv .egm-err{ min-height:18px; font-size:12px; font-weight:800; color:#9C3327; letter-spacing:.02em; margin:2px 0 10px; text-align:center; }
+  #egMgrOv .egm-btn{ width:100%; border:none; border-radius:10px; padding:13px 0; font:inherit; font-size:14px; font-weight:800; letter-spacing:.08em; cursor:pointer; background:#2F5D46; color:#fff; }
 </style>
 <style>
 /* === EGMM 영역 === */
@@ -2684,7 +2696,7 @@
         .then(function(j){ return String((j&&j.ip)||'').trim(); }).catch(function(){ return null; });
     }
     var REQUIRED_SCOPE='EGMM';
-    var GATE_COLS=[['egmm-users','egmm'],['hmart-users','hmart'],['vender-users','vender'],['manager-users','master']];
+    var GATE_COLS=[['egmm-users','egmm'],['manager-users','master']];   // EGMM은 MANAGER/EGMM 계정만 입장
     function findUser(name){
       function pick(d){ var us=(d&&Array.isArray(d.users))?d.users:[];
         for(var i=0;i<us.length;i++){ if(us[i] && String(us[i].name||'').trim().toUpperCase()===name) return us[i]; } return null; }
@@ -2830,6 +2842,8 @@
 
 
     <button class="egmm-menu-btn" id="egmmToolsBtn"><span class="egmm-menu-label mlab">TOOLS<small>도구 모음</small></span></button>
+    <button class="egmm-menu-btn" id="egmmItemAnalyzeBtn"><span class="egmm-menu-label mlab">ITEM ANALYZE<small>품목 분석</small></span></button>
+    <button class="egmm-menu-btn" id="egmmShawnMgrBtn"><span class="egmm-menu-label mlab">MANAGER<small>THE SHAWN 클라우드</small></span></button>
   </div>
 
   <!-- 박스: MANAGER + REQUEST (한 세로 열) -->
@@ -3407,7 +3421,7 @@
       +'<div class="eg-exit-title">🗂 MANAGER</div>'
       +'<div class="eg-exit-btns" style="flex-direction:column">'
       +'<button class="eg-ex-btn" data-url="../MANAGER/homepage-manager.html" type="button">HOMEPAGE MANAGER<br><small style="font-weight:600;opacity:.7">홈페이지 관리</small></button>'
-      +'<button class="eg-ex-btn" data-url="../advertising.html" type="button">AD MANAGER<br><small style="font-weight:600;opacity:.7">광고상품 관리</small></button>'
+      +'<button class="eg-ex-btn" data-url="../MANAGER/advertising-manager.html" type="button">AD MANAGER<br><small style="font-weight:600;opacity:.7">광고상품 관리</small></button>'
       +'<button class="eg-ex-btn" data-url="../item-management-manager.html" type="button">ITEM MANAGEMENT<br><small style="font-weight:600;opacity:.7">아이템 관리</small></button>'
       +'</div></div>';
     document.body.appendChild(sel);
@@ -3453,6 +3467,75 @@
   $('guideBackBtn').onclick = showMenu;
   $('egmmHanaBtn').onclick = showHana;
   var __toolsBtn=$('egmmToolsBtn'); if(__toolsBtn) __toolsBtn.onclick = function(){ if(window.__egBigPop){ window.__egBigPop('../egmm-tools.html'); } };
+  // ITEM ANALYZE (index에서 이식) — EGMM 로그인으로 이미 인증됨 → 게이트 세션 부여 후 열기
+  var __iaBtn=$('egmmItemAnalyzeBtn'); if(__iaBtn) __iaBtn.onclick = function(){
+    try{ sessionStorage.setItem('analyzeGate','1'); }catch(e){}
+    openInFrame('../item-management-analyze.html', this);
+  };
+  // MANAGER · THE SHAWN 클라우드 (index에서 이식) — 이메일 로그인 → ../shawn.html
+  (function(){
+    var ADMIN_EMAIL='dreamsoundco@gmail.com';
+    var busy=false;
+    function ov(){ return document.getElementById('egMgrOv'); }
+    function err(m){ var e=document.getElementById('egMgrErr'); if(e) e.textContent=m||''; }
+    function openPop(){
+      var o=ov();
+      if(!o){
+        o=document.createElement('div'); o.id='egMgrOv';
+        o.innerHTML='<div class="egm-card">'
+          +'<button class="egm-x" id="egMgrClose" type="button">✕</button>'
+          +'<h1 class="egm-title">MANAGER</h1>'
+          +'<div class="egm-field"><label>이메일</label><input type="email" id="egMgrEmail" placeholder="you@email.com" autocomplete="email"></div>'
+          +'<div class="egm-field"><label>비밀번호</label><input type="password" id="egMgrPw" placeholder="••••••••" autocomplete="current-password"></div>'
+          +'<div class="egm-err" id="egMgrErr"></div>'
+          +'<button class="egm-btn" id="egMgrLogin" type="button">들어가기</button>'
+        +'</div>';
+        document.body.appendChild(o);
+        document.getElementById('egMgrClose').onclick=function(){ o.classList.remove('show'); };
+        o.addEventListener('click',function(ev){ if(ev.target===o) o.classList.remove('show'); });
+        document.getElementById('egMgrLogin').onclick=doLogin;
+        document.getElementById('egMgrPw').addEventListener('keydown',function(ev){ if(ev.key==='Enter') doLogin(); });
+      }
+      err(''); o.classList.add('show');
+      setTimeout(function(){ var el=document.getElementById('egMgrEmail'); if(el) el.focus(); },80);
+    }
+    async function doLogin(){
+      if(busy) return;
+      var email=(document.getElementById('egMgrEmail').value||'').trim();
+      var pw=document.getElementById('egMgrPw').value||'';
+      if(!email||!pw){ err('이메일과 비밀번호를 입력하세요'); return; }
+      busy=true; err('로그인 중…');
+      try{
+        var A=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        var auth=A.getAuth();
+        var cred=await A.signInWithEmailAndPassword(auth, email, pw);
+        var user=cred.user;
+        // 승인 검사 (registrations/{uid}) — index와 동일 규칙
+        var allowed=false;
+        if((user.email||'').toLowerCase()===ADMIN_EMAIL){ allowed=true; }
+        else{
+          try{
+            var snap=await window.firebaseFns.getDoc(window.firebaseFns.doc(window.firebaseDb,'registrations',user.uid));
+            allowed = !!(snap && snap.exists() && (snap.data()||{}).status==='approved');
+          }catch(e){ allowed=true; }   // 일시 오류 시 잠금 방지
+        }
+        if(!allowed){
+          try{ await A.signOut(auth); }catch(e){}
+          busy=false; err('승인되지 않은 계정입니다. 관리자에게 문의하세요.');
+          return;
+        }
+        window.location.href='../shawn.html';
+      }catch(e){
+        busy=false;
+        var c=String((e&&e.code)||'');
+        if(c.indexOf('invalid-credential')>=0||c.indexOf('wrong-password')>=0||c.indexOf('user-not-found')>=0) err('이메일 또는 비밀번호가 올바르지 않습니다');
+        else if(c.indexOf('too-many-requests')>=0) err('시도가 너무 많습니다. 잠시 후 다시');
+        else if(c.indexOf('network')>=0) err('인터넷 연결을 확인해주세요');
+        else err('로그인 오류: '+((e&&e.message)||e));
+      }
+    }
+    var b=$('egmmShawnMgrBtn'); if(b) b.onclick=openPop;
+  })();
   $('hanaBackBtn').onclick = showMenu;
 
   // 진입 시 EGMM 메뉴 표시

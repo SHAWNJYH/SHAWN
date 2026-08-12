@@ -477,6 +477,20 @@
   .firstrun h2{ margin:0 0 12px; font-family:var(--display); font-size:22px; font-weight:600; letter-spacing:-.005em; }
   .firstrun p{ margin:0; font-size:13px; color:var(--ink-dim); line-height:1.9; font-weight:500; }
 
+  /* === 매장 PIN 진입 게이트 === */
+  html.pp-gate-lock body > *:not(#ppGateOv){ visibility: hidden !important; }
+  #ppGateOv{ position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center; background:#EDEAE3; visibility:visible !important; }
+  #ppGateOv .ppg-card{ width:340px; background:#FFFDFA; border:1.5px solid #E4DFD4; border-radius:18px; padding:30px 30px 26px; box-shadow:0 14px 30px -20px rgba(30,27,22,.42); }
+  #ppGateOv .ppg-title{ margin:0 0 18px; font-size:22px; font-weight:800; letter-spacing:.14em; text-align:center; color:#1E1B16; }
+  #ppGateOv .ppg-field{ margin-bottom:12px; }
+  #ppGateOv .ppg-field label{ display:block; font-size:11px; font-weight:800; letter-spacing:.08em; color:#8C8578; margin-bottom:5px; }
+  #ppGateOv .ppg-field select, #ppGateOv .ppg-field input{ width:100%; box-sizing:border-box; border:1.5px solid #E4DFD4; border-radius:10px; padding:12px 14px; font:inherit; font-size:15px; font-weight:700; color:#1E1B16; background:#FFFDFA; }
+  #ppGateOv .ppg-field select{ cursor:pointer; }
+  #ppGateOv .ppg-field select:focus, #ppGateOv .ppg-field input:focus{ outline:none; border-color:#2F5D46; }
+  #ppGateOv .ppg-err{ min-height:18px; font-size:12px; font-weight:800; color:#9C3327; letter-spacing:.04em; margin:2px 0 10px; text-align:center; }
+  #ppGateOv .ppg-btns{ display:flex; gap:10px; }
+  #ppGateOv .ppg-btn{ flex:1.4; border:none; border-radius:10px; padding:13px 0; font:inherit; font-size:14px; font-weight:800; letter-spacing:.08em; cursor:pointer; background:#2F5D46; color:#fff; }
+  #ppGateOv .ppg-btn.ppg-cancel{ flex:1; background:#FFFDFA; color:#1E1B16; border:1.5px solid #D6CFC0; }
 </style>
 </head>
 <body>
@@ -608,7 +622,7 @@
 <!-- Firebase (REFRESH 시에만) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
     authDomain: "the-shawn.firebaseapp.com",
@@ -629,6 +643,7 @@
     }
     return out;
   };
+  window.ppFb = { db, doc, getDoc };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 
@@ -1518,6 +1533,87 @@
     // 메인 진입 → 무조건 캐시어 모드 (관리자 선택 없음)
     enter(false);
   }
+})();
+</script>
+<script>
+/* === 매장 PIN 진입 게이트 === 매장 선택 + PIN (plu-store-pins) 통과 전 화면 잠금 · 자동 로그인 없음 */
+(function(){
+  'use strict';
+  var FALLBACK=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  var VALID=null,_vp=null;
+  function fbReady(cb){ if(window.ppFb) cb(); else window.addEventListener('fb-ready', cb, {once:true}); }
+  function getDocData(col,id){
+    return new Promise(function(res,rej){
+      fbReady(function(){ var F=window.ppFb;
+        F.getDoc(F.doc(F.db,col,id)).then(function(sn){ res((sn&&sn.exists&&sn.exists())?(sn.data()||{}):null); }).catch(rej);
+      });
+    });
+  }
+  function loadStores(){
+    if(VALID) return Promise.resolve(VALID);
+    if(_vp) return _vp;
+    var to=new Promise(function(r){ setTimeout(function(){ r('__t__'); },6000); });
+    var fp=getDocData('app-config','stores').then(function(d){
+      var l=(d&&Array.isArray(d.list))?d.list.map(function(x){return String((x&&x.name)||x||'').trim().toUpperCase();}).filter(Boolean):[];
+      return l.length?l:FALLBACK.slice();
+    }).catch(function(){ return FALLBACK.slice(); });
+    _vp=Promise.race([fp,to]).then(function(r){
+      if(r==='__t__'){ fp.then(function(real){ VALID=real; fill(); }); VALID=FALLBACK.slice(); }
+      else VALID=r;
+      fill(); return VALID;
+    });
+    return _vp;
+  }
+  function fill(){
+    var sel=document.getElementById('ppgStore'); if(!sel||!VALID) return;
+    var cur=sel.value || (function(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } })();
+    sel.innerHTML='<option value="">SELECT STORE</option>'+VALID.map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>'; }).join('');
+    if(cur && VALID.indexOf(String(cur).toUpperCase())>=0) sel.value=String(cur).toUpperCase();
+  }
+  function unlock(){ var o=document.getElementById('ppGateOv'); if(o) o.remove(); document.documentElement.classList.remove('pp-gate-lock'); }
+  function show(msg){
+    document.documentElement.classList.add('pp-gate-lock');
+    var o=document.getElementById('ppGateOv');
+    if(!o){
+      o=document.createElement('div'); o.id='ppGateOv';
+      o.innerHTML='<div class="ppg-card">'
+        +'<h1 class="ppg-title">PLU PREVIEW</h1>'
+        +'<div class="ppg-field"><label>STORE</label><select id="ppgStore"><option value="">LOADING…</option></select></div>'
+        +'<div class="ppg-field"><label>PIN</label><input type="password" id="ppgPin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
+        +'<div class="ppg-err" id="ppgErr"></div>'
+        +'<div class="ppg-btns"><button class="ppg-btn" id="ppgEnter" type="button">ENTER</button>'
+        +'<button class="ppg-btn ppg-cancel" id="ppgCancel" type="button">CANCEL</button></div>'
+      +'</div>';
+      (document.body||document.documentElement).appendChild(o);
+      fill(); loadStores();
+      document.getElementById('ppgEnter').onclick=submit;
+      document.getElementById('ppgCancel').onclick=function(){ location.replace('index.html'); };
+      document.getElementById('ppgPin').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+      document.getElementById('ppgStore').addEventListener('change',function(){ document.getElementById('ppgPin').focus(); });
+      setTimeout(function(){ var st=document.getElementById('ppgStore'); (st.value?document.getElementById('ppgPin'):st).focus(); },80);
+    }
+    var er=document.getElementById('ppgErr'); if(er) er.textContent=msg||'';
+  }
+  var busy=false;
+  function submit(){
+    if(busy) return;
+    var st=(document.getElementById('ppgStore').value||'').trim().toUpperCase();
+    var pin=(document.getElementById('ppgPin').value||'').trim();
+    var er=document.getElementById('ppgErr');
+    if(er) er.textContent='';
+    if(!st){ if(er) er.textContent='SELECT STORE'; return; }
+    if(!pin){ if(er) er.textContent='ENTER PIN'; document.getElementById('ppgPin').focus(); return; }
+    busy=true; if(er) er.textContent='CHECKING…';
+    getDocData('plu-store-pins', st).then(function(d){
+      busy=false;
+      if(!d || d.pin==null){ if(er) er.textContent='PIN NOT SET · ASK MANAGER'; return; }
+      if(String(d.pin)!==String(pin)){ if(er) er.textContent='WRONG PIN'; var pi=document.getElementById('ppgPin'); pi.value=''; pi.focus(); return; }
+      try{ localStorage.setItem('theShawnStore', st); }catch(e){}
+      unlock();
+    }).catch(function(){ busy=false; if(er) er.textContent='CONNECTION ERROR — TRY AGAIN'; });
+  }
+  document.documentElement.classList.add('pp-gate-lock');
+  document.addEventListener('DOMContentLoaded', function(){ show(''); });
 })();
 </script>
 </body>

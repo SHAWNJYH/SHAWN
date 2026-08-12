@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGMM TOOLS</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #f3f3ee;
+    --border: #e5e5e0;
+    --border-bright: #c8c8c0;
+    --text: #1a1a1d;
+    --text-dim: #6b6b72;
+    --text-faint: #9a9aa0;
+    --accent: #1a1a1d;
+    --accent-soft: #f0eee5;
+    --accent-warm: #c9a961;
+    --danger: #c83a3a;
+    --success: #2a8a4a;
+    /* 카테고리 색상 */
+    --cat-work: #4a6cc9;
+    --cat-work-soft: #e5ebfa;
+    --cat-personal: #8b5cf6;
+    --cat-personal-soft: #efe9fc;
+    --cat-birthday: #e57ba5;
+    --cat-birthday-soft: #fce9f1;
+    --serif: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+    --mono: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
+    --code: 'Pretendard', ui-monospace, monospace;
+  }
+
+  /* === UPC CONVERTER === */
+  .upc-screen {
+    display: none;
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 32px 120px;
+  }
+  .upc-screen.active { display: block; }
+
+  .upc-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: stretch;
+    margin-bottom: 32px;
+  }
+
+  .upc-box {
+    background: var(--bg-elev);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    min-height: 480px;
+  }
+
+  .upc-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .upc-box-title {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+  }
+  .upc-box-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .upc-mini-btn {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .upc-mini-btn:hover {
+    color: var(--accent-warm);
+    border-color: var(--accent-warm);
+    background: var(--accent-soft);
+  }
+
+  .upc-textarea {
+    flex: 1;
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: var(--code);
+    font-size: 14px;
+    color: var(--text);
+    resize: none;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+    min-height: 360px;
+  }
+  .upc-textarea:focus {
+    outline: none;
+    border-color: var(--accent-warm);
+    background: #ffffff;
+  }
+  .upc-textarea[readonly] {
+    background: var(--bg-elev-2);
+    cursor: default;
+  }
+
+  .upc-status {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-faint);
+    margin-top: 10px;
+    text-align: right;
+  }
+
+  .upc-arrow-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .upc-convert-btn {
+    background: var(--text);
+    color: #ffffff;
+    border: none;
+    padding: 18px 22px;
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 14px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 120px;
+    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
+  }
+  .upc-convert-btn:hover {
+    background: var(--accent-warm);
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
+  }
+  .upc-convert-btn:active {
+    transform: scale(0.98);
+  }
+  .upc-arrow {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  /* 대소문자 변환 버튼 (세로 3개) */
+  .case-btn-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .case-convert-btn {
+    background: var(--text);
+    color: #ffffff;
+    border: none;
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 130px;
+    box-shadow: 0 4px 16px rgba(26,26,29,0.15);
+  }
+  .case-convert-btn:hover {
+    background: var(--accent-warm);
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(201,169,97,0.3);
+  }
+  .case-convert-btn:active {
+    transform: scale(0.98);
+  }
+  .case-btn-label {
+    font-size: 14px;
+  }
+  .case-btn-example {
+    font-size: 12px;
+    opacity: 0.7;
+    font-family: var(--code);
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 900px) {
+    .case-btn-section {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .case-convert-btn {
+      flex: 1;
+      min-width: 90px;
+      padding: 12px;
+    }
+  }
+
+  .upc-info {
+    background: var(--accent-soft);
+    border: 1.5px solid var(--accent-warm);
+    border-radius: 12px;
+    padding: 18px 22px;
+  }
+  .upc-info-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--accent-warm);
+    margin: 0 0 10px 0;
+  }
+  .upc-info-list {
+    margin: 0;
+    padding-left: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+  .upc-info-list li {
+    margin-bottom: 2px;
+  }
+  .upc-info-list strong {
+    font-weight: 800;
+    color: var(--accent-warm);
+  }
+
+  @media (max-width: 900px) {
+    .upc-screen { padding: 32px 16px 80px; }
+    .upc-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .upc-arrow-section {
+      padding: 0;
+    }
+    .upc-convert-btn {
+      flex-direction: row;
+      width: 100%;
+      padding: 14px;
+    }
+    .upc-arrow {
+      transform: rotate(90deg);
+      font-size: 18px;
+    }
+    .upc-box {
+      min-height: 280px;
+    }
+    .upc-textarea {
+      min-height: 220px;
+    }
+  }
+  @media (max-width: 450px) {
+    .upc-screen { padding: 20px 10px 80px; }
+    .upc-box { padding: 14px; }
+    .upc-box-title { font-size: 13px; }
+    .upc-mini-btn { font-size: 10px; padding: 5px 8px; }
+    .upc-info-list { font-size: 12px; }
+  }
+
+
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;background:var(--bg);font-family:var(--mono);color:var(--text);}
+  .tools-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;height:100vh;padding:10px;}
+  .tools-cell{background:var(--bg-elev);border:1px solid var(--border);border-radius:14px;overflow:auto;padding:14px;}
+  .tools-cell .upc-screen{display:block;padding:0;}
+  .bible-topbar{margin-bottom:10px;}
+  .bible-topbar .brand{font-family:var(--serif,inherit);font-size:18px;font-weight:700;color:var(--text);}
+  .bible-topbar .brand-meta{font-size:11px;color:var(--text-dim);margin-top:2px;}
+  .tools-cell .upc-grid{grid-template-columns:1fr;}
+
+  /* === 4분할 컴팩트 오버라이드 (창 안에 맞게 축소) === */
+  .tools-cell{ padding:12px; font-size:12px; }
+  .tools-cell .bible-topbar{ margin-bottom:8px; }
+  .tools-cell .bible-topbar .brand{ font-size:15px; }
+  .tools-cell .bible-topbar .brand-meta{ font-size:10px; }
+  .tools-cell .upc-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
+  .tools-cell .upc-box{ min-height:0 !important; padding:10px; }
+  .tools-cell .upc-textarea{ min-height:60px !important; height:60px; font-size:12px; line-height:1.4; padding:8px; }
+  .tools-cell .upc-box-title{ font-size:12px; }
+  .tools-cell .upc-mini-btn{ font-size:10px; padding:4px 7px; }
+  .tools-cell .upc-arrow-section{ margin:6px 0; }
+  .tools-cell .upc-convert-btn{ padding:8px 14px; font-size:13px; }
+  .tools-cell .upc-status{ font-size:10px; }
+  .tools-cell .upc-info-list{ display:none; }        /* 하단 안내 숨김(공간 절약) */
+
+  /* 대소문자: 입력/출력 작게 + 버튼 축소 */
+  #caseScreen .upc-grid{ grid-template-columns:1fr 1fr; }
+  #caseScreen .upc-textarea{ min-height:60px !important; height:60px; }
+  .tools-cell .case-btn-section{ gap:6px; }
+  .tools-cell .case-convert-btn{ padding:7px 10px; }
+  .tools-cell .case-btn-label{ font-size:12px; }
+  .tools-cell .case-btn-example{ font-size:10px; }
+
+  /* 용량: 입력 필드 축소, 2열 그리드 */
+  .tools-cell .weight-input{ font-size:14px; padding:7px 9px; }
+  .tools-cell .weight-name{ font-size:13px; }
+  .tools-cell .weight-sym{ font-size:11px; }
+
+  /* 계산기: 디스플레이/키 축소 */
+  .tools-cell .calc-expr{ font-size:13px; }
+  .tools-cell .calc-result{ font-size:22px; }
+  .tools-cell .calc-key{ padding:9px 0; font-size:15px; }
+  .tools-cell .calc-grid{ gap:5px; }
+
+</style>
+</head>
+<body>
+  <div class="tools-grid">
+    <div class="tools-cell" id="cellUpc"><div class="upc-screen active" id="upcScreen">
+  <header class="bible-topbar">
+    <div>
+      <h1 class="brand">🔢 UPC 변환</h1>
+      <div class="brand-meta">바코드 일괄 변환 · UPC-A / UPC-E / EAN-8 / EAN-13</div>
+    </div>
+  </header>
+
+  <div class="upc-grid">
+    <!-- 입력 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">📋 입력 (한 줄에 하나씩)</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="upcPasteBtn" title="클립보드에서 붙여넣기">📥 붙여넣기</button>
+          <button class="upc-mini-btn" id="upcClearInputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="upcInput" placeholder="바코드를 한 줄에 하나씩 붙여넣으세요&#10;&#10;예시:&#10;0123456000189&#10;1234567890123&#10;01234565"></textarea>
+      <div class="upc-status" id="upcInputStatus">0줄</div>
+    </div>
+
+    <!-- 변환 버튼 -->
+    <div class="upc-arrow-section">
+      <button class="upc-convert-btn" id="upcConvertBtn">
+        변환하기
+        <span class="upc-arrow">→</span>
+      </button>
+    </div>
+
+    <!-- 결과 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">✅ 변환 결과</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="upcCopyAllBtn" title="모두 복사">📋 모두 복사</button>
+          <button class="upc-mini-btn" id="upcClearOutputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="upcOutput" placeholder="결과가 여기에 표시됩니다..." readonly></textarea>
+      <div class="upc-status" id="upcOutputStatus">0줄</div>
+    </div>
+  </div>
+
+  <div class="upc-info">
+    <h4 class="upc-info-title">변환 규칙</h4>
+    <ul class="upc-info-list">
+      <li><strong>14자리 이상</strong>: 그대로 유지 (Code 128 등)</li>
+      <li><strong>13자리 (EAN-13)</strong>: 체크디짓 제거 → 12자리</li>
+      <li><strong>12자리 (UPC-A)</strong>: 체크디짓 제거 → 11자리</li>
+      <li><strong>10~11자리</strong>: 첫자리 0 제거 + 체크디짓 제거</li>
+      <li><strong>8자리 (첫자리 0, UPC-E)</strong>: 11자리 UPC-A 본체로 확장</li>
+      <li><strong>8자리 (그 외, EAN-8)</strong>: 체크디짓 제거 → 7자리</li>
+      <li>숫자가 아닌 문자는 자동 제거됩니다</li>
+    </ul>
+  </div>
+</div>
+
+<!-- CASE CONVERTER SCREEN --></div>
+    <div class="tools-cell" id="cellCase"><div class="upc-screen active" id="caseScreen">
+  <header class="bible-topbar">
+    <div>
+      <h1 class="brand">🔠 대소문자 변환</h1>
+      <div class="brand-meta">대문자 ↔ 소문자 ↔ 첫글자 대문자</div>
+    </div>
+  </header>
+
+  <div class="upc-grid">
+    <!-- 입력 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">📝 입력</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="casePasteBtn" title="클립보드에서 붙여넣기">📥 붙여넣기</button>
+          <button class="upc-mini-btn" id="caseClearInputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="caseInput" placeholder="변환할 텍스트를 입력하거나 붙여넣으세요&#10;&#10;예: Hello World&#10;THE SHAWN&#10;apple banana"></textarea>
+      <div class="upc-status" id="caseInputStatus">0자</div>
+    </div>
+
+    <!-- 변환 버튼들 -->
+    <div class="case-btn-section">
+      <button class="case-convert-btn" id="caseUpperBtn">
+        <span class="case-btn-label">전부 대문자</span>
+        <span class="case-btn-example">ABC</span>
+      </button>
+      <button class="case-convert-btn" id="caseLowerBtn">
+        <span class="case-btn-label">전부 소문자</span>
+        <span class="case-btn-example">abc</span>
+      </button>
+      <button class="case-convert-btn" id="caseTitleBtn">
+        <span class="case-btn-label">첫글자 대문자</span>
+        <span class="case-btn-example">Abc</span>
+      </button>
+    </div>
+
+    <!-- 결과 박스 -->
+    <div class="upc-box">
+      <div class="upc-box-header">
+        <h3 class="upc-box-title">✅ 변환 결과</h3>
+        <div class="upc-box-actions">
+          <button class="upc-mini-btn" id="caseCopyBtn" title="결과 복사">📋 복사</button>
+          <button class="upc-mini-btn" id="caseClearOutputBtn">지우기</button>
+        </div>
+      </div>
+      <textarea class="upc-textarea" id="caseOutput" placeholder="결과가 여기에 표시됩니다..." readonly></textarea>
+      <div class="upc-status" id="caseOutputStatus">0자</div>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT CONVERTER SCREEN (용량 변환) -->
+<style>
+  .weight-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .weight-row { display: flex; align-items: center; gap: 10px; }
+  .weight-label { display: flex; flex-direction: column; min-width: 64px; }
+  .weight-name { font-weight: 700; font-size: 15px; color: var(--text); line-height: 1.2; }
+  .weight-sym { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .weight-input {
+    flex: 1; min-width: 0; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 18px; font-family: var(--mono);
+    background: var(--bg); color: var(--text);
+  }
+  .weight-input:focus { outline: none; border-color: var(--accent-warm); }
+  .weight-input::placeholder { color: var(--text-faint); }
+  .weight-hint { margin-top: 14px; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+</style></div>
+    <div class="tools-cell" id="cellWeight"><div class="upc-screen active" id="weightScreen">
+  <header class="bible-topbar">
+    <div>
+      <h1 class="brand">⚖️ 용량 변환</h1>
+      <div class="brand-meta">OZ · G · KG · LB · ML · FL OZ 서로 변환</div>
+    </div>
+  </header>
+
+  <div class="upc-box">
+    <div class="weight-rows">
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">온스</span><span class="weight-sym">OZ</span></div>
+        <input class="weight-input" id="wOz" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">액량 온스</span><span class="weight-sym">FL OZ</span></div>
+        <input class="weight-input" id="wFlOz" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">그램</span><span class="weight-sym">G</span></div>
+        <input class="weight-input" id="wG" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">킬로그램</span><span class="weight-sym">KG</span></div>
+        <input class="weight-input" id="wKg" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">밀리리터</span><span class="weight-sym">ML</span></div>
+        <input class="weight-input" id="wMl" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+      <div class="weight-row">
+        <div class="weight-label"><span class="weight-name">파운드</span><span class="weight-sym">LB</span></div>
+        <input class="weight-input" id="wLb" type="number" inputmode="decimal" step="any" placeholder="0">
+      </div>
+    </div>
+    <div class="upc-box-actions" style="margin-top: 16px;">
+      <button class="upc-mini-btn" id="weightClearBtn">지우기</button>
+    </div>
+  </div>
+</div>
+
+<!-- CALCULATOR SCREEN (계산기) -->
+<style>
+  .calc-display {
+    background: var(--bg-elev-2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: right;
+    margin-bottom: 14px;
+    min-height: 64px;
+  }
+  .calc-expr { font-family: var(--mono); font-size: 14px; color: var(--text-dim); min-height: 18px; word-break: break-all; }
+  .calc-result { font-family: var(--mono); font-size: 34px; font-weight: 700; color: var(--text); word-break: break-all; line-height: 1.2; }
+  .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .calc-key {
+    padding: 18px 0; font-size: 20px; font-weight: 700;
+    border: 1.5px solid var(--border); border-radius: 12px;
+    background: var(--bg-elev); color: var(--text);
+    cursor: pointer; font-family: var(--mono);
+    transition: transform 0.1s, background 0.15s;
+  }
+  .calc-key:hover { background: var(--bg-elev-2); }
+  .calc-key:active { transform: scale(0.96); }
+  .calc-key.func { color: var(--text-dim); }
+  .calc-key.op { background: var(--accent-soft); color: var(--text); }
+  .calc-key.op.active { background: var(--accent-warm); color: #ffffff; }
+  .calc-key.equal { background: var(--accent); color: #ffffff; }
+  .calc-key.equal:hover { background: #2d2d33; }
+
+  /* === 4분할 레이아웃 정리: 각 기능이 분할칸에 꽉 차도록 (스크롤 제거) === */
+  .tools-cell{ overflow:hidden; display:flex; flex-direction:column; }
+  .tools-cell > .upc-screen{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; width:100% !important; max-width:none !important; margin:0 !important; }
+  .tools-cell .bible-topbar{ flex:0 0 auto; }
+  /* UPC 변환: 입력 | 버튼 | 결과 — 3열 가로 배치, 세로 가득 */
+  #upcScreen .upc-grid{ flex:1 1 auto; min-height:0; display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch; }
+  #upcScreen .upc-box{ display:flex; flex-direction:column; min-height:0; }
+  #upcScreen .upc-textarea{ flex:1 1 auto; height:auto !important; min-height:0 !important; resize:none; }
+  #upcScreen .upc-arrow-section{ align-self:center; margin:0; }
+  #upcScreen .upc-info{ display:none; }   /* 변환 규칙 안내 숨김 (공간) */
+  /* 대소문자: 입력 | 버튼 | 결과 — 3열 */
+  #caseScreen .upc-grid{ flex:1 1 auto; min-height:0; display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:stretch; }
+  #caseScreen .upc-box{ display:flex; flex-direction:column; min-height:0; }
+  #caseScreen .upc-textarea{ flex:1 1 auto; height:auto !important; min-height:0 !important; resize:none; }
+  #caseScreen .case-btn-section{ align-self:center; display:flex; flex-direction:column; gap:8px; margin:0; }
+  /* 용량: 3열 × 2행으로 가로 가득, 세로 중앙 */
+  #weightScreen{ justify-content:center; }
+  #weightScreen .weight-rows{ grid-template-columns:repeat(3,1fr); gap:14px 18px; }
+  #weightScreen .weight-row{ flex-direction:column; align-items:stretch; gap:6px; }
+  #weightScreen .weight-input{ width:100%; box-sizing:border-box; font-size:16px; padding:10px 12px; }
+  /* 계산기: 디스플레이 + 키패드가 세로 가득 */
+  #calcScreen{ display:flex; flex-direction:column; }
+  #calcScreen .upc-box{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; width:100% !important; max-width:none !important; }
+  #calcScreen .calc-display, #calcScreen .calc-grid{ width:100% !important; max-width:none !important; }
+  #calcScreen .calc-display{ flex:0 0 auto; }
+  #calcScreen .calc-grid{ flex:1 1 auto; min-height:0; grid-auto-rows:1fr; }
+  #calcScreen .calc-key{ height:100%; font-size:16px; }
+</style></div>
+    <div class="tools-cell" id="cellCalc"><div class="upc-screen active" id="calcScreen">
+  <header class="bible-topbar">
+    <div>
+      <h1 class="brand">🧮 계산기</h1>
+      <div class="brand-meta">기본 사칙연산 계산기</div>
+    </div>
+  </header>
+
+  <div class="upc-box">
+    <div class="calc-display">
+      <div class="calc-expr" id="calcExpr"></div>
+      <div class="calc-result" id="calcResult">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="calc-key func" data-k="ac">AC</button>
+      <button class="calc-key func" data-k="back">⌫</button>
+      <button class="calc-key func" data-k="pct">%</button>
+      <button class="calc-key op" data-k="div">÷</button>
+
+      <button class="calc-key" data-k="7">7</button>
+      <button class="calc-key" data-k="8">8</button>
+      <button class="calc-key" data-k="9">9</button>
+      <button class="calc-key op" data-k="mul">×</button>
+
+      <button class="calc-key" data-k="4">4</button>
+      <button class="calc-key" data-k="5">5</button>
+      <button class="calc-key" data-k="6">6</button>
+      <button class="calc-key op" data-k="sub">−</button>
+
+      <button class="calc-key" data-k="1">1</button>
+      <button class="calc-key" data-k="2">2</button>
+      <button class="calc-key" data-k="3">3</button>
+      <button class="calc-key op" data-k="add">+</button>
+
+      <button class="calc-key" data-k="sign">±</button>
+      <button class="calc-key" data-k="0">0</button>
+      <button class="calc-key" data-k="dot">.</button>
+      <button class="calc-key equal" data-k="eq">=</button>
+    </div>
+  </div>
+</div></div>
+  </div>
+
+<script src="Function-Upc-Converter.js"></script>
+<script src="Function-Case-Converter.js"></script>
+<script src="Function-Unit-Converter.js"></script>
+<script src="Function-Calculator.js"></script>
+<script>
+(function(){
+  'use strict';
+  function boot(){
+    try{ window.FunctionUpc && window.FunctionUpc.wire({ input:'upcInput', output:'upcOutput', convertBtn:'upcConvertBtn', pasteBtn:'upcPasteBtn', copyBtn:'upcCopyAllBtn', clearInputBtn:'upcClearInputBtn', clearOutputBtn:'upcClearOutputBtn', inputStatus:'upcInputStatus', outputStatus:'upcOutputStatus' }); }catch(e){}
+    try{ window.FunctionCase && window.FunctionCase.wire({ input:'caseInput', output:'caseOutput', upperBtn:'caseUpperBtn', lowerBtn:'caseLowerBtn', titleBtn:'caseTitleBtn', copyBtn:'caseCopyBtn', pasteBtn:'casePasteBtn', clearInputBtn:'caseClearInputBtn', clearOutputBtn:'caseClearOutputBtn', inputStatus:'caseInputStatus', outputStatus:'caseOutputStatus' }); }catch(e){}
+    try{ window.FunctionUnit && window.FunctionUnit.wire({ fields:{ oz:'wOz', floz:'wFlOz', g:'wG', kg:'wKg', ml:'wMl', lb:'wLb' }, clearBtn:'weightClearBtn', focusUnit:'oz' }); }catch(e){}
+    try{ window.FunctionCalc && window.FunctionCalc.wire({ keysSelector:'#calcScreen .calc-grid', keyClass:'calc-key', expr:'calcExpr', result:'calcResult', keyboardActiveSelector:'#calcScreen' }); }catch(e){}
+  }
+  if(document.readyState!=='loading') boot(); else document.addEventListener('DOMContentLoaded', boot);
+})();
+</script>
+</body>
+</html>

@@ -481,12 +481,12 @@
 </script>
   <div class="sm-top">
     <div class="sm-title">HOMEPAGE MANAGER <span class="ko">홈페이지 통합 관리</span></div>
-    <button class="sm-close" id="smClose" type="button">✕ 닫기 <span class="en">CLOSE</span></button>
   </div>
   <div class="sm-tabs">
     <button class="sm-tab active" id="smTabAuth" type="button">아이디/패스워드 관리<span class="en">ID · Password</span></button>
     <button class="sm-tab" id="smTabVendors" type="button">벤더 관리<span class="en">Vendors</span></button>
-    <button class="sm-tab" id="smTabMenuPerms" type="button">H-MART 메뉴 권한<span class="en">Menu Access</span></button>
+    <button class="sm-tab" id="smTabDepts" type="button">매장 부서 관리<span class="en">Departments</span></button>
+    <button class="sm-tab" id="smTabMenuPerms" type="button">카테고리 권한 관리<span class="en">Category Access</span></button>
     <button class="sm-tab" id="smTabFields" type="button">필드 관리<span class="en">Fields</span></button>
     <button class="sm-tab" id="smTabExport" type="button">내보내기 설정<span class="en">Export</span></button>
     <button class="sm-tab" id="smTabItemMatch" type="button">가져오기 설정<span class="en">Import</span></button>
@@ -611,13 +611,6 @@
           <button class="ex-btn warm" id="vdAdd" type="button">＋ 벤더 추가 <span class="en" style="color:#fff;opacity:.75;">Add</span></button>
         </div>
 
-        <!-- 매입일지 부서 관리 · app-config/purchase-departments (HMART/daily-purchase.html 부서 선택 목록) -->
-        <div class="sec-title" style="margin-top:26px;">매입 부서 관리 <span class="en">Purchase Departments</span> <span class="fm-count" id="pdCount"></span> <span class="fm-saved" id="pdSaved"></span></div>
-        <div class="chips" id="pdChips" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px;"></div>
-        <div style="display:flex;gap:8px;max-width:420px;">
-          <input class="st-in" id="pdNewIn" placeholder="새 부서 이름 · New department" maxlength="30" autocomplete="off" style="flex:1;">
-          <button class="ex-btn warm" id="pdAdd" type="button">＋ 부서 추가 <span class="en" style="color:#fff;opacity:.75;">Add</span></button>
-        </div>
       </div></div>
     </div>
 
@@ -701,10 +694,27 @@
     </div>
 
     <!-- HTML 관리: 파일이름 · 목적 기록 -->
-    <!-- H-MART 메뉴 권한 · app-config/hmart-menu-perms (HMART/hmart.html 사이드바 표시 제어) -->
+    <!-- 매장 부서 관리 · app-config/purchase-departments (HMART/daily-purchase.html 부서 선택 목록) -->
+    <div class="sm-panel" id="smPanelDepts">
+      <div class="ex-toolbar">
+        <span class="ex-tb-label">매장 부서 관리 · Departments</span>
+        <span class="ex-spacer"></span>
+        <span class="fm-saved" id="pdSaved"></span>
+      </div>
+      <div class="sm-scroll"><div class="sm-inner">
+        <div class="sec-title">매입 부서 <span class="en">Purchase Departments</span> <span class="fm-count" id="pdCount"></span></div>
+        <div class="chips" id="pdChips" style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px;"></div>
+        <div style="display:flex;gap:8px;max-width:420px;">
+          <input class="st-in" id="pdNewIn" placeholder="새 부서 이름 · New department" maxlength="30" autocomplete="off" style="flex:1;">
+          <button class="ex-btn warm" id="pdAdd" type="button">＋ 부서 추가 <span class="en" style="color:#fff;opacity:.75;">Add</span></button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 카테고리 권한 관리 · app-config/hmart-menu-perms (HMART/hmart.html 사이드바 표시 제어) -->
     <div class="sm-panel" id="smPanelMenuPerms">
       <div class="ex-toolbar">
-        <span class="ex-tb-label">H-MART 메뉴 권한 · Menu Access</span>
+        <span class="ex-tb-label">카테고리 권한 관리 · Category Access</span>
         <span class="ex-spacer"></span>
         <span class="fm-saved" id="mpSaved"></span>
       </div>
@@ -904,7 +914,6 @@
       ['hmartToListBtn','PLU ITEM LIST','PLU 아이템 리스트'],
       ['hmartToUpcBtn','UPC ITEM LIST','UPC 아이템 리스트'],
       ['hmartToPreviewMgrBtn','PLU PREVIEW MANAGER','매장 PLU 미리보기 관리'],
-      ['hmartToQuizBtn','PLU MEMORIZE','PLU 암기 연습'],
       ['hmartAdViewBtn','AD ITEMS','광고상품 보기'],
       ['hmartNewItemBtn','NEW ITEMS','신상품 보기']
     ]},
@@ -1204,13 +1213,13 @@
     if(!pw){ alert('패스워드를 입력하세요'); if(pn)pn.focus(); return; }
     if((auData[scKey]||[]).some(function(u){ return String(u.name).trim().toUpperCase()===name.toUpperCase(); })){ alert('이미 있는 아이디입니다'); if(nn)nn.select(); return; }
     var sc=null; AUTH_SCOPES.forEach(function(x){ if(x.key===scKey) sc=x; });
-    var u=auNormUser({ name:name, fullName:fname, position:(ps&&ps.value)||'STAFF', ips:[], access:true, anywhere:false }, sc);
+    var u=auNormUser({ name:name, fullName:fname, position:(ps&&ps.value)||'STAFF', ips:[], access:true, anywhere:(scKey==='mgr') }, sc);
     u.pin=await auHashPin(pw);
     auData[scKey].push(u);
     var ok=await authSave(scKey);
     authRender(scKey);
     if(nn)nn.value=''; if(fn)fn.value=''; if(pn)pn.value='';
-    if(ok) auSetSaved(scKey,'생성됨 · '+name+' (접속 IP를 등록하세요)');
+    if(ok) auSetSaved(scKey, scKey==='mgr' ? ('생성됨 · '+name+' (ANYWHERE · 어디서나 접속)') : ('생성됨 · '+name+' (접속 IP를 등록하세요)'));
     var re=$('auList_'+scKey); if(re){ var last=re.querySelector('.au-ipin[data-i="'+(auData[scKey].length-1)+'"]'); if(last) last.focus(); }
   }
   AUTH_SCOPES.forEach(function(sc){
@@ -1497,7 +1506,9 @@
   document.querySelectorAll('input[name="slMode"]').forEach(function(r){ r.addEventListener('change', slSyncDim); });
 
   function activate(which){
-    var isAuth=(which==='auth'), isVendors=(which==='vendors'), isFields=(which==='fields'), isExport=(which==='export'), isHtml=(which==='html'), isItem=(which==='itemmatch'), isMenu=(which==='menuperms');
+    var isAuth=(which==='auth'), isVendors=(which==='vendors'), isFields=(which==='fields'), isExport=(which==='export'), isHtml=(which==='html'), isItem=(which==='itemmatch'), isMenu=(which==='menuperms'), isDepts=(which==='depts');
+    if($('smTabDepts')) $('smTabDepts').classList.toggle('active', isDepts);
+    if($('smPanelDepts')) $('smPanelDepts').classList.toggle('active', isDepts);
     if($('smTabMenuPerms')) $('smTabMenuPerms').classList.toggle('active', isMenu);
     if($('smPanelMenuPerms')) $('smPanelMenuPerms').classList.toggle('active', isMenu);
     $('smTabAuth').classList.toggle('active', isAuth);
@@ -1514,7 +1525,8 @@
     if($('smPanelHtml')) $('smPanelHtml').classList.toggle('active', isHtml);
     if(isAuth){ authLoad(); storesLoad(); }
     else if(isMenu){ mpLoad(); }
-    else if(isVendors){ vdLoad(); pdLoad(); }
+    else if(isVendors){ vdLoad(); }
+    else if(isDepts){ pdLoad(); }
     else if(isFields){ fmOpen(); }
     else if(isHtml){ hmLoad(); }
     else if(isItem){ imxLoad(); requestAnimationFrame(imxDraw); }
@@ -1523,6 +1535,7 @@
   $('smTabAuth').onclick = function(){ activate('auth'); };
   if($('smTabVendors')) $('smTabVendors').onclick = function(){ activate('vendors'); };
   if($('smTabMenuPerms')) $('smTabMenuPerms').onclick = function(){ activate('menuperms'); };
+  if($('smTabDepts')) $('smTabDepts').onclick = function(){ activate('depts'); };
   $('smTabFields').onclick = function(){ activate('fields'); };
   $('smTabExport').onclick = function(){ activate('export'); };
   if($('smTabItemMatch')) $('smTabItemMatch').onclick = function(){ activate('itemmatch'); };
@@ -1997,10 +2010,6 @@
   if($('hrNewPurpose')) $('hrNewPurpose').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); hrAddNew(); } });
   if($('stAdd')) $('stAdd').onclick = storesAdd;
   if($('stNewName')) $('stNewName').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); storesAdd(); } });
-  $('smClose').onclick = function(){
-    try{ if(window.parent && window.parent!==window){ window.parent.postMessage('hpm-close','*'); return; } }catch(e){}
-    window.location.href='../EGMM/egmm.html';
-  };
   authLoad(); storesLoad();
 
   /* ===== EXPORT 설정 ===== */
