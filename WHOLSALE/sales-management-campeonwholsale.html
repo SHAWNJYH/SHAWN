@@ -464,7 +464,9 @@
     document.documentElement.classList.add('cw-gate-lock');
     document.addEventListener('DOMContentLoaded', function(){
       try{ localStorage.removeItem('campeonAutoLogin'); }catch(e){}
-      try{ sessionStorage.removeItem('campeonGate'); sessionStorage.removeItem('campeonAuth'); }catch(e){}
+      var ok=false;
+      try{ ok = sessionStorage.getItem('campeonGate')==='1'; }catch(e){}
+      if(ok){ unlock(); return; }   // 같은 탭 새로고침 = 로그인 유지
       show('');
     });
   })();
