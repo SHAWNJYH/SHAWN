@@ -360,17 +360,161 @@
 
   /* 태블릿에서 목록 스크롤 관성(momentum) 활성화 */
   .data-scroll, .stock-scroll { -webkit-overflow-scrolling: touch; }
+  /* === 진입 게이트 === */
+  html.cw-gate-lock body > *:not(#cwGateOv){ visibility: hidden !important; }
+  #cwGateOv{ position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
+    background: #EDEAE3; visibility: visible !important; }
+  #cwGateOv .cwg-card{ width: 340px; background: #FFFDFA; border: 1.5px solid #E4DFD4;
+    border-radius: 18px; padding: 30px 30px 26px; box-shadow: 0 14px 30px -20px rgba(30,27,22,.42); }
+  #cwGateOv .cwg-title{ margin: 0 0 18px; font-size: 21px; font-weight: 800; letter-spacing: .14em; text-align: center; color: #1E1B16; line-height:1.3; }
+  #cwGateOv .cwg-field{ margin-bottom: 12px; }
+  #cwGateOv .cwg-field label{ display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8C8578; margin-bottom: 5px; }
+  #cwGateOv .cwg-field input{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
+    padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; }
+  #cwGateOv #cwgId{ text-transform: uppercase; }
+  #cwGateOv .cwg-field input:focus{ outline: none; border-color: #2F5D46; }
+  #cwGateOv .cwg-err{ min-height: 18px; font-size: 12px; font-weight: 800; color: #9C3327; letter-spacing: .04em; margin: 2px 0 10px; text-align: center; }
+  #cwGateOv .cwg-btns{ display: flex; gap: 10px; }
+  #cwGateOv .cwg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
+    letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
+  #cwGateOv .cwg-btn.cwg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
 </style>
 </head>
 <body>
 <div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
 <script>
-  /* === 진입 가드 === index.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
+  /* === 진입 게이트(인페이지) === 메인 화면이 보이기 전 ID/PASSWORD 로그인 필수.
+     계정: HOMEPAGE MANAGER 통합 (egmm-users · hmart-users · vender-users · manager-users)
+     접속 권한(WHOLSALE) 보유 계정만 입장 · MANAGER 계정은 전체 허용
+     ACCESS 차단 · ANYWHERE · 등록 IP 검사 그대로 적용 · 자동 로그인 없음 */
   (function(){
-    try{
-      var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
-      if(!ok){ location.replace('../index.html'); }
-    }catch(e){}
+    'use strict';
+    var REQUIRED_SCOPE='WHOLSALE';
+    function fbReady(cb){ if(window.fbSM && window.fbSM.db) cb(); else window.addEventListener('fbsm-ready', cb, {once:true}); }
+    function getDocData(col,id){
+      return new Promise(function(res,rej){
+        fbReady(function(){
+          var F=window.fbSM;
+          F.getDoc(F.doc(F.db,col,id))
+            .then(function(snap){ res((snap&&snap.exists&&snap.exists())?(snap.data()||{}):null); })
+            .catch(rej);
+        });
+      });
+    }
+    function hashPw(v){
+      v=String(v);
+      if(window.crypto && window.crypto.subtle){
+        return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v)).then(function(buf){
+          return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+        }).catch(function(){ return null; });
+      }
+      return Promise.resolve(null);
+    }
+    function myIp(){
+      return fetch('https://api.ipify.org?format=json').then(function(r){return r.json();})
+        .then(function(j){ return String((j&&j.ip)||'').trim(); }).catch(function(){ return null; });
+    }
+    var GATE_COLS=[['egmm-users','egmm'],['hmart-users','hmart'],['vender-users','vender'],['manager-users','master']];
+    function findUser(name){
+      function pick(d){ var us=(d&&Array.isArray(d.users))?d.users:[];
+        for(var i=0;i<us.length;i++){ if(us[i] && String(us[i].name||'').trim().toUpperCase()===name) return us[i]; } return null; }
+      var i=0;
+      function next(){
+        if(i>=GATE_COLS.length) return Promise.resolve(null);
+        var c=GATE_COLS[i++];
+        return getDocData('app-config',c[0]).then(function(d){ var u=pick(d); return u?{u:u, tier:c[1]}:next(); });
+      }
+      return next();
+    }
+    function verifyAcct(name, pw){
+      name=String(name).trim().toUpperCase();
+      return findUser(name).then(function(hit){
+        if(!hit) return {err:'ID NOT FOUND'};
+        var u=hit.u, pin=String(u.pin||'');
+        function checks(){
+          var anywhere=!!u.anywhere;
+          if(!anywhere && u.access===false) return Promise.resolve({err:'BLOCKED ID · ASK MANAGER'});
+          if(anywhere) return Promise.resolve(null);
+          var ips=Array.isArray(u.ips)?u.ips.map(function(x){return String(x).trim();}).filter(Boolean):[];
+          if(!ips.length) return Promise.resolve({err:'IP NOT REGISTERED · ASK MANAGER'});
+          return myIp().then(function(ip){
+            if(!ip) return {err:'IP CHECK FAILED — CHECK NETWORK'};
+            if(ips.indexOf(ip)<0) return {err:'IP NOT ALLOWED ('+ip+')'};
+            return null;
+          });
+        }
+        function done(){
+          if(hit.tier!=='master'){
+            var sc=(u.perms&&Array.isArray(u.perms.scopes))?u.perms.scopes.map(function(x){return String(x).toUpperCase();}):[];
+            if(!(sc.indexOf('*')>=0 || sc.indexOf(REQUIRED_SCOPE)>=0))
+              return Promise.resolve({err:'NO ACCESS PERMISSION ('+REQUIRED_SCOPE+')'});
+          }
+          return checks().then(function(bad){
+            if(bad) return bad;
+            return {ok:true, tier:hit.tier,
+              user:{ name:u.name, fullName:u.fullName||'', position:u.position||'', role:u.role||'' } };
+          });
+        }
+        return hashPw(pw).then(function(h){
+          if(h && pin===h) return done();
+          if(pin==='p:'+pw || (pin!=='' && pin===pw)) return done();
+          return {err:'WRONG PASSWORD'};
+        });
+      }).catch(function(){ return {err:'CONNECTION ERROR — TRY AGAIN'}; });
+    }
+    function unlock(){
+      var ov=document.getElementById('cwGateOv'); if(ov) ov.remove();
+      document.documentElement.classList.remove('cw-gate-lock');
+    }
+    function pass(r){
+      try{ sessionStorage.setItem('campeonGate','1'); }catch(e){}
+      try{ sessionStorage.setItem('campeonAuth', JSON.stringify({mode:'account', tier:r.tier, user:r.user})); }catch(e){}
+      unlock();
+    }
+    function show(msg){
+      document.documentElement.classList.add('cw-gate-lock');
+      var ov=document.getElementById('cwGateOv');
+      if(!ov){
+        ov=document.createElement('div'); ov.id='cwGateOv';
+        ov.innerHTML='<div class="cwg-card">'
+          +'<h1 class="cwg-title">CAMPEON<br>WHOLESALE</h1>'
+          +'<div class="cwg-field"><label>ID</label><input type="text" id="cwgId" placeholder="ID" autocomplete="off" autocapitalize="characters"></div>'
+          +'<div class="cwg-field"><label>PASSWORD</label><input type="password" id="cwgPw" placeholder="••••••" autocomplete="off"></div>'
+          +'<div class="cwg-err" id="cwgErr"></div>'
+          +'<div class="cwg-btns"><button class="cwg-btn" id="cwgEnter" type="button">ENTER</button>'
+          +'<button class="cwg-btn cwg-cancel" id="cwgCancel" type="button">CANCEL</button></div>'
+        +'</div>';
+        (document.body||document.documentElement).appendChild(ov);
+        document.getElementById('cwgEnter').onclick=submit;
+        document.getElementById('cwgCancel').onclick=function(){ location.replace('../index.html'); };
+        document.getElementById('cwgPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
+        document.getElementById('cwgId').addEventListener('keydown',function(e){ if(e.key==='Enter'){ document.getElementById('cwgPw').focus(); } });
+        setTimeout(function(){ document.getElementById('cwgId').focus(); },80);
+      }
+      var er=document.getElementById('cwgErr'); if(er) er.textContent=msg||'';
+    }
+    var busy=false;
+    function submit(){
+      if(busy) return;
+      var idIn=document.getElementById('cwgId'), pwIn=document.getElementById('cwgPw'), er=document.getElementById('cwgErr');
+      var idv=(idIn&&idIn.value||'').trim().toUpperCase();
+      var pwv=(pwIn&&pwIn.value||'').trim();
+      if(er) er.textContent='';
+      if(!idv){ if(er) er.textContent='ENTER ID'; idIn.focus(); return; }
+      if(!pwv){ if(er) er.textContent='ENTER PASSWORD'; pwIn.focus(); return; }
+      busy=true; if(er) er.textContent='CHECKING…';
+      verifyAcct(idv,pwv).then(function(r){
+        busy=false;
+        if(!r || r.err){ if(er) er.textContent=(r&&r.err)||'ERROR'; pwIn.value=''; pwIn.focus(); return; }
+        pass(r);
+      });
+    }
+    document.documentElement.classList.add('cw-gate-lock');
+    document.addEventListener('DOMContentLoaded', function(){
+      try{ localStorage.removeItem('campeonAutoLogin'); }catch(e){}
+      try{ sessionStorage.removeItem('campeonGate'); sessionStorage.removeItem('campeonAuth'); }catch(e){}
+      show('');
+    });
   })();
 </script>
 <header>
