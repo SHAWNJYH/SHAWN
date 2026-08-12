@@ -2796,7 +2796,9 @@
     document.documentElement.classList.add('eg-gate-lock');
     document.addEventListener('DOMContentLoaded', function(){
       try{ localStorage.removeItem('egmmAutoLogin'); }catch(e){}
-      try{ sessionStorage.removeItem('egmmGate'); sessionStorage.removeItem('egmmAuth'); }catch(e){}
+      var ok=false;
+      try{ ok = sessionStorage.getItem('egmmGate')==='1' && !!sessionStorage.getItem('egmmAuth'); }catch(e){}
+      if(ok){ unlock(); return; }   // 같은 탭 새로고침 = 로그인 유지
       show('');
     });
   })();
@@ -3602,11 +3604,20 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   const firebaseConfig = { apiKey:"AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0", authDomain:"the-shawn.firebaseapp.com", projectId:"the-shawn", storageBucket:"the-shawn.firebasestorage.app", messagingSenderId:"519898602513", appId:"1:519898602513:web:0f35e3dc9c29dce21665b0", measurementId:"G-NKGYGC63JN" };
   const app = initializeApp(firebaseConfig);
   window.firebaseDb = getFirestore(app);
   window.firebaseFns = { doc, getDoc, setDoc, deleteDoc, collection, onSnapshot };
-  window.dispatchEvent(new Event('plu-firebase-ready'));
+  /* Firestore 보안규칙(로그인 필요) 대응: 익명 인증 후 준비 신호 · 3초 폴백 */
+  var __fired=false;
+  function __fire(){ if(__fired) return; __fired=true; window.dispatchEvent(new Event('plu-firebase-ready')); }
+  try{
+    const __auth=getAuth(app);
+    onAuthStateChanged(__auth, function(u){ if(u) __fire(); });
+    signInAnonymously(__auth).catch(function(e){ console.warn('[익명 인증 실패]', e&&e.code||e); __fire(); });
+  }catch(e){ __fire(); }
+  setTimeout(__fire, 3000);
 </script>
 
 <script>
