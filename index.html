@@ -2943,15 +2943,8 @@
       window.location.href = 'EGMM/egmm.html';
     } else { if(egmmPwErr) egmmPwErr.textContent = '해당 사용자의 PIN이 아닙니다'; }
   };
-  const enterEgmm = () => {
-    if (isEgmmAuto()) {   // 자동 로그인 ON → 안 묻고 안내 후 진입 (관리자)
-      try { showToast('자동 로그인 합니다', 'success'); } catch(e) {}
-      try{ localStorage.setItem('unifiedLogin','1'); sessionStorage.setItem('egmmGate','1'); sessionStorage.setItem('egmmUser', JSON.stringify({name:'', menus:{}})); }catch(e){}
-      setTimeout(()=>{ window.location.href = 'EGMM/egmm.html'; }, 600);
-      return;
-    }
-    openEgmmPw();
-  };
+  // EGMM → 바로 이동 (ID/PASSWORD 검증은 EGMM/egmm.html 자체 게이트가 담당)
+  const enterEgmm = () => { window.location.href = 'EGMM/egmm.html'; };
   $('toOdpBtn').onclick = () => enterEgmm();
   $('toOdpBtn').addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); enterEgmm(); }
