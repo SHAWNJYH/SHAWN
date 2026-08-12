@@ -763,6 +763,12 @@
     if(catKey==='LOCAL') return pool.filter(function(r){ return subMatch(r,LOCAL); });
     if(catKey==='SALES'||catKey==='ETC'){
       var conf=(DATA.custom&&DATA.custom[catKey])||null;
+      // 매니저(tablet-plu-preview-manager)에서 직접 입력한 항목 우선
+      var direct=(conf&&Array.isArray(conf.items))?conf.items:[];
+      if(direct.length){
+        return direct.map(function(it){ return { plu:String((it&&it.plu)||''), kor:String((it&&(it.kor||it.name))||''), eng:String((it&&it.eng)||''), cate:(catKey==='SALES'?'SALES ITEM':'ETC'), extra:{} }; })
+          .filter(function(r){ return r.plu||r.kor||r.eng; });
+      }
       if(conf&&conf.subs&&conf.subs.length){ return pool.filter(function(r){ return conf.subs.some(function(k){ return rowSub(r).toLowerCase().indexOf(String(k).toLowerCase())>=0; }); }); }
       return [];
     }
@@ -966,8 +972,8 @@
       // 매장별 관리자 설정 (plu-preview-config/{매장}): SALES/ETC 분류, 메시지
       var pc=(raw['plu-preview-config']||{})[STORE]||{};
       var custom={};
-      if(pc.sales && Array.isArray(pc.sales.subs)) custom.SALES={ subs:pc.sales.subs, plus:(pc.sales.plus||[]) };
-      if(pc.etc && Array.isArray(pc.etc.subs)) custom.ETC={ subs:pc.etc.subs, plus:(pc.etc.plus||[]) };
+      if(pc.sales && (Array.isArray(pc.sales.subs)||Array.isArray(pc.sales.items))) custom.SALES={ subs:(pc.sales.subs||[]), plus:(pc.sales.plus||[]), items:(pc.sales.items||[]) };
+      if(pc.etc && (Array.isArray(pc.etc.subs)||Array.isArray(pc.etc.items))) custom.ETC={ subs:(pc.etc.subs||[]), plus:(pc.etc.plus||[]), items:(pc.etc.items||[]) };
       // 로컬에만 있던 설정도 병합 (관리자가 아직 서버 저장 안 한 경우)
       if(DATA&&DATA.custom){ for(var ck in DATA.custom){ if(!custom[ck]) custom[ck]=DATA.custom[ck]; } }
       var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
@@ -999,6 +1005,11 @@
     if(curCat==='WEEKLY'){ renderWeekly(pane); return; }
     // 데이터가 없으면 안내 화면으로 복구 (예전엔 그냥 return 해서 이전 화면이 남아 있었음)
     if(!DATA){ pane.innerHTML=FIRSTRUN_HTML; return; }
+    // SALES/ETC에 매니저 직접입력 항목이 있으면 분류 단계 없이 바로 상품 목록
+    if((curCat==='SALES'||curCat==='ETC')){
+      var __cf=DATA.custom&&DATA.custom[curCat];
+      if(__cf&&Array.isArray(__cf.items)&&__cf.items.length){ renderProductList(pane); return; }
+    }
     if(view==='cate'){ renderCateGrid(pane); }
     else { renderProductList(pane); }
   }
@@ -1125,9 +1136,12 @@
 
   // (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한
   function renderProductList(pane){
-    var rows=rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
+    // 매니저 직접입력(SALES/ETC items)은 분류 필터 없이 전체 표시
+    var __direct=(curCat==='SALES'||curCat==='ETC') && DATA && DATA.custom && DATA.custom[curCat] && Array.isArray(DATA.custom[curCat].items) && DATA.custom[curCat].items.length;
+    var rows=__direct ? rowsForCat(curCat)
+                      : rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
     rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
-    var sp=cateKeyParts(curCate);
+    var sp=cateKeyParts(__direct ? (curCat==='SALES'?'SALES ITEM|광고상품':'ETC|기타상품') : curCate);
     var cEng=sp.eng || engForCate(curCate);
     var cnm=cateName(sp.kor, cEng);
     var head='<div class="crumb">'+
