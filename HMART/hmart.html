@@ -904,8 +904,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('.hm-side .egmm-menu-btn'), function(b){ b.classList.remove('active'); });
     if(btn) btn.classList.add('active');
   }
-  $('hmartToListBtn').onclick = function(){ openInFrame('../plu-list-store.html', this); };   // 루트 위치
-  $('hmartToUpcBtn').onclick = function(){ openInFrame('../upc-list-store.html', this); };   // 루트 위치
+  $('hmartToListBtn').onclick = function(){ openInFrame('plu-list-store.html', this); };   // HMART 폴더
+  $('hmartToUpcBtn').onclick = function(){ openInFrame('upc-list-store.html', this); };   // HMART 폴더
   // PLU PREVIEW MANAGER — 이 매장(theShawnStore)의 미리보기 관리 화면 (매장별 독립)
   if($('hmartToPreviewMgrBtn')) $('hmartToPreviewMgrBtn').onclick = function(){
     var store=activeStore();

@@ -640,9 +640,22 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   try{
     var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
     var s=localStorage.getItem('theShawnStore');
-    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); return; }
+    /* H-MART 통합 로그인 세션이면 통과 (매장값 없으면 세션에서 보충) */
+    if(sessionStorage.getItem('hmartGate')==='1'){
+      if(!s){
+        var st='TACOMA';
+        try{ var a=JSON.parse(sessionStorage.getItem('hmartAuth')||'null');
+          var sp=(a&&Array.isArray(a.stores))?a.stores.filter(function(x){return x&&x!=='*';}):[];
+          if(sp.length) st=String(sp[0]).toUpperCase();
+        }catch(e2){}
+        try{ localStorage.setItem('theShawnStore', st); s=st; }catch(e3){}
+      }
+      try{ localStorage.setItem('theShawnUpcStore', s); }catch(e4){}
+      return;
+    }
+    if(!s || VALID.indexOf(s)<0){ location.replace('../index.html'); return; }
     try{ localStorage.setItem('theShawnUpcStore', s); }catch(e){}
-  }catch(e){ location.replace('index.html'); }
+  }catch(e){ location.replace('../index.html'); }
 })();
 </script>
 <div class="page-topbar">
@@ -3004,7 +3017,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
 
   // ===== 돌아가기 / 검색 =====
   // 돌아가기: 편집 모드면 편집만 종료(페이지 유지), 아니면 이전 화면으로 이동
-  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='index.html'; } }
+  async function goBack(){ if(editMode){ if(!(await leaveEditGuard())) return; renderContent(); return; } if(document.referrer && history.length>1){ history.back(); } else { window.location.href='hmart.html'; } }
   $('pluBackBtn').onclick=goBack;
   // 이름·UPC 검색: 입력 시 180ms 디바운스로 전체 재렌더 빈도를 줄임(대량 데이터 성능)
   var se=$('pluSearch'); var __searchTimer=null; se.oninput=function(e){ pluSearchTerm=e.target.value; if(editMode){ editMode=false; work=null; workLayout=null; workDirty=false; } pluCatFilter=''; if(__searchTimer) clearTimeout(__searchTimer); __searchTimer=setTimeout(function(){ __searchTimer=null; renderContent(); }, 180); };
@@ -3511,7 +3524,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; applyStore(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} try{localStorage.removeItem('theShawnStore');}catch(e){} currentStore=null; window.location.href='index.html'; }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} try{localStorage.removeItem('theShawnStore');}catch(e){} currentStore=null; window.location.href='../index.html'; }
   document.addEventListener('click', function(e){ var t=e.target; if(t&&t.closest&&t.closest('#stlFab')){ if(window.confirm('로그아웃할까요?')) logout(); } });
   /* ===== 매장 레지스트리 (app-config/stores) — 로그인 목록 + 숏네임 (#5·#7) ===== */
   var __STORE_REG=[];

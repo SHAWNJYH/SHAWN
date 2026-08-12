@@ -457,8 +457,20 @@
   try{
     var VALID=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
     var s=localStorage.getItem('theShawnStore');
-    if(!s || VALID.indexOf(s)<0){ location.replace('index.html'); }
-  }catch(e){ location.replace('index.html'); }
+    /* H-MART 통합 로그인 세션이면 통과 (매장값 없으면 세션에서 보충) */
+    if(sessionStorage.getItem('hmartGate')==='1'){
+      if(!s){
+        var st='TACOMA';
+        try{ var a=JSON.parse(sessionStorage.getItem('hmartAuth')||'null');
+          var sp=(a&&Array.isArray(a.stores))?a.stores.filter(function(x){return x&&x!=='*';}):[];
+          if(sp.length) st=String(sp[0]).toUpperCase();
+        }catch(e2){}
+        try{ localStorage.setItem('theShawnStore', st); s=st; }catch(e3){}
+      }
+      return;
+    }
+    if(!s || VALID.indexOf(s)<0){ location.replace('../index.html'); }
+  }catch(e){ location.replace('../index.html'); }
 })();
 </script>
 <div class="page-topbar">
@@ -1656,7 +1668,7 @@
     loginAs(store);
   }
   function loginAs(store){ currentStore=store; unlocked=false; try{localStorage.setItem(LS_KEY,store);}catch(e){} hideLogin(); var fab=$('stlFab'); if(fab) fab.classList.add('show'); var fn=$('stlFabName'); if(fn) fn.textContent=store; startListener(); rerender(); }
-  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeColOrder={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='index.html'; }
+  function logout(){ try{localStorage.removeItem(LS_KEY);}catch(e){} currentStore=null; unlocked=false; storeOv={}; storeCols={}; storeColOrder={}; if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} window.location.href='../index.html'; }
   function startListener(){ if(ovUnsub){try{ovUnsub();}catch(e){} ovUnsub=null;} if(!currentStore||!fns()||!fns().onSnapshot) return; try{ ovUnsub=fns().onSnapshot(fns().doc(db(),OV_COL,currentStore), function(snap){ var d=(snap&&snap.exists())?(snap.data()||{}):{}; storeOv=d.ov||{}; storeCols=d.cols||{}; storeColOrder=d.colOrder||{}; rerender(); }, function(){}); }catch(e){} }
   async function saveDoc(){ if(!currentStore) return false; try{ await fns().setDoc(fns().doc(db(),OV_COL,currentStore), {ov:storeOv, store:currentStore, updatedAt:Date.now()}, {merge:true}); return true; }catch(e){ uiAlert('저장 실패 — 규칙(plu-store-overrides) 확인'); return false; } }
 
