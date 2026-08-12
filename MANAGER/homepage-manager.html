@@ -814,7 +814,7 @@
     {key:'vender', doc:'vender-users',  label:'VENDER', defScope:'VENDER'}
   ];
   var POS_DEFAULT=['GENERAL MANAGER','MANAGER','TEAM LEADER','STAFF','LABEL','ACCOUNT','MAINTENANCE'];
-  var SCOPE_DEFAULT=['EGMM','HMART','VENDER','MAINTENANCE'];
+  var SCOPE_DEFAULT=['EGMM','HMART','VENDER','WHOLSALE','MAINTENANCE'];
   var ROLE2POS={hq:'GENERAL MANAGER',manager:'MANAGER',teamlead:'TEAM LEADER',staff:'STAFF',label:'LABEL',account:'ACCOUNT',maintenance:'MAINTENANCE'};
   var posList=POS_DEFAULT.slice(), scList=SCOPE_DEFAULT.slice();
   var auData={ mgr:[], egmm:[], hmart:[], vender:[] };
@@ -910,6 +910,10 @@
     ]},
     { card:'PURCHASE', menus:[
       ['hmartPurchaseBtn','DAILY PURCHASE','매입일지']
+    ]},
+    { card:'', menus:[
+      ['hmartDeliBtn','DELI REQUEST','델리 PLU 요청'],
+      ['hmReqViewBtn','VIEW REQUEST','요청 결과 보기']
     ]}
   ];
   var mpCfg={cards:{},menus:{}};
@@ -961,7 +965,7 @@
       +roles.map(function(r){ return '<th>'+esc(r)+'</th>'; }).join('')+'</tr>';
     var body='';
     MP_REG.forEach(function(c){
-      body+=mpRowHtml('card', c.card, esc(c.card)+' <span class="en">카테고리 타이틀</span>', 'mp-card','');
+      if(c.card) body+=mpRowHtml('card', c.card, esc(c.card)+' <span class="en">카테고리 타이틀</span>', 'mp-card','');
       c.menus.forEach(function(mn){
         body+=mpRowHtml('menu', mn[0], esc(mn[1])+'<span class="en">'+esc(mn[2])+'</span>', '','sub');
       });
