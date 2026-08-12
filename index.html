@@ -11,6 +11,9 @@
    2) 다른 도메인이면 → iframe을 벗어나 탭 전체로 전환한다 */
 (function(){
   if (window.self === window.top) return;   // iframe이 아니면 아무것도 안 함
+  // 같은 도메인(THE SHAWN 앱 내부 iframe — hmart/egmm 등)에서는 아무것도 하지 않음:
+  // 하위 메뉴가 index로 되돌린 경우 탭 전체를 뺏으면 H-MART 화면이 닫혀버림.
+  try { if (window.parent.location.host === window.location.host) return; } catch(eSame) {}
   try {
     var pd = window.parent.document;        // 다른 도메인이면 여기서 예외 발생
     var ifs = pd.querySelectorAll('iframe'), me = null;
