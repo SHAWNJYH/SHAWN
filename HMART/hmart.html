@@ -630,7 +630,7 @@
       </div>
       <div class="hm-topbar-actions">
         <button class="hm-top-msg" id="hmMsgOpenBtn" type="button">💬 메시지<span class="hm-chat-alarm-dot"></span></button>
-        <button class="hm-fab" id="hmLogoutFab" type="button" title="로그아웃">👤 <b id="hmFabStore"></b></button>
+        <button class="hm-fab" id="hmLogoutFab" type="button" title="뒤로가기">← 뒤로가기</button>
       </div>
     </header>
 
@@ -843,7 +843,7 @@
   // 타이틀 · FAB · 문서 제목에 매장명
   var st = activeStore();
   var suf = $('hmStoreSuffix'); if(suf) suf.textContent = st || '';
-  var fabName = $('hmFabStore'); if(fabName) fabName.textContent = st || 'MANAGER';
+  // 우상단 버튼은 '뒤로가기' 고정 라벨 (매장명/MANAGER 표기 안 함)
   document.title = 'H-MART' + (st ? (' - ' + st) : '') + ' · THE SHAWN';
 
   // 토스트 / 얼럿
@@ -929,9 +929,7 @@
     try{ sessionStorage.removeItem('hmartGate'); }catch(e){}
     window.location.href = '../index.html';
   }
-  $('hmLogoutFab').onclick = function(){
-    var ov=$('hmLogoutOv'); if(ov){ $('hmLoStore').textContent=(localStorage.getItem('theShawnStore')||''); ov.classList.add('show'); }
-  };
+  $('hmLogoutFab').onclick = function(){ window.location.href='../index.html'; };   // 뒤로가기 (세션 유지)
   (function(){
     var ov=$('hmLogoutOv'); if(!ov) return;
     $('hmLoCancel').onclick=function(){ ov.classList.remove('show'); };
