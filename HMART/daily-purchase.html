@@ -329,6 +329,27 @@
   .dp-mon-prev b{ font-variant-numeric:tabular-nums; }
   .dp-mon-prev .up{ color:#1F7A44; font-weight:800; }
   .dp-mon-prev .down{ color:#9C3327; font-weight:800; }
+
+  /* 정렬 버튼: 상단 스트립에서 전체통계 버튼과 동일 모양 */
+  .dp-strip .dp-sort-btn{ display:inline-flex; flex-direction:column; align-items:center; gap:0; line-height:1.2;
+    border:1px solid var(--border); background:var(--bg-elev); color:var(--text); border-radius:9px; padding:6px 14px;
+    font-size:12px; font-weight:800; white-space:nowrap; }
+  .dp-strip .dp-sort-btn small{ font-size:9.5px; font-weight:700; color:var(--text-faint); letter-spacing:.03em; margin-left:0; }
+  .dp-strip .dp-sort-btn:hover{ border-color:var(--accent-warm); box-shadow:0 4px 12px rgba(30,27,22,.06); color:var(--text); }
+  .dp-strip .dp-sort-btn.on{ background:var(--accent-soft); border-color:var(--accent-warm); color:var(--text); }
+  .dp-strip .dp-sort-btn.on small{ color:var(--text-dim); opacity:.9; }
+  /* 확인 라벨 위, 체크박스 아래 열 배치 */
+  .dp-checks-col{ flex-direction:column; align-items:flex-start; gap:5px; }
+  .dp-checks-row{ display:flex; gap:8px; }
+  .dp-checks-col .dp-checks-lbl{ flex-direction:row; gap:6px; align-items:baseline; margin:0; }
+  /* ── 모든 영문 대문자 (UI 요소) ── */
+  .dp-strip-btn, .dp-strip-btn small, .dp-sort-btn small, .dp-checks-lbl, .dp-checks-lbl small,
+  .dp-ckbox .ck2 small, .dp-user-pill, .dp-mini-btn, .dp-status, .dp-lock-note, .dp-empty, .dp-cnt,
+  .fl-lbl small, .fl-none, .dp-card-t small, .dp-sub-note, .dp-mon-prev, .dp-add-btn,
+  .dp-tbl th .en, .dp-mbtn, .dp-mtitle, .dp-meyebrow, .dp-confirm-text small, .dp-merr, .dp-toast,
+  .dp-in::placeholder, .dp-title small, .dp-date-line{ text-transform: uppercase; }
+
+  .dp-checks-row{ display:flex; gap:8px; margin-left:8px; }
 </style>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -369,17 +390,16 @@
         <span class="dp-status none" id="dpStatusBadge">기록 없음 · NO RECORD</span>
       </div>
     </div>
-    <div class="dp-checks">
-      <span class="dp-checks-lbl">확인<small>CONFIRM</small></span>
-      <label class="dp-ckbox" id="dpRecorderBox"><input type="checkbox" id="dpRecorderCk">
-        <span class="ck2"><em>어카운트</em><small>ACCOUNT</small></span><b id="dpRecorderNm"></b></label>
-      <label class="dp-ckbox" id="dpManagerBox"><input type="checkbox" id="dpManagerCk">
-        <span class="ck2"><em>점장</em><small>GENERAL MANAGER</small></span><b id="dpManagerNm"></b></label>
-    </div>
     <div class="dp-top-right">
       <select class="dp-store-sel" id="dpStoreSel" style="display:none"></select>
       <span class="dp-user-pill" id="dpUserPill" style="display:none">👤 <b id="dpUserName"></b> <span class="role" id="dpUserRole"></span></span>
       <button class="dp-mini-btn" id="dpPrintBtn" type="button" disabled>🖨 프린트 <span style="opacity:.6">PRINT</span></button>
+      <div class="dp-checks-row">
+        <label class="dp-ckbox" id="dpRecorderBox"><input type="checkbox" id="dpRecorderCk">
+          <span class="ck2"><em>어카운트</em><small>ACCOUNT</small></span></label>
+        <label class="dp-ckbox" id="dpManagerBox"><input type="checkbox" id="dpManagerCk">
+          <span class="ck2"><em>점장</em><small>GENERAL MANAGER</small></span></label>
+      </div>
     </div>
   </header>
 
@@ -426,7 +446,7 @@
           <tbody id="dpTbody"></tbody>
           <tbody id="dpInBody"></tbody>
         </table>
-        <div class="dp-empty" id="dpEmpty" style="display:none">등록된 매입 내역이 없습니다 · No purchase records</div>
+        <div class="dp-empty" id="dpEmpty" style="display:none">등록된 매입 내역이 없습니다</div>
       </div>
       <div class="dp-left-foot dp-foot2">
         <div class="dp-foot-line"><span class="fl-lbl">벤더별<small>BY VENDOR</small></span><div class="fl-scroll" id="dpVenTotals"></div></div>
@@ -556,13 +576,13 @@
     $('dpAlertText').innerHTML=esc(ko)+(en?'<small>'+esc(en)+'</small>':''); $('dpAlertOv').classList.add('show'); }
   $('dpAlertClose').onclick=function(){ $('dpAlertOv').classList.remove('show'); };
   $('dpAlertOv').addEventListener('click',function(e){ if(e.target===$('dpAlertOv')) $('dpAlertOv').classList.remove('show'); });
-  function denyPopup(ko,en){ $('dpDenyText').innerHTML=esc(ko||'권한이 없습니다.')+'<small>'+esc(en||'You do not have permission.')+'</small>'; $('dpDenyOv').classList.add('show'); }
+  function denyPopup(ko,en){ $('dpDenyText').innerHTML=esc(ko||'권한이 없습니다.'); $('dpDenyOv').classList.add('show'); }
   $('dpDenyClose').onclick=function(){ $('dpDenyOv').classList.remove('show'); };
   $('dpDenyOv').addEventListener('click',function(e){ if(e.target===$('dpDenyOv')) $('dpDenyOv').classList.remove('show'); });
   var confirmCb=null;
   function uiConfirm(title,ko,en,okLabel,cb){
     $('dpConfirmTitle').textContent=title||'확인';
-    $('dpConfirmText').innerHTML=esc(ko)+(en?'<small>'+esc(en)+'</small>':'');
+    $('dpConfirmText').innerHTML=esc(ko);   // 영문 부연설명 미표시
     $('dpConfirmOk').textContent=okLabel||'확인 · OK';
     confirmCb=cb; $('dpConfirmOv').classList.add('show');
   }
@@ -620,7 +640,7 @@
   function applyUser(){
     var pill=$('dpUserPill');
     if(user){ pill.style.display='inline-flex'; $('dpUserName').textContent=user.name;
-      $('dpUserRole').textContent=user.master?'MANAGER 계정 · MASTER':(user.role==='manager'?'GENERAL MANAGER':'ACCOUNT');
+      $('dpUserRole').textContent=user.master?'MASTER':(user.role==='manager'?'GENERAL MANAGER':'ACCOUNT');
       // 매장 전환 (여러 매장 권한 시)
       var sel=$('dpStoreSel');
       if(user.stores.length>1){
@@ -736,7 +756,7 @@
     if(d&&d.recorder){
       if(d.recorder.id===user.id){
         uiConfirm('담당자 확인 해제','담당자 확인을 해제할까요?\n해제하면 매니저에게 다시 보이지 않습니다.','Uncheck recorder confirmation?','해제 · UNCHECK',function(){
-          saveDay(selDate,{ recorder:null }).then(function(ok){ if(ok) toast('담당자 확인 해제 · Unchecked','success'); });
+          saveDay(selDate,{ recorder:null }).then(function(ok){ if(ok) toast('담당자 확인 해제','success'); });
         });
       } else {
         uiConfirm('담당자 변경','담당자를 ['+user.name+'] 으로 변경할까요?','Change recorder to '+user.name+'?','변경 · CHANGE',function(){
@@ -745,7 +765,7 @@
       }
     } else {
       saveDay(selDate,{ recorder:{id:user.id,name:user.name,checkedAt:Date.now()}, status:'progress' })
-        .then(function(ok){ if(ok) toast('담당자 확인 완료 · Recorder confirmed','success'); });
+        .then(function(ok){ if(ok) toast('담당자 확인 완료','success'); });
     }
   });
   $('dpManagerCk').addEventListener('change', function(){
@@ -755,27 +775,27 @@
     var d=dayData(selDate);
     if(dayStatus(selDate)==='done'){
       uiConfirm('진행중으로 변경','완료를 해제하고 진행중으로 되돌릴까요?\nACCOUNT가 다시 기록할 수 있게 됩니다.','Reopen this day for recording?','진행중 · REOPEN',function(){
-        saveDay(selDate,{ status:'progress', manager:null }).then(function(ok){ if(ok) toast('진행중으로 변경됨 · Reopened','success'); });
+        saveDay(selDate,{ status:'progress', manager:null }).then(function(ok){ if(ok) toast('진행중으로 변경됨','success'); });
       });
       return;
     }
     if(!d||!d.recorder){ denyPopup('담당자 확인이 없어 완료 처리할 수 없습니다.','Recorder confirmation is required before approval.'); return; }
     uiConfirm('결재 완료','['+fmtDateKo(selDate)+'] 매입일지를 완료 처리할까요?\n완료 후에는 매니저 외 수정이 불가능합니다.','Finalize this daily purchase log?','완료 · APPROVE',function(){
       saveDay(selDate,{ status:'done', manager:{id:user.id,name:user.name,doneAt:Date.now()} })
-        .then(function(ok){ if(ok) toast('결재 완료 · Finalized','success'); });
+        .then(function(ok){ if(ok) toast('결재 완료','success'); });
     });
   });
   // 입력완료 → 달력 T / 수정 / 전체지우기 (경고 팝업)
   $('dpEntryDoneBtn').onclick=function(){
     if(!canBaseRecord()) return;
-    if(!dayRows(selDate).length){ toast('입력된 내역이 없습니다 · No rows','error'); return; }
-    saveDay(selDate,{ entered:true }).then(function(ok){ if(ok){ editMode=false; toast('입력완료 · Entry done (T)','success'); } });
+    if(!dayRows(selDate).length){ toast('입력된 내역이 없습니다','error'); return; }
+    saveDay(selDate,{ entered:true }).then(function(ok){ if(ok){ editMode=false; toast('입력완료 (T)','success'); } });
   };
   $('dpEditBtn').onclick=function(){ if(!canBaseRecord()) return; editMode=true; renderAll(); };
   $('dpClearAllBtn').onclick=function(){
     if(!canBaseRecord()) return;
     uiConfirm('전체지우기','['+fmtDateKo(selDate)+'] 리스트 전체를 삭제하시겠습니까?\n삭제된 내역은 복구할 수 없습니다.','Delete ALL rows for this day?','전체 삭제 · CLEAR ALL',function(){
-      saveDay(selDate,{ rows:[], entered:false }).then(function(ok){ if(ok){ editMode=false; editingId=null; toast('전체 삭제됨 · Cleared','success'); } });
+      saveDay(selDate,{ rows:[], entered:false }).then(function(ok){ if(ok){ editMode=false; editingId=null; toast('전체 삭제됨','success'); } });
     });
   };
 
@@ -790,10 +810,10 @@
     else if(st==='progress'){ b.className='dp-status progress'; b.textContent='진행중 · IN PROGRESS'; }
     else { b.className='dp-status none'; b.textContent='기록 없음 · NO RECORD'; }
     var d=dayData(selDate);
-    var rb=$('dpRecorderBox'), rc=$('dpRecorderCk'), rn=$('dpRecorderNm');
+    var rb=$('dpRecorderBox'), rc=$('dpRecorderCk'), rn=$('dpRecorderNm');   // rn: 표기 제거됨(널 가드)
     rc.checked=!!(d&&d.recorder);
     rb.classList.toggle('on', !!(d&&d.recorder));
-    rn.textContent=(d&&d.recorder)?(d.recorder.name||''):'';
+    if(rn) rn.textContent=(d&&d.recorder)?(d.recorder.name||''):'';
     rb.classList.toggle('dim', !isAccount());
     rc.disabled = !(user && isAccount());          // ACCOUNT/최고권한만 담당자 체크
 
@@ -801,7 +821,7 @@
     mc.checked=(st==='done');
     mb.classList.toggle('done-on', st==='done');
     mb.classList.remove('on');
-    mn.textContent=(st==='done'&&d&&d.manager)?(d.manager.name||''):'';
+    if(mn) mn.textContent=(st==='done'&&d&&d.manager)?(d.manager.name||''):'';
     mb.classList.toggle('dim', !isManager());
     mc.disabled = !(user && isManager());          // GENERAL MANAGER/최고권한만 점장 결재
 
@@ -816,12 +836,12 @@
   function renderFootTotals(hidden){
     var v=$('dpVenTotals'), d=$('dpDeptTotals');
     if(!v||!d) return;
-    if(hidden){ v.innerHTML='<span class="fl-none">담당자 확인 전 · Hidden</span>'; d.innerHTML='<span class="fl-none">담당자 확인 전 · Hidden</span>'; return; }
+    if(hidden){ v.innerHTML='<span class="fl-none">담당자 확인 전</span>'; d.innerHTML='<span class="fl-none">담당자 확인 전</span>'; return; }
     var rows=dayRows(selDate);
     function agg(keyFn){ var m={}; rows.forEach(function(r){ var k=keyFn(r); if(!k) k='(없음)'; m[k]=(m[k]||0)+(+r.amount||0); }); return m; }
     function chips(map){
       var ks=Object.keys(map).sort(function(a,b){ return map[b]-map[a]; });
-      if(!ks.length) return '<span class="fl-none">내역 없음 · No data</span>';
+      if(!ks.length) return '<span class="fl-none">내역 없음</span>';
       return ks.map(function(k){ return '<span class="fl-chip"><em>'+esc(k)+'</em><b>'+fmt$(map[k])+'</b></span>'; }).join('');
     }
     v.innerHTML=chips(agg(function(r){ return r.vendor==='__manual__'?(r.vendorName||r.manualName||'(직접입력)'):(r.vendor||''); }));
@@ -852,7 +872,7 @@
     var tb=$('dpTbody'); var rows=sortedRows();
     var st=dayStatus(selDate);
     if(!visibleForUser(selDate)){
-      tb.innerHTML=''; $('dpInBody').innerHTML='<tr><td colspan="7"><div class="dp-lock-note">담당자 확인 전입니다 — 확인 후 열람 가능 · Hidden until recorder confirms</div></td></tr>';
+      tb.innerHTML=''; $('dpInBody').innerHTML='<tr><td colspan="7"><div class="dp-lock-note">담당자 확인 전입니다 — 확인 후 열람 가능</div></td></tr>';
       $('dpEmpty').style.display='none'; $('dpRowCnt').textContent=''; renderFootTotals(true);
       return;
     }
@@ -890,11 +910,11 @@
     var ib=$('dpInBody'); if(!ib) return;
     var d=dayData(selDate), st=dayStatus(selDate);
     if(st==='done'){
-      ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">✓ 완료된 일자입니다 · Finalized — MANAGER만 진행중으로 변경 가능</div></td></tr>'; return;
+      ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">✓ 완료된 일자입니다 — 점장만 진행중으로 변경 가능</div></td></tr>'; return;
     }
-    if(!user){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">로그인 후 기록할 수 있습니다 · Login required</div></td></tr>'; return; }
-    if(!isAccount() && !isManager()){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">기록 권한이 없습니다 · No recording permission</div></td></tr>'; return; }
-    if(dayEntered(selDate)&&!editMode){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">입력완료(T)된 일자입니다 — [수정] 을 누르면 편집할 수 있습니다 · Press EDIT to change</div></td></tr>'; return; }
+    if(!user){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">아이디/패스워드 입장 계정만 기록할 수 있습니다</div></td></tr>'; return; }
+    if(!isAccount() && !isManager()){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">기록 권한이 없습니다</div></td></tr>'; return; }
+    if(dayEntered(selDate)&&!editMode){ ib.innerHTML='<tr><td colspan="7"><div class="dp-lock-note">입력완료(T)된 일자입니다 — [수정] 을 누르면 편집할 수 있습니다</div></td></tr>'; return; }
     // 기존 입력값 보존
     var keep={ vendor:'', manual:false, manualName:'', invoice:'', amount:'', dept:'', memo:'' };
     var old=ib.querySelector('tr[data-inrow]');
@@ -1019,7 +1039,7 @@
   }
   function renderRight(){
     if(!visibleForUser(selDate)){
-      $('dpDayTotal2').textContent='—'; $('dpDayNote').textContent='담당자 확인 전 · Hidden';
+      $('dpDayTotal2').textContent='—'; $('dpDayNote').textContent='담당자 확인 전';
       var pp=selDate.split('-');
       $('dpMonTotal').textContent=fmt$(visMonthTotal(+pp[0], +pp[1]));
       $('dpMonNote').textContent=pp[0]+'년 '+(+pp[1])+'월 · '+(STORE||'');
