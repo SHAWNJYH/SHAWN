@@ -2827,7 +2827,6 @@
     <button class="egmm-menu-btn" id="egmmPluListBtn"><span class="egmm-menu-label mlab">PLU LIST<small>PLU 리스트</small></span></button>
     <button class="egmm-menu-btn" id="egmmUpcListBtn"><span class="egmm-menu-label mlab">UPC LIST / ITEM CODE<small>UPC 아이템 리스트</small></span></button>
 
-    <button class="egmm-menu-btn" id="egmmPluMemorizeBtn"><span class="egmm-menu-label mlab">PLU MEMORIZE<small>PLU 암기 연습</small></span></button>
 
     <button class="egmm-menu-btn" id="egmmCalendarBtn"><span class="egmm-menu-label mlab">CALENDAR<small>캘린더</small></span></button>
 
@@ -3411,8 +3410,6 @@
   $('egmmPluListBtn').onclick = function(){ openInFrame('../plu-list-manager.html', this); };
   var __calBtn=$('egmmCalendarBtn'); if(__calBtn) __calBtn.onclick = function(){ openInFrame('../egmm-calendar.html', this); };
   var __dpvBtn=$('egmmPurchaseBtn'); if(__dpvBtn) __dpvBtn.onclick = function(){ openInFrame('daily-purchase-view.html', this); };
-  // PLU MEMORIZE 활성화
-  var __pmBtn=$('egmmPluMemorizeBtn'); if(__pmBtn) __pmBtn.onclick = function(){ openInFrame('../plu-quiz.html', this); };
   // MANAGER: 상단 버튼 → 3종 선택 팝업 → 대형 팝업(iframe)으로 표시
   (function(){
     var sel=document.createElement('div');
