@@ -43,7 +43,8 @@
     getDocs,
     query,
     where,
-    deleteDoc
+    deleteDoc,
+    onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -75,7 +76,8 @@
     getDocs,
     query,
     where,
-    deleteDoc
+    deleteDoc,
+    onSnapshot
   };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -984,6 +986,27 @@
   }
   .cat-btn.cat-add:hover { color: var(--text); }
 
+  /* 카테고리 삭제 (×) */
+  .cat-btn { position: relative; padding-right: 18px; }
+  .cat-btn.cat-add { padding-right: 8px; }
+  .cat-del {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    width: 14px;
+    height: 14px;
+    line-height: 13px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-faint);
+    border-radius: 50%;
+    cursor: pointer;
+    text-align: center;
+  }
+  .cat-del:hover { color: #fff; background: var(--danger, #c0392b); }
+  .cat-btn.active .cat-del { color: rgba(255,255,255,0.65); }
+  .cat-btn.active .cat-del:hover { color: #fff; background: rgba(255,255,255,0.25); }
+
   /* 하루전체 토글 */
   .allday-btn {
     background: var(--bg-elev);
@@ -1703,7 +1726,7 @@
         __currentScreen = 'todo';
       } catch (e) {}
     }
-    try{ loadFromCloud().then(function(){ showTodo(); }); }
+    try{ loadFromCloud().then(function(){ showTodo(); startRealtimeSync(); }); }
     catch(e){ showTodo(); }
   }
   if (window.firebaseFns) {
@@ -2126,14 +2149,14 @@
   function renderCatPickers() {
     const mainEl = $('mainCatPicker');
     mainEl.innerHTML = state.categories.map(c =>
-      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}</button>`
+      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}<span class="cat-del" data-delmain="${escapeHtml(c.name)}" title="삭제">×</span></button>`
     ).join('') + `<button type="button" class="cat-btn cat-add" data-addmain="1">ADD+</button>`;
 
     const mc = currentMainCat();
     const subs = mc ? mc.subs : [];
     const subEl = $('subCatPicker');
     subEl.innerHTML = subs.map(s =>
-      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}<span class="cat-del" data-delsub="${escapeHtml(s)}" title="삭제">×</span></button>`
     ).join('') + `<button type="button" class="cat-btn cat-add" data-addsub="1">ADD+</button>`;
 
     // 매장이름: 서브 카테고리가 선택된 경우에만 표시 (다중 선택)
@@ -2142,7 +2165,7 @@
     if (showStores) {
       formState.stores = formState.stores.filter(s => state.stores.includes(s));
       $('storePicker').innerHTML = state.stores.map(s =>
-        `<button type="button" class="cat-btn${formState.stores.includes(s) ? ' active' : ''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+        `<button type="button" class="cat-btn${formState.stores.includes(s) ? ' active' : ''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}<span class="cat-del" data-delstore="${escapeHtml(s)}" title="삭제">×</span></button>`
       ).join('') + `<button type="button" class="cat-btn cat-add" data-addstore="1">ADD+</button>`;
     }
   }
@@ -2197,6 +2220,23 @@
 
   // 메인/서브 카테고리 클릭 + ADD+ (이벤트 위임)
   $('mainCatPicker').addEventListener('click', e => {
+    const del = e.target.closest('.cat-del');
+    if (del) {
+      e.stopPropagation();
+      const name = del.dataset.delmain;
+      showModal(`"${name}" 카테고리 삭제`, '서브 카테고리도 함께 삭제됩니다. 기존 일정 표시는 유지됩니다.', () => {
+        state.categories = state.categories.filter(c => c.name !== name);
+        if (formState.mainCat === name) {
+          formState.mainCat = state.categories[0] ? state.categories[0].name : '';
+          formState.subCat = '';
+          formState.stores = [];
+        }
+        markDirty();
+        updateFormUI();
+        showToast('카테고리가 삭제되었습니다', 'success');
+      });
+      return;
+    }
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     if (btn.dataset.addmain) {
@@ -2217,6 +2257,21 @@
   });
 
   $('subCatPicker').addEventListener('click', e => {
+    const del = e.target.closest('.cat-del');
+    if (del) {
+      e.stopPropagation();
+      const name = del.dataset.delsub;
+      const mc = currentMainCat();
+      if (!mc) return;
+      showModal(`"${name}" 서브 카테고리 삭제`, '기존 일정 표시는 유지됩니다.', () => {
+        mc.subs = mc.subs.filter(s => s !== name);
+        if (formState.subCat === name) { formState.subCat = ''; formState.stores = []; }
+        markDirty();
+        updateFormUI();
+        showToast('서브 카테고리가 삭제되었습니다', 'success');
+      });
+      return;
+    }
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     if (btn.dataset.addsub) {
@@ -2239,6 +2294,20 @@
 
   // 매장이름 클릭 (다중 선택 토글) + ADD+
   $('storePicker').addEventListener('click', e => {
+    const del = e.target.closest('.cat-del');
+    if (del) {
+      e.stopPropagation();
+      const name = del.dataset.delstore;
+      showModal(`"${name}" 매장 삭제`, '기존 일정의 매장 표시는 유지됩니다.', () => {
+        state.stores = state.stores.filter(s => s !== name);
+        const idx = formState.stores.indexOf(name);
+        if (idx >= 0) formState.stores.splice(idx, 1);
+        markDirty();
+        updateFormUI();
+        showToast('매장이 삭제되었습니다', 'success');
+      });
+      return;
+    }
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     if (btn.dataset.addstore) {
@@ -2543,16 +2612,17 @@
       setSyncStatus('syncing', '저장 중...');
       try {
         const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
+        const stamp = Date.now();
         await window.firebaseFns.setDoc(docRef, {
           events: state.events,
           categories: state.categories,
           stores: state.stores,
           notes: state.notes,
           claudeNotes: state.claudeNotes || [],
-          updatedAt: Date.now()
+          updatedAt: stamp
         });
         state.isDirty = false;
-        lastSavedAt = Date.now();
+        lastSavedAt = stamp;
         setSyncStatus('synced', '동기화됨');
       } catch (err) {
         console.error('Cloud save error:', err);
@@ -2566,6 +2636,55 @@
     state.isDirty = true;
     if (state.mode === 'cloud') {
       saveToCloud();
+    }
+  }
+
+  // ========== 실시간 동기화 ==========
+  // 다른 컴퓨터에서 저장하면 Firestore onSnapshot으로 즉시 반영된다.
+  let unsubscribeRealtime = null;
+  let lastAppliedRemoteAt = 0;
+
+  function startRealtimeSync() {
+    if (unsubscribeRealtime) return;
+    if (!window.firebaseFns || !window.firebaseFns.onSnapshot) return;
+    try {
+      const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
+      unsubscribeRealtime = window.firebaseFns.onSnapshot(docRef, snap => {
+        // 이 기기에서 방금 쓴 로컬 변경(펜딩 포함)은 건너뛴다
+        if (snap.metadata && snap.metadata.hasPendingWrites) return;
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const remoteAt = data.updatedAt || 0;
+        // 자기 저장 에코 / 중복 스냅샷 스킵
+        if (remoteAt && (remoteAt === lastSavedAt || remoteAt === lastAppliedRemoteAt)) return;
+        // 이 기기에 저장 대기 중인 변경이 있으면 곧 덮어쓰므로 스킵 (last-write-wins)
+        if (state.isDirty) return;
+        lastAppliedRemoteAt = remoteAt;
+
+        state.events = Array.isArray(data.events) ? data.events : [];
+        state.categories = (Array.isArray(data.categories) && data.categories.length)
+          ? data.categories : defaultCategories();
+        state.stores = (Array.isArray(data.stores) && data.stores.length)
+          ? data.stores : defaultStores();
+        state.notes = Array.isArray(data.notes) ? data.notes : [];
+        state.claudeNotes = Array.isArray(data.claudeNotes) ? data.claudeNotes : [];
+
+        // 화면 갱신 (열려 있는 패널의 입력값은 유지, 목록/픽커만 갱신)
+        renderCalendar();
+        if (panelBg.classList.contains('show')) {
+          if (!state.categories.some(c => c.name === formState.mainCat)) {
+            formState.mainCat = state.categories[0] ? state.categories[0].name : '';
+            formState.subCat = '';
+            formState.stores = [];
+          }
+          renderDayEvents();
+          updateFormUI();
+        }
+      }, err => {
+        console.error('Realtime sync error:', err);
+      });
+    } catch (e) {
+      console.error('Realtime sync init failed:', e);
     }
   }
 
