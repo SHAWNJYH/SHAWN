@@ -802,6 +802,106 @@
     color: var(--text-faint);
     letter-spacing: 0;
   }
+  /* 커스텀 날짜 선택 달력 */
+  .dp-input { cursor: pointer; }
+  .dp-pop {
+    position: fixed;
+    z-index: 500;
+    display: none;
+    width: 280px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-bright);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 18px 50px rgba(26,26,29,0.22);
+    animation: cardIn 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .dp-pop.show { display: block; }
+  .dp-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .dp-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
+  .dp-nav {
+    background: var(--bg-elev);
+    border: 1.5px solid var(--border);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+  .dp-nav:hover { border-color: var(--text); color: var(--text); }
+  .dp-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    text-align: center;
+  }
+  .dp-wd {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-faint);
+    padding: 4px 0 6px;
+  }
+  .dp-wd.sun { color: var(--danger, #c0392b); }
+  .dp-wd.sat { color: #4a6cc9; }
+  .dp-day {
+    border: none;
+    background: transparent;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 7px 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .dp-day:hover { background: var(--bg-elev-2, #f0efe9); }
+  .dp-day.outside { color: var(--text-faint); opacity: 0.55; }
+  .dp-day.sun { color: var(--danger, #c0392b); }
+  .dp-day.sat { color: #4a6cc9; }
+  .dp-day.today { box-shadow: inset 0 0 0 1.5px var(--accent-warm); }
+  .dp-day.selected {
+    background: var(--text);
+    color: #fff !important;
+    font-weight: 800;
+  }
+  .dp-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .dp-foot button {
+    background: var(--bg-elev);
+    border: 1.5px solid var(--border);
+    padding: 6px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.15s;
+  }
+  .dp-foot button:hover { border-color: var(--text); color: var(--text); }
+
   /* 입력 폼 2열: 좌(카테고리/서브/매장/담당자) 우(제목/시간/색상/메모) */
   .add-form {
     display: grid;
@@ -1023,7 +1123,14 @@
   }
   .ev-edit:hover { color: var(--text); }
   .ev-edit svg { width: 14px; height: 14px; }
-  .ev-row.editing { outline: 2px solid var(--accent-warm); outline-offset: -2px; border-radius: 10px; }
+  .ev-row.editing {
+    outline: 2px solid var(--accent-warm);
+    outline-offset: 0;
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+    background: rgba(201, 169, 97, 0.07);
+  }
 
   /* 카테고리 삭제 (×) */
   .cat-btn { position: relative; padding-right: 18px; }
@@ -1406,10 +1513,11 @@
   .day { min-height: 0 !important; overflow: hidden; }
   .cal-side { overflow-y: auto; min-height: 0; }
 
-  /* 달력 전체보기 모드: 상단바/사이드 숨기고 달력만 표시 */
+  /* 달력 전체보기 모드: 상단바 숨김, 이전/다음달 미니 달력은 유지 */
   body.cal-full .topbar { display: none; }
-  body.cal-full .cal-side { display: none; }
-  body.cal-full .cal-layout { grid-template-columns: 1fr !important; }
+  body.cal-full .month-summary { display: none; }
+  body.cal-full .cal-layout { grid-template-columns: minmax(0, 1fr) 260px !important; }
+  body.cal-full .cal-side { display: flex; flex-direction: column; justify-content: space-between; gap: 16px; }
   body.cal-full .app { padding: 10px 20px 12px !important; }
   /* .app.active{display:block}이 flex 체인을 깨므로 전체보기에서는 flex 강제
      → cal-layout/calendar가 화면 높이를 가득 채운다 */
@@ -1525,7 +1633,7 @@
             <button type="button" class="allday-btn" id="alldayBtn">하루전체</button>
           </label>
           <div class="dt-row">
-            <input type="date" id="evStartDate">
+            <input type="text" id="evStartDate" class="dp-input" readonly placeholder="날짜 선택">
             <div class="time-input-group">
               <input type="number" id="evStartH" min="0" max="23" placeholder="시" maxlength="2">
               <span class="time-colon">:</span>
@@ -1536,7 +1644,7 @@
         <div class="field">
           <label>종료 (선택)</label>
           <div class="dt-row">
-            <input type="date" id="evEndDate">
+            <input type="text" id="evEndDate" class="dp-input" readonly placeholder="날짜 선택">
             <div class="time-input-group">
               <input type="number" id="evEndH" min="0" max="23" placeholder="시" maxlength="2">
               <span class="time-colon">:</span>
@@ -1579,6 +1687,9 @@
   </div>
 </div>
 
+<!-- 날짜 선택 달력 팝업 -->
+<div class="dp-pop" id="dpPop"></div>
+
 <!-- 일정 상세 팝업 -->
 <div class="modal-bg" id="evDetailOv">
   <div class="modal ev-detail">
@@ -1592,7 +1703,6 @@
       <div class="evd-row" id="evdNotesRow" style="display:none;"><span class="evd-label">메모</span><span class="evd-val" id="evdNotes"></span></div>
     </div>
     <div class="modal-actions">
-      <button class="btn ghost" id="evdEdit">수정</button>
       <button class="btn" id="evdClose">닫기</button>
     </div>
   </div>
@@ -2069,7 +2179,6 @@
   function openEvDetail(id) {
     const ev = state.events.find(x => x.id === id);
     if (!ev) return;
-    detailEvId = id;
     $('evdTitle').textContent = ev.title;
     $('evdCat').innerHTML = `<span class="evd-cat-badge">${escapeHtml(evCatText(ev))}</span>`;
 
@@ -2130,16 +2239,8 @@
     $('evDetailOv').classList.add('show');
   }
 
-  let detailEvId = null;
   function closeEvDetail() { $('evDetailOv').classList.remove('show'); }
   $('evdClose').onclick = closeEvDetail;
-  $('evdEdit').onclick = () => {
-    const ev = state.events.find(x => x.id === detailEvId);
-    closeEvDetail();
-    if (!ev) return;
-    openDayPanel(ev.date);
-    startEditEvent(ev);
-  };
   $('evDetailOv').addEventListener('click', e => { if (e.target === $('evDetailOv')) closeEvDetail(); });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && $('evDetailOv').classList.contains('show')) {
@@ -2199,10 +2300,10 @@
     renderDayEvents();
     // 입력 초기화
     $('evTitle').value = '';
-    $('evStartDate').value = key;
+    setDateField('evStartDate', key);
     $('evStartH').value = '';
     $('evStartM').value = '';
-    $('evEndDate').value = '';
+    setDateField('evEndDate', '');
     $('evEndH').value = '';
     $('evEndM').value = '';
     $('evNotes').value = '';
@@ -2271,7 +2372,7 @@
     endRow.classList.toggle('disabled', formState.allDay);
     if (formState.allDay) {
       $('evStartH').value = ''; $('evStartM').value = '';
-      $('evEndDate').value = ''; $('evEndH').value = ''; $('evEndM').value = '';
+      setDateField('evEndDate', ''); $('evEndH').value = ''; $('evEndM').value = '';
     }
   }
 
@@ -2551,13 +2652,136 @@
         renderCalendar();
       }
     } else if (action === 'delete') {
-      state.events = state.events.filter(x => x.id !== id);
-      if (editingId === id) exitEditMode();
-      markDirty();
-      renderDayEvents();
-      renderCalendar();
+      const ev = state.events.find(x => x.id === id);
+      const name = ev ? ev.title : '';
+      showModal('일정 삭제', `"${name}" 일정을 삭제할까요? 삭제한 일정은 복구할 수 없습니다.`, () => {
+        state.events = state.events.filter(x => x.id !== id);
+        if (editingId === id) exitEditMode();
+        markDirty();
+        renderDayEvents();
+        renderCalendar();
+        showToast('일정이 삭제되었습니다', 'success');
+      });
     }
   });
+
+  // ========== 커스텀 날짜 선택 달력 ==========
+  const dpPop = $('dpPop');
+  let dpTargetId = null;
+  let dpY = 0, dpM = 0;
+
+  function setDateField(id, iso) {
+    const el = $(id);
+    el.dataset.iso = iso || '';
+    if (iso) {
+      const { y, m, d } = parseDateKey(iso);
+      const wd = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
+      el.value = `${y}. ${m + 1}. ${d} (${wd})`;
+    } else {
+      el.value = '';
+    }
+  }
+  function getDateField(id) { return $(id).dataset.iso || ''; }
+
+  function renderDp() {
+    const selected = getDateField(dpTargetId);
+    const tKey = todayKey();
+    const first = new Date(dpY, dpM, 1);
+    const startWd = first.getDay();
+    const daysIn = new Date(dpY, dpM + 1, 0).getDate();
+    const prevLast = new Date(dpY, dpM, 0).getDate();
+    const cells = [];
+    for (let i = startWd - 1; i >= 0; i--) {
+      const d = prevLast - i;
+      const dt = new Date(dpY, dpM - 1, d);
+      cells.push({ y: dt.getFullYear(), m: dt.getMonth(), d, out: true });
+    }
+    for (let d = 1; d <= daysIn; d++) cells.push({ y: dpY, m: dpM, d, out: false });
+    while (cells.length % 7 !== 0) {
+      const idx = cells.length - (startWd + daysIn) + 1;
+      const dt = new Date(dpY, dpM + 1, idx);
+      cells.push({ y: dt.getFullYear(), m: dt.getMonth(), d: dt.getDate(), out: true });
+    }
+    const wds = ['S','M','T','W','T','F','S'].map((w, i) =>
+      `<div class="dp-wd${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${w}</div>`).join('');
+    const days = cells.map(c => {
+      const iso = dateKey(c.y, c.m, c.d);
+      const wd = new Date(c.y, c.m, c.d).getDay();
+      const cls = ['dp-day',
+        c.out ? 'outside' : '',
+        wd === 0 ? 'sun' : wd === 6 ? 'sat' : '',
+        iso === tKey ? 'today' : '',
+        iso === selected ? 'selected' : ''].filter(Boolean).join(' ');
+      return `<button type="button" class="${cls}" data-iso="${iso}">${c.d}</button>`;
+    }).join('');
+    dpPop.innerHTML = `
+      <div class="dp-head">
+        <button type="button" class="dp-nav" data-dpnav="-1">‹</button>
+        <div class="dp-title">${MONTH_NAMES_SHORT[dpM]} ${dpY}</div>
+        <button type="button" class="dp-nav" data-dpnav="1">›</button>
+      </div>
+      <div class="dp-grid">${wds}${days}</div>
+      <div class="dp-foot">
+        <button type="button" data-dpclear="1">지우기</button>
+        <button type="button" data-dpclose="1">닫기</button>
+      </div>`;
+  }
+
+  function openDp(id) {
+    dpTargetId = id;
+    const base = getDateField(id) || getDateField('evStartDate') || state.selectedDate || todayKey();
+    const { y, m } = parseDateKey(base);
+    dpY = y; dpM = m;
+    renderDp();
+    dpPop.classList.add('show');
+    const r = $(id).getBoundingClientRect();
+    const w = 280, h = dpPop.offsetHeight || 330;
+    let left = Math.min(r.left, window.innerWidth - w - 12);
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    dpPop.style.left = Math.max(8, left) + 'px';
+    dpPop.style.top = top + 'px';
+  }
+
+  function closeDp() { dpPop.classList.remove('show'); dpTargetId = null; }
+
+  dpPop.addEventListener('click', e => {
+    const nav = e.target.closest('[data-dpnav]');
+    if (nav) {
+      dpM += parseInt(nav.dataset.dpnav);
+      if (dpM < 0) { dpM = 11; dpY--; }
+      if (dpM > 11) { dpM = 0; dpY++; }
+      renderDp();
+      return;
+    }
+    if (e.target.closest('[data-dpclear]')) {
+      setDateField(dpTargetId, '');
+      closeDp();
+      return;
+    }
+    if (e.target.closest('[data-dpclose]')) { closeDp(); return; }
+    const day = e.target.closest('.dp-day');
+    if (day) {
+      setDateField(dpTargetId, day.dataset.iso);
+      closeDp();
+    }
+  });
+
+  $('evStartDate').onclick = () => openDp('evStartDate');
+  $('evEndDate').onclick = () => openDp('evEndDate');
+
+  // 바깥 클릭 / ESC로 닫기
+  document.addEventListener('mousedown', e => {
+    if (!dpPop.classList.contains('show')) return;
+    if (dpPop.contains(e.target) || e.target.classList.contains('dp-input')) return;
+    closeDp();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && dpPop.classList.contains('show')) {
+      e.stopImmediatePropagation();
+      closeDp();
+    }
+  }, true);
 
   // 시/분 입력 → "HH:MM" 문자열로 변환
   function buildTime(hInput, mInput) {
@@ -2580,9 +2804,9 @@
   function resetEventForm() {
     $('evTitle').value = '';
     $('evAssignee').value = '';
-    $('evStartDate').value = state.selectedDate;
+    setDateField('evStartDate', state.selectedDate);
     $('evStartH').value = ''; $('evStartM').value = '';
-    $('evEndDate').value = ''; $('evEndH').value = ''; $('evEndM').value = '';
+    setDateField('evEndDate', ''); $('evEndH').value = ''; $('evEndM').value = '';
     $('evNotes').value = '';
     formState.subCat = '';
     formState.stores = [];
@@ -2598,10 +2822,10 @@
     formState.allDay = !!ev.allDay;
     formState.color = ev.color || 'default';
     $('evTitle').value = ev.title || '';
-    $('evStartDate').value = ev.date || state.selectedDate;
+    setDateField('evStartDate', ev.date || state.selectedDate);
     const sp = (ev.start || '').split(':');
     $('evStartH').value = sp[0] || ''; $('evStartM').value = sp[1] || '';
-    $('evEndDate').value = ev.endDate || '';
+    setDateField('evEndDate', ev.endDate || '');
     const ep = (ev.end || '').split(':');
     $('evEndH').value = ep[0] || ''; $('evEndM').value = ep[1] || '';
     $('evNotes').value = ev.notes || '';
@@ -2627,9 +2851,9 @@
 
   function addEvent() {
     const title = $('evTitle').value.trim();
-    const startDate = $('evStartDate').value || state.selectedDate;
+    const startDate = getDateField('evStartDate') || state.selectedDate;
     const allDay = formState.allDay;
-    const endDate = allDay ? null : ($('evEndDate').value || null);
+    const endDate = allDay ? null : (getDateField('evEndDate') || null);
     const start = allDay ? null : buildTime($('evStartH'), $('evStartM'));
     const end = allDay ? null : buildTime($('evEndH'), $('evEndM'));
     const notes = $('evNotes').value.trim();
@@ -2710,16 +2934,7 @@
     state.events.push(newEvent);
     markDirty();
     // 입력 초기화
-    $('evTitle').value = '';
-    $('evStartDate').value = state.selectedDate;
-    $('evStartH').value = '';
-    $('evStartM').value = '';
-    $('evEndDate').value = '';
-    $('evEndH').value = '';
-    $('evEndM').value = '';
-    $('evNotes').value = '';
-    formState.allDay = false;
-    formState.stores = [];
+    resetEventForm();
     updateFormUI();
     renderDayEvents();
     renderCalendar();
