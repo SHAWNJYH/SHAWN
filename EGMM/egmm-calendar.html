@@ -1558,15 +1558,22 @@
 
   // EGMM 캘린더: 로그인 없이 바로 캘린더 표시 + egmm-calendar/main 데이터 로드
   var __egmmCalOnly = false;  // 캘린더 단독 페이지 여부 (뒤로가기 시 메뉴로 빠지지 않도록)
+  // EGMM 콘솔(egmm.html) 안에서 iframe으로 열렸는지 여부
+  // — 내장 상태에서는 부모 히스토리를 오염시키지 않도록 히스토리 조작을 건너뛴다
+  function __isEmbedded(){
+    try { return window.top !== window.self; } catch (e) { return true; }
+  }
   function bootEgmmCalendar(){
     state.mode = 'cloud';
     __egmmCalOnly = true;
-    // 히스토리 기준점: 뒤로가기를 눌러도 캘린더에 머문다
-    try {
-      history.replaceState({ shawnScreen: '__base' }, '');
-      history.pushState({ shawnScreen: 'todo' }, '');
-      __currentScreen = 'todo';
-    } catch (e) {}
+    // 히스토리 기준점: 뒤로가기를 눌러도 캘린더에 머문다 (단독 페이지에서만)
+    if (!__isEmbedded()) {
+      try {
+        history.replaceState({ shawnScreen: '__base' }, '');
+        history.pushState({ shawnScreen: 'todo' }, '');
+        __currentScreen = 'todo';
+      } catch (e) {}
+    }
     try{ loadFromCloud().then(function(){ showTodo(); }); }
     catch(e){ showTodo(); }
   }
@@ -2308,6 +2315,8 @@
       __currentScreen = 'todo';
       return;
     }
+    // EGMM iframe 내장 시: 부모(EGMM)의 뒤로가기 흐름에 관여하지 않는다
+    if (__isEmbedded()) return;
     try { history.pushState({ shawnScreen: 'todo' }, ''); } catch (err) {}
     if (!app.classList.contains('active')) showTodo();
     __currentScreen = 'todo';
