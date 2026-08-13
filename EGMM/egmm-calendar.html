@@ -986,6 +986,31 @@
   }
   .cat-btn.cat-add:hover { color: var(--text); }
 
+  /* 카테고리 편집 버튼 상태 */
+  #catEditBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  #catEditBtn.editing {
+    background: var(--accent-warm);
+    border-color: var(--accent-warm);
+    color: #fff;
+  }
+
+  /* 일정 수정 버튼 */
+  .ev-edit {
+    background: transparent;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 6px;
+    transition: color 0.2s;
+    display: flex;
+  }
+  .ev-edit:hover { color: var(--text); }
+  .ev-edit svg { width: 14px; height: 14px; }
+  .ev-row.editing { outline: 2px solid var(--accent-warm); outline-offset: -2px; border-radius: 10px; }
+
   /* 카테고리 삭제 (×) */
   .cat-btn { position: relative; padding-right: 18px; }
   .cat-btn.cat-add { padding-right: 8px; }
@@ -1396,6 +1421,7 @@
     <div class="cal-nav">
       <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
       <button class="today-btn" id="fullViewBtn" title="달력만 전체보기">전체보기</button>
+      <button class="today-btn" id="catEditBtn" title="카테고리 편집">카테고리 편집</button>
       <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
       <button class="today-btn" id="todayBtn">TODAY</button>
       <button class="nav-btn" id="nextBtn" title="다음 달">›</button>
@@ -1520,6 +1546,7 @@
         <textarea id="evNotes" rows="2" placeholder="상세 내용..."></textarea>
       </div>
       <button class="btn" id="addEvBtn">+ 추가</button>
+      <button class="btn ghost" id="editCancelBtn" style="display:none; width:100%; margin-top:8px;">수정 취소</button>
     </div>
     </div>
     <div class="panel-right">
@@ -1542,6 +1569,7 @@
       <div class="evd-row" id="evdNotesRow" style="display:none;"><span class="evd-label">메모</span><span class="evd-val" id="evdNotes"></span></div>
     </div>
     <div class="modal-actions">
+      <button class="btn ghost" id="evdEdit">수정</button>
       <button class="btn" id="evdClose">닫기</button>
     </div>
   </div>
@@ -1726,6 +1754,7 @@
         __currentScreen = 'todo';
       } catch (e) {}
     }
+    initCatEditBtn();
     try{ loadFromCloud().then(function(){ showTodo(); startRealtimeSync(); }); }
     catch(e){ showTodo(); }
   }
@@ -2016,6 +2045,7 @@
   function openEvDetail(id) {
     const ev = state.events.find(x => x.id === id);
     if (!ev) return;
+    detailEvId = id;
     $('evdTitle').textContent = ev.title;
     $('evdCat').innerHTML = `<span class="evd-cat-badge">${escapeHtml(evCatText(ev))}</span>`;
 
@@ -2067,8 +2097,16 @@
     $('evDetailOv').classList.add('show');
   }
 
+  let detailEvId = null;
   function closeEvDetail() { $('evDetailOv').classList.remove('show'); }
   $('evdClose').onclick = closeEvDetail;
+  $('evdEdit').onclick = () => {
+    const ev = state.events.find(x => x.id === detailEvId);
+    closeEvDetail();
+    if (!ev) return;
+    openDayPanel(ev.date);
+    startEditEvent(ev);
+  };
   $('evDetailOv').addEventListener('click', e => { if (e.target === $('evDetailOv')) closeEvDetail(); });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && $('evDetailOv').classList.contains('show')) {
@@ -2101,6 +2139,16 @@
 
   // ========== DAY PANEL ==========
   // 폼의 현재 선택 상태
+  // MANAGER 관리자 계정(manager-users, tier: master)으로 로그인했는지 — EGMM 게이트 세션 공유
+  function isManagerTier() {
+    try {
+      const a = JSON.parse(sessionStorage.getItem('egmmAuth') || 'null');
+      return !!(a && a.tier === 'master');
+    } catch (e) { return false; }
+  }
+  let catEditMode = false;   // 카테고리 편집 모드 (MANAGER 전용)
+  let editingId = null;      // 수정 중인 일정 id (null = 새 일정 추가)
+
   let formState = {
     mainCat: 'EGMM',    // 메인 카테고리 이름
     subCat: '',         // 서브 카테고리 이름 ('' = 미선택)
@@ -2132,6 +2180,8 @@
     formState.stores = [];
     formState.allDay = false;
     formState.color = 'default';
+    editingId = null;
+    setAddBtnMode();
     updateFormUI();
     const wasOpen = panelBg.classList.contains('show');
     panelBg.classList.add('show');
@@ -2147,17 +2197,18 @@
   }
 
   function renderCatPickers() {
+    const edit = catEditMode && isManagerTier();
     const mainEl = $('mainCatPicker');
     mainEl.innerHTML = state.categories.map(c =>
-      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}<span class="cat-del" data-delmain="${escapeHtml(c.name)}" title="삭제">×</span></button>`
-    ).join('') + `<button type="button" class="cat-btn cat-add" data-addmain="1">ADD+</button>`;
+      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}${edit ? `<span class="cat-del" data-delmain="${escapeHtml(c.name)}" title="삭제">×</span>` : ''}</button>`
+    ).join('') + (edit ? `<button type="button" class="cat-btn cat-add" data-addmain="1">ADD+</button>` : '');
 
     const mc = currentMainCat();
     const subs = mc ? mc.subs : [];
     const subEl = $('subCatPicker');
     subEl.innerHTML = subs.map(s =>
-      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}<span class="cat-del" data-delsub="${escapeHtml(s)}" title="삭제">×</span></button>`
-    ).join('') + `<button type="button" class="cat-btn cat-add" data-addsub="1">ADD+</button>`;
+      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}${edit ? `<span class="cat-del" data-delsub="${escapeHtml(s)}" title="삭제">×</span>` : ''}</button>`
+    ).join('') + (edit ? `<button type="button" class="cat-btn cat-add" data-addsub="1">ADD+</button>` : '');
 
     // 매장이름: 서브 카테고리가 선택된 경우에만 표시 (다중 선택)
     const showStores = !!formState.subCat;
@@ -2165,8 +2216,10 @@
     if (showStores) {
       formState.stores = formState.stores.filter(s => state.stores.includes(s));
       $('storePicker').innerHTML = state.stores.map(s =>
-        `<button type="button" class="cat-btn${formState.stores.includes(s) ? ' active' : ''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}<span class="cat-del" data-delstore="${escapeHtml(s)}" title="삭제">×</span></button>`
-      ).join('') + `<button type="button" class="cat-btn cat-add" data-addstore="1">ADD+</button>`;
+        `<button type="button" class="cat-btn${formState.stores.includes(s) ? ' active' : ''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}${edit ? `<span class="cat-del" data-delstore="${escapeHtml(s)}" title="삭제">×</span>` : ''}</button>`
+      ).join('') + (edit ? `<button type="button" class="cat-btn cat-add" data-addstore="1">ADD+</button>` : '');
+    } else {
+      $('storePicker').innerHTML = '';
     }
   }
 
@@ -2223,6 +2276,7 @@
     const del = e.target.closest('.cat-del');
     if (del) {
       e.stopPropagation();
+      if (!(catEditMode && isManagerTier())) return;
       const name = del.dataset.delmain;
       showModal(`"${name}" 카테고리 삭제`, '서브 카테고리도 함께 삭제됩니다. 기존 일정 표시는 유지됩니다.', () => {
         state.categories = state.categories.filter(c => c.name !== name);
@@ -2240,6 +2294,7 @@
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     if (btn.dataset.addmain) {
+      if (!(catEditMode && isManagerTier())) return;
       showPrompt('메인 카테고리 추가', '예: OFFICE', name => {
         if (state.categories.some(c => c.name === name)) { showToast('이미 있는 카테고리입니다', 'error'); return; }
         state.categories.push({ name, subs: [] });
@@ -2260,6 +2315,7 @@
     const del = e.target.closest('.cat-del');
     if (del) {
       e.stopPropagation();
+      if (!(catEditMode && isManagerTier())) return;
       const name = del.dataset.delsub;
       const mc = currentMainCat();
       if (!mc) return;
@@ -2275,6 +2331,7 @@
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     if (btn.dataset.addsub) {
+      if (!(catEditMode && isManagerTier())) return;
       const mc = currentMainCat();
       if (!mc) { showToast('메인 카테고리를 먼저 선택하세요', 'error'); return; }
       showPrompt(mc.name + ' 서브 카테고리 추가', '예: HTM', name => {
@@ -2297,6 +2354,7 @@
     const del = e.target.closest('.cat-del');
     if (del) {
       e.stopPropagation();
+      if (!(catEditMode && isManagerTier())) return;
       const name = del.dataset.delstore;
       showModal(`"${name}" 매장 삭제`, '기존 일정의 매장 표시는 유지됩니다.', () => {
         state.stores = state.stores.filter(s => s !== name);
@@ -2311,6 +2369,7 @@
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
     if (btn.dataset.addstore) {
+      if (!(catEditMode && isManagerTier())) return;
       showPrompt('매장이름 추가', '예: HTM', name => {
         if (state.stores.includes(name)) { showToast('이미 있는 매장입니다', 'error'); return; }
         state.stores.push(name);
@@ -2345,6 +2404,8 @@
   function closeDayPanel() {
     panelBg.classList.remove('show');
     state.selectedDate = null;
+    editingId = null;
+    setAddBtnMode();
     renderCalendar();
   }
 
@@ -2411,13 +2472,19 @@
       }
 
       return `
-        <li class="ev-row cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}" data-id="${ev.id}">
+        <li class="ev-row cat-${cat} ${colorCls} ${ev.done ? 'done' : ''}${ev.id === editingId ? ' editing' : ''}" data-id="${ev.id}">
           <div class="ev-check" data-action="toggle" title="${ev.done ? '미완료로 표시' : '완료(X) 표시'}"></div>
           <div class="ev-body">
             <div class="ev-time-label">${timeLabel}<span class="ev-cat-tag cat-${cat}">${catLabel}</span></div>
             <div class="ev-title-text">${escapeHtml(ev.title)}</div>
             ${ev.notes ? `<div class="ev-notes">${escapeHtml(ev.notes)}</div>` : ''}
           </div>
+          <button class="ev-edit" data-action="edit" title="수정">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>
           <button class="ev-del" data-action="delete" title="삭제">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"/>
@@ -2438,7 +2505,10 @@
     if (!row) return;
     const id = row.dataset.id;
     const action = e.target.closest('[data-action]')?.dataset.action;
-    if (action === 'toggle') {
+    if (action === 'edit') {
+      const ev = state.events.find(x => x.id === id);
+      if (ev) startEditEvent(ev);
+    } else if (action === 'toggle') {
       const ev = state.events.find(x => x.id === id);
       if (ev) {
         ev.done = !ev.done;
@@ -2448,6 +2518,7 @@
       }
     } else if (action === 'delete') {
       state.events = state.events.filter(x => x.id !== id);
+      if (editingId === id) exitEditMode();
       markDirty();
       renderDayEvents();
       renderCalendar();
@@ -2465,6 +2536,58 @@
     if (isNaN(mm) || mm < 0 || mm > 59) return 'INVALID';
     return pad(hh) + ':' + pad(mm);
   }
+
+  // ========== 일정 수정 ==========
+  function setAddBtnMode() {
+    $('addEvBtn').textContent = editingId ? '수정 저장' : '+ 추가';
+    $('editCancelBtn').style.display = editingId ? '' : 'none';
+  }
+
+  function resetEventForm() {
+    $('evTitle').value = '';
+    $('evStartDate').value = state.selectedDate;
+    $('evStartH').value = ''; $('evStartM').value = '';
+    $('evEndDate').value = ''; $('evEndH').value = ''; $('evEndM').value = '';
+    $('evNotes').value = '';
+    formState.subCat = '';
+    formState.stores = [];
+    formState.allDay = false;
+    formState.color = 'default';
+  }
+
+  function startEditEvent(ev) {
+    editingId = ev.id;
+    if (ev.mainCat && state.categories.some(c => c.name === ev.mainCat)) formState.mainCat = ev.mainCat;
+    formState.subCat = ev.subCat || '';
+    formState.stores = Array.isArray(ev.stores) ? ev.stores.slice() : [];
+    formState.allDay = !!ev.allDay;
+    formState.color = ev.color || 'default';
+    $('evTitle').value = ev.title || '';
+    $('evStartDate').value = ev.date || state.selectedDate;
+    const sp = (ev.start || '').split(':');
+    $('evStartH').value = sp[0] || ''; $('evStartM').value = sp[1] || '';
+    $('evEndDate').value = ev.endDate || '';
+    const ep = (ev.end || '').split(':');
+    $('evEndH').value = ep[0] || ''; $('evEndM').value = ep[1] || '';
+    $('evNotes').value = ev.notes || '';
+    updateFormUI();
+    setAddBtnMode();
+    renderDayEvents();
+    $('evTitle').focus();
+    try { $('evTitle').scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  }
+
+  function exitEditMode() {
+    editingId = null;
+    setAddBtnMode();
+  }
+
+  $('editCancelBtn').onclick = () => {
+    exitEditMode();
+    resetEventForm();
+    updateFormUI();
+    renderDayEvents();
+  };
 
   function addEvent() {
     const title = $('evTitle').value.trim();
@@ -2496,6 +2619,37 @@
     if (!endDate && end && start && end < start) {
       showToast('종료 시간이 시작보다 빠릅니다', 'error');
       return;
+    }
+
+    if (editingId) {
+      // 수정 저장: 기존 일정 갱신 (id/created/done 유지)
+      const ev = state.events.find(x => x.id === editingId);
+      if (ev) {
+        Object.assign(ev, {
+          date: startDate,
+          endDate: endDate,
+          start: start || null,
+          end: end || null,
+          allDay: allDay,
+          title,
+          notes: notes || null,
+          mainCat: formState.mainCat,
+          subCat: formState.subCat || null,
+          stores: (formState.subCat && formState.stores.length) ? formState.stores.slice() : null,
+          color: color,
+          updated: Date.now()
+        });
+        markDirty();
+        exitEditMode();
+        resetEventForm();
+        updateFormUI();
+        renderDayEvents();
+        renderCalendar();
+        showToast('✏️ 일정이 수정되었습니다!', 'success');
+        return;
+      }
+      // 수정 대상이 사라진 경우(원격 삭제 등) → 새 일정으로 등록
+      exitEditMode();
     }
 
     const newEvent = {
@@ -2554,6 +2708,28 @@
     }
   }
   $('fullViewBtn').onclick = () => setFullView(!document.body.classList.contains('cal-full'));
+
+  // ========== 카테고리 편집 모드 (MANAGER 관리자 전용) ==========
+  function initCatEditBtn() {
+    const btn = $('catEditBtn');
+    if (isManagerTier()) {
+      btn.disabled = false;
+      btn.title = '카테고리 편집 (추가/삭제)';
+    } else {
+      btn.disabled = true;
+      catEditMode = false;
+      btn.title = 'MANAGER 관리자 계정만 편집할 수 있습니다';
+    }
+    btn.classList.toggle('editing', catEditMode);
+    btn.textContent = catEditMode ? '편집 완료' : '카테고리 편집';
+  }
+  $('catEditBtn').onclick = () => {
+    if (!isManagerTier()) return;
+    catEditMode = !catEditMode;
+    initCatEditBtn();
+    if (panelBg.classList.contains('show')) updateFormUI();
+    showToast(catEditMode ? '카테고리 편집 모드 — ADD+/× 로 추가·삭제하세요' : '카테고리 편집을 마쳤습니다', 'success');
+  };
   document.addEventListener('fullscreenchange', () => {
     // 브라우저 전체화면을 ESC 등으로 빠져나오면 전체보기 모드도 해제
     if (!document.fullscreenElement && document.body.classList.contains('cal-full')) {
