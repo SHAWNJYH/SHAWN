@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>EGMM CALENDAR</title>
+<title>CALENDAR</title>
 <!-- PWA: 바탕화면 앱 설치용 -->
 <link rel="manifest" href="egmm-calendar.webmanifest">
 <meta name="theme-color" content="#fafaf7">
@@ -909,7 +909,7 @@
 
   .cat-picker {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
   }
   .cat-btn {
@@ -928,20 +928,76 @@
     border-color: var(--border-bright);
     color: var(--text);
   }
-  .cat-btn.active.cat-work {
-    background: var(--cat-work);
-    border-color: var(--cat-work);
+  .cat-btn {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .cat-btn.active {
+    background: var(--text);
+    border-color: var(--text);
     color: #ffffff;
   }
-  .cat-btn.active.cat-personal {
-    background: var(--cat-personal);
-    border-color: var(--cat-personal);
+  .cat-btn.cat-add {
+    border-style: dashed;
+    color: var(--text-faint);
+    font-weight: 800;
+  }
+  .cat-btn.cat-add:hover { color: var(--text); }
+
+  /* 하루전체 토글 */
+  .allday-btn {
+    background: var(--bg-elev);
+    border: 1.5px solid var(--border);
+    padding: 5px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 8px;
+    color: var(--text-dim);
+    transition: all 0.15s;
+  }
+  .allday-btn.active {
+    background: var(--text);
+    border-color: var(--text);
     color: #ffffff;
   }
-  .cat-btn.active.cat-birthday {
-    background: var(--cat-birthday);
-    border-color: var(--cat-birthday);
-    color: #ffffff;
+  .dt-row.disabled input,
+  .time-input-group.disabled input { opacity: 0.4; pointer-events: none; }
+
+  /* 일정 상세 팝업 */
+  .modal.ev-detail h3 { word-break: break-all; }
+  .evd-rows { margin: 4px 0 18px; }
+  .evd-row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    align-items: start;
+  }
+  .evd-row:last-child { border-bottom: none; }
+  .evd-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    padding-top: 2px;
+  }
+  .evd-val { color: var(--text); font-weight: 600; word-break: break-all; white-space: pre-wrap; }
+  .evd-val .evd-cat-badge {
+    display: inline-block;
+    background: var(--text);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 7px;
   }
 
   .lunar-picker {
@@ -1249,7 +1305,16 @@
   .calendar { flex: 1 1 auto; min-height: 0; margin-bottom: 0 !important; grid-auto-rows: 1fr; }
   .day { min-height: 0 !important; overflow: hidden; }
   .cal-side { overflow-y: auto; min-height: 0; }
-  .topbar-actions { align-items: center; }
+
+  /* 달력 전체보기 모드: 상단바/사이드 숨기고 달력만 표시 */
+  body.cal-full .topbar { display: none; }
+  body.cal-full .cal-side { display: none; }
+  body.cal-full .cal-layout { grid-template-columns: 1fr !important; }
+  body.cal-full .app { padding: 10px 20px 12px !important; }
+  /* .app.active{display:block}이 flex 체인을 깨므로 전체보기에서는 flex 강제
+     → cal-layout/calendar가 화면 높이를 가득 채운다 */
+  body.cal-full .app.active { display: flex; }
+  body.cal-full #fullViewBtn { background: var(--text); color: #fff; border-color: var(--text); }
 
 </style>
 </head>
@@ -1259,11 +1324,7 @@
 <div class="app" id="app">
   <header class="topbar">
     <div>
-      <h1 class="brand">CALENDER</h1>
-      <div class="brand-meta">EGMM · 일정</div>
-    </div>
-    <div class="topbar-actions">
-      <span class="sync-status" id="syncStatus2" title="동기화 상태"></span>
+      <h1 class="brand">CALENDAR</h1>
     </div>
   </header>
 
@@ -1273,6 +1334,7 @@
     </div>
     <div class="cal-nav">
       <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
+      <button class="today-btn" id="fullViewBtn" title="달력만 전체보기">전체보기</button>
       <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
       <button class="today-btn" id="todayBtn">TODAY</button>
       <button class="nav-btn" id="nextBtn" title="다음 달">›</button>
@@ -1334,11 +1396,11 @@
     <div class="add-form">
       <div class="field">
         <label>카테고리</label>
-        <div class="cat-picker">
-          <button type="button" class="cat-btn cat-work active" data-cat="work">회사</button>
-          <button type="button" class="cat-btn cat-personal" data-cat="personal">개인</button>
-          <button type="button" class="cat-btn cat-birthday" data-cat="birthday">생일 🎂</button>
-        </div>
+        <div class="cat-picker" id="mainCatPicker"></div>
+      </div>
+      <div class="field" id="subCatField">
+        <label>서브 카테고리</label>
+        <div class="cat-picker" id="subCatPicker"></div>
       </div>
       <div class="field">
         <label>제목</label>
@@ -1348,7 +1410,9 @@
       <!-- 시작/종료 (생일이 아닐 때만) -->
       <div id="dateTimeFields">
         <div class="field">
-          <label>시작</label>
+          <label style="display:flex; align-items:center; justify-content:space-between;">시작
+            <button type="button" class="allday-btn" id="alldayBtn">하루전체</button>
+          </label>
           <div class="dt-row">
             <input type="date" id="evStartDate">
             <div class="time-input-group">
@@ -1369,16 +1433,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 음력/양력 선택 (생일일 때만) -->
-      <div class="field" id="lunarField" style="display:none;">
-        <label>날짜 종류</label>
-        <div class="lunar-picker">
-          <button type="button" class="lunar-btn active" data-lunar="solar">양력</button>
-          <button type="button" class="lunar-btn" data-lunar="lunar">음력</button>
-        </div>
-        <div class="lunar-hint" id="lunarHint"></div>
       </div>
 
       <!-- 색상 선택 -->
@@ -1406,6 +1460,22 @@
   </div>
 </div>
 
+<!-- 일정 상세 팝업 -->
+<div class="modal-bg" id="evDetailOv">
+  <div class="modal ev-detail">
+    <h3 id="evdTitle"></h3>
+    <div class="evd-rows">
+      <div class="evd-row"><span class="evd-label">카테고리</span><span class="evd-val" id="evdCat"></span></div>
+      <div class="evd-row"><span class="evd-label">시작</span><span class="evd-val" id="evdStart"></span></div>
+      <div class="evd-row" id="evdEndRow" style="display:none;"><span class="evd-label">종료</span><span class="evd-val" id="evdEnd"></span></div>
+      <div class="evd-row" id="evdNotesRow" style="display:none;"><span class="evd-label">메모</span><span class="evd-val" id="evdNotes"></span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="evdClose">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -1426,8 +1496,16 @@
   'use strict';
 
   // ========== STATE ==========
+  const DEFAULT_CATEGORIES = [
+    { name: 'EGMM', subs: ['MAINTENANCE', 'LABEL', 'DESIGN'] },
+    { name: 'MART', subs: ['HTM', 'HFW', 'HBV', 'HLW', 'HRM', 'HMW', 'HBD', 'GLW', 'DH', 'M2M', 'CAM'] },
+    { name: 'GBK', subs: [] }
+  ];
+  function defaultCategories() { return JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)); }
+
   let state = {
     events: [],
+    categories: defaultCategories(),
     notes: [],
     claudeNotes: [],
     isDirty: false,
@@ -1593,6 +1671,20 @@
   }
 
   // ========== CALENDAR ==========
+  // 달력 표시용 라벨: "메인/서브 - 제목" (구버전 일정은 제목만)
+  function evLabel(ev) {
+    if (ev.mainCat) {
+      return ev.mainCat + (ev.subCat ? '/' + ev.subCat : '') + ' - ' + ev.title;
+    }
+    return ev.title;
+  }
+  // 카테고리 표기: "메인/서브" (구버전은 회사/개인/생일)
+  function evCatText(ev) {
+    if (ev.mainCat) return ev.mainCat + (ev.subCat ? '/' + ev.subCat : '');
+    const c = ev.category;
+    return c === 'work' ? '회사' : c === 'personal' ? '개인' : c === 'birthday' ? '생일' : '-';
+  }
+
   // 특정 날짜 셀에 표시할 이벤트 목록을 반환 (생일 반복 + 다일 일정 포함)
   function getEventsForCell(cellYear, cellMonth, cellDay) {
     const key = dateKey(cellYear, cellMonth, cellDay);
@@ -1686,12 +1778,12 @@
 
         if (e.isBirthday) {
           const lunarMark = e.isLunar ? '🌙 ' : '';
-          return `<div class="ev-pill ${classes}">${lunarMark}${escapeHtml(e.title)}</div>`;
+          return `<div class="ev-pill ${classes}" data-evid="${e.id}">${lunarMark}${escapeHtml(e.title)}</div>`;
         }
-        // 다일 일정은 시작일에만 시간 표시, 중간/끝은 제목만
+        // 다일 일정은 시작일에만 시간 표시, 중간/끝은 라벨만
         const showTime = e._multiPos === 'start' || !e._multiPos;
-        const showTitle = e._multiPos !== 'mid'; // 중간일에는 제목만 (혹은 비움)
-        return `<div class="ev-pill ${classes}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(e.title) : ''}</div>`;
+        const showTitle = e._multiPos !== 'mid';
+        return `<div class="ev-pill ${classes}" data-evid="${e.id}">${(showTime && e.start) ? `<span class="ev-time">${e.start}</span>` : ''}${showTitle ? escapeHtml(evLabel(e)) : ''}</div>`;
       }).join('');
 
       const moreHtml = remain > 0 ? `<div class="ev-more">+${remain} more</div>` : '';
@@ -1834,11 +1926,73 @@
   });
 
   calendarEl.addEventListener('click', e => {
+    // 일정 필 클릭 → 상세 팝업
+    const pill = e.target.closest('.ev-pill');
+    if (pill && pill.dataset.evid) {
+      openEvDetail(pill.dataset.evid);
+      return;
+    }
     const day = e.target.closest('.day');
     if (!day) return;
     const key = day.dataset.key;
     openDayPanel(key);
   });
+
+  // ========== 일정 상세 팝업 ==========
+  function openEvDetail(id) {
+    const ev = state.events.find(x => x.id === id);
+    if (!ev) return;
+    $('evdTitle').textContent = ev.title;
+    $('evdCat').innerHTML = `<span class="evd-cat-badge">${escapeHtml(evCatText(ev))}</span>`;
+
+    // 시작 날짜·시간
+    const { y, m, d } = parseDateKey(ev.date);
+    const wd = ['일','월','화','수','목','금','토'][new Date(y, m, d).getDay()];
+    let startText = `${y}. ${m+1}. ${d} (${wd})`;
+    if (ev.allDay) startText += ' · 하루전체';
+    else if (ev.start) startText += ` · ${ev.start}`;
+    if (ev.isBirthday) startText += ev.isLunar ? ' · 🌙 음력 생일' : ' · 🎂 생일';
+    $('evdStart').textContent = startText;
+
+    // 종료 (있을 때만)
+    const endRow = $('evdEndRow');
+    if (!ev.allDay && (ev.endDate || ev.end)) {
+      let endText = '';
+      if (ev.endDate) {
+        const pe = parseDateKey(ev.endDate);
+        const wde = ['일','월','화','수','목','금','토'][new Date(pe.y, pe.m, pe.d).getDay()];
+        endText = `${pe.y}. ${pe.m+1}. ${pe.d} (${wde})`;
+        if (ev.end) endText += ` · ${ev.end}`;
+      } else {
+        endText = ev.end;
+      }
+      $('evdEnd').textContent = endText;
+      endRow.style.display = '';
+    } else {
+      endRow.style.display = 'none';
+    }
+
+    // 메모 (있을 때만)
+    const notesRow = $('evdNotesRow');
+    if (ev.notes) {
+      $('evdNotes').textContent = ev.notes;
+      notesRow.style.display = '';
+    } else {
+      notesRow.style.display = 'none';
+    }
+
+    $('evDetailOv').classList.add('show');
+  }
+
+  function closeEvDetail() { $('evDetailOv').classList.remove('show'); }
+  $('evdClose').onclick = closeEvDetail;
+  $('evDetailOv').addEventListener('click', e => { if (e.target === $('evDetailOv')) closeEvDetail(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $('evDetailOv').classList.contains('show')) {
+      e.stopImmediatePropagation();
+      closeEvDetail();
+    }
+  }, true);
 
   $('prevBtn').onclick = () => {
     state.viewMonth--;
@@ -1865,8 +2019,9 @@
   // ========== DAY PANEL ==========
   // 폼의 현재 선택 상태
   let formState = {
-    category: 'work',   // 'work' | 'personal' | 'birthday'
-    lunar: 'solar',     // 'solar' | 'lunar'
+    mainCat: 'EGMM',    // 메인 카테고리 이름
+    subCat: '',         // 서브 카테고리 이름 ('' = 미선택)
+    allDay: false,      // 하루전체
     color: 'default'    // 'default' | 'red' | 'orange' | ...
   };
 
@@ -1886,8 +2041,11 @@
     $('evEndH').value = '';
     $('evEndM').value = '';
     $('evNotes').value = '';
-    formState.category = 'work';
-    formState.lunar = 'solar';
+    if (!state.categories.some(c => c.name === formState.mainCat)) {
+      formState.mainCat = state.categories[0] ? state.categories[0].name : '';
+    }
+    formState.subCat = '';
+    formState.allDay = false;
     formState.color = 'default';
     updateFormUI();
     const wasOpen = panelBg.classList.contains('show');
@@ -1898,66 +2056,125 @@
     if (!wasOpen) pushScreen('panel');
   }
 
-  // 카테고리 / 음력 / 색상 UI 업데이트
+  // 카테고리(메인/서브) / 하루전체 / 색상 UI 업데이트
+  function currentMainCat() {
+    return state.categories.find(c => c.name === formState.mainCat) || null;
+  }
+
+  function renderCatPickers() {
+    const mainEl = $('mainCatPicker');
+    mainEl.innerHTML = state.categories.map(c =>
+      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}</button>`
+    ).join('') + `<button type="button" class="cat-btn cat-add" data-addmain="1">ADD+</button>`;
+
+    const mc = currentMainCat();
+    const subs = mc ? mc.subs : [];
+    const subEl = $('subCatPicker');
+    subEl.innerHTML = subs.map(s =>
+      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+    ).join('') + `<button type="button" class="cat-btn cat-add" data-addsub="1">ADD+</button>`;
+  }
+
   function updateFormUI() {
-    // 카테고리 버튼
-    document.querySelectorAll('.cat-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.cat === formState.category);
-    });
-    // 음력 버튼
-    document.querySelectorAll('.lunar-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.lunar === formState.lunar);
-    });
+    renderCatPickers();
     // 색상 버튼
     document.querySelectorAll('.color-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.color === formState.color);
     });
-    // 생일 카테고리면 시간 숨기고 음력 선택 표시
-    const isBirthday = formState.category === 'birthday';
-    $('dateTimeFields').style.display = isBirthday ? 'none' : '';
-    $('lunarField').style.display = isBirthday ? '' : 'none';
-    $('colorField').style.display = isBirthday ? 'none' : '';
-    updateLunarHint();
+    // 하루전체: 시작 시간 + 종료 전체 비활성화
+    $('alldayBtn').classList.toggle('active', formState.allDay);
+    const startTimeGroup = $('evStartH').closest('.time-input-group');
+    const endRow = $('evEndDate').closest('.dt-row');
+    startTimeGroup.classList.toggle('disabled', formState.allDay);
+    endRow.classList.toggle('disabled', formState.allDay);
+    if (formState.allDay) {
+      $('evStartH').value = ''; $('evStartM').value = '';
+      $('evEndDate').value = ''; $('evEndH').value = ''; $('evEndM').value = '';
+    }
   }
+
+  // 이름 입력 프롬프트 (카테고리 추가용)
+  function showPrompt(title, placeholder, onOk) {
+    $('modalTitle').textContent = title;
+    $('modalText').textContent = '';
+    const old = $('promptInput'); if (old) old.remove();
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'promptInput';
+    input.placeholder = placeholder;
+    input.maxLength = 20;
+    input.style.cssText = 'width:100%; box-sizing:border-box; padding:12px 14px; margin-bottom:16px; background:var(--bg); border:1.5px solid var(--border); color:var(--text); border-radius:10px; font-family:var(--mono); font-size:15px; text-transform:uppercase;';
+    $('modalText').after(input);
+    modal.classList.add('show');
+    setTimeout(() => input.focus(), 100);
+    const cleanup = () => {
+      modal.classList.remove('show');
+      input.remove();
+      $('modalConfirm').removeEventListener('click', confirmHandler);
+    };
+    const confirmHandler = () => {
+      const v = input.value.trim().toUpperCase();
+      if (!v) { showToast('이름을 입력하세요', 'error'); return; }
+      cleanup();
+      onOk(v);
+    };
+    input.onkeydown = e => { if (e.key === 'Enter') confirmHandler(); };
+    $('modalConfirm').addEventListener('click', confirmHandler);
+    $('modalCancel').onclick = cleanup;
+  }
+
+  // 메인/서브 카테고리 클릭 + ADD+ (이벤트 위임)
+  $('mainCatPicker').addEventListener('click', e => {
+    const btn = e.target.closest('.cat-btn');
+    if (!btn) return;
+    if (btn.dataset.addmain) {
+      showPrompt('메인 카테고리 추가', '예: OFFICE', name => {
+        if (state.categories.some(c => c.name === name)) { showToast('이미 있는 카테고리입니다', 'error'); return; }
+        state.categories.push({ name, subs: [] });
+        formState.mainCat = name;
+        formState.subCat = '';
+        markDirty();
+        updateFormUI();
+        showToast('카테고리가 추가되었습니다', 'success');
+      });
+      return;
+    }
+    formState.mainCat = btn.dataset.main;
+    formState.subCat = '';
+    updateFormUI();
+  });
+
+  $('subCatPicker').addEventListener('click', e => {
+    const btn = e.target.closest('.cat-btn');
+    if (!btn) return;
+    if (btn.dataset.addsub) {
+      const mc = currentMainCat();
+      if (!mc) { showToast('메인 카테고리를 먼저 선택하세요', 'error'); return; }
+      showPrompt(mc.name + ' 서브 카테고리 추가', '예: HTM', name => {
+        if (mc.subs.includes(name)) { showToast('이미 있는 서브 카테고리입니다', 'error'); return; }
+        mc.subs.push(name);
+        formState.subCat = name;
+        markDirty();
+        updateFormUI();
+        showToast('서브 카테고리가 추가되었습니다', 'success');
+      });
+      return;
+    }
+    // 같은 서브를 다시 누르면 선택 해제
+    formState.subCat = (formState.subCat === btn.dataset.sub) ? '' : btn.dataset.sub;
+    updateFormUI();
+  });
+
+  // 하루전체 토글
+  $('alldayBtn').onclick = () => {
+    formState.allDay = !formState.allDay;
+    updateFormUI();
+  };
 
   // 색상 버튼 클릭
   document.querySelectorAll('.color-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       formState.color = btn.dataset.color;
-      updateFormUI();
-    });
-  });
-
-  // 음력 선택 시 양력 날짜 미리보기
-  function updateLunarHint() {
-    const hint = $('lunarHint');
-    if (formState.category !== 'birthday' || formState.lunar !== 'lunar' || !state.selectedDate) {
-      hint.textContent = '';
-      return;
-    }
-    // 선택된 날짜를 음력으로 해석 → 올해 양력 날짜로 변환해서 미리보기
-    const { y, m, d } = parseDateKey(state.selectedDate);
-    const thisYear = new Date().getFullYear();
-    const solar = lunarBirthdayToSolarDate(m + 1, d, thisYear);
-    if (solar) {
-      hint.textContent = `음력 ${m+1}/${d} → 올해 양력 ${solar.month}/${solar.day} 에 표시됩니다`;
-    } else {
-      hint.textContent = '날짜 변환 실패';
-    }
-  }
-
-  // 카테고리 버튼 클릭
-  document.querySelectorAll('.cat-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      formState.category = btn.dataset.cat;
-      updateFormUI();
-    });
-  });
-
-  // 음력 버튼 클릭
-  document.querySelectorAll('.lunar-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      formState.lunar = btn.dataset.lunar;
       updateFormUI();
     });
   });
@@ -1992,7 +2209,7 @@
 
     listEl.innerHTML = dayEvents.map(ev => {
       const cat = ev.category || 'work';
-      const catLabel = cat === 'work' ? '회사' : cat === 'personal' ? '개인' : '생일';
+      const catLabel = evCatText(ev);
       const colorCls = (ev.color && ev.color !== 'default') ? 'color-' + ev.color : '';
       let timeLabel;
       if (ev.isBirthday) {
@@ -2027,7 +2244,7 @@
       } else if (ev.start) {
         timeLabel = ev.start;
       } else {
-        timeLabel = '종일';
+        timeLabel = ev.allDay ? '하루전체' : '종일';
       }
 
       return `
@@ -2089,15 +2306,17 @@
   function addEvent() {
     const title = $('evTitle').value.trim();
     const startDate = $('evStartDate').value || state.selectedDate;
-    const endDate = $('evEndDate').value || null;
-    const start = buildTime($('evStartH'), $('evStartM'));
-    const end = buildTime($('evEndH'), $('evEndM'));
+    const allDay = formState.allDay;
+    const endDate = allDay ? null : ($('evEndDate').value || null);
+    const start = allDay ? null : buildTime($('evStartH'), $('evStartM'));
+    const end = allDay ? null : buildTime($('evEndH'), $('evEndM'));
     const notes = $('evNotes').value.trim();
-    const category = formState.category;
     const color = formState.color;
-    const isBirthday = category === 'birthday';
-    const isLunar = isBirthday && formState.lunar === 'lunar';
 
+    if (!formState.mainCat) {
+      showToast('카테고리를 선택하세요', 'error');
+      return;
+    }
     if (!title) {
       showToast('제목을 입력하세요', 'error');
       $('evTitle').focus();
@@ -2107,28 +2326,28 @@
       showToast('시간을 0~23시, 0~59분으로 입력하세요', 'error');
       return;
     }
-    if (!isBirthday && endDate && endDate < startDate) {
+    if (endDate && endDate < startDate) {
       showToast('종료일이 시작일보다 빠릅니다', 'error');
       return;
     }
-    if (!isBirthday && !endDate && end && start && end < start) {
+    if (!endDate && end && start && end < start) {
       showToast('종료 시간이 시작보다 빠릅니다', 'error');
       return;
     }
 
     const newEvent = {
       id: uid(),
-      date: isBirthday ? state.selectedDate : startDate,
-      endDate: isBirthday ? null : (endDate || null),
-      start: isBirthday ? null : (start || null),
-      end: isBirthday ? null : (end || null),
+      date: startDate,
+      endDate: endDate,
+      start: start || null,
+      end: end || null,
+      allDay: allDay,
       title,
       notes: notes || null,
       done: false,
-      category: category,
-      color: isBirthday ? 'default' : color,
-      isBirthday: isBirthday,
-      isLunar: isLunar,
+      mainCat: formState.mainCat,
+      subCat: formState.subCat || null,
+      color: color,
       created: Date.now()
     };
     state.events.push(newEvent);
@@ -2142,11 +2361,12 @@
     $('evEndH').value = '';
     $('evEndM').value = '';
     $('evNotes').value = '';
+    formState.allDay = false;
+    updateFormUI();
     renderDayEvents();
     renderCalendar();
     // 명확한 시각 피드백
-    const msg = isBirthday ? '🎂 생일이 추가되었습니다!' : '✅ 일정이 추가되었습니다!';
-    showToast(msg, 'success');
+    showToast('✅ 일정이 추가되었습니다!', 'success');
     // 추가 버튼 펄스 애니메이션
     const addBtn = $('addEvBtn');
     addBtn.classList.add('btn-flash');
@@ -2156,6 +2376,26 @@
 
   $('addEvBtn').onclick = addEvent;
   $('evTitle').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
+
+  // ========== 달력 전체보기 ==========
+  function setFullView(on) {
+    document.body.classList.toggle('cal-full', on);
+    $('fullViewBtn').textContent = on ? '전체보기 해제' : '전체보기';
+    if (on) {
+      const el = document.documentElement;
+      try { if (el.requestFullscreen) el.requestFullscreen().catch(function(){}); } catch (e) {}
+    } else {
+      try { if (document.fullscreenElement) document.exitFullscreen().catch(function(){}); } catch (e) {}
+    }
+  }
+  $('fullViewBtn').onclick = () => setFullView(!document.body.classList.contains('cal-full'));
+  document.addEventListener('fullscreenchange', () => {
+    // 브라우저 전체화면을 ESC 등으로 빠져나오면 전체보기 모드도 해제
+    if (!document.fullscreenElement && document.body.classList.contains('cal-full')) {
+      document.body.classList.remove('cal-full');
+      $('fullViewBtn').textContent = '전체보기';
+    }
+  });
 
   // ========== CLOUD SYNC ==========
   let saveTimeout = null;
@@ -2178,10 +2418,13 @@
       if (snap.exists()) {
         const data = snap.data();
         state.events = Array.isArray(data.events) ? data.events : [];
+        state.categories = (Array.isArray(data.categories) && data.categories.length)
+          ? data.categories : defaultCategories();
         state.notes = Array.isArray(data.notes) ? data.notes : [];
         state.claudeNotes = Array.isArray(data.claudeNotes) ? data.claudeNotes : [];
       } else {
         state.events = [];
+        state.categories = defaultCategories();
         state.notes = [];
         state.claudeNotes = [];
       }
@@ -2203,6 +2446,7 @@
         const docRef = window.firebaseFns.doc(window.firebaseDb, 'egmm-calendar', 'main');
         await window.firebaseFns.setDoc(docRef, {
           events: state.events,
+          categories: state.categories,
           notes: state.notes,
           claudeNotes: state.claudeNotes || [],
           updatedAt: Date.now()
@@ -2231,6 +2475,7 @@
       version: 3,
       savedAt: new Date().toISOString(),
       events: state.events,
+      categories: state.categories,
       notes: state.notes
     };
     const encrypted = encrypt(payload, password);
