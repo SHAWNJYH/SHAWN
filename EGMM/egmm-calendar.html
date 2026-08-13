@@ -3,7 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-<title>THE SHAWN</title>
+<title>EGMM CALENDAR</title>
+<!-- PWA: 바탕화면 앱 설치용 -->
+<link rel="manifest" href="egmm-calendar.webmanifest">
+<meta name="theme-color" content="#fafaf7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="CALENDAR">
+<link rel="icon" type="image/png" sizes="192x192" href="egmm-calendar-icon-192.png">
+<link rel="apple-touch-icon" href="egmm-calendar-icon-192.png">
+<script>
+  // PWA 서비스 워커 등록 (설치형 앱 지원)
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('egmm-calendar-sw.js').catch(function () {});
+    });
+  }
+</script>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/korean-lunar-calendar/dist/korean-lunar-calendar.min.js"></script>
@@ -526,145 +543,6 @@
   @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
-  }
-
-  /* === NOTES (Post-it) === */
-  .notes-section {
-    margin-top: 24px;
-    padding-top: 32px;
-    border-top: 1px solid var(--border);
-  }
-  .notes-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .notes-title {
-    font-family: var(--serif);
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1;
-  }
-  .notes-title em {
-    font-style: normal;
-    color: var(--accent-warm);
-    margin-left: 8px;
-  }
-  .add-note-btn {
-    background: var(--text);
-    color: #ffffff;
-    border: none;
-    padding: 10px 18px;
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    border-radius: 10px;
-    transition: transform 0.15s, background 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .add-note-btn:hover { background: #2d2d33; }
-  .add-note-btn:active { transform: scale(0.96); }
-
-  .notes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-  }
-
-  .note {
-    border-radius: 6px;
-    padding: 16px 16px 14px;
-    min-height: 180px;
-    position: relative;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
-    transition: transform 0.2s, box-shadow 0.2s;
-    display: flex;
-    flex-direction: column;
-    animation: noteIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-  @keyframes noteIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: rotate(var(--rot, 0deg)); }
-  }
-  .note:hover {
-    transform: rotate(var(--rot, 0deg)) translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.06);
-  }
-
-  .note.c-yellow { background: #fff9b1; --rot: -0.8deg; }
-  .note.c-pink   { background: #ffd6e0; --rot: 0.6deg; }
-  .note.c-blue   { background: #c5e4ff; --rot: -0.4deg; }
-  .note.c-green  { background: #d4f5c5; --rot: 0.8deg; }
-  .note.c-purple { background: #e3d4ff; --rot: -0.6deg; }
-  .note.c-orange { background: #ffd9b0; --rot: 0.4deg; }
-
-  .note-textarea {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    resize: none;
-    font-family: var(--serif);
-    font-size: 17px;
-    font-weight: 400;
-    color: #2a2a30;
-    line-height: 1.4;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-  .note-textarea::placeholder {
-    color: rgba(0,0,0,0.3);
-    font-style: italic;
-  }
-
-  .note-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px dashed rgba(0,0,0,0.12);
-  }
-  .note-date {
-    font-family: var(--code);
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(0,0,0,0.5);
-  }
-  .note-del {
-    background: transparent;
-    border: none;
-    color: rgba(0,0,0,0.4);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    transition: color 0.2s, background 0.2s;
-  }
-  .note-del:hover {
-    color: var(--danger);
-    background: rgba(255,255,255,0.4);
-  }
-  .note-del svg { width: 14px; height: 14px; }
-
-  .notes-empty {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--text-faint);
-    font-family: var(--mono);
-    font-size: 14px;
-    font-weight: 600;
-    border: 2px dashed var(--border);
-    border-radius: 12px;
   }
 
   /* 메인 + 미니 달력 레이아웃 */
@@ -2259,11 +2137,6 @@
     .ev-time-label { font-size: 11px; }
     .ev-cat-tag { font-size: 9px; padding: 1px 6px; }
 
-    /* 메모장 */
-    .notes-title { font-size: 22px; }
-    .notes-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-    .note { min-height: 130px; padding: 12px; }
-    .note-textarea { font-size: 14px; }
 
     /* 토스트 */
     .toast { font-size: 14px; padding: 12px 20px; min-width: 0; max-width: 90vw; }
@@ -2350,12 +2223,6 @@
   .topbar-actions { align-items: center; }
   .mgr-fab { display: none !important; }
 
-  /* 메모 팝업 모달 */
-  .notes-ov { position: fixed; inset: 0; z-index: 3000; background: rgba(20,20,24,0.55); display: none; align-items: center; justify-content: center; padding: 24px; }
-  .notes-ov.show { display: flex; }
-  .notes-modal { width: 100%; max-width: 900px; max-height: 86vh; overflow-y: auto; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 16px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); margin: 0 !important; }
-  .notes-head-btns { display: flex; gap: 8px; }
-  .notes-close-btn { background: transparent !important; color: var(--text-dim) !important; border: 1.5px solid var(--border) !important; }
 </style>
 </head>
 <body>
@@ -2917,13 +2784,6 @@
     </div>
     <div class="topbar-actions">
       <span class="sync-status" id="syncStatus2" title="동기화 상태"></span>
-      <button class="icon-btn" id="saveBtn" title="파일로 백업 (Ctrl+S)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-          <polyline points="17 21 17 13 7 13 7 21"/>
-          <polyline points="7 3 7 8 15 8"/>
-        </svg>
-      </button>
     </div>
   </header>
 
@@ -2932,7 +2792,6 @@
       <h2 class="cal-title" id="calMonth">May <em>2026</em></h2>
     </div>
     <div class="cal-nav">
-      <button class="today-btn" id="openNotesBtn" title="메모장">📝 메모</button>
       <button class="today-btn" id="addEventBtn" style="background: var(--text); color: #fff; border-color: var(--text);">+ 일정 추가</button>
       <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
       <button class="today-btn" id="todayBtn">TODAY</button>
@@ -2971,19 +2830,6 @@
   </div>
 </div>
 
-<!-- NOTES 팝업 -->
-<div class="notes-ov" id="notesOv">
-  <section class="notes-section notes-modal">
-    <div class="notes-header">
-      <h2 class="notes-title">메모장 <em id="notesCount">0</em></h2>
-      <div class="notes-head-btns">
-        <button class="add-note-btn" id="addNoteBtn">+ 새 메모</button>
-        <button class="add-note-btn notes-close-btn" id="notesCloseBtn">닫기</button>
-      </div>
-    </div>
-    <div class="notes-grid" id="notesGrid"></div>
-  </section>
-</div>
 
 <!-- DAY PANEL -->
 <div class="panel-bg" id="panelBg">
@@ -3588,7 +3434,6 @@
     state.viewYear = now.getFullYear();
     state.viewMonth = now.getMonth();
     renderCalendar();
-    renderNotes();
     window.scrollTo(0, 0);
   }
 
@@ -4286,37 +4131,7 @@
   $('addEvBtn').onclick = addEvent;
   $('evTitle').onkeydown = e => { if (e.key === 'Enter') addEvent(); };
 
-  // ========== NOTES ==========
-  const NOTE_COLORS = ['c-yellow', 'c-pink', 'c-blue', 'c-green', 'c-purple', 'c-orange'];
-
-  function renderNotes() {
-    const grid = $('notesGrid');
-    $('notesCount').textContent = state.notes.length;
-
-    if (state.notes.length === 0) {
-      grid.innerHTML = `<div class="notes-empty">아직 메모가 없어요. "+ 새 메모"를 눌러 시작하세요!</div>`;
-      return;
-    }
-
-    // 최신순 정렬
-    const sorted = [...state.notes].sort((a, b) => (b.updated || b.created) - (a.updated || a.created));
-
-    grid.innerHTML = sorted.map(n => `
-      <div class="note ${n.color || 'c-yellow'}" data-id="${n.id}">
-        <textarea class="note-textarea" data-action="edit" placeholder="여기에 메모를 쓰세요...">${escapeHtml(n.text || '')}</textarea>
-        <div class="note-footer">
-          <span class="note-date">${formatNoteDate(n.updated || n.created)}</span>
-          <button class="note-del" data-action="delete" title="삭제">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-    `).join('');
-  }
-
+  // ========== CLAUDE NOTES (작업 지침서) ==========
   function formatNoteDate(ts) {
     if (!ts) return '';
     const d = new Date(ts);
@@ -4328,73 +4143,6 @@
     return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  function openNotes(){ var ov=$('notesOv'); if(ov){ ov.classList.add('show'); renderNotes(); } }
-  function closeNotes(){ var ov=$('notesOv'); if(ov) ov.classList.remove('show'); }
-
-  function addNote() {
-    openNotes();   // 새 메모는 팝업 안에서
-    const color = NOTE_COLORS[state.notes.length % NOTE_COLORS.length];
-    const newNote = {
-      id: uid(),
-      text: '',
-      color: color,
-      created: Date.now(),
-      updated: Date.now()
-    };
-    state.notes.push(newNote);
-    markDirty();
-    renderNotes();
-    // 새로 추가된 메모에 자동 포커스
-    setTimeout(() => {
-      const newEl = document.querySelector(`.note[data-id="${newNote.id}"] .note-textarea`);
-      if (newEl) newEl.focus();
-    }, 50);
-  }
-
-  $('addNoteBtn').onclick = addNote;
-  var __openNotesBtn=$('openNotesBtn'); if(__openNotesBtn) __openNotesBtn.onclick = openNotes;
-  var __notesCloseBtn=$('notesCloseBtn'); if(__notesCloseBtn) __notesCloseBtn.onclick = closeNotes;
-  var __notesOv=$('notesOv'); if(__notesOv) __notesOv.addEventListener('click', function(e){ if(e.target===__notesOv) closeNotes(); });
-
-  // 메모 textarea 입력 / 삭제 처리 (이벤트 위임)
-  $('notesGrid').addEventListener('input', e => {
-    if (e.target.dataset.action === 'edit') {
-      const noteEl = e.target.closest('.note');
-      const id = noteEl.dataset.id;
-      const note = state.notes.find(n => n.id === id);
-      if (note) {
-        note.text = e.target.value;
-        note.updated = Date.now();
-        markDirty();
-        // 입력 중에는 전체 재렌더링 안 함 (포커스 유지)
-        // 날짜만 즉시 업데이트
-        const dateEl = noteEl.querySelector('.note-date');
-        if (dateEl) dateEl.textContent = formatNoteDate(note.updated);
-      }
-    }
-  });
-
-  $('notesGrid').addEventListener('click', e => {
-    const delBtn = e.target.closest('[data-action="delete"]');
-    if (delBtn) {
-      const noteEl = delBtn.closest('.note');
-      const id = noteEl.dataset.id;
-      const note = state.notes.find(n => n.id === id);
-      // 내용이 있으면 확인, 없으면 바로 삭제
-      const doDelete = () => {
-        state.notes = state.notes.filter(n => n.id !== id);
-        markDirty();
-        renderNotes();
-      };
-      if (note && note.text && note.text.trim()) {
-        showModal('메모를 삭제할까요?', '삭제한 메모는 복구할 수 없어요.', doDelete);
-      } else {
-        doDelete();
-      }
-    }
-  });
-
-  // ========== CLAUDE NOTES (작업 지침서) ==========
   const CLAUDE_NOTE_COLORS = ['yellow', 'pink', 'blue', 'green', 'purple', 'orange'];
 
   function escapeAttr(s) {
@@ -4673,8 +4421,8 @@
     input.onkeydown = e => { if (e.key === 'Enter') confirmHandler(); };
   }
 
-  $('saveBtn').onclick = saveVault;
-  $('menuSaveBtn').onclick = saveVault;
+  var __saveBtn=$('saveBtn'); if(__saveBtn) __saveBtn.onclick = saveVault;
+  var __menuSaveBtn=$('menuSaveBtn'); if(__menuSaveBtn) __menuSaveBtn.onclick = saveVault;
 
   // LOCK
   function lockNow() {
