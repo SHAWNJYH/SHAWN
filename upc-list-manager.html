@@ -2280,16 +2280,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var eaCol = findInLay(lay, isEaPriceCol), spCol = findInLay(lay, isSalesPriceCol), mgCol = findInLay(lay, isMarginCol);
     var found = histMatchRow(cat, rec, lay);
     if(found){
-      // 내보내기용 복제본: SALES PRICE/MARGIN을 현재 EA 기준으로 재계산(저장 데이터는 변경하지 않음)
-      if(eaCol && spCol){
-        var eav=getVal(found, eaCol.key); var sv=calcSalesPrice(eav);
-        if(sv!==''){
-          var clone={extra:{}}; for(var bk in found){ if(bk!=='extra') clone[bk]=found[bk]; } if(found.extra){ for(var ek in found.extra){ clone.extra[ek]=found.extra[ek]; } }
-          setValOn(clone, spCol.key, sv);
-          if(mgCol){ var mv=calcMargin(sv, eav); if(mv!=='') setValOn(clone, mgCol.key, mv); }
-          return clone;
-        }
-      }
+      // 저장된 값 그대로 내보냄 — MSRP/SRP를 평균마진으로 재계산하지 않는다
+      // (재계산하면 데이터 내보내기의 가격과 달라짐)
       return found;
     }
     var ex={};
@@ -2304,11 +2296,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     var price = (eaCol && ex[eaCol.key]!=null && ex[eaCol.key]!=='') ? ex[eaCol.key] : histNumOf(__pTxt);
     if(price==null) price='';
     setIf(eaCol, price);
-    if(spCol && (ex[spCol.key]==null || ex[spCol.key]==='')){
-      var sp2 = price!==''?calcSalesPrice(price):'';
-      setIf(spCol, sp2);
-      if(mgCol && sp2!=='' && (ex[mgCol.key]==null||ex[mgCol.key]==='')){ var mv2=calcMargin(sp2, price); if(mv2!=='') ex[mgCol.key]=mv2; }
-    }
+    // (수정) 판매가를 평균마진으로 합성하지 않음 — 기록(rec)에 있던 가격만 그대로 출력
     (lay||[]).forEach(function(c){ var L=String(c.key||c.label||'').toUpperCase(); if(/ENG/.test(L) && rec.eng) ex[c.key]=rec.eng; if((/KOR/.test(L)||/한글/.test(L)) && rec.kor) ex[c.key]=rec.kor; });
     return { extra: ex };
   }
