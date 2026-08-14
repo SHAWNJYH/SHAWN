@@ -719,7 +719,7 @@
     border-radius: 16px;
     width: 100%;
     max-width: 1280px;
-    max-height: 90vh;
+    max-height: 94vh;
     overflow-y: auto;
     padding: 28px 28px 24px;
     position: relative;
@@ -802,6 +802,85 @@
     color: var(--text-faint);
     letter-spacing: 0;
   }
+  /* 카테고리 관리 팝업 */
+  .modal.cat-mgr { max-width: 560px; width: 100%; text-align: left; max-height: 88vh; overflow-y: auto; }
+  .modal.cat-mgr h3 { text-align: left; margin-bottom: 14px; }
+  .cm-section { margin-bottom: 16px; }
+  .cm-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .cm-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .cm-title em {
+    font-style: normal;
+    color: var(--accent-warm);
+    margin-left: 4px;
+  }
+  .cm-add {
+    background: var(--bg-elev);
+    border: 1.5px dashed var(--border);
+    padding: 5px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-dim);
+    transition: all 0.15s;
+  }
+  .cm-add:hover { border-color: var(--text); color: var(--text); }
+  .cm-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cm-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-elev);
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    padding: 7px 8px 7px 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .cm-chip:hover { border-color: var(--border-bright); }
+  .cm-chip.active {
+    background: var(--text);
+    border-color: var(--text);
+    color: #fff;
+  }
+  .cm-chip .cm-act {
+    width: 20px;
+    height: 20px;
+    line-height: 19px;
+    text-align: center;
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-faint);
+    cursor: pointer;
+  }
+  .cm-chip.active .cm-act { color: rgba(255,255,255,0.7); }
+  .cm-chip .cm-act:hover { background: rgba(0,0,0,0.08); color: var(--text); }
+  .cm-chip.active .cm-act:hover { background: rgba(255,255,255,0.2); color: #fff; }
+  .cm-chip .cm-act.cm-del:hover { background: var(--danger, #c0392b); color: #fff; }
+  .cm-empty {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-faint);
+    padding: 6px 2px;
+  }
+
   /* 커스텀 날짜 선택 달력 */
   .dp-input { cursor: pointer; }
   .dp-pop {
@@ -913,6 +992,16 @@
   @media (max-width: 1150px) {
     .add-form { grid-template-columns: 1fr; gap: 0; }
   }
+  /* 낮은 화면 높이: 간격 압축으로 스크롤 최소화 */
+  @media (max-height: 820px) {
+    .panel { padding: 18px 22px 16px; }
+    .panel-head { margin-bottom: 4px; }
+    .add-form { padding: 12px 14px; }
+    .add-form .field { margin-bottom: 9px; }
+    .cat-btn { padding: 8px 6px; font-size: 12px; }
+    .field input, .field textarea { padding: 9px 12px; }
+    #evNotes { rows: 1; }
+  }
   @media (max-width: 860px) {
     .panel { max-width: 520px; }
     .panel-body { grid-template-columns: 1fr; }
@@ -931,7 +1020,7 @@
     grid-template-columns: auto 1fr auto auto;
     align-items: center;
     gap: 8px;
-    padding: 14px 0;
+    padding: 14px 10px;
     border-bottom: 1px solid var(--border);
   }
   .ev-row:last-child { border-bottom: none; }
@@ -977,6 +1066,10 @@
     display: inline-block;
   }
   .ev-row[class*="color-"] .ev-time-label { padding: 2px 8px; border-radius: 6px; }
+  .ev-row[class*="color-"] .ev-time-label .ev-cat-tag {
+    background: rgba(255, 255, 255, 0.25);
+    color: #fff;
+  }
   .ev-row.cat-work .ev-time-label { color: var(--cat-work); }
   .ev-row.cat-personal .ev-time-label { color: var(--cat-personal); }
   .ev-row.cat-birthday .ev-time-label { color: var(--cat-birthday); }
@@ -1105,11 +1198,6 @@
     opacity: 0.45;
     cursor: not-allowed;
   }
-  #catEditBtn.editing {
-    background: var(--accent-warm);
-    border-color: var(--accent-warm);
-    color: #fff;
-  }
 
   /* 일정 수정 버튼 */
   .ev-edit {
@@ -1124,11 +1212,8 @@
   .ev-edit:hover { color: var(--text); }
   .ev-edit svg { width: 14px; height: 14px; }
   .ev-row.editing {
-    outline: 2px solid var(--accent-warm);
-    outline-offset: 0;
+    box-shadow: 0 0 0 2px var(--accent-warm);
     border-radius: 10px;
-    padding-left: 10px;
-    padding-right: 10px;
     background: rgba(201, 169, 97, 0.07);
   }
 
@@ -1467,7 +1552,7 @@
     .lunar-btn { padding: 8px; font-size: 12px; }
 
     /* 이벤트 행 */
-    .ev-row { grid-template-columns: 22px 1fr 28px 28px; gap: 8px; padding: 12px 0; }
+    .ev-row { grid-template-columns: 22px 1fr 28px 28px; gap: 8px; padding: 12px 8px; }
     .ev-title-text { font-size: 16px; }
     .ev-time-label { font-size: 11px; }
     .ev-cat-tag { font-size: 9px; padding: 1px 6px; }
@@ -1683,6 +1768,28 @@
       <div class="section-label">일정 (<span id="panelCount">0</span>)</div>
       <ul class="ev-list" id="evList"></ul>
     </div>
+    </div>
+  </div>
+</div>
+
+<!-- 카테고리 관리 팝업 (MANAGER 전용) -->
+<div class="modal-bg" id="catMgrOv">
+  <div class="modal cat-mgr">
+    <h3>카테고리 편집</h3>
+    <div class="cm-section">
+      <div class="cm-head"><span class="cm-title">메인 카테고리</span><button type="button" class="cm-add" data-cmadd="main">+ 추가</button></div>
+      <div class="cm-list" id="cmMainList"></div>
+    </div>
+    <div class="cm-section">
+      <div class="cm-head"><span class="cm-title">서브 카테고리 <em id="cmSubOf"></em></span><button type="button" class="cm-add" data-cmadd="sub">+ 추가</button></div>
+      <div class="cm-list" id="cmSubList"></div>
+    </div>
+    <div class="cm-section">
+      <div class="cm-head"><span class="cm-title">매장이름</span><button type="button" class="cm-add" data-cmadd="store">+ 추가</button></div>
+      <div class="cm-list" id="cmStoreList"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="catMgrClose">완료</button>
     </div>
   </div>
 </div>
@@ -2248,6 +2355,12 @@
       closeEvDetail();
     }
   }, true);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $('catMgrOv').classList.contains('show')) {
+      e.stopImmediatePropagation();
+      closeCatManager();
+    }
+  }, true);
 
   $('prevBtn').onclick = () => {
     state.viewMonth--;
@@ -2280,7 +2393,6 @@
       return !!(a && a.tier === 'master');
     } catch (e) { return false; }
   }
-  let catEditMode = false;   // 카테고리 편집 모드 (MANAGER 전용)
   let editingId = null;      // 수정 중인 일정 id (null = 새 일정 추가)
 
   let formState = {
@@ -2332,18 +2444,17 @@
   }
 
   function renderCatPickers() {
-    const edit = catEditMode && isManagerTier();
     const mainEl = $('mainCatPicker');
     mainEl.innerHTML = state.categories.map(c =>
-      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}${edit ? `<span class="cat-del" data-delmain="${escapeHtml(c.name)}" title="삭제">×</span>` : ''}</button>`
-    ).join('') + (edit ? `<button type="button" class="cat-btn cat-add" data-addmain="1">ADD+</button>` : '');
+      `<button type="button" class="cat-btn${c.name === formState.mainCat ? ' active' : ''}" data-main="${escapeHtml(c.name)}">${escapeHtml(c.name)}</button>`
+    ).join('');
 
     const mc = currentMainCat();
     const subs = mc ? mc.subs : [];
     const subEl = $('subCatPicker');
     subEl.innerHTML = subs.map(s =>
-      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}${edit ? `<span class="cat-del" data-delsub="${escapeHtml(s)}" title="삭제">×</span>` : ''}</button>`
-    ).join('') + (edit ? `<button type="button" class="cat-btn cat-add" data-addsub="1">ADD+</button>` : '');
+      `<button type="button" class="cat-btn${s === formState.subCat ? ' active' : ''}" data-sub="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+    ).join('') || `<div class="cm-empty">서브 카테고리 없음</div>`;
 
     // 매장이름: 서브 카테고리가 선택된 경우에만 표시 (다중 선택)
     const showStores = !!formState.subCat;
@@ -2351,8 +2462,8 @@
     if (showStores) {
       formState.stores = formState.stores.filter(s => state.stores.includes(s));
       $('storePicker').innerHTML = state.stores.map(s =>
-        `<button type="button" class="cat-btn${formState.stores.includes(s) ? ' active' : ''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}${edit ? `<span class="cat-del" data-delstore="${escapeHtml(s)}" title="삭제">×</span>` : ''}</button>`
-      ).join('') + (edit ? `<button type="button" class="cat-btn cat-add" data-addstore="1">ADD+</button>` : '');
+        `<button type="button" class="cat-btn${formState.stores.includes(s) ? ' active' : ''}" data-store="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+      ).join('');
     } else {
       $('storePicker').innerHTML = '';
     }
@@ -2408,77 +2519,16 @@
 
   // 메인/서브 카테고리 클릭 + ADD+ (이벤트 위임)
   $('mainCatPicker').addEventListener('click', e => {
-    const del = e.target.closest('.cat-del');
-    if (del) {
-      e.stopPropagation();
-      if (!(catEditMode && isManagerTier())) return;
-      const name = del.dataset.delmain;
-      showModal(`"${name}" 카테고리 삭제`, '서브 카테고리도 함께 삭제됩니다. 기존 일정 표시는 유지됩니다.', () => {
-        state.categories = state.categories.filter(c => c.name !== name);
-        if (formState.mainCat === name) {
-          formState.mainCat = state.categories[0] ? state.categories[0].name : '';
-          formState.subCat = '';
-          formState.stores = [];
-        }
-        markDirty();
-        updateFormUI();
-        showToast('카테고리가 삭제되었습니다', 'success');
-      });
-      return;
-    }
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
-    if (btn.dataset.addmain) {
-      if (!(catEditMode && isManagerTier())) return;
-      showPrompt('메인 카테고리 추가', '예: OFFICE', name => {
-        if (state.categories.some(c => c.name === name)) { showToast('이미 있는 카테고리입니다', 'error'); return; }
-        state.categories.push({ name, subs: [] });
-        formState.mainCat = name;
-        formState.subCat = '';
-        markDirty();
-        updateFormUI();
-        showToast('카테고리가 추가되었습니다', 'success');
-      });
-      return;
-    }
     formState.mainCat = btn.dataset.main;
     formState.subCat = '';
     updateFormUI();
   });
 
   $('subCatPicker').addEventListener('click', e => {
-    const del = e.target.closest('.cat-del');
-    if (del) {
-      e.stopPropagation();
-      if (!(catEditMode && isManagerTier())) return;
-      const name = del.dataset.delsub;
-      const mc = currentMainCat();
-      if (!mc) return;
-      showModal(`"${name}" 서브 카테고리 삭제`, '기존 일정 표시는 유지됩니다.', () => {
-        mc.subs = mc.subs.filter(s => s !== name);
-        if (formState.subCat === name) { formState.subCat = ''; formState.stores = []; }
-        markDirty();
-        updateFormUI();
-        showToast('서브 카테고리가 삭제되었습니다', 'success');
-      });
-      return;
-    }
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
-    if (btn.dataset.addsub) {
-      if (!(catEditMode && isManagerTier())) return;
-      const mc = currentMainCat();
-      if (!mc) { showToast('메인 카테고리를 먼저 선택하세요', 'error'); return; }
-      showPrompt(mc.name + ' 서브 카테고리 추가', '예: HTM', name => {
-        if (mc.subs.includes(name)) { showToast('이미 있는 서브 카테고리입니다', 'error'); return; }
-        mc.subs.push(name);
-        formState.subCat = name;
-        markDirty();
-        updateFormUI();
-        showToast('서브 카테고리가 추가되었습니다', 'success');
-      });
-      return;
-    }
     // 같은 서브를 다시 누르면 선택 해제
     formState.subCat = (formState.subCat === btn.dataset.sub) ? '' : btn.dataset.sub;
     updateFormUI();
@@ -2486,35 +2536,8 @@
 
   // 매장이름 클릭 (다중 선택 토글) + ADD+
   $('storePicker').addEventListener('click', e => {
-    const del = e.target.closest('.cat-del');
-    if (del) {
-      e.stopPropagation();
-      if (!(catEditMode && isManagerTier())) return;
-      const name = del.dataset.delstore;
-      showModal(`"${name}" 매장 삭제`, '기존 일정의 매장 표시는 유지됩니다.', () => {
-        state.stores = state.stores.filter(s => s !== name);
-        const idx = formState.stores.indexOf(name);
-        if (idx >= 0) formState.stores.splice(idx, 1);
-        markDirty();
-        updateFormUI();
-        showToast('매장이 삭제되었습니다', 'success');
-      });
-      return;
-    }
     const btn = e.target.closest('.cat-btn');
     if (!btn) return;
-    if (btn.dataset.addstore) {
-      if (!(catEditMode && isManagerTier())) return;
-      showPrompt('매장이름 추가', '예: HTM', name => {
-        if (state.stores.includes(name)) { showToast('이미 있는 매장입니다', 'error'); return; }
-        state.stores.push(name);
-        formState.stores.push(name);
-        markDirty();
-        updateFormUI();
-        showToast('매장이 추가되었습니다', 'success');
-      });
-      return;
-    }
     const s = btn.dataset.store;
     const idx = formState.stores.indexOf(s);
     if (idx >= 0) formState.stores.splice(idx, 1);
@@ -2963,26 +2986,180 @@
   }
   $('fullViewBtn').onclick = () => setFullView(!document.body.classList.contains('cal-full'));
 
-  // ========== 카테고리 편집 모드 (MANAGER 관리자 전용) ==========
+  // ========== 카테고리 관리 팝업 (MANAGER 관리자 전용) ==========
+  let cmSelectedMain = '';   // 팝업에서 선택된 메인 카테고리
+
   function initCatEditBtn() {
     const btn = $('catEditBtn');
     if (isManagerTier()) {
       btn.disabled = false;
-      btn.title = '카테고리 편집 (추가/삭제)';
+      btn.title = '카테고리 편집 (추가/이름 변경/삭제)';
     } else {
       btn.disabled = true;
-      catEditMode = false;
       btn.title = 'MANAGER 관리자 계정만 편집할 수 있습니다';
     }
-    btn.classList.toggle('editing', catEditMode);
-    btn.textContent = catEditMode ? '편집 완료' : '카테고리 편집';
   }
+
+  function renderCatManager() {
+    if (!state.categories.some(c => c.name === cmSelectedMain)) {
+      cmSelectedMain = state.categories[0] ? state.categories[0].name : '';
+    }
+    const chip = (name, type, active) =>
+      `<span class="cm-chip${active ? ' active' : ''}" data-cmname="${escapeHtml(name)}" data-cmtype="${type}">` +
+      `${escapeHtml(name)}` +
+      `<span class="cm-act cm-ren" data-cmren="1" title="이름 변경">✎</span>` +
+      `<span class="cm-act cm-del" data-cmdel="1" title="삭제">×</span></span>`;
+
+    $('cmMainList').innerHTML = state.categories.map(c =>
+      chip(c.name, 'main', c.name === cmSelectedMain)).join('') || `<div class="cm-empty">카테고리가 없습니다</div>`;
+
+    const mc = state.categories.find(c => c.name === cmSelectedMain);
+    $('cmSubOf').textContent = mc ? `— ${mc.name}` : '';
+    $('cmSubList').innerHTML = (mc && mc.subs.length)
+      ? mc.subs.map(s => chip(s, 'sub', false)).join('')
+      : `<div class="cm-empty">서브 카테고리가 없습니다</div>`;
+
+    $('cmStoreList').innerHTML = state.stores.length
+      ? state.stores.map(s => chip(s, 'store', false)).join('')
+      : `<div class="cm-empty">매장이 없습니다</div>`;
+  }
+
+  function openCatManager() {
+    renderCatManager();
+    $('catMgrOv').classList.add('show');
+  }
+  function closeCatManager() {
+    $('catMgrOv').classList.remove('show');
+    if (panelBg.classList.contains('show')) updateFormUI();
+  }
+  $('catMgrClose').onclick = closeCatManager;
+  $('catMgrOv').addEventListener('click', e => { if (e.target === $('catMgrOv')) closeCatManager(); });
+
+  // 이름 변경 시 기존 일정의 참조도 함께 갱신
+  function renameMain(oldName, newName) {
+    const c = state.categories.find(x => x.name === oldName);
+    if (!c) return;
+    c.name = newName;
+    state.events.forEach(ev => { if (ev.mainCat === oldName) ev.mainCat = newName; });
+    if (formState.mainCat === oldName) formState.mainCat = newName;
+    if (cmSelectedMain === oldName) cmSelectedMain = newName;
+  }
+  function renameSub(mainName, oldName, newName) {
+    const c = state.categories.find(x => x.name === mainName);
+    if (!c) return;
+    const i = c.subs.indexOf(oldName);
+    if (i >= 0) c.subs[i] = newName;
+    state.events.forEach(ev => { if (ev.mainCat === mainName && ev.subCat === oldName) ev.subCat = newName; });
+    if (formState.mainCat === mainName && formState.subCat === oldName) formState.subCat = newName;
+  }
+  function renameStore(oldName, newName) {
+    const i = state.stores.indexOf(oldName);
+    if (i >= 0) state.stores[i] = newName;
+    state.events.forEach(ev => {
+      if (Array.isArray(ev.stores)) {
+        const j = ev.stores.indexOf(oldName);
+        if (j >= 0) ev.stores[j] = newName;
+      }
+    });
+    const k = formState.stores.indexOf(oldName);
+    if (k >= 0) formState.stores[k] = newName;
+  }
+
+  $('catMgrOv').addEventListener('click', e => {
+    // + 추가 버튼
+    const add = e.target.closest('[data-cmadd]');
+    if (add) {
+      const type = add.dataset.cmadd;
+      if (type === 'main') {
+        showPrompt('메인 카테고리 추가', '예: OFFICE', name => {
+          if (state.categories.some(c => c.name === name)) { showToast('이미 있는 카테고리입니다', 'error'); return; }
+          state.categories.push({ name, subs: [] });
+          cmSelectedMain = name;
+          markDirty(); renderCatManager();
+          showToast('카테고리가 추가되었습니다', 'success');
+        });
+      } else if (type === 'sub') {
+        const mc = state.categories.find(c => c.name === cmSelectedMain);
+        if (!mc) { showToast('메인 카테고리를 먼저 추가하세요', 'error'); return; }
+        showPrompt(`${mc.name} 서브 카테고리 추가`, '예: HTM', name => {
+          if (mc.subs.includes(name)) { showToast('이미 있는 서브 카테고리입니다', 'error'); return; }
+          mc.subs.push(name);
+          markDirty(); renderCatManager();
+          showToast('서브 카테고리가 추가되었습니다', 'success');
+        });
+      } else if (type === 'store') {
+        showPrompt('매장이름 추가', '예: HTM', name => {
+          if (state.stores.includes(name)) { showToast('이미 있는 매장입니다', 'error'); return; }
+          state.stores.push(name);
+          markDirty(); renderCatManager();
+          showToast('매장이 추가되었습니다', 'success');
+        });
+      }
+      return;
+    }
+
+    const chipEl = e.target.closest('.cm-chip');
+    if (!chipEl) return;
+    const name = chipEl.dataset.cmname;
+    const type = chipEl.dataset.cmtype;
+
+    // 이름 변경 (✎)
+    if (e.target.closest('[data-cmren]')) {
+      const titleMap = { main: '메인 카테고리 이름 변경', sub: '서브 카테고리 이름 변경', store: '매장이름 변경' };
+      showPrompt(`${titleMap[type]} — ${name}`, '새 이름', newName => {
+        if (newName === name) return;
+        const dup = type === 'main' ? state.categories.some(c => c.name === newName)
+                  : type === 'sub' ? (state.categories.find(c => c.name === cmSelectedMain)?.subs || []).includes(newName)
+                  : state.stores.includes(newName);
+        if (dup) { showToast('이미 있는 이름입니다', 'error'); return; }
+        if (type === 'main') renameMain(name, newName);
+        else if (type === 'sub') renameSub(cmSelectedMain, name, newName);
+        else renameStore(name, newName);
+        markDirty(); renderCatManager(); renderCalendar();
+        showToast('이름이 변경되었습니다 (기존 일정에도 반영)', 'success');
+      });
+      return;
+    }
+
+    // 삭제 (×)
+    if (e.target.closest('[data-cmdel]')) {
+      const msgMap = {
+        main: '서브 카테고리도 함께 삭제됩니다. 기존 일정 표시는 유지됩니다.',
+        sub: '기존 일정 표시는 유지됩니다.',
+        store: '기존 일정의 매장 표시는 유지됩니다.'
+      };
+      showModal(`"${name}" 삭제`, msgMap[type], () => {
+        if (type === 'main') {
+          state.categories = state.categories.filter(c => c.name !== name);
+          if (formState.mainCat === name) {
+            formState.mainCat = state.categories[0] ? state.categories[0].name : '';
+            formState.subCat = ''; formState.stores = [];
+          }
+        } else if (type === 'sub') {
+          const mc = state.categories.find(c => c.name === cmSelectedMain);
+          if (mc) mc.subs = mc.subs.filter(s => s !== name);
+          if (formState.mainCat === cmSelectedMain && formState.subCat === name) { formState.subCat = ''; formState.stores = []; }
+        } else {
+          state.stores = state.stores.filter(s => s !== name);
+          const i = formState.stores.indexOf(name);
+          if (i >= 0) formState.stores.splice(i, 1);
+        }
+        markDirty(); renderCatManager();
+        showToast('삭제되었습니다', 'success');
+      });
+      return;
+    }
+
+    // 메인 칩 클릭 → 서브 목록 전환
+    if (type === 'main') {
+      cmSelectedMain = name;
+      renderCatManager();
+    }
+  });
+
   $('catEditBtn').onclick = () => {
     if (!isManagerTier()) return;
-    catEditMode = !catEditMode;
-    initCatEditBtn();
-    if (panelBg.classList.contains('show')) updateFormUI();
-    showToast(catEditMode ? '카테고리 편집 모드 — ADD+/× 로 추가·삭제하세요' : '카테고리 편집을 마쳤습니다', 'success');
+    openCatManager();
   };
   document.addEventListener('fullscreenchange', () => {
     // 브라우저 전체화면을 ESC 등으로 빠져나오면 전체보기 모드도 해제
@@ -3101,6 +3278,7 @@
 
         // 화면 갱신 (열려 있는 패널의 입력값은 유지, 목록/픽커만 갱신)
         renderCalendar();
+        if ($('catMgrOv').classList.contains('show')) renderCatManager();
         if (panelBg.classList.contains('show')) {
           if (!state.categories.some(c => c.name === formState.mainCat)) {
             formState.mainCat = state.categories[0] ? state.categories[0].name : '';
