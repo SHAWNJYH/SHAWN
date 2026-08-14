@@ -2171,23 +2171,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       var uo=uoCol?String(getVal(c,uoCol.key)||''):''; var ea=eaCol?getVal(c,eaCol.key):'';
       // UPC(C): UPC(O)에서 자동 변환 (비어있을 때만)
       if(ucCol && !String(getVal(c,ucCol.key)||'').trim()){ var cc=upcConvert(uo); if(cc) setValOn(c, ucCol.key, cc); }
-      // MSRP: COST에서 자동 산정 (SALES 스위치 ON & MSRP·MSRP(%) 모두 비어있을 때만)
-      var eaNum = (ea!=null && String(ea).trim()!=='') ? Number(String(ea).replace(/[^0-9.\-]/g,'')) : NaN;
-      var sp = spCol ? String(getVal(c,spCol.key)||'').trim() : '';
-      var mgv = mgCol ? String(getVal(c,mgCol.key)||'').trim() : '';
-      if(__ncfg.importMarginOn && spCol && !sp && !mgv && eaNum>0){ var s0=priceFromMargin(ea, __ncfg.importMargin, []); if(s0!==''){ setValOn(c, spCol.key, s0); sp=s0; } }
-      // 데이터 보정: 있는 값으로 빈 값 도출 (COST 필요). %→가격은 끝자리 없이 마진 그대로
-      if(eaNum>0){
-        if(spCol && mgCol){
-          if(sp && !mgv){ var mm=calcMargin(sp, ea); if(mm){ setValOn(c, mgCol.key, mm); mgv=mm; } }
-          else if(mgv && !sp){ var pp=priceFromMargin(ea, parseFloat(mgv.replace(/[^0-9.\-]/g,'')), []); if(pp!==''){ setValOn(c, spCol.key, pp); sp=pp; } }
-        }
-        if(srpCol && spMgCol){
-          var srpv=String(getVal(c,srpCol.key)||'').trim(); var smv=String(getVal(c,spMgCol.key)||'').trim();
-          if(srpv && !smv){ var sm0=calcMargin(srpv, ea); if(sm0) setValOn(c, spMgCol.key, sm0); }
-          else if(smv && !srpv){ var sp0=priceFromMargin(ea, parseFloat(smv.replace(/[^0-9.\-]/g,'')), []); if(sp0!=='') setValOn(c, srpCol.key, sp0); }
-        }
-      }
+      // [가격 정책] OFF = 파일 그대로 / ON = COST만 반영 + MSRP는 설정 마진으로 계산 · SRP는 초기화(필드 편집 전용)
+      if(__ncfg.importMarginOn){ applyImportPricing(c, lay, cat, __ncfg); }
       // 체크 열: 가져온 값(O/X 등)을 체크 상태로 정규화 (X·N·빈칸 = 해제)
       lay.forEach(function(col){ if(col&&(col.type==='check'||col.type==='rcheck')){ setValOn(c, col.key, parseCheckVal(getVal(c,col.key))===true?'O':''); } });
       return c;
@@ -2855,10 +2840,8 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       if(priceChanged){
         changes.push({ uo:String(upcValForMatch(tgt,{key:k.uo})||''), eng:String(getVal(tgt,k.eng)||''), kor:String(getVal(tgt,k.kor)||''), oldp:priceDiffLabel(__diffsD,'old'), newp:priceDiffLabel(__diffsD,'new') });
         if(!tgt.extra) tgt.extra={}; tgt.extra['__PRICEUPD']=String(now);
-        // COST 변경 시 MSRP를 불러오기 평균마진으로 재계산 (불러오기 스위치 ON일 때만 · 끝자리 없음)
-        if(__dcfg.importMarginOn){ var __spCol=findInLay(lay,isSalesPriceCol);
-          if(__spCol){ var __sv=priceFromMargin(newEA, __dcfg.importMargin, []); if(__sv!==''){ setValOn(tgt, __spCol.key, __sv); } } }
-        // (SRP(%)는 import 자동계산하지 않음 — MARGIN(SRP) 계산 버튼으로만 산정)
+        // [가격 정책] 가격 변경 시(스위치 ON): 기존 MSRP·SRP 초기화 → MSRP만 설정 마진으로 재계산 (SRP는 필드 편집 전용)
+        if(__dcfg.importMarginOn){ applyImportPricing(tgt, lay, cat, __dcfg); }
       }
     });
     if(!updated){ showToast('업데이트할 변경 사항이 없습니다','success'); return; }
@@ -2868,6 +2851,33 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
       dupImportRows=null; dupImportLay=null; dupImportTarget=null; editMode=false; work=null; workLayout=null; workDirty=false; renderContent();
       if(changes.length) showPriceChangeModal(changes);
       else showToast(updated+'건 업데이트 완료 (가격 변경 없음)','success');
+    }
+  }
+  // [가격 정책 — 데이터 불러오기 · 모든 카테고리 공통]
+  //  · 불러오기 평균마진 OFF: 파일 그대로 적용 — 어떤 가격도 계산/변경하지 않음
+  //  · 불러오기 평균마진 ON : 가격은 COST만 반영하고,
+  //      - MSRP = COST ÷ (1−설정 마진) · MSRP(%) 동시 갱신 (파일의 MSRP는 무시)
+  //      - SRP·SRP(%) = 초기화(빈칸) — SRP는 오직 필드 편집에서만 수정 (import가 절대 계산·유지하지 않음)
+  //    → COST가 바뀌었는데 옛 SRP가 그대로 남는 문제 원천 차단
+  function applyImportPricing(rowObj, lay, cat, cfg){
+    var tlay=(layoutByCat[cat]&&layoutByCat[cat].length)?layoutByCat[cat]:null;
+    function findBoth(pred){ return findInLay(lay,pred) || (tlay?findInLay(tlay,pred):null); }
+    var eaC=findBoth(isEaPriceCol);
+    var spC=findBoth(isSalesPriceCol), mgC=findBoth(isMarginCol);
+    var srC=findBoth(isSrpCol), smC=findBoth(isSrpMarginCol);
+    // SRP 계열 초기화 — 필드 편집 전까지 빈칸
+    if(srC) setValOn(rowObj, srC.key, '');
+    if(smC) setValOn(rowObj, smC.key, '');
+    var cost=eaC?priceNum(getVal(rowObj, eaC.key)):null;
+    if(spC){
+      if(cost!=null && cost>0){
+        var sp=priceFromMargin(cost, cfg.importMargin, []);
+        setValOn(rowObj, spC.key, sp);
+        if(mgC){ var mv=calcMargin(sp, cost); setValOn(rowObj, mgC.key, (mv!==''?mv:'')); }
+      } else {
+        setValOn(rowObj, spC.key, '');
+        if(mgC) setValOn(rowObj, mgC.key, '');
+      }
     }
   }
   // 레이아웃의 모든 가격 계열 열(COST·MSRP·SRP 및 price 포맷 열) 수집
@@ -2991,8 +3001,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
             priceChanges.push({ uo:String(upcValForMatch(ex,uoCol)||''), eng:String(getVal(ex,k.eng)||''), kor:String(getVal(ex,k.kor)||''), oldp:priceDiffLabel(__diffs,'old'), newp:priceDiffLabel(__diffs,'new') });
             if(!ex.extra) ex.extra={}; ex.extra['__PRICEUPD']=String(now);
             var newEA=k.ea?getVal(ex,k.ea):'';
-            if(__dcfg.importMarginOn && k.ea && priceNum(oldEA)!==priceNum(newEA)){ var __spCol=findInLay(lay,isSalesPriceCol);
-              if(__spCol){ var __sv2=priceFromMargin(newEA, __dcfg.importMargin, []); if(__sv2!==''){ setValOn(ex, __spCol.key, __sv2); } } }
+            if(__dcfg.importMarginOn && k.ea && priceNum(oldEA)!==priceNum(newEA)){ applyImportPricing(ex, lay, cat, __dcfg); }
           }
           nRep++;
         } else if(act==='both'){
