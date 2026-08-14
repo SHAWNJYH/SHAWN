@@ -2855,29 +2855,30 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   }
   // [가격 정책 — 데이터 불러오기 · 모든 카테고리 공통]
   //  · 불러오기 평균마진 OFF: 파일 그대로 적용 — 어떤 가격도 계산/변경하지 않음
-  //  · 불러오기 평균마진 ON : 가격은 COST만 반영하고,
-  //      - MSRP = COST ÷ (1−설정 마진) · MSRP(%) 동시 갱신 (파일의 MSRP는 무시)
-  //      - SRP·SRP(%) = 초기화(빈칸) — SRP는 오직 필드 편집에서만 수정 (import가 절대 계산·유지하지 않음)
-  //    → COST가 바뀌었는데 옛 SRP가 그대로 남는 문제 원천 차단
+  //  · 불러오기 평균마진 ON : 가격은 COST만 반영하고, 기존 MSRP·SRP는 전부 무시(초기화) 후
+  //      - MSRP = COST ÷ (1−불러오기 평균마진) · MSRP(%) 동시 갱신
+  //      - SRP  = COST ÷ (1−SRP 평균마진, 미설정 시 불러오기 마진) · SRP(%) 동시 갱신
+  //    → 신상품·가격변경 모두 COST 기준 마진가로 통일 — 옛 SRP가 남아 export되는 문제 차단
   function applyImportPricing(rowObj, lay, cat, cfg){
     var tlay=(layoutByCat[cat]&&layoutByCat[cat].length)?layoutByCat[cat]:null;
     function findBoth(pred){ return findInLay(lay,pred) || (tlay?findInLay(tlay,pred):null); }
     var eaC=findBoth(isEaPriceCol);
     var spC=findBoth(isSalesPriceCol), mgC=findBoth(isMarginCol);
     var srC=findBoth(isSrpCol), smC=findBoth(isSrpMarginCol);
-    // SRP 계열 초기화 — 필드 편집 전까지 빈칸
-    if(srC) setValOn(rowObj, srC.key, '');
-    if(smC) setValOn(rowObj, smC.key, '');
     var cost=eaC?priceNum(getVal(rowObj, eaC.key)):null;
+    var ok=(cost!=null && cost>0);
+    // MSRP: 불러오기 평균마진
     if(spC){
-      if(cost!=null && cost>0){
-        var sp=priceFromMargin(cost, cfg.importMargin, []);
-        setValOn(rowObj, spC.key, sp);
-        if(mgC){ var mv=calcMargin(sp, cost); setValOn(rowObj, mgC.key, (mv!==''?mv:'')); }
-      } else {
-        setValOn(rowObj, spC.key, '');
-        if(mgC) setValOn(rowObj, mgC.key, '');
-      }
+      var sp=ok?priceFromMargin(cost, cfg.importMargin, []):'';
+      setValOn(rowObj, spC.key, sp);
+      if(mgC){ var mv=(ok&&sp!=='')?calcMargin(sp, cost):''; setValOn(rowObj, mgC.key, (mv!==''?mv:'')); }
+    }
+    // SRP: SRP 평균마진 (미설정 시 불러오기 마진과 동일)
+    if(srC){
+      var srpM=(isFinite(Number(cfg.srpMargin))?Number(cfg.srpMargin):cfg.importMargin);
+      var sv=ok?priceFromMargin(cost, srpM, []):'';
+      setValOn(rowObj, srC.key, sv);
+      if(smC){ var mv2=(ok&&sv!=='')?calcMargin(sv, cost):''; setValOn(rowObj, smC.key, (mv2!==''?mv2:'')); }
     }
   }
   // 레이아웃의 모든 가격 계열 열(COST·MSRP·SRP 및 price 포맷 열) 수집
