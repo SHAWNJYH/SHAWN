@@ -2343,6 +2343,7 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
     orderH.forEach(function(cat){
       var lay=histLayFor(cat);
       var uoCol=histUpcCol(lay), engCol=findInLay(lay,isEngCol), korCol=findInLay(lay,isKorCol), itCol=findInLay(lay,isItemCodeCol), eaCol=findInLay(lay,isEaPriceCol);
+      var srpCol=findInLay(lay,isSrpCol), msrpCol=findInLay(lay,isSalesPriceCol);
       histGroupRows(cat, byCatH[cat]).forEach(function(row){
         // 값 추출 헬퍼
         function gv(col){ if(!col) return ''; var v=getVal(row,col.key); return (v==null)?'':v; }
@@ -2352,7 +2353,9 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
         var itc = gv(itCol);
         var eaRaw = gv(eaCol);
         var eaN = priceNum(eaRaw); var ea = (eaN==null)?'':Math.round((eaN+Number.EPSILON)*100)/100;
-        var srpS = calcSalesPrice(eaRaw); var srpN = srpS?Number(srpS):NaN; var srp = isNaN(srpN)?'':Math.round((srpN+Number.EPSILON)*100)/100;
+        // (수정) 저장된 SRP(없으면 MSRP) 값을 그대로 — 평균마진으로 재계산하지 않음
+        var srpRaw = srpCol?gv(srpCol):''; if(srpRaw==='' && msrpCol) srpRaw=gv(msrpCol);
+        var srpN = priceNum(srpRaw); var srp = (srpN==null)?'':Math.round((srpN+Number.EPSILON)*100)/100;
         aoa.push([ upc, eng, kor, itc, ea, srp ]);
       });
     });
