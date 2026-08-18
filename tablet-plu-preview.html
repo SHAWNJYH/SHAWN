@@ -517,12 +517,14 @@
     display:grid; grid-template-columns:1fr 1fr; align-content:start;
     background:linear-gradient(var(--line),var(--line)) no-repeat 50% 0 / 1px 100%;
   }
+  /* 검색 결과는 '결과 표시' 전용 — 이미 찾기가 끝난 상태이므로 클릭되지 않는다 */
   .search-item{
     display:flex; flex-direction:row; align-items:center; gap:12px; min-width:0;
-    padding:11px 14px; margin:0 8px; border-radius:10px; cursor:pointer; transition:background .12s;
+    padding:11px 14px; margin:0 8px; border-radius:10px;
     border-bottom:1px solid var(--line);
+    cursor:default; pointer-events:none; user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent;
   }
-  .search-item:active{ background:var(--accent-soft); }
   .search-item .snum{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:22px; font-weight:700; color:var(--red); flex:0 0 auto; min-width:64px; }
   .search-item .sen{ font-size:19px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
   .search-item .sko{ font-size:19px; font-weight:400; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
@@ -1853,13 +1855,12 @@
     });
     $('searchResults').innerHTML=html;
   }
-  // 검색결과 클릭 → 그 상품 사진 표시
-  $('searchResults').addEventListener('click', function(e){
-    var it=e.target.closest('.search-item'); if(!it) return;
-    var plu=it.getAttribute('data-plu');
-    var row=allRows().filter(function(r){ return pluOf(r)===plu; })[0];
-    if(row){ showPhoto(plu, itemName(korOf(row), engOf(row)).main); }
-    closeSearch();
+  // 검색결과는 클릭 대상이 아님 (번호·목록이 나온 시점에 찾기 완료)
+  //  → 혹시 발생하는 클릭·터치는 모두 무시하고 팝업을 유지한다
+  ['click','pointerdown','touchstart'].forEach(function(ev){
+    $('searchResults').addEventListener(ev, function(e){
+      if(e.target.closest('.search-item')){ e.preventDefault(); e.stopPropagation(); }
+    }, true);
   });
   $('searchClose').addEventListener('click', closeSearch);
   $('searchOv').addEventListener('click', function(e){ if(e.target===$('searchOv')) closeSearch(); });
