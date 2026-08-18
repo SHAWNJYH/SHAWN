@@ -1,5 +1,22 @@
 <!DOCTYPE html>
-<!-- THE SHAWN WITH EGMM BY CLAUDE -->
+<!--
+  ============================================================================
+   ████████╗██╗  ██╗███████╗    ███████╗██╗  ██╗ █████╗ ██╗    ██╗███╗   ██╗
+   ╚══██╔══╝██║  ██║██╔════╝    ██╔════╝██║  ██║██╔══██╗██║    ██║████╗  ██║
+      ██║   ███████║█████╗      ███████╗███████║███████║██║ █╗ ██║██╔██╗ ██║
+      ██║   ██╔══██║██╔══╝      ╚════██║██╔══██║██╔══██║██║███╗██║██║╚██╗██║
+      ██║   ██║  ██║███████╗    ███████║██║  ██║██║  ██║╚███╔███╔╝██║ ╚████║
+      ╚═╝   ╚═╝  ╚═╝╚══════╝    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═══╝
+  ============================================================================
+   THE SHAWN with EGMM  ·  Store Tablet PLU Preview
+
+   Crafted at EGMM-IT  —  engineered by SHAWN, in partnership with CLAUDE.
+   Human vision, AI precision: designed, built, and battle-tested together,
+   line by line, for the people who run the stores every single day.
+
+   (c) EGMM-IT · THE SHAWN Suite · theshawn.org
+  ============================================================================
+-->
 <!--
   tablet-plu-preview.html — 매장 태블릿 PLU 조회 (11인치 아이패드 = 1194×834 가로 기준)
   ─────────────────────────────────────────────────────────────────
@@ -131,9 +148,11 @@
   .splash.out{ opacity:0; pointer-events:none; }
   .splash-in{ display:flex; flex-direction:column; align-items:center; gap:26px; }
   .splash-logo{
-    width:min(50vw, 50vh); height:min(50vw, 50vh); object-fit:contain; display:block;
-    border-radius:13%;   /* JPG 흰 모서리 정리 */
-    opacity:0; transform:scale(.92);
+    /* 원래 크기 그대로 (확대하지 않음 · 화면을 넘칠 때만 축소) */
+    width:auto; height:auto;
+    max-width:min(100%, 82vw); max-height:58vh;
+    display:block; object-fit:contain; image-rendering:auto;
+    opacity:0; transform:scale(.96);
     animation:spLogoIn .85s cubic-bezier(.22,.9,.28,1) forwards;
   }
   @keyframes spLogoIn{ to{ opacity:1; transform:scale(1); } }
@@ -571,6 +590,31 @@
   #ppGateOv .ppg-btns{ display:flex; gap:10px; }
   #ppGateOv .ppg-btn{ flex:1.4; border:none; border-radius:10px; padding:13px 0; font:inherit; font-size:14px; font-weight:800; letter-spacing:.08em; cursor:pointer; background:#2F5D46; color:#fff; }
   #ppGateOv .ppg-btn.ppg-cancel{ flex:1; background:#FFFDFA; color:#1E1B16; border:1.5px solid #D6CFC0; }
+  /* 자체 숫자 키패드 — 아이패드 기본 키보드가 뜨지 않도록 입력창 대신 사용 */
+  #ppGateOv .ppg-card{ max-height:94vh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  #ppGateOv .ppg-pin{
+    width:100%; box-sizing:border-box; border:1.5px solid #E4DFD4; border-radius:10px;
+    padding:12px 14px; min-height:46px; background:#FFFDFA; display:flex; align-items:center;
+    gap:9px; letter-spacing:.18em; color:#1E1B16; font-size:20px; font-weight:800;
+    user-select:none; -webkit-user-select:none; cursor:default;
+  }
+  #ppGateOv .ppg-pin.on{ border-color:#2F5D46; }
+  #ppGateOv .ppg-pin .ph{ font-size:14px; font-weight:700; color:#B7B0A2; letter-spacing:.12em; }
+  #ppGateOv .ppg-pad{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0 4px;
+  }
+  #ppGateOv .ppg-key{
+    border:1.5px solid #E4DFD4; border-radius:11px; background:#FFFDFA; color:#1E1B16;
+    font:inherit; font-size:22px; font-weight:800; padding:14px 0; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation; transition:background .1s;
+  }
+  #ppGateOv .ppg-key:active{ background:#1E1B16; border-color:#1E1B16; color:#fff; }
+  #ppGateOv .ppg-key.fn{ font-size:13px; letter-spacing:.06em; color:#8C8578; }
+  #ppGateOv .ppg-key.fn.del{ color:#9C3327; }
+  @media (max-height:700px){
+    #ppGateOv .ppg-key{ padding:10px 0; font-size:19px; }
+    #ppGateOv .ppg-card{ padding:20px 22px 18px; }
+  }
 </style>
 </head>
 <body>
@@ -794,7 +838,7 @@
   function allRows(){
     if(!DATA) return [];
     var pool=[];
-    for(var lab in DATA.cloud){ (DATA.cloud[lab]||[]).forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }
+    for(var lab in DATA.cloud){ var _rs=DATA.cloud[lab]; if(!Array.isArray(_rs)) _rs=(_rs&&Array.isArray(_rs.rows))?_rs.rows:[]; _rs.forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }
     return pool;
   }
   // 한글 초성 추출 (요구4: 초성 검색)
@@ -844,7 +888,7 @@
   function rowsForCat(catKey){
     if(!DATA) return [];
     var pool=[];
-    for(var lab in DATA.cloud){ (DATA.cloud[lab]||[]).forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }  // 요구4: RESERVE 제외
+    for(var lab in DATA.cloud){ var _rs2=DATA.cloud[lab]; if(!Array.isArray(_rs2)) _rs2=(_rs2&&Array.isArray(_rs2.rows))?_rs2.rows:[]; _rs2.forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }  // 요구4: RESERVE 제외
     if(catKey==='PRODUCE') return pool.filter(function(r){ return subMatch(r,VEG)||subMatch(r,FRUIT); });
     if(catKey==='VEGETABLE') return pool.filter(function(r){ return subMatch(r,VEG); });
     if(catKey==='FRUIT') return pool.filter(function(r){ return subMatch(r,FRUIT); });
@@ -1032,6 +1076,7 @@
     if(EN_ES[up]) return EN_ES[up];                 // 전체 일치 우선
     return up.split(/\s+/).map(function(w){ return EN_ES[w]||w; }).join(' ');
   }
+  /* ── Crafted at EGMM-IT · engineered by SHAWN with CLAUDE ── */
   window.addEventListener('fb-ready', function(){ fbReady=true; });
 
   /* ===== 진입 모드 ===== */
@@ -1734,10 +1779,11 @@
       '<div class="kbd-line">'+r4+'</div>'+
       '</div>';
     // 오른쪽 기능키: BACK(1~2열 세로 2줄) / DELETE(3열) / BACKSPACE(4열)
+    // 위(큰 박스)=BACKSPACE, 아래(작은 박스)=← BACK  (박스 크기는 그대로, 단어·기능만 교체)
     var funcs='<div class="kbd-funcs">'+
-      '<button class="kbd-key fn del backk span2" data-act="back">← BACK</button>'+
+      '<button class="kbd-key fn del backsp span2" data-act="del">BACKSPACE</button>'+
       '<button class="kbd-key fn del clr" data-act="clear">DELETE</button>'+
-      '<button class="kbd-key fn del backsp" data-act="del">BACKSPACE</button>'+
+      '<button class="kbd-key fn del backk" data-act="back">← BACK</button>'+
       '</div>';
     bar.innerHTML='<div class="kbd-keys all">'+letters+funcs+'</div>';
   }
@@ -1760,17 +1806,43 @@
   }
   // 자모 입력을 받아 searchQuery 갱신 (완성 글자는 확정, 진행 중 글자는 마지막에)
   var committed='';  // 확정된 문자열
+  // 복합 모음(ㅗ+ㅏ=ㅘ) · 복합 받침(ㄱ+ㅅ=ㄳ) 결합/분해표
+  var JUNG_COMBO={ 'ㅗㅏ':'ㅘ','ㅗㅐ':'ㅙ','ㅗㅣ':'ㅚ','ㅜㅓ':'ㅝ','ㅜㅔ':'ㅞ','ㅜㅣ':'ㅟ','ㅡㅣ':'ㅢ' };
+  var JUNG_SPLIT={ 'ㅘ':['ㅗ','ㅏ'],'ㅙ':['ㅗ','ㅐ'],'ㅚ':['ㅗ','ㅣ'],'ㅝ':['ㅜ','ㅓ'],'ㅞ':['ㅜ','ㅔ'],'ㅟ':['ㅜ','ㅣ'],'ㅢ':['ㅡ','ㅣ'] };
+  var JONG_COMBO={ 'ㄱㅅ':'ㄳ','ㄴㅈ':'ㄵ','ㄴㅎ':'ㄶ','ㄹㄱ':'ㄺ','ㄹㅁ':'ㄻ','ㄹㅂ':'ㄼ','ㄹㅅ':'ㄽ','ㄹㅌ':'ㄾ','ㄹㅍ':'ㄿ','ㄹㅎ':'ㅀ','ㅂㅅ':'ㅄ' };
+  var JONG_SPLIT={ 'ㄳ':['ㄱ','ㅅ'],'ㄵ':['ㄴ','ㅈ'],'ㄶ':['ㄴ','ㅎ'],'ㄺ':['ㄹ','ㄱ'],'ㄻ':['ㄹ','ㅁ'],'ㄼ':['ㄹ','ㅂ'],'ㄽ':['ㄹ','ㅅ'],'ㄾ':['ㄹ','ㅌ'],'ㄿ':['ㄹ','ㅍ'],'ㅀ':['ㄹ','ㅎ'],'ㅄ':['ㅂ','ㅅ'] };
+
   function feedJamo(jamo){
-    if(isCho(jamo)){
-      if(hangul.cho<0){ hangul.cho=CHO_L.indexOf(jamo); }
-      else if(hangul.jung<0){ committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); }
-      else if(hangul.jong<0){ var ji=JONG_L.indexOf(jamo); if(ji>0){ hangul.jong=ji; } else { committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); } }
-      else { committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); }
-    } else if(isJung(jamo)){
-      if(hangul.cho<0){ committed+=jamo; }     // 모음 단독 → 그대로
-      else if(hangul.jung<0){ hangul.jung=JUNG_L.indexOf(jamo); }
-      else { committed+=composeHangul(); resetHangul(); }   // 이미 완성 → 새 글자 (종성 이동 생략, 단순화)
+    if(isJung(jamo)){
+      if(hangul.cho<0){ committed+=jamo; return; }              // 모음 단독
+      if(hangul.jung<0){ hangul.jung=JUNG_L.indexOf(jamo); return; }
+      if(hangul.jong<0){
+        // 중성만 있는 상태 → 복합 모음 결합 (고 + ㅏ = 과)
+        var comb=JUNG_COMBO[JUNG_L[hangul.jung]+jamo];
+        if(comb){ hangul.jung=JUNG_L.indexOf(comb); return; }
+        committed+=composeHangul(); resetHangul(); committed+=jamo; return;
+      }
+      // 받침이 있는 상태에서 모음 → 받침을 다음 글자의 초성으로 넘김 (삭 + ㅗ = 사고)
+      var jc=JONG_L[hangul.jong], moveCho=jc, keep=-1;
+      if(JONG_SPLIT[jc]){ keep=JONG_L.indexOf(JONG_SPLIT[jc][0]); moveCho=JONG_SPLIT[jc][1]; }
+      hangul.jong=keep;
+      committed+=composeHangul(); resetHangul();
+      hangul.cho=CHO_L.indexOf(moveCho); hangul.jung=JUNG_L.indexOf(jamo);
+      return;
     }
+    if(!isCho(jamo)) return;
+    if(hangul.cho<0){ hangul.cho=CHO_L.indexOf(jamo); return; }
+    if(hangul.jung<0){ committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); return; }
+    if(hangul.jong<0){
+      var ji=JONG_L.indexOf(jamo);
+      if(ji>0) hangul.jong=ji;
+      else { committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo); }
+      return;
+    }
+    // 받침이 이미 있으면 복합 받침 결합 시도 (갑 + ㅅ = 값)
+    var cc=JONG_COMBO[JONG_L[hangul.jong]+jamo];
+    if(cc){ hangul.jong=JONG_L.indexOf(cc); return; }
+    committed+=composeHangul(); resetHangul(); hangul.cho=CHO_L.indexOf(jamo);
   }
   function currentText(){
     // committed(확정) + 진행 중 한글 조합 (KO 모드에서만 조합 진행)
@@ -1790,10 +1862,31 @@
     commitPending(); committed+=' ';
     updateSearch();
   }
+  // 이미 확정된 마지막 글자를 다시 조합 상태로 되돌린다 (사 → ㅅ+ㅏ)
+  function decomposeLast(){
+    if(!committed) return false;
+    var code=committed.charCodeAt(committed.length-1);
+    if(code<0xAC00 || code>0xD7A3) return false;
+    var idx=code-0xAC00, jo=idx%28;
+    hangul.cho=Math.floor(idx/588);
+    hangul.jung=Math.floor((idx%588)/28);
+    hangul.jong=jo?jo:-1;
+    committed=committed.slice(0,-1);
+    return true;
+  }
   function pressDel(){
+    if(hangul.cho<0) decomposeLast();   // 확정 글자도 자모 단위로 지운다
     if(hangul.cho>=0){
-      if(hangul.jong>=0){ hangul.jong=-1; }
-      else if(hangul.jung>=0){ hangul.jung=-1; }
+      if(hangul.jong>=0){
+        // 복합 받침이면 앞 자음만 남김 (값 → 갑), 아니면 받침 제거
+        var jc=JONG_L[hangul.jong];
+        hangul.jong = JONG_SPLIT[jc] ? JONG_L.indexOf(JONG_SPLIT[jc][0]) : -1;
+      }
+      else if(hangul.jung>=0){
+        // 복합 모음이면 앞 모음만 남김 (과 → 고), 아니면 초성만 남김 (고 → ㄱ)
+        var vc=JUNG_L[hangul.jung];
+        hangul.jung = JUNG_SPLIT[vc] ? JUNG_L.indexOf(JUNG_SPLIT[vc][0]) : -1;
+      }
       else { hangul.cho=-1; }
     } else if(committed){ committed=committed.slice(0,-1); }
     updateSearch();
@@ -1832,6 +1925,8 @@
     card.style.left=r.left+'px'; card.style.top=r.top+'px';
     card.style.width=r.width+'px'; card.style.height=r.height+'px';
   }
+  // 화면 회전·크기 변경 시 열려 있는 검색 팝업 위치 재계산
+  window.addEventListener('resize', function(){ if(searching) positionSearchCard(); });
   function closeSearch(){
     searching=false; document.body.classList.remove('searching'); $('searchOv').classList.remove('show');
     committed=''; resetHangul();
@@ -1920,10 +2015,18 @@
     var o=document.getElementById('ppGateOv');
     if(!o){
       o=document.createElement('div'); o.id='ppGateOv';
+      var pad='';
+      ['1','2','3','4','5','6','7','8','9'].forEach(function(n){ pad+='<button class="ppg-key" type="button" data-k="'+n+'">'+n+'</button>'; });
+      pad+='<button class="ppg-key fn" type="button" data-k="clear">CLEAR</button>'
+         + '<button class="ppg-key" type="button" data-k="0">0</button>'
+         + '<button class="ppg-key fn del" type="button" data-k="back">← DEL</button>';
       o.innerHTML='<div class="ppg-card">'
         +'<h1 class="ppg-title">PLU PREVIEW</h1>'
         +'<div class="ppg-field"><label>STORE</label><select id="ppgStore"><option value="">LOADING…</option></select></div>'
-        +'<div class="ppg-field"><label>PIN</label><input type="password" id="ppgPin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
+        +'<div class="ppg-field"><label>PIN</label>'
+          +'<div class="ppg-pin" id="ppgPin"><span class="ph" id="ppgPh">ENTER PIN</span><span id="ppgDots"></span></div>'
+          +'<div class="ppg-pad" id="ppgPad">'+pad+'</div>'
+        +'</div>'
         +'<div class="ppg-err" id="ppgErr"></div>'
         +'<div class="ppg-btns"><button class="ppg-btn" id="ppgEnter" type="button">ENTER</button>'
         +'<button class="ppg-btn ppg-cancel" id="ppgCancel" type="button">CANCEL</button></div>'
@@ -1932,26 +2035,49 @@
       fill(); loadStores();
       document.getElementById('ppgEnter').onclick=submit;
       document.getElementById('ppgCancel').onclick=function(){ location.replace('index.html'); };
-      document.getElementById('ppgPin').addEventListener('keydown',function(e){ if(e.key==='Enter') submit(); });
-      document.getElementById('ppgStore').addEventListener('change',function(){ document.getElementById('ppgPin').focus(); });
-      setTimeout(function(){ var st=document.getElementById('ppgStore'); (st.value?document.getElementById('ppgPin'):st).focus(); },80);
+      // 자체 키패드 — 아이패드 기본 키보드가 뜨지 않고, 로그인 카드 안에서만 동작
+      document.getElementById('ppgPad').addEventListener('click', function(e){
+        var b=e.target.closest('.ppg-key'); if(!b) return;
+        var k=b.getAttribute('data-k');
+        if(k==='clear') PIN='';
+        else if(k==='back') PIN=PIN.slice(0,-1);
+        else if(PIN.length<12) PIN+=k;
+        var er=document.getElementById('ppgErr'); if(er) er.textContent='';
+        renderPin();
+      });
+      // 물리 키보드(있을 경우)도 지원
+      document.addEventListener('keydown', function(e){
+        if(!document.getElementById('ppGateOv')) return;
+        if(/^[0-9]$/.test(e.key)){ if(PIN.length<12) PIN+=e.key; renderPin(); e.preventDefault(); }
+        else if(e.key==='Backspace'){ PIN=PIN.slice(0,-1); renderPin(); e.preventDefault(); }
+        else if(e.key==='Enter'){ submit(); e.preventDefault(); }
+      });
+      renderPin();
     }
     var er=document.getElementById('ppgErr'); if(er) er.textContent=msg||'';
+  }
+  var PIN='';
+  function renderPin(){
+    var d=document.getElementById('ppgDots'), ph=document.getElementById('ppgPh'), box=document.getElementById('ppgPin');
+    if(!d) return;
+    d.textContent='●'.repeat(PIN.length);
+    if(ph) ph.style.display=PIN.length?'none':'';
+    if(box) box.classList.toggle('on', PIN.length>0);
   }
   var busy=false;
   function submit(){
     if(busy) return;
     var st=(document.getElementById('ppgStore').value||'').trim().toUpperCase();
-    var pin=(document.getElementById('ppgPin').value||'').trim();
+    var pin=PIN.trim();
     var er=document.getElementById('ppgErr');
     if(er) er.textContent='';
     if(!st){ if(er) er.textContent='SELECT STORE'; return; }
-    if(!pin){ if(er) er.textContent='ENTER PIN'; document.getElementById('ppgPin').focus(); return; }
+    if(!pin){ if(er) er.textContent='ENTER PIN'; return; }
     busy=true; if(er) er.textContent='CHECKING…';
     getDocData('plu-store-pins', st).then(function(d){
       busy=false;
       if(!d || d.pin==null){ if(er) er.textContent='PIN NOT SET · ASK MANAGER'; return; }
-      if(String(d.pin)!==String(pin)){ if(er) er.textContent='WRONG PIN'; var pi=document.getElementById('ppgPin'); pi.value=''; pi.focus(); return; }
+      if(String(d.pin)!==String(pin)){ if(er) er.textContent='WRONG PIN'; PIN=''; renderPin(); return; }
       try{ localStorage.setItem('theShawnStore', st); }catch(e){}
       try{ sessionStorage.setItem('ppGate','1'); }catch(e){}
       unlock();
