@@ -121,6 +121,40 @@
   ::-webkit-scrollbar-track{ background:transparent; }
   ::-webkit-scrollbar-thumb{ background:#D8D2C6; border-radius:8px; border:2px solid transparent; background-clip:content-box; }
 
+  /* ===== 시작 스플래시 (로고 페이드 인·아웃 + 업데이트 진행바) ===== */
+  .splash{
+    position:fixed; inset:0; z-index:100000; display:none;
+    align-items:center; justify-content:center; background:var(--bg);
+    opacity:1; transition:opacity .55s ease;
+  }
+  .splash.show{ display:flex; }
+  .splash.out{ opacity:0; pointer-events:none; }
+  .splash-in{ display:flex; flex-direction:column; align-items:center; gap:26px; }
+  .splash-logo{
+    width:min(50vw, 50vh); height:min(50vw, 50vh); object-fit:contain; display:block;
+    border-radius:13%;   /* JPG 흰 모서리 정리 */
+    opacity:0; transform:scale(.92);
+    animation:spLogoIn .85s cubic-bezier(.22,.9,.28,1) forwards;
+  }
+  @keyframes spLogoIn{ to{ opacity:1; transform:scale(1); } }
+  .splash-bar{
+    width:min(46vw, 420px); height:8px; border-radius:99px;
+    background:#DCD6C9; overflow:hidden; box-shadow:inset 0 1px 2px rgba(30,27,22,.08);
+    opacity:0; animation:spFadeIn .5s .35s ease forwards;
+  }
+  .splash-bar i{
+    display:block; width:0%; height:100%; border-radius:99px;
+    background:linear-gradient(90deg,#F0141E,#C0392B);
+    transition:width .12s linear;
+  }
+  .splash-msg{
+    display:flex; align-items:baseline; gap:12px;
+    font-size:14px; font-weight:700; color:var(--ink-2); letter-spacing:.02em;
+    opacity:0; animation:spFadeIn .5s .45s ease forwards;
+  }
+  .splash-msg b{ font-family:var(--mono); font-size:13px; font-weight:800; color:var(--ink-dim); min-width:44px; text-align:right; }
+  @keyframes spFadeIn{ to{ opacity:1; } }
+
   /* ===== 진입 모드 선택 ===== */
   .gate{ position:fixed; inset:0; z-index:200; background:var(--bg); display:flex; align-items:center; justify-content:center; }
   .gate.hide{ display:none; }
@@ -552,6 +586,15 @@
         <span class="ic">🔑</span><span class="t">관리자 모드</span><span class="s">비밀번호 필요</span>
       </button>
     </div>
+  </div>
+</div>
+
+<!-- 시작 화면(스플래시) — 로고 페이드 인·아웃 + 업데이트 진행바 -->
+<div class="splash" id="bootSplash">
+  <div class="splash-in">
+    <img class="splash-logo" id="splashLogo" alt="H-MART">
+    <div class="splash-bar"><i id="splashFill"></i></div>
+    <div class="splash-msg"><span id="splashTxt">최신자료로 업데이트 중입니다.</span><b id="splashPct">0%</b></div>
   </div>
 </div>
 
@@ -1010,14 +1053,65 @@
 
   /* ===== REFRESH ===== */
   function setLoading(on,msg){ $('loadOv').classList.toggle('show',on); if(msg)$('loadT').textContent=msg; $('refreshBox').classList.toggle('loading',on); }
-  async function refresh(){
-    if(!fbReady){ alert('네트워크 준비 중입니다. 잠시 후 다시 시도하세요.'); return; }
-    setLoading(true,'Firebase에서 데이터 가져오는 중…');
+  // 매장 식별자가 로그인 이후에 정해진 경우(첫 로그인) 다시 읽어온다
+  function syncStore(){
+    if(STORE) return STORE;
+    STORE=readStore();
+    if(STORE) KEY='snapshot::'+STORE;
+    return STORE;
+  }
+  // 매장별로 따로 저장된 설정(plu-preview-config/{매장}) 가져오기
+  //  1) 컬렉션 일괄 조회 결과에서 찾고(대소문자·공백 차이 흡수)
+  //  2) 없으면 문서 직접 조회로 한 번 더 시도 (보안규칙으로 목록 조회가 막힌 경우 대비)
+  async function fetchStoreConfig(pcAll){
+    syncStore();
+    if(!STORE) return null;
+    pcAll=pcAll||{};
+    if(pcAll[STORE]) return pcAll[STORE];
+    var norm=function(x){ return String(x||'').toUpperCase().replace(/\s+/g,''); }, want=norm(STORE);
+    for(var k in pcAll){ if(norm(k)===want) return pcAll[k]; }
     try{
+      var F=window.ppFb;
+      if(F && F.getDoc && F.doc && F.db){
+        var sn=await F.getDoc(F.doc(F.db,'plu-preview-config',STORE));
+        if(sn && sn.exists && sn.exists()) return sn.data()||null;
+      }
+    }catch(e){}
+    return null;
+  }
+
+  // silent=true → 시작 스플래시용 조용한 업데이트 (팝업·로딩표시 없음, 성공여부 반환)
+  async function refresh(silent){
+    if(!fbReady){
+      if(!silent){ alert('네트워크 준비 중입니다. 잠시 후 다시 시도하세요.'); return false; }
+      await new Promise(function(res){
+        var done=false, fin=function(){ if(!done){ done=true; res(); } };
+        window.addEventListener('fb-ready', fin, { once:true });
+        setTimeout(fin, 3500);
+      });
+      if(!fbReady) return false;
+    }
+    syncStore();
+    if(!silent) setLoading(true,'Firebase에서 데이터 가져오는 중…');
+    try{
+      // 스플래시에서 먼저 호출되는 경우 저장본을 아직 안 읽었을 수 있음 →
+      // 기존 저장값(매장별 설정·메시지·주간광고)을 잃지 않도록 캐시부터 로드
+      if(!DATA){ var c0=await cacheGet(); if(c0 && c0.cloud) DATA=c0; }
       var raw=await window.__fbFetch();
-      var cloud=parseSnap(raw['plu-list']||{}, raw['plu-config']||{});
-      // 매장별 관리자 설정 (plu-preview-config/{매장}): SALES/ETC 분류, 메시지
-      var pc=(raw['plu-preview-config']||{})[STORE]||{};
+      var listRaw=(raw&&raw['plu-list'])||{};
+      var pcAll=(raw&&raw['plu-preview-config'])||{};
+      var hasList=Object.keys(listRaw).length>0;
+      // 매장별 설정 문서 (plu-preview-config/{매장}) — 대소문자 차이도 흡수
+      var pc=await fetchStoreConfig(pcAll);
+      var hasPc=!!pc;
+      // 둘 다 못 받았으면(오프라인·차단) 저장된 데이터를 덮어쓰지 않는다
+      if(!hasList && !hasPc){
+        if(!silent) alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.');
+        return false;
+      }
+      pc=pc||{};
+      // PLU MASTER — 못 받았으면 기존 저장본 유지
+      var cloud=hasList ? parseSnap(listRaw, (raw['plu-config']||{})) : ((DATA&&DATA.cloud)||{});
       var custom={};
       if(pc.sales && (Array.isArray(pc.sales.subs)||Array.isArray(pc.sales.items))) custom.SALES={ subs:(pc.sales.subs||[]), plus:(pc.sales.plus||[]), items:(pc.sales.items||[]) };
       if(pc.etc && (Array.isArray(pc.etc.subs)||Array.isArray(pc.etc.items))) custom.ETC={ subs:(pc.etc.subs||[]), plus:(pc.etc.plus||[]), items:(pc.etc.items||[]) };
@@ -1026,12 +1120,17 @@
       var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
       // 주간 광고 이미지 목록 (관리 페이지에서 저장 → plu-preview-config/{매장}.weekly)
       var weekly=Array.isArray(pc.weekly)?pc.weekly:((DATA&&DATA.weekly)||[]);
-      DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, savedAt:Date.now() };
+      DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, store:STORE, savedAt:Date.now() };
       await cacheSet(DATA);
       render(); updateMeta(); renderMsg();
-    }catch(e){ alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+(e&&e.message?e.message:e)); }
-    finally{ setLoading(false); }
+      return true;
+    }catch(e){
+      if(!silent) alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+(e&&e.message?e.message:e));
+      return false;
+    }
+    finally{ if(!silent) setLoading(false); }
   }
+  window.__ppRefresh = refresh;   // 시작 스플래시에서 호출
 
   async function boot(){
     var c=await cacheGet();
@@ -1571,7 +1670,7 @@
   }
   // 요구3: DATA UPDATE 버튼 → 확인 팝업 → YES 시 업데이트
   $('refreshBox').addEventListener('click', function(){ $('updateOv').classList.add('show'); });
-  if($('updateYes')) $('updateYes').addEventListener('click', function(){ $('updateOv').classList.remove('show'); refresh(); });
+  if($('updateYes')) $('updateYes').addEventListener('click', function(){ $('updateOv').classList.remove('show'); refresh(false); });
   if($('updateNo')) $('updateNo').addEventListener('click', function(){ $('updateOv').classList.remove('show'); });
   if($('updateOv')) $('updateOv').addEventListener('click', function(e){ if(e.target===$('updateOv')) $('updateOv').classList.remove('show'); });
   // 요구8: 언어 버튼 — 선택 시 붉은색 + 카테고리/상품 이름 언어 전환
@@ -1872,6 +1971,85 @@
     if(ok){ unlock(); return; }   // 같은 탭 새로고침 = 로그인 유지
     show('');
   });
+})();
+</script>
+
+<script>
+/* ===== 시작 스플래시 =====
+   로고(화면의 약 50%)를 페이드 인 → 아래 진행바 0%~100% + "최신자료로 업데이트 중입니다."
+   진행바가 차는 동안 실제로 최신 데이터를 내려받고, 끝나면 페이드 아웃되며 메인으로 들어간다.
+   · 로고 파일은 루트의 H-MART_LOGO.jpg 사용 (없으면 내장 로고로 대체)
+   · PIN 게이트가 떠 있는 동안에는 대기했다가 로그인 직후 실행 */
+(function(){
+  'use strict';
+  var MIN_MS=2400, MAX_MS=9000, FADE_MS=560;
+  var ov=document.getElementById('bootSplash');
+  if(!ov) return;
+  var fill=document.getElementById('splashFill'), pct=document.getElementById('splashPct');
+  var img=document.getElementById('splashLogo');
+
+  // 로고: /H-MART_LOGO.jpg → H-MART_LOGO.jpg → 내장 로고
+  var srcs=['/H-MART_LOGO.jpg','H-MART_LOGO.jpg'], si=0;
+  function nextSrc(){
+    if(si<srcs.length){ img.src=srcs[si++]; return; }
+    var em=document.getElementById('hmartLogo');
+    if(em && em.src) img.src=em.src;
+  }
+  img.addEventListener('error', nextSrc);
+  nextSrc();
+
+  function setPct(p){
+    var v=Math.max(0, Math.min(100, p));
+    fill.style.width=v.toFixed(1)+'%';
+    pct.textContent=Math.round(v)+'%';
+  }
+  function finish(){
+    setPct(100);
+    setTimeout(function(){
+      ov.classList.add('out');
+      setTimeout(function(){ ov.classList.remove('show'); if(ov.parentNode) ov.parentNode.removeChild(ov); }, FADE_MS+60);
+    }, 300);
+  }
+  var started=false;
+  function run(){
+    if(started) return; started=true;
+    // 어느 매장 자료를 가져오는지 표시 (매장별 설정도 함께 내려받음)
+    try{
+      var st=(localStorage.getItem('theShawnStore')||'').toUpperCase().trim();
+      var tx=document.getElementById('splashTxt');
+      if(st && tx) tx.textContent=st+' · 최신자료로 업데이트 중입니다.';
+    }catch(e){}
+    ov.classList.add('show');
+    var t0=Date.now(), p=0, done=false;
+    // 실제 데이터 업데이트 (실패해도 저장된 데이터로 진행)
+    try{
+      var task=window.__ppRefresh ? window.__ppRefresh(true) : null;
+      if(task && task.then) task.then(function(){ done=true; }, function(){ done=true; });
+      else done=true;
+    }catch(e){ done=true; }
+    setTimeout(function(){ done=true; }, MAX_MS);
+    (function tick(){
+      var el=Date.now()-t0;
+      var target=done ? 100 : Math.min(93, (el/MIN_MS)*93);
+      p+=(target-p)*0.16;
+      if(target-p<0.5) p=target;
+      setPct(p);
+      if(done && p>=99.5 && el>=MIN_MS){ finish(); return; }
+      requestAnimationFrame(tick);
+    })();
+  }
+
+  function start(){
+    var de=document.documentElement;
+    if(!de.classList.contains('pp-gate-lock')){ run(); return; }
+    // 매장 PIN 게이트 통과를 기다렸다가 실행
+    var mo=new MutationObserver(function(){
+      if(!de.classList.contains('pp-gate-lock')){ mo.disconnect(); run(); }
+    });
+    mo.observe(de, { attributes:true, attributeFilter:['class'] });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();
 </script>
 </body>
