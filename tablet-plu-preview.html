@@ -810,18 +810,55 @@
   function labelOf(id, map){ for(var k in map){ if(map[k]===id) return k; } return id; }
   function buildDocidMap(cfg){ var m={}; var main=(cfg&&cfg.main)||null; if(main&&Array.isArray(main.tabs)){ main.tabs.forEach(function(t){ if(t&&t.label) m[String(t.label)]=String(t.doc||t.label); }); } return m; }
 
+  /* ── 청과(PRODUCE) 카테고리 필터 ──
+     이 태블릿은 청과 화면 전용이므로, plu-list 전체 컬렉션 중
+     청과 쪽 카테고리(청과/야채/과일/박스/로컬/PRODUCE 계열)만 사용한다.
+     · 다른 부서 문서(정육·수산·그로서리 등)는 파싱 자체를 건너뜀
+       → 데이터 용량 절감 + 타 부서 문서의 비정상 형식으로 인한 오류 원천 차단 */
+  var PRODUCE_KEYS=['청과','야채','채소','과일','박스','로컬','produce','vegetable','fruit','box','local'];
+  function isProduceLabel(label){
+    var l=String(label||'').toLowerCase();
+    if(!l) return false;
+    for(var i=0;i<PRODUCE_KEYS.length;i++){ if(l.indexOf(PRODUCE_KEYS[i].toLowerCase())>=0) return true; }
+    return false;
+  }
+
   // plu-list(PLU MASTER) → { 카테고리: [rows] }, 각 row {plu, extra, sub}
   function parseSnap(upcList, upcConfig){
     var map=buildDocidMap(upcConfig);
+    // 청과 카테고리에 해당하는 문서 id 집합 (라벨 또는 doc id 기준)
+    var allow={};
+    for(var lb in map){ if(isProduceLabel(lb)||isProduceLabel(map[lb])) allow[map[lb]]=true; }
+    function allowed(id){
+      if(allow[id]) return true;
+      if(isProduceLabel(labelOf(id,map))) return true;   // 설정에 없는 문서는 라벨 자체로 판별
+      return false;
+    }
     var cloud={}, metas={}, chunkBy={};
     for(var id in upcList){
       var d=upcList[id]||{};
-      if(d && d.parent){ if(!chunkBy[d.parent]) chunkBy[d.parent]=[]; chunkBy[d.parent].push({sub:(d.sub!=null?String(d.sub):''),ci:(typeof d.ci==='number'?d.ci:0),rows:ungzipRows(d)}); }
-      else { var mc=/^(.*)__c(\d+)$/.exec(id); if(mc){ if(!chunkBy[mc[1]])chunkBy[mc[1]]=[]; chunkBy[mc[1]].push({sub:'',ci:parseInt(mc[2],10),rows:ungzipRows(d)}); } else { metas[id]=d; } }
+      try{
+        if(d && d.parent){
+          if(!allowed(String(d.parent))) continue;                       // 타 부서 청크 제외
+          if(!chunkBy[d.parent]) chunkBy[d.parent]=[];
+          chunkBy[d.parent].push({sub:(d.sub!=null?String(d.sub):''),ci:(typeof d.ci==='number'?d.ci:0),rows:ungzipRows(d)});
+        }
+        else {
+          var mc=/^(.*)__c(\d+)$/.exec(id);
+          if(mc){
+            if(!allowed(mc[1])) continue;                                // 타 부서 청크 제외
+            if(!chunkBy[mc[1]])chunkBy[mc[1]]=[];
+            chunkBy[mc[1]].push({sub:'',ci:parseInt(mc[2],10),rows:ungzipRows(d)});
+          } else {
+            if(!allowed(id)) continue;                                   // 타 부서 문서 제외
+            metas[id]=d;
+          }
+        }
+      }catch(e){ /* 개별 문서 파싱 실패 → 그 문서만 건너뛰고 계속 (전체 중단 방지) */ }
     }
-    function assemble(id,d){ var rows=[]; if(chunkBy[id]){ var bs={},order=[]; chunkBy[id].forEach(function(c){ if(!(c.sub in bs)){bs[c.sub]=[];order.push(c.sub);} bs[c.sub].push(c); }); order.forEach(function(s){ bs[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ c.rows.forEach(function(r){ if(r&&r.sub==null&&c.sub) r.sub=c.sub; }); rows=rows.concat(c.rows); }); }); } else if(Array.isArray(d.rows)) rows=d.rows; return rows; }
-    for(var mid in metas){ var lab=labelOf(mid,map); cloud[lab]=assemble(mid,metas[mid]); }
-    for(var par in chunkBy){ if(metas[par])continue; var l2=labelOf(par,map); if(cloud[l2]!==undefined)continue; cloud[l2]=assemble(par,{}); }
+    function assemble(id,d){ var rows=[]; if(chunkBy[id]){ var bs={},order=[]; chunkBy[id].forEach(function(c){ if(!(c.sub in bs)){bs[c.sub]=[];order.push(c.sub);} bs[c.sub].push(c); }); order.forEach(function(s){ bs[s].sort(function(a,b){return a.ci-b.ci;}).forEach(function(c){ (Array.isArray(c.rows)?c.rows:[]).forEach(function(r){ if(r&&r.sub==null&&c.sub) r.sub=c.sub; }); rows=rows.concat(Array.isArray(c.rows)?c.rows:[]); }); }); } else if(Array.isArray(d.rows)) rows=d.rows; return rows; }
+    for(var mid in metas){ try{ var lab=labelOf(mid,map); cloud[lab]=assemble(mid,metas[mid]); }catch(e){} }
+    for(var par in chunkBy){ try{ if(metas[par])continue; var l2=labelOf(par,map); if(cloud[l2]!==undefined)continue; cloud[l2]=assemble(par,{}); }catch(e){} }
     return cloud;
   }
 
@@ -1157,8 +1194,10 @@
         return false;
       }
       pc=pc||{};
-      // PLU MASTER — 못 받았으면 기존 저장본 유지
+      // PLU MASTER — 못 받았으면 기존 저장본 유지 (청과 카테고리만 파싱됨)
       var cloud=hasList ? parseSnap(listRaw, (raw['plu-config']||{})) : ((DATA&&DATA.cloud)||{});
+      // 받긴 했지만 청과 문서가 하나도 없으면(서버 구조 변경 등) 기존 저장본을 지우지 않는다
+      if(hasList && !Object.keys(cloud).length && DATA && DATA.cloud && Object.keys(DATA.cloud).length) cloud=DATA.cloud;
       var custom={};
       if(pc.sales && (Array.isArray(pc.sales.subs)||Array.isArray(pc.sales.items))) custom.SALES={ subs:(pc.sales.subs||[]), plus:(pc.sales.plus||[]), items:(pc.sales.items||[]) };
       if(pc.etc && (Array.isArray(pc.etc.subs)||Array.isArray(pc.etc.items))) custom.ETC={ subs:(pc.etc.subs||[]), plus:(pc.etc.plus||[]), items:(pc.etc.items||[]) };
