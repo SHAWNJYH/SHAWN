@@ -355,6 +355,31 @@
   .weekly-empty h2{ margin:0 0 12px; font-family:var(--display); font-size:21px; font-weight:600; }
   .weekly-empty p{ margin:0; font-size:13px; color:var(--ink-dim); line-height:1.9; font-weight:500; }
 
+  /* WEEKLY 전체보기 — 키보드·사진 영역까지 아래로 확장해서 이미지 전체를 표시 */
+  body.weekly-full .lower{ display:none; }
+  .list-pane.weekly-pane{ display:flex; flex-direction:column; overflow:hidden; }
+  .list-pane.weekly-pane .weekly-wrap{
+    flex:1 1 auto; min-height:0; display:block; padding:8px; gap:0;
+    overflow:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;
+    scroll-snap-type:y mandatory;
+  }
+  .list-pane.weekly-pane .weekly-card{
+    height:100%; margin:0 0 8px; border:0; background:transparent;
+    scroll-snap-align:center;
+  }
+  .list-pane.weekly-pane .weekly-card:last-child{ margin-bottom:0; }
+  .list-pane.weekly-pane .weekly-card img{
+    flex:1 1 auto; min-height:0; width:100%; height:100%;
+    object-fit:contain; background:transparent; cursor:zoom-in;
+  }
+  .list-pane.weekly-pane .weekly-card .cap{ flex:0 0 auto; text-align:center; border-top:0; }
+  /* 이미지 탭 → 2.2배 확대(스크롤로 이동), 다시 탭 → 원래대로 */
+  .list-pane.weekly-pane.zoomed .weekly-wrap{ scroll-snap-type:none; }
+  .list-pane.weekly-pane.zoomed .weekly-card{ height:auto; }
+  .list-pane.weekly-pane.zoomed .weekly-card img{
+    width:220%; height:auto; max-width:none; object-fit:initial; cursor:zoom-out;
+  }
+
   /* 사진 패널 */
   .photo-pane{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; }
   .photo-top{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
@@ -1000,6 +1025,11 @@
 
   function render(){
     var pane=$('listPane');
+    // WEEKLY 선택 시: 하단(키보드+사진) 접고 리스트 영역을 화면 끝까지 확장
+    var __wk=(curCat==='WEEKLY');
+    document.body.classList.toggle('weekly-full', __wk);
+    pane.classList.toggle('weekly-pane', __wk);
+    if(!__wk) pane.classList.remove('zoomed');
     // 주간 광고 — plu-list 와 무관, 별도 이미지 목록 (관리 페이지에서 등록 예정)
     if(curCat==='CUSTOM'){ renderCustom(pane); return; }
     if(curCat==='WEEKLY'){ renderWeekly(pane); return; }
@@ -1072,6 +1102,7 @@
   }
   function renderWeekly(pane){
     var items=weeklyItems();
+    pane.classList.remove('zoomed');
     if(!items.length){
       pane.innerHTML='<div class="weekly-empty">'+
         '<div class="tag">WEEKLY SALES</div>'+
@@ -1228,6 +1259,12 @@
   // 리스트 영역 위임: CATE 버튼 → 상품 리스트, 상품 → 사진
   $('listPane').addEventListener('click', function(e){
     if(Date.now()<suppressUntil){ suppressUntil=0; return; }   // 롱프레스·드래그 직후 유령 클릭 무시
+    // 주간 광고 이미지 탭 → 확대/축소
+    if(curCat==='WEEKLY'){
+      var wimg=e.target.closest('.weekly-card img');
+      if(wimg){ this.classList.toggle('zoomed'); return; }
+      return;
+    }
     // 사용자 정의 헤더 버튼 (삭제&수정 / 전체삭제)
     var ab=e.target.closest('.crumb-btn');
     if(ab){
