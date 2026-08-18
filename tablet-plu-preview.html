@@ -360,24 +360,43 @@
   .list-pane.weekly-pane{ display:flex; flex-direction:column; overflow:hidden; }
   .list-pane.weekly-pane .weekly-wrap{
     flex:1 1 auto; min-height:0; display:block; padding:8px; gap:0;
-    overflow:auto; -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y;
-    scroll-snap-type:y mandatory;
+    overflow:hidden; touch-action:none;
   }
   .list-pane.weekly-pane .weekly-card{
-    height:100%; margin:0 0 8px; border:0; background:transparent;
-    scroll-snap-align:center;
+    height:100%; margin:0; border:0; background:transparent; display:none;
   }
-  .list-pane.weekly-pane .weekly-card:last-child{ margin-bottom:0; }
-  .list-pane.weekly-pane .weekly-card img{
-    flex:1 1 auto; min-height:0; width:100%; height:100%;
-    object-fit:contain; background:transparent; cursor:zoom-in;
-  }
+  .list-pane.weekly-pane .weekly-card.on{ display:flex; }
   .list-pane.weekly-pane .weekly-card .cap{ flex:0 0 auto; text-align:center; border-top:0; }
-  /* 이미지 탭 → 2.2배 확대(스크롤로 이동), 다시 탭 → 원래대로 */
-  .list-pane.weekly-pane.zoomed .weekly-wrap{ scroll-snap-type:none; }
-  .list-pane.weekly-pane.zoomed .weekly-card{ height:auto; }
-  .list-pane.weekly-pane.zoomed .weekly-card img{
-    width:220%; height:auto; max-width:none; object-fit:initial; cursor:zoom-out;
+  /* 손가락 확대/축소 영역 */
+  .wk-view{
+    flex:1 1 auto; min-height:0; overflow:hidden; position:relative;
+    touch-action:none; cursor:grab;
+  }
+  .wk-view img{
+    width:100%; height:100%; display:block; object-fit:contain;
+    background:transparent; transform-origin:0 0; will-change:transform;
+    -webkit-user-drag:none; pointer-events:none;
+  }
+  .wk-view.zoomed{ cursor:grabbing; }
+  /* 확대 배율 표시 */
+  .wk-zoom{
+    position:absolute; right:10px; bottom:10px; z-index:3;
+    padding:5px 10px; border-radius:20px; background:rgba(30,27,22,.68); color:#fff;
+    font-size:12px; font-weight:800; letter-spacing:.06em; pointer-events:none;
+    opacity:0; transition:opacity .18s;
+  }
+  .wk-view.zoomed .wk-zoom{ opacity:1; }
+  /* 여러 장일 때 페이지 표시 */
+  .wk-page{
+    position:absolute; left:50%; transform:translateX(-50%); bottom:10px; z-index:3;
+    padding:5px 12px; border-radius:20px; background:rgba(30,27,22,.55); color:#fff;
+    font-size:12px; font-weight:800; letter-spacing:.08em; pointer-events:none;
+  }
+  .wk-hint{
+    position:absolute; left:50%; top:10px; transform:translateX(-50%); z-index:3;
+    padding:5px 12px; border-radius:20px; background:rgba(30,27,22,.45); color:#fff;
+    font-size:11px; font-weight:700; letter-spacing:.04em; pointer-events:none;
+    transition:opacity .4s;
   }
 
   /* 사진 패널 */
@@ -920,19 +939,22 @@
          edit:'삭제 & 수정', done:'완료', delAll:'전체삭제',
          delAllTitle:'전체삭제', delAllMsg:'사용자 정의 상품을 전체 삭제하시겠습니까?', delAllYes:'YES · 전체삭제',
          dup:'이미 사용자 정의에 추가된 상품입니다.',
-         empty:'사용자 정의 상품이 없습니다.<br>PLU 버튼을 길게 누르면 추가됩니다.' },
+         empty:'사용자 정의 상품이 없습니다.<br>PLU 버튼을 길게 누르면 추가됩니다.',
+         wkHint:'두 손가락으로 확대 · 축소 (더블탭 확대)' },
     EN:{ custom:'CUSTOM', addTitle:'ADD TO CUSTOM', addMsg:'Add PLU {p} to Custom?',
          yes:'YES · ADD', no:'NO · CANCEL', ok:'OK',
          edit:'EDIT & DELETE', done:'DONE', delAll:'DELETE ALL',
          delAllTitle:'DELETE ALL', delAllMsg:'Delete all custom items?', delAllYes:'YES · DELETE ALL',
          dup:'This item is already in Custom.',
-         empty:'No custom items yet.<br>Press and hold a PLU button to add it.' },
+         empty:'No custom items yet.<br>Press and hold a PLU button to add it.',
+         wkHint:'Pinch to zoom · double-tap to enlarge' },
     ES:{ custom:'PERSONALIZADO', addTitle:'AGREGAR A PERSONALIZADO', addMsg:'Agregar PLU {p} a Personalizado?',
          yes:'SI · AGREGAR', no:'NO · CANCELAR', ok:'ACEPTAR',
          edit:'EDITAR Y BORRAR', done:'LISTO', delAll:'BORRAR TODO',
          delAllTitle:'BORRAR TODO', delAllMsg:'Borrar todos los productos personalizados?', delAllYes:'SI · BORRAR TODO',
          dup:'Este producto ya esta en Personalizado.',
-         empty:'No hay productos personalizados.<br>Mantenga presionado un boton PLU para agregar.' }
+         empty:'No hay productos personalizados.<br>Mantenga presionado un boton PLU para agregar.',
+         wkHint:'Pellizque para acercar · doble toque' }
   };
   function T(k){ var m=STR[curLang]||STR.EN; return (m[k]!=null?m[k]:(STR.EN[k]||'')); }
 
@@ -1100,6 +1122,7 @@
       return null;
     }).filter(function(x){ return x&&x.url; });
   }
+  var wkPage=0;   // 현재 보고 있는 주간 광고 장 번호
   function renderWeekly(pane){
     var items=weeklyItems();
     pane.classList.remove('zoomed');
@@ -1111,13 +1134,179 @@
         '</div>';
       return;
     }
-    var html='<div class="weekly-wrap">';
-    items.forEach(function(it){
-      html+='<div class="weekly-card"><img src="'+esc(it.url)+'" alt="'+esc(it.title||'WEEKLY SALES')+'" loading="lazy">'+
+    if(wkPage>=items.length || wkPage<0) wkPage=0;
+    var multi=items.length>1;
+    var html='<div class="weekly-wrap" id="wkWrap">';
+    items.forEach(function(it,i){
+      html+='<div class="weekly-card'+(i===wkPage?' on':'')+'" data-i="'+i+'">'+
+        '<div class="wk-view">'+
+          '<img src="'+esc(it.url)+'" alt="'+esc(it.title||'WEEKLY SALES')+'" draggable="false">'+
+          '<div class="wk-zoom">100%</div>'+
+          (multi?('<div class="wk-page">'+(i+1)+' / '+items.length+'</div>'):'')+
+          '<div class="wk-hint">'+esc(T('wkHint'))+'</div>'+
+        '</div>'+
         (it.title?('<div class="cap">'+esc(it.title)+'</div>'):'')+'</div>';
     });
     html+='</div>';
     pane.innerHTML=html;
+    wkBind(pane.querySelector('#wkWrap'));
+    setTimeout(function(){
+      [].forEach.call(pane.querySelectorAll('.wk-hint'), function(h){ h.style.opacity='0'; });
+    }, 2600);
+  }
+
+  /* ===== 주간 광고 이미지 — 손가락 확대/축소(핀치) · 끌어서 이동 · 좌우 스와이프로 장 넘기기 ===== */
+  var WK_MAX=6, WK_MIN=1;
+  function wkState(v){ if(!v.__z) v.__z={ s:1, tx:0, ty:0 }; return v.__z; }
+  // 컨테이너 안에서 object-fit:contain 으로 실제 표시되는 이미지 사각형
+  function wkFit(v){
+    var img=v.querySelector('img'), cw=v.clientWidth, ch=v.clientHeight;
+    var nw=(img&&img.naturalWidth)||1, nh=(img&&img.naturalHeight)||1, ar=nw/nh;
+    var dw, dh, ox, oy;
+    if(ch*ar<=cw){ dh=ch; dw=ch*ar; } else { dw=cw; dh=cw/ar; }
+    ox=(cw-dw)/2; oy=(ch-dh)/2;
+    return { cw:cw, ch:ch, dw:dw, dh:dh, ox:ox, oy:oy };
+  }
+  function wkClamp(v){
+    var z=wkState(v), f=wkFit(v);
+    if(z.s<=WK_MIN+0.002){ z.s=WK_MIN; z.tx=0; z.ty=0; return; }
+    if(z.s>WK_MAX) z.s=WK_MAX;
+    var w=z.s*f.dw, h=z.s*f.dh;
+    if(w<=f.cw) z.tx=(f.cw-w)/2 - z.s*f.ox;
+    else z.tx=Math.min(-z.s*f.ox, Math.max(f.cw - z.s*(f.ox+f.dw), z.tx));
+    if(h<=f.ch) z.ty=(f.ch-h)/2 - z.s*f.oy;
+    else z.ty=Math.min(-z.s*f.oy, Math.max(f.ch - z.s*(f.oy+f.dh), z.ty));
+  }
+  function wkApply(v){
+    wkClamp(v);
+    var z=wkState(v), img=v.querySelector('img');
+    if(img) img.style.transform='translate('+z.tx.toFixed(2)+'px,'+z.ty.toFixed(2)+'px) scale('+z.s.toFixed(4)+')';
+    var zoomed=z.s>WK_MIN+0.002;
+    v.classList.toggle('zoomed', zoomed);
+    var badge=v.querySelector('.wk-zoom'); if(badge) badge.textContent=Math.round(z.s*100)+'%';
+    var pane=$('listPane'); if(pane) pane.classList.toggle('zoomed', zoomed);
+  }
+  function wkReset(v){ if(v){ v.__z={ s:1, tx:0, ty:0 }; wkApply(v); } }
+  // 화면상의 한 점(px,py = 컨테이너 기준)을 고정한 채 배율 변경
+  function wkZoomAt(v, factor, px, py){
+    var z=wkState(v);
+    var ns=Math.max(WK_MIN, Math.min(WK_MAX, z.s*factor));
+    var k=ns/z.s;
+    z.tx=px-k*(px-z.tx); z.ty=py-k*(py-z.ty); z.s=ns;
+    wkApply(v);
+  }
+  function wkGo(step){
+    var wrap=document.getElementById('wkWrap'); if(!wrap) return;
+    var cards=wrap.querySelectorAll('.weekly-card'); if(cards.length<2) return;
+    var n=(wkPage+step+cards.length)%cards.length;
+    if(n===wkPage) return;
+    wkReset(cards[wkPage].querySelector('.wk-view'));
+    cards[wkPage].classList.remove('on');
+    wkPage=n; cards[wkPage].classList.add('on');
+    wkApply(cards[wkPage].querySelector('.wk-view'));
+  }
+  var wkG={ v:null, n:0, sx:0, sy:0, tx0:0, ty0:0, s0:1, d0:0, mx0:0, my0:0, moved:false, lastTap:0, lastX:0, lastY:0, drag:false };
+  function wkPt(v, cx, cy){ var r=v.getBoundingClientRect(); return { x:cx-r.left, y:cy-r.top }; }
+  function wkDist(a,b){ var dx=a.clientX-b.clientX, dy=a.clientY-b.clientY; return Math.sqrt(dx*dx+dy*dy)||1; }
+  function wkBind(wrap){
+    if(!wrap || wrap.__bound) return; wrap.__bound=true;
+
+    wrap.addEventListener('touchstart', function(e){
+      var v=e.target.closest('.wk-view') || wrap.querySelector('.weekly-card.on .wk-view');
+      if(!v) return;
+      wkG.v=v; wkG.n=e.touches.length; wkG.moved=false;
+      var z=wkState(v);
+      if(e.touches.length>=2){
+        var a=e.touches[0], b=e.touches[1], m=wkPt(v,(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);
+        wkG.d0=wkDist(a,b); wkG.mx0=m.x; wkG.my0=m.y;
+        wkG.s0=z.s; wkG.tx0=z.tx; wkG.ty0=z.ty;
+      } else {
+        wkG.sx=e.touches[0].clientX; wkG.sy=e.touches[0].clientY;
+        wkG.tx0=z.tx; wkG.ty0=z.ty; wkG.s0=z.s;
+      }
+      e.preventDefault();
+    }, { passive:false });
+
+    wrap.addEventListener('touchmove', function(e){
+      var v=wkG.v; if(!v) return;
+      e.preventDefault();
+      var z=wkState(v);
+      if(e.touches.length>=2){
+        // 두 손가락 핀치 — 두 손가락 중점을 고정한 채 확대/축소 (동시에 이동도 가능)
+        var a=e.touches[0], b=e.touches[1];
+        var m=wkPt(v,(a.clientX+b.clientX)/2,(a.clientY+b.clientY)/2);
+        var ns=Math.max(WK_MIN, Math.min(WK_MAX, wkG.s0*(wkDist(a,b)/wkG.d0)));
+        var k=ns/wkG.s0;
+        z.s=ns;
+        z.tx=m.x-k*(wkG.mx0-wkG.tx0);
+        z.ty=m.y-k*(wkG.my0-wkG.ty0);
+        wkG.moved=true;
+        wkApply(v);
+        return;
+      }
+      var dx=e.touches[0].clientX-wkG.sx, dy=e.touches[0].clientY-wkG.sy;
+      if(Math.abs(dx)>6||Math.abs(dy)>6) wkG.moved=true;
+      if(z.s>WK_MIN+0.002){
+        // 확대 상태 — 한 손가락으로 이미지 이동
+        z.tx=wkG.tx0+dx; z.ty=wkG.ty0+dy; wkApply(v);
+      }
+    }, { passive:false });
+
+    wrap.addEventListener('touchend', function(e){
+      var v=wkG.v; if(!v) return;
+      var z=wkState(v);
+      if(e.touches.length===0){
+        if(wkG.n===1 && z.s<=WK_MIN+0.002 && wkG.moved){
+          // 원본 크기일 때 좌우 스와이프 → 다음/이전 장
+          var ch=e.changedTouches[0], dx=ch.clientX-wkG.sx, dy=ch.clientY-wkG.sy;
+          if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)) wkGo(dx<0?1:-1);
+        }
+        if(wkG.n===1 && !wkG.moved){
+          // 더블탭 → 2.5배 확대 / 원래대로
+          var ct=e.changedTouches[0], now=Date.now();
+          var near=Math.abs(ct.clientX-wkG.lastX)<40 && Math.abs(ct.clientY-wkG.lastY)<40;
+          if(now-wkG.lastTap<320 && near){
+            var p=wkPt(v, ct.clientX, ct.clientY);
+            if(z.s>WK_MIN+0.002) wkReset(v); else wkZoomAt(v, 2.5, p.x, p.y);
+            wkG.lastTap=0;
+          } else { wkG.lastTap=now; wkG.lastX=ct.clientX; wkG.lastY=ct.clientY; }
+        }
+        wkApply(v); wkG.v=null; wkG.n=0;
+      } else if(e.touches.length===1){
+        // 두 손가락 중 하나를 뗀 경우 — 남은 손가락 기준으로 이동 계속
+        wkG.n=1; wkG.moved=true;
+        wkG.sx=e.touches[0].clientX; wkG.sy=e.touches[0].clientY;
+        wkG.tx0=z.tx; wkG.ty0=z.ty; wkG.s0=z.s;
+      }
+    }, { passive:false });
+    wrap.addEventListener('touchcancel', function(){ if(wkG.v) wkApply(wkG.v); wkG.v=null; wkG.n=0; });
+
+    // 데스크톱(마우스) — 휠 확대/축소 · 끌어서 이동 · 더블클릭 확대
+    wrap.addEventListener('wheel', function(e){
+      var v=e.target.closest('.wk-view') || wrap.querySelector('.weekly-card.on .wk-view');
+      if(!v) return;
+      e.preventDefault();
+      var p=wkPt(v, e.clientX, e.clientY);
+      wkZoomAt(v, e.deltaY<0?1.15:1/1.15, p.x, p.y);
+    }, { passive:false });
+    wrap.addEventListener('mousedown', function(e){
+      var v=e.target.closest('.wk-view'); if(!v) return;
+      var z=wkState(v); if(z.s<=WK_MIN+0.002) return;
+      wkG.drag=true; wkG.v=v; wkG.sx=e.clientX; wkG.sy=e.clientY; wkG.tx0=z.tx; wkG.ty0=z.ty;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', function(e){
+      if(!wkG.drag||!wkG.v) return;
+      var z=wkState(wkG.v);
+      z.tx=wkG.tx0+(e.clientX-wkG.sx); z.ty=wkG.ty0+(e.clientY-wkG.sy);
+      wkApply(wkG.v);
+    });
+    window.addEventListener('mouseup', function(){ wkG.drag=false; });
+    wrap.addEventListener('dblclick', function(e){
+      var v=e.target.closest('.wk-view'); if(!v) return;
+      var z=wkState(v), p=wkPt(v, e.clientX, e.clientY);
+      if(z.s>WK_MIN+0.002) wkReset(v); else wkZoomAt(v, 2.5, p.x, p.y);
+    });
   }
 
   // (요구2) 카테고리(CATE) 버튼 그리드 — 가로5 세로6, 영어 크게/한글 작게
@@ -1259,12 +1448,7 @@
   // 리스트 영역 위임: CATE 버튼 → 상품 리스트, 상품 → 사진
   $('listPane').addEventListener('click', function(e){
     if(Date.now()<suppressUntil){ suppressUntil=0; return; }   // 롱프레스·드래그 직후 유령 클릭 무시
-    // 주간 광고 이미지 탭 → 확대/축소
-    if(curCat==='WEEKLY'){
-      var wimg=e.target.closest('.weekly-card img');
-      if(wimg){ this.classList.toggle('zoomed'); return; }
-      return;
-    }
+    if(curCat==='WEEKLY') return;                              // 주간 광고 화면은 제스처(핀치/드래그)로만 조작
     // 사용자 정의 헤더 버튼 (삭제&수정 / 전체삭제)
     var ab=e.target.closest('.crumb-btn');
     if(ab){
