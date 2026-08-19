@@ -4,6 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>H-MART · THE SHAWN</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="H-MART">
+<meta name="theme-color" content="#9C3327">
+<script>
+/* ── 홈 화면 앱(H-MART 아이콘)으로 실행됐는지 판별 ──
+   index.html?app=HMART 런처가 세션에 표시를 남기고 이 페이지로 보낸다.
+   홈 앱 모드에서는 CANCEL·로그아웃이 INDEX 로 나가지 않고 H-MART 로그인 화면으로 돌아온다. */
+(function(){
+  'use strict';
+  var standalone = (navigator.standalone===true) ||
+                   (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  var marked=false;
+  try{ marked = sessionStorage.getItem('ppHomeApp')==='HMART'; }catch(e){}
+  if(standalone && !marked){                       // 아이콘에서 바로 이 주소로 들어온 경우도 홈 앱으로 인정
+    try{ sessionStorage.setItem('ppHomeApp','HMART'); }catch(e){}
+    marked=true;
+  }
+  window.PP_HOME_APP = standalone && marked;
+  // 홈 앱이면 H-MART 로그인 화면으로, 아니면 기존대로 INDEX 로
+  window.PP_EXIT = function(){
+    if(window.PP_HOME_APP){ location.replace(location.pathname); return; }
+    location.replace('../index.html');
+  };
+})();
+</script>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   :root {
@@ -559,7 +586,7 @@
     fillStoreSel(); loadStores();
     document.getElementById('hmgPinEnter').onclick=submitPin;
     document.getElementById('hmgAcctEnter').onclick=submitAcct;
-    document.getElementById('hmgCancel').onclick=function(){ location.replace('../index.html'); };
+    document.getElementById('hmgCancel').onclick=function(){ if(window.PP_EXIT) window.PP_EXIT(); else location.replace('../index.html'); };
     document.getElementById('hmgStorePin').addEventListener('keydown',function(e){ if(e.key==='Enter') submitPin(); });
     document.getElementById('hmgStoreId').addEventListener('change',function(){ document.getElementById('hmgStorePin').focus(); });
     document.getElementById('hmgAcctPw').addEventListener('keydown',function(e){ if(e.key==='Enter') submitAcct(); });
@@ -927,6 +954,7 @@
     try{ sessionStorage.removeItem('hmGateAuth3'); }catch(e){}
     try{ sessionStorage.removeItem('hmartAuth'); }catch(e){}
     try{ sessionStorage.removeItem('hmartGate'); }catch(e){}
+    if(window.PP_EXIT){ window.PP_EXIT(); return; }   // 홈 앱이면 H-MART 로그인 화면으로 복귀
     window.location.href = '../index.html';
   }
   $('hmLogoutFab').onclick = function(){ doLogout(); };   // 뒤로가기 = 항상 로그아웃 후 INDEX
