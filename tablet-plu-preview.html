@@ -313,8 +313,8 @@
     flex:1 1 auto; min-height:0; overflow:auto; background:var(--panel);
     border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh-2);
   }
+  /* 하단부 높이 = 사진 박스 크기. 키보드 모드가 바뀌어도 절대 변하지 않는다 */
   .lower{ flex:0 0 auto; height:clamp(150px, 21.5vh, 208px); display:flex; gap:12px; min-height:0; padding-bottom:0; }
-  body.kbd-tall .lower{ height:clamp(196px, 29vh, 296px); }   /* 한국어+영어 동시(6줄) */
   .kbd-panel{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0; overflow:hidden; }
   .kbd-topbar{ flex:0 0 auto; display:flex; gap:10px; align-items:stretch; min-width:0; }
   .kbd-topbar .lang-row{ flex:1 1 auto; min-width:0; }
@@ -535,12 +535,13 @@
   .kbd-keys.qwerty .kbd-key.shift.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
 
   /* 모드별 키 크기 — 줄 수가 적을수록 키가 커진다 */
-  .kbd-keys.mode-ALL  .kbd-letters{ --kmax:44px; --kfs:18px; }
-  .kbd-keys.mode-EN   .kbd-letters{ --kfs:30px; }
-  .kbd-keys.mode-KO   .kbd-letters{ --kfs:29px; }
-  .kbd-keys.mode-BOTH .kbd-letters{ --kfs:22px; }
-  .kbd-keys.mode-BOTH .kbd-key.shift{ font-size:11px; }
+  .kbd-keys.mode-EN   .kbd-letters{ --kmax:92px; --kfs:30px; }
+  .kbd-keys.mode-KO   .kbd-letters{ --kmax:74px; --kfs:29px; }
   .kbd-keys.mode-NUM  .kbd-letters{ --kmax:132px; --kfs:38px; }
+  /* 한국어+영어 동시 = 6줄 → 사진 박스 높이는 그대로 두고 키를 작게 */
+  .kbd-keys.mode-BOTH .kbd-letters{ --kfs:15px; }
+  .kbd-keys.mode-BOTH .kbd-key{ border-radius:7px; }
+  .kbd-keys.mode-BOTH .kbd-key.shift{ font-size:9.5px; letter-spacing:0; }
 
   /* 기능키 */
   .kbd-key.fn{
@@ -553,11 +554,10 @@
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
 
   @media (max-height:790px){
-    .kbd-keys.mode-ALL  .kbd-letters{ --kmax:38px; --kfs:17px; }
-    .kbd-keys.mode-EN   .kbd-letters{ --kfs:27px; }
-    .kbd-keys.mode-KO   .kbd-letters{ --kfs:26px; }
-    .kbd-keys.mode-BOTH .kbd-letters{ --kfs:20px; }
+    .kbd-keys.mode-EN   .kbd-letters{ --kmax:84px; --kfs:27px; }
+    .kbd-keys.mode-KO   .kbd-letters{ --kmax:68px; --kfs:26px; }
     .kbd-keys.mode-NUM  .kbd-letters{ --kmax:120px; --kfs:34px; }
+    .kbd-keys.mode-BOTH .kbd-letters{ --kfs:14px; }
     .kbd-keys.qwerty .kbd-key.shift{ font-size:12px; }
     .kbd-mode .m1{ font-size:12px; }
     .lower{ height:clamp(142px, 20vh, 176px); }
@@ -1873,7 +1873,7 @@
   /* ===== 검색 키보드 (요구2~6) ===== */
 
   var searching=false;       // 검색 팝업 열림 상태
-  var kbdMode='ALL';         // 키보드 표시 모드 ALL(기본·ABC순) / KO / EN / NUM / BOTH
+  var kbdMode='EN';          // 키보드 표시 모드 EN(기본·ABC순) / KO(ㄱㄴㄷ순) / NUM / BOTH
   // 영문: ABC 순
   var KB_EN=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
   // 한글: 자음(ㄱㄴㄷ...) 먼저, 그 다음 모음(ㅏㅓㅗ...)
@@ -1885,24 +1885,32 @@
   ];
   var KB_NUM=['1','2','3','4','5','6','7','8','9','0'];
   // 키보드 모드
-  //   ALL  : 처음 화면 — QWERTY 이전의 ABC 순 배열 (영문 + 한글 함께, 4줄)
-  //   KO/EN: 첫 번째 버튼 토글 — 누를 때마다 한국어 ⇄ 영어 (QWERTY, 3줄)
+  //   EN   : 처음 화면 — ABC 순 (A~I / J~R / S~Z, 3줄)
+  //   KO   : 첫 번째 버튼 토글로 전환 — ㄱㄴㄷ 순 (3줄)
   //   NUM  : 두 번째 버튼 — 숫자 (3줄)
-  //   BOTH : 세 번째 버튼 '한국어/영어' — QWERTY 로 한글·영문 키패드를 함께 (6줄)
-  var kbdLang='KO';          // 첫 번째 토글 버튼이 가리키는 언어
-  var kbdShift=false;        // 한글 SHIFT (쌍자음)
+  //   BOTH : 세 번째 버튼 '한국어/영어' — QWERTY 로 한글·영문을 함께 (6줄, 사진 박스 높이는 그대로)
+  var kbdLang='EN';          // 첫 번째 토글 버튼이 가리키는 언어
+  var kbdShift=false;        // 한글 SHIFT (쌍자음) — BOTH(두벌식)에서만 사용
 
-  // ABC 순 (QWERTY 이전 배열)
-  var ABC_EN=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-  var ABC_KO=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ',
-              'ㅏ','ㅓ','ㅗ','ㅕ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ'];
-  // 영문 QWERTY
+  // ── 기본 배열: ABC 순 / ㄱㄴㄷ 순 ──
+  var ABC_EN=[
+    ['A','B','C','D','E','F','G','H','I'],
+    ['J','K','L','M','N','O','P','Q','R'],
+    ['S','T','U','V','W','X','Y','Z']
+  ];
+  var ABC_KO=[
+    ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ'],
+    ['ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ','ㅏ','ㅓ','ㅗ'],
+    ['ㅕ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
+  ];
+  var NUM_ROWS=[['1','2','3','4'],['5','6','7','8'],['9','0']];
+
+  // ── 한국어/영어 동시 보기용 QWERTY 배열 ──
   var QW_EN=[
     ['Q','W','E','R','T','Y','U','I','O','P'],
     ['A','S','D','F','G','H','J','K','L'],
     ['Z','X','C','V','B','N','M']
   ];
-  // 한글 두벌식 QWERTY (기본 / SHIFT)
   var QW_KO=[
     ['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],
     ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
@@ -1913,68 +1921,57 @@
     ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
     ['ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ']
   ];
-  var QW_NUM=[['1','2','3','4'],['5','6','7','8'],['9','0']];
 
   function renderKeyboard(){
     var bar=$('kbdBar'); if(!bar) return;
     function keyBtn(k,cls){ return '<button class="kbd-key '+cls+'" data-k="'+k+'">'+k+'</button>'; }
-    // off = 줄 시작을 반 칸 단위로 밀어 QWERTY 계단 배열을 만든다
+    // off = QWERTY 에서 줄 시작을 반 칸씩 밀어 계단 배열을 만든다 (기본 배열은 0)
     function line(arr,cls,off){
       return '<div class="kbd-line" data-off="'+(off||0)+'">'+
         arr.map(function(k){ return keyBtn(k,cls); }).join('')+'</div>';
     }
-    // 한글 QWERTY 3줄 (마지막 줄 앞에 SHIFT)
-    function koQwerty(){
-      var L = kbdShift ? QW_KO_SHIFT : QW_KO;
-      return line(L[0],'g-ko',0) + line(L[1],'g-ko',1) +
-        '<div class="kbd-line" data-off="1">'+
-          '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">⇧ 쌍자음</button>'+
-          L[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
-        '</div>';
-    }
+    function rowsOf(set,cls){ return set.map(function(r){ return line(r,cls,0); }).join(''); }
 
-    var mode = kbdMode;
-    var lines='', rows=3, qwerty=true;
-    if(mode==='ALL'){                       // 처음 화면 — ABC 순 4줄
-      qwerty=false; rows=4;
-      lines = line(ABC_EN.slice(0,16),'g-en',0) + line(ABC_EN.slice(16),'g-en',0) +
-              line(ABC_KO.slice(0,16),'g-ko',0) + line(ABC_KO.slice(16),'g-ko',0);
-    } else if(mode==='EN'){
-      lines = line(QW_EN[0],'g-en',0) + line(QW_EN[1],'g-en',1) + line(QW_EN[2],'g-en',3);
-    } else if(mode==='KO'){
-      lines = koQwerty();
-    } else if(mode==='BOTH'){               // 한국어 + 영어 동시 (QWERTY 6줄)
-      rows=6;
-      lines = line(QW_EN[0],'g-en',0) + line(QW_EN[1],'g-en',1) + line(QW_EN[2],'g-en',3) + koQwerty();
-    } else {                                 // NUM
-      qwerty=false;
-      lines = line(QW_NUM[0],'g-num',0) + line(QW_NUM[1],'g-num',0) + line(QW_NUM[2],'g-num',0);
+    var mode=kbdMode, lines='', rows=3, qwerty=false;
+    if(mode==='KO'){
+      lines = rowsOf(ABC_KO,'g-ko');
+    } else if(mode==='NUM'){
+      lines = rowsOf(NUM_ROWS,'g-num');
+    } else if(mode==='BOTH'){                 // QWERTY 로 영문 3줄 + 한글 3줄
+      rows=6; qwerty=true;
+      var K = kbdShift ? QW_KO_SHIFT : QW_KO;
+      lines = line(QW_EN[0],'g-en',0) + line(QW_EN[1],'g-en',1) + line(QW_EN[2],'g-en',3) +
+              line(K[0],'g-ko',0) + line(K[1],'g-ko',1) +
+              '<div class="kbd-line" data-off="1">'+
+                '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">⇧ 쌍자음</button>'+
+                K[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
+              '</div>';
+    } else {                                   // EN — 처음 화면
+      mode='EN';
+      lines = rowsOf(ABC_EN,'g-en');
     }
-    // 6줄이면 키패드 영역을 조금 키운다 (가운데 리스트가 그만큼 줄어듦)
-    document.body.classList.toggle('kbd-tall', rows===6);
 
     // 기능키·선택버튼이 글자 줄과 정확히 맞도록 차지할 줄 수를 계산
-    var span = (rows===4) ? [2,1,1] : (rows===6 ? [2,2,2] : [1,1,1]);
-    function sp(i){ return span[i]>1 ? ' sp2' : ''; }
+    var sp2 = (rows===6) ? ' sp2' : '';
 
     var letters='<div class="kbd-letters">'+lines+'</div>';
 
     var funcs='<div class="kbd-funcs">'+
-      '<button class="kbd-key fn del backsp'+sp(0)+'" data-act="del">BACKSPACE</button>'+
-      '<button class="kbd-key fn del clr'+sp(1)+'" data-act="clear">DELETE</button>'+
-      '<button class="kbd-key fn del backk'+sp(2)+'" data-act="back">← BACK</button>'+
+      '<button class="kbd-key fn del backsp'+sp2+'" data-act="del">BACKSPACE</button>'+
+      '<button class="kbd-key fn del clr'+sp2+'" data-act="clear">DELETE</button>'+
+      '<button class="kbd-key fn del backk'+sp2+'" data-act="back">← BACK</button>'+
       '</div>';
 
     // 1) 한국어⇄영어 토글  2) 숫자  3) 한국어/영어 동시
     var langOn = (mode==='KO'||mode==='EN');
-    var shownLang = langOn ? mode : kbdLang;
+    var shown = langOn ? mode : kbdLang;
     var modes='<div class="kbd-modes">'+
-      '<button class="kbd-mode'+(langOn?' on':'')+sp(0)+'" data-mode="TOGGLE">'+
-        '<span class="m1">'+(shownLang==='KO'?'한국어':'영어')+'</span>'+
-        '<span class="m2">'+(shownLang==='KO'?'KOREAN':'ENGLISH')+'</span></button>'+
-      '<button class="kbd-mode'+(mode==='NUM'?' on':'')+sp(1)+'" data-mode="NUM">'+
+      '<button class="kbd-mode'+(langOn?' on':'')+sp2+'" data-mode="TOGGLE">'+
+        '<span class="m1">'+(shown==='KO'?'한국어':'영어')+'</span>'+
+        '<span class="m2">'+(shown==='KO'?'KOREAN':'ENGLISH')+'</span></button>'+
+      '<button class="kbd-mode'+(mode==='NUM'?' on':'')+sp2+'" data-mode="NUM">'+
         '<span class="m1">숫자</span><span class="m2">NUMBER</span></button>'+
-      '<button class="kbd-mode both'+(mode==='BOTH'?' on':'')+sp(2)+'" data-mode="BOTH">'+
+      '<button class="kbd-mode both'+(mode==='BOTH'?' on':'')+sp2+'" data-mode="BOTH">'+
         '<span class="m1">한국어/영어</span><span class="m2">KOR / ENG</span></button>'+
       '</div>';
 
