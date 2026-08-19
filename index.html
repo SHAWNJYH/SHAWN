@@ -2,6 +2,141 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+/* ============================================================================
+   HOME SCREEN LAUNCHER  —  아이패드 홈 화면 아이콘 (메뉴별 개별 설치)
+     index.html?app=KEY 로 열리면 이 페이지가 해당 메뉴의 "런처"가 된다.
+       · 홈 화면 아이콘 이름 / 아이콘 이미지를 KEY별로 다르게 지정
+       · 홈 화면 아이콘으로 실행되면(standalone) 즉시 해당 메뉴로 이동
+         → INDEX 를 거치지 않음. 각 메뉴의 로그인·비밀번호 화면부터 정상 진행
+       · Safari 에서 열면 "홈 화면에 추가" 안내를 표시
+   ========================================================================== */
+(function(){
+  'use strict';
+  var APPS = window.PP_APPS = [
+    { key:'HMART',      name:'H-MART',      sub:'매장 관리',    path:'HMART/hmart.html',                              color:'#9C3327', mark:'H'  },
+    { key:'CAMPEON',    name:'CAMPEON',     sub:'도매 관리',    path:'WHOLSALE/sales-management-campeonwholsale.html', color:'#2F5D46', mark:'CW' },
+    { key:'ADVIEWER',   name:'AD VIEWER',   sub:'광고상품 보기', path:'advertising-viewer.html',                       color:'#A98A55', mark:'AD' },
+    { key:'NEWITEM',    name:'NEW ITEM',    sub:'신상품 보기',   path:'newitem-viewer.html',                           color:'#3B556F', mark:'NI' },
+    { key:'PLUMEM',     name:'PLU MEMORIZE',sub:'PLU 암기 연습', path:'TOOLS/plu-quiz.html',                           color:'#55506B', mark:'PM' },
+    { key:'PLUPREVIEW', name:'PLU PREVIEW', sub:'PLU 미리보기',  path:'tablet-plu-preview.html',                       color:'#1E1B16', mark:'PP' }
+  ];
+  var TKEY='ppInstallTargets';
+  window.PP_TARGET=function(k){
+    var a=null; APPS.forEach(function(x){ if(x.key===k) a=x; }); if(!a) return '';
+    var o={}; try{ o=JSON.parse(localStorage.getItem(TKEY)||'{}')||{}; }catch(e){}
+    return String(o[k]||a.path);
+  };
+  window.PP_SET_TARGET=function(k,v){
+    var o={}; try{ o=JSON.parse(localStorage.getItem(TKEY)||'{}')||{}; }catch(e){}
+    o[k]=String(v||'').trim(); try{ localStorage.setItem(TKEY, JSON.stringify(o)); }catch(e){}
+  };
+  // 메뉴별 아이콘을 코드로 생성 (별도 이미지 파일 불필요)
+  window.PP_ICON=function(app,size){
+    var c=document.createElement('canvas'); c.width=c.height=size;
+    var g=c.getContext('2d'), s=size;
+    g.fillStyle=app.color; g.fillRect(0,0,s,s);              // iOS 가 모서리를 둥글게 잘라줌
+    g.fillStyle='rgba(255,255,255,.10)';
+    g.beginPath(); g.arc(s*0.78, s*0.16, s*0.46, 0, Math.PI*2); g.fill();
+    g.fillStyle='#fff'; g.textAlign='center'; g.textBaseline='middle';
+    g.font='800 '+(app.mark.length>1 ? s*0.36 : s*0.50)+'px -apple-system,"Helvetica Neue",Arial,sans-serif';
+    g.fillText(app.mark, s/2, s*0.44);
+    g.fillStyle='rgba(255,255,255,.72)';
+    g.font='700 '+(s*0.088)+'px -apple-system,"Helvetica Neue",Arial,sans-serif';
+    g.fillText('THE SHAWN', s/2, s*0.775);
+    return c.toDataURL('image/png');
+  };
+
+  var qs; try{ qs=new URLSearchParams(location.search); }catch(e){ qs=null; }
+  var key = qs ? String(qs.get('app')||'').toUpperCase().trim() : '';
+  if(!key) return;                                   // 일반 실행 → 개입 없음
+  var app=null; APPS.forEach(function(x){ if(x.key===key) app=x; });
+  if(!app) return;
+
+  window.__ppLauncher = true;                        // INDEX 본체·기존 PWA 버튼 중단 신호
+
+  // 홈 화면 아이콘 실행 → 해당 메뉴로 즉시 이동 (INDEX 를 거치지 않음)
+  var standalone = (navigator.standalone===true) ||
+                   (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  if(standalone){
+    try{ sessionStorage.setItem('ppHomeApp', app.key); }catch(e){}
+    try{ localStorage.setItem('ppHomeApp', app.key); }catch(e){}
+    location.replace(window.PP_TARGET(app.key));
+    return;
+  }
+
+  function head(){ return document.head || document.getElementsByTagName('head')[0]; }
+  function meta(n,v){ var m=document.querySelector('meta[name="'+n+'"]'); if(!m){ m=document.createElement('meta'); m.setAttribute('name',n); head().appendChild(m); } m.setAttribute('content',v); }
+  var icon180=null;
+  function applyIdentity(){
+    // INDEX 전체용 매니페스트·아이콘은 제거하고, 이 메뉴 전용으로 교체
+    [].forEach.call(document.querySelectorAll('link[rel="manifest"], link[rel="apple-touch-icon"], link[rel="apple-touch-icon-precomposed"]'),
+      function(l){ if(l.parentNode) l.parentNode.removeChild(l); });
+    document.title = app.name;
+    meta('apple-mobile-web-app-title', app.name);
+    meta('apple-mobile-web-app-capable','yes');
+    meta('mobile-web-app-capable','yes');
+    meta('apple-mobile-web-app-status-bar-style','default');
+    meta('theme-color', app.color);
+    icon180 = icon180 || window.PP_ICON(app,180);
+    function link(rel,href,extra){ var l=document.createElement('link'); l.rel=rel; l.href=href;
+      if(extra) for(var k in extra) l.setAttribute(k,extra[k]); head().appendChild(l); }
+    link('apple-touch-icon', icon180, { sizes:'180x180' });
+    link('apple-touch-icon', window.PP_ICON(app,167), { sizes:'167x167' });
+    link('icon', icon180, { type:'image/png', sizes:'180x180' });
+    try{
+      var mf={ name:app.name, short_name:app.name, display:'standalone', orientation:'any',
+        start_url: location.pathname+'?app='+app.key, background_color:'#EDEAE3', theme_color:app.color,
+        icons:[{src:icon180,sizes:'180x180',type:'image/png'},{src:window.PP_ICON(app,512),sizes:'512x512',type:'image/png'}] };
+      link('manifest', URL.createObjectURL(new Blob([JSON.stringify(mf)],{type:'application/manifest+json'})));
+    }catch(e){}
+  }
+  applyIdentity();
+
+  // Safari 에서 열림 → "홈 화면에 추가" 안내
+  function guide(){
+    applyIdentity();                                  // head 파싱 완료 후 한 번 더 (기존 링크 확실히 제거)
+    var st=document.createElement('style');
+    st.textContent=
+      'html.pp-launcher body > *{ display:none !important; }'+
+      'html.pp-launcher body > #ppLaunchOv{ display:flex !important; }'+
+      '#ppLaunchOv{ position:fixed; inset:0; z-index:2147483600; background:#EDEAE3; display:flex;'+
+        'align-items:center; justify-content:center; padding:24px;'+
+        'font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif; color:#1E1B16; }'+
+      '#ppLaunchOv .c{ width:min(520px,100%); background:#FFFDFA; border:1px solid #E4DFD4; border-radius:20px;'+
+        'padding:34px 30px 28px; text-align:center; box-shadow:0 32px 80px -28px rgba(30,27,22,.5); }'+
+      '#ppLaunchOv img.ic{ width:88px; height:88px; border-radius:20px; display:block; margin:0 auto 18px; box-shadow:0 10px 24px -12px rgba(30,27,22,.6); }'+
+      '#ppLaunchOv h1{ margin:0 0 4px; font-size:22px; font-weight:700; letter-spacing:-.01em; }'+
+      '#ppLaunchOv .sub{ font-size:11px; font-weight:700; letter-spacing:.2em; color:#8C8578; margin-bottom:22px; }'+
+      '#ppLaunchOv ol{ text-align:left; margin:0; padding:0 0 0 20px; font-size:14px; line-height:2.0; color:#4C463C; }'+
+      '#ppLaunchOv ol b{ color:#1E1B16; }'+
+      '#ppLaunchOv .note{ margin-top:20px; padding-top:16px; border-top:1px solid #E4DFD4; font-size:12px; color:#8C8578; line-height:1.8; }'+
+      '#ppLaunchOv .back{ margin-top:20px; width:100%; padding:14px; border-radius:12px; border:1px solid #1E1B16;'+
+        'background:#1E1B16; color:#fff; font-size:13px; font-weight:700; letter-spacing:.06em; font-family:inherit; cursor:pointer; }';
+    document.head.appendChild(st);
+    var d=document.createElement('div'); d.id='ppLaunchOv';
+    d.innerHTML='<div class="c">'+
+      '<img class="ic" src="'+icon180+'" alt="">'+
+      '<h1>'+app.name+'</h1><div class="sub">HOME SCREEN INSTALL</div>'+
+      '<ol>'+
+        '<li>화면 위(또는 아래) <b>공유 버튼 &#x2191;</b> 를 누릅니다.</li>'+
+        '<li>메뉴에서 <b>홈 화면에 추가</b> 를 선택합니다.</li>'+
+        '<li>이름이 <b>'+app.name+'</b> 인지 확인하고 <b>추가</b> 를 누릅니다.</li>'+
+      '</ol>'+
+      '<div class="note">홈 화면 아이콘으로 실행하면 INDEX 를 거치지 않고 <b>'+app.name+'</b> 으로 바로 들어갑니다.<br>'+
+      '로그인·비밀번호 화면은 평소와 똑같이 표시됩니다.<br>반드시 <b>Safari</b> 에서 진행하세요 (크롬은 홈 화면 추가 불가).</div>'+
+      '<button class="back" type="button" id="ppLaunchBack">&#8592; 돌아가기</button>'+
+      '</div>';
+    (document.body||document.documentElement).appendChild(d);
+    document.documentElement.classList.add('pp-launcher');
+    var bt=document.getElementById('ppLaunchBack');
+    if(bt) bt.onclick=function(){ location.replace(location.pathname); };
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', guide);
+  else guide();
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>THE SHAWN</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
@@ -35,8 +170,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="TABLET-icon-192.png">
 <script>
-/* ── PWA: 서비스워커 등록 + 우상단 원탭 설치 버튼 ── */
+/* ── PWA: 서비스워커 등록 + 우상단 원탭 설치 버튼 ──
+   ※ 우상단 원탭 버튼은 새 INSTALL 패널(메뉴별 개별 설치)로 대체됨 → 버튼 생성만 중단, SW 등록은 유지 */
 (function(){
+  if (window.__ppLauncher) return;                 // 홈 화면 설치 런처 모드
+  var LEGACY_BTN = false;                          // true 로 바꾸면 예전 '📲 앱 설치' 버튼이 다시 나옴
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     try { navigator.serviceWorker.register('TABLET-sw.js'); } catch(e){}
   }
@@ -46,6 +184,7 @@
   var deferred = null;
 
   function makeBtn(){
+    if (!LEGACY_BTN) return;
     if (document.getElementById('pwaInstallBtn')) return;
     var b = document.createElement('button');
     b.id = 'pwaInstallBtn'; b.type = 'button';
@@ -4751,6 +4890,161 @@
 </script>
 
 
+
+
+<!-- ===== 홈 화면 설치 (INSTALL) ===== -->
+<style>
+  #ppInstBtn{
+    position:fixed; top:14px; right:14px; z-index:2147483000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    padding:9px 15px; border-radius:11px; cursor:pointer;
+    border:1px solid #1E1B16; background:#1E1B16; color:#fff;
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif;
+    box-shadow:0 8px 22px -10px rgba(30,27,22,.7); transition:all .16s ease;
+  }
+  #ppInstBtn:active{ background:#000; transform:translateY(1px); }
+  #ppInstBtn .t{ font-size:8px; font-weight:700; letter-spacing:.18em; color:rgba(255,255,255,.55); }
+  #ppInstBtn .b{ font-size:12px; font-weight:800; letter-spacing:.08em; line-height:1.15; }
+
+  .ppi-ov{ position:fixed; inset:0; z-index:2147483200; display:none; align-items:center; justify-content:center;
+    background:rgba(30,27,22,.5); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); padding:20px;
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,sans-serif; color:#1E1B16; }
+  .ppi-ov.show{ display:flex; }
+
+  /* 비밀번호 */
+  .ppi-pin{ width:340px; max-width:100%; background:#FFFDFA; border:1px solid #E4DFD4; border-radius:18px;
+    padding:34px 34px 28px; text-align:center; box-shadow:0 32px 80px -28px rgba(30,27,22,.5); }
+  .ppi-pin h2{ margin:0 0 6px; font-size:21px; font-weight:700; letter-spacing:-.01em; }
+  .ppi-pin .s{ font-size:11px; color:#8C8578; margin-bottom:22px; letter-spacing:.04em; }
+  .ppi-disp{ font-size:26px; letter-spacing:14px; text-indent:14px; height:40px; font-weight:700; }
+  .ppi-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px; }
+  .ppi-key{ padding:17px 0; border:1px solid #E4DFD4; border-radius:11px; background:#FBF9F4;
+    font-size:21px; font-weight:600; color:#1E1B16; cursor:pointer; font-family:inherit; }
+  .ppi-key:active{ background:#1E1B16; color:#fff; border-color:#1E1B16; }
+  .ppi-key.wide{ font-size:12px; font-weight:700; letter-spacing:.06em; color:#8C8578; }
+  .ppi-err{ color:#9C3327; font-size:12px; font-weight:600; height:18px; margin-top:12px; }
+
+  /* 목록 */
+  .ppi-card{ width:min(880px,100%); max-height:88vh; background:#FFFDFA; border:1px solid #E4DFD4;
+    border-radius:20px; box-shadow:0 32px 80px -28px rgba(30,27,22,.5); display:flex; flex-direction:column; overflow:hidden; }
+  .ppi-head{ flex:0 0 auto; display:flex; align-items:center; gap:14px; padding:20px 24px; border-bottom:1px solid #E4DFD4; background:#FBF9F4; }
+  .ppi-head h2{ margin:0; font-size:20px; font-weight:700; letter-spacing:-.01em; }
+  .ppi-head .tag{ font-size:9px; font-weight:700; letter-spacing:.22em; color:#8C8578; }
+  .ppi-head .sp{ flex:1; }
+  .ppi-x{ border:1px solid #D6CFC0; background:#FFFDFA; border-radius:9px; width:34px; height:34px;
+    font-size:14px; cursor:pointer; font-family:inherit; color:#4C463C; }
+  .ppi-x:active{ background:#1E1B16; color:#fff; border-color:#1E1B16; }
+  .ppi-body{ flex:1 1 auto; overflow-y:auto; padding:16px 20px 20px; }
+  .ppi-note{ font-size:12px; color:#8C8578; line-height:1.85; margin-bottom:16px; padding:13px 16px;
+    background:#F7F4ED; border:1px solid #E4DFD4; border-radius:11px; }
+  .ppi-note b{ color:#1E1B16; }
+  .ppi-row{ display:flex; align-items:center; gap:14px; padding:12px 14px; border:1px solid #E4DFD4;
+    border-radius:12px; background:#FBF9F4; margin-bottom:9px; }
+  .ppi-row img{ width:50px; height:50px; border-radius:12px; flex:0 0 auto; box-shadow:0 4px 10px -5px rgba(30,27,22,.6); }
+  .ppi-info{ flex:1 1 auto; min-width:0; }
+  .ppi-info .nm{ font-size:15px; font-weight:700; letter-spacing:-.005em; }
+  .ppi-info .sb{ font-size:10px; font-weight:700; letter-spacing:.14em; color:#8C8578; margin-top:1px; }
+  .ppi-url{ width:100%; margin-top:7px; padding:7px 10px; border:1px solid #D6CFC0; border-radius:8px;
+    background:#FFFDFA; font-family:ui-monospace,Menlo,monospace; font-size:11px; color:#4C463C; }
+  .ppi-url:focus{ outline:none; border-color:#2F5D46; }
+  .ppi-go{ flex:0 0 auto; padding:13px 20px; border-radius:11px; border:1px solid #1E1B16; background:#1E1B16;
+    color:#fff; font-family:inherit; font-size:12px; font-weight:700; letter-spacing:.06em; cursor:pointer; white-space:nowrap; }
+  .ppi-go:active{ background:#000; }
+</style>
+
+<button id="ppInstBtn" type="button" title="아이패드 홈 화면에 설치"><span class="t">HOME</span><span class="b">INSTALL</span></button>
+
+<div class="ppi-ov" id="ppiPinOv">
+  <div class="ppi-pin">
+    <h2>INSTALL</h2>
+    <div class="s">홈 화면 설치 · 관리자 비밀번호</div>
+    <div class="ppi-disp" id="ppiDisp"></div>
+    <div class="ppi-pad" id="ppiPad">
+      <button class="ppi-key" type="button" data-k="1">1</button><button class="ppi-key" type="button" data-k="2">2</button><button class="ppi-key" type="button" data-k="3">3</button>
+      <button class="ppi-key" type="button" data-k="4">4</button><button class="ppi-key" type="button" data-k="5">5</button><button class="ppi-key" type="button" data-k="6">6</button>
+      <button class="ppi-key" type="button" data-k="7">7</button><button class="ppi-key" type="button" data-k="8">8</button><button class="ppi-key" type="button" data-k="9">9</button>
+      <button class="ppi-key wide" type="button" data-k="clear">지움</button><button class="ppi-key" type="button" data-k="0">0</button><button class="ppi-key wide" type="button" data-k="close">닫기</button>
+    </div>
+    <div class="ppi-err" id="ppiErr"></div>
+  </div>
+</div>
+
+<div class="ppi-ov" id="ppiOv">
+  <div class="ppi-card">
+    <div class="ppi-head">
+      <div><div class="tag">HOME SCREEN INSTALL</div><h2>아이패드 홈 화면에 설치</h2></div>
+      <span class="sp"></span>
+      <button class="ppi-x" type="button" id="ppiClose">&#10005;</button>
+    </div>
+    <div class="ppi-body">
+      <div class="ppi-note">
+        설치할 메뉴의 <b>설치하기</b> 를 누르면 그 메뉴 전용 화면으로 이동합니다.<br>
+        거기서 <b>Safari 공유 버튼 &#8593; &rarr; 홈 화면에 추가</b> 를 누르면 아이콘이 생성됩니다.<br>
+        홈 화면 아이콘을 누르면 <b>INDEX 를 거치지 않고 해당 메뉴로 바로</b> 들어가며,
+        각 메뉴의 로그인·비밀번호 화면은 평소와 똑같이 표시됩니다.<br>
+        주소가 다르면 아래 칸에서 직접 수정할 수 있습니다.
+      </div>
+      <div id="ppiList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  if (window.__ppLauncher) { var b0=document.getElementById('ppInstBtn'); if(b0) b0.style.display='none'; return; }
+  var PIN='10041004', buf='';
+  var btn=document.getElementById('ppInstBtn'),
+      pinOv=document.getElementById('ppiPinOv'),
+      ov=document.getElementById('ppiOv');
+  if(!btn) return;
+  function esc(x){ return String(x).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function draw(){ document.getElementById('ppiDisp').textContent='\u25CF'.repeat(buf.length); }
+  function openPin(){ buf=''; draw(); document.getElementById('ppiErr').textContent=''; pinOv.classList.add('show'); }
+  function closePin(){ pinOv.classList.remove('show'); buf=''; draw(); }
+  btn.addEventListener('click', openPin);
+  document.getElementById('ppiPad').addEventListener('click', function(e){
+    var k=e.target.closest('.ppi-key'); if(!k) return;
+    var v=k.getAttribute('data-k');
+    if(v==='close'){ closePin(); return; }
+    if(v==='clear'){ buf=''; } else if(buf.length<12){ buf+=v; }
+    draw(); document.getElementById('ppiErr').textContent='';
+    if(buf.length>=PIN.length){
+      if(buf===PIN){ closePin(); openPanel(); }
+      else { document.getElementById('ppiErr').textContent='비밀번호가 맞지 않습니다'; setTimeout(function(){ buf=''; draw(); },700); }
+    }
+  });
+  pinOv.addEventListener('click', function(e){ if(e.target===pinOv) closePin(); });
+
+  function absUrl(u){ try{ return new URL(u, location.href).href; }catch(e){ return u; } }
+  function openPanel(){
+    var html='';
+    (window.PP_APPS||[]).forEach(function(a){
+      var t=window.PP_TARGET(a.key);
+      html+='<div class="ppi-row">'+
+        '<img src="'+window.PP_ICON(a,180)+'" alt="">'+
+        '<div class="ppi-info"><div class="nm">'+esc(a.name)+'</div><div class="sb">'+esc(a.sub)+'</div>'+
+        '<input class="ppi-url" type="text" spellcheck="false" autocomplete="off" data-key="'+esc(a.key)+'" value="'+esc(t)+'" title="'+esc(absUrl(t))+'"></div>'+
+        '<button class="ppi-go" type="button" data-go="'+esc(a.key)+'">설치하기</button></div>';
+    });
+    document.getElementById('ppiList').innerHTML=html;
+    ov.classList.add('show');
+  }
+  document.getElementById('ppiClose').addEventListener('click', function(){ ov.classList.remove('show'); });
+  ov.addEventListener('click', function(e){ if(e.target===ov) ov.classList.remove('show'); });
+  document.getElementById('ppiList').addEventListener('change', function(e){
+    var f=e.target.closest('.ppi-url'); if(!f) return;
+    window.PP_SET_TARGET(f.getAttribute('data-key'), f.value); f.title=absUrl(f.value);
+  });
+  document.getElementById('ppiList').addEventListener('click', function(e){
+    var g=e.target.closest('.ppi-go'); if(!g) return;
+    var key=g.getAttribute('data-go');
+    var f=document.getElementById('ppiList').querySelector('.ppi-url[data-key="'+key+'"]');
+    if(f) window.PP_SET_TARGET(key, f.value);
+    location.href = location.pathname + '?app=' + encodeURIComponent(key);
+  });
+})();
+</script>
 
 </body>
 </html>
