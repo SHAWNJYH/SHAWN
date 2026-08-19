@@ -109,7 +109,7 @@
     height:100dvh;
     margin:0; overflow:hidden; touch-action:none;
     padding-top:max(env(safe-area-inset-top), 28px);
-    padding-bottom:env(safe-area-inset-bottom, 0px);
+    padding-bottom:max(env(safe-area-inset-bottom, 0px), 6px);
     box-sizing:border-box;
     display:flex; flex-direction:column;
     -webkit-user-select:none;
@@ -208,11 +208,11 @@
   /* ===== 상단 바 ===== */
   .topbar{
     flex:0 0 auto; height:56px; display:flex; align-items:stretch; gap:6px;
-    padding:7px 12px; background:var(--panel);
+    padding:7px 10px 7px 6px; background:var(--panel);
     border-bottom:1px solid var(--line);
     box-shadow:0 1px 0 rgba(30,27,22,.02);
   }
-  .hmart-badge{ flex:0 0 auto; align-self:stretch; display:flex; align-items:center; justify-content:center; padding-right:9px; margin-right:1px; position:relative; }
+  .hmart-badge{ flex:0 0 auto; align-self:stretch; display:flex; align-items:center; justify-content:center; padding-right:5px; margin-right:0; position:relative; }
   .hmart-badge::after{ content:''; position:absolute; right:0; top:6px; bottom:6px; width:1px; background:var(--line); }
   .hmart-badge img{ height:100%; width:auto; max-height:100%; border-radius:8px; display:block; }
   .hmart-badge span{ color:rgba(255,255,255,.55); }
@@ -307,12 +307,13 @@
   .lang-btn.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
 
   /* ===== 중간: 리스트 + 사진 ===== */
-  .main{ flex:1 1 auto; display:flex; flex-direction:column; gap:12px; padding:14px 16px 12px; overflow:hidden; }
+    /* 상단바=고정(맨 위) · 키패드=고정(맨 아래) · 리스트=남는 공간 전부 자동 */
+  .main{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:10px; padding:10px 14px 0; overflow:hidden; }
   .list-pane{
-    flex:1 1 auto; overflow:auto; background:var(--panel);
+    flex:1 1 auto; min-height:0; overflow:auto; background:var(--panel);
     border:1px solid var(--line); border-radius:14px; box-shadow:var(--sh-2);
   }
-  .lower{ flex:0 0 160px; display:flex; gap:12px; min-height:0; }
+  .lower{ flex:0 0 auto; height:clamp(150px, 21.5vh, 208px); display:flex; gap:12px; min-height:0; padding-bottom:0; }
   .kbd-panel{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0; overflow:hidden; }
   .kbd-topbar{ flex:0 0 auto; display:flex; gap:10px; align-items:stretch; min-width:0; }
   .kbd-topbar .lang-row{ flex:1 1 auto; min-width:0; }
@@ -453,10 +454,10 @@
   }
 
   /* 사진 패널 */
-  .photo-pane{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; }
-  .photo-top{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  .photo-pane{ flex:0 0 auto; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; overflow:hidden; }
+  .photo-top{ flex:1 1 auto; min-height:0; display:flex; align-items:stretch; justify-content:center; }
   .photo-box{
-    height:160px; width:160px; aspect-ratio:1/1; border:1px solid var(--line); border-radius:14px;
+    height:100%; width:auto; aspect-ratio:1/1; border:1px solid var(--line); border-radius:14px;
     background:var(--panel); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;
     box-shadow:var(--sh-2);
   }
@@ -516,12 +517,21 @@
   .kbd-key.g-en{ background:var(--panel); }
   .kbd-key.g-ko{ background:var(--panel-3); }
 
-  /* 모드별 키 크기 — 줄 수가 적을수록 키가 커진다 */
-  .kbd-keys.mode-ALL .kbd-letters{ --kmax:44px; --kfs:18px; }
-  .kbd-keys.mode-EN  .kbd-letters{ --kmax:92px; --kfs:30px; }
-  .kbd-keys.mode-KO  .kbd-letters{ --kmax:74px; --kfs:29px; }
+  /* QWERTY 배열 — 20칸 그리드에 키를 2칸씩 배치, 줄마다 반 칸씩 밀어 실제 키보드처럼 어긋나게 */
+  .kbd-keys.qwerty .kbd-line{ display:grid; grid-template-columns:repeat(20,1fr); gap:4px; }
+  .kbd-keys.qwerty .kbd-key{ grid-column:span 2; max-width:none; }
+  .kbd-keys.qwerty .kbd-line[data-off="1"] > .kbd-key:first-child{ grid-column:2 / span 2; }
+  .kbd-keys.qwerty .kbd-line[data-off="2"] > .kbd-key:first-child{ grid-column:3 / span 2; }
+  .kbd-keys.qwerty .kbd-line[data-off="3"] > .kbd-key:first-child{ grid-column:4 / span 2; }
+  .kbd-keys.qwerty .kbd-key.shift{ grid-column:span 3; font-size:13px; font-weight:700; letter-spacing:.04em;
+    background:var(--panel-2); color:var(--ink-2); }
+  .kbd-keys.qwerty .kbd-key.shift.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
+
+  /* 모드별 글자 크기 — 줄 수가 적을수록 키가 커진다 */
+  .kbd-keys.mode-EN  .kbd-letters{ --kfs:30px; }
+  .kbd-keys.mode-KO  .kbd-letters{ --kfs:29px; }
   .kbd-keys.mode-NUM .kbd-letters{ --kmax:132px; --kfs:38px; }
-  .kbd-keys.mode-EN .kbd-key, .kbd-keys.mode-KO .kbd-key, .kbd-keys.mode-NUM .kbd-key{ font-weight:600; }
+  .kbd-key{ font-weight:600; }
 
   /* 기능키 */
   .kbd-key.fn{
@@ -535,13 +545,12 @@
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
 
   @media (max-height:790px){
-    .kbd-keys.mode-ALL .kbd-letters{ --kmax:38px; --kfs:17px; }
-    .kbd-keys.mode-EN  .kbd-letters{ --kmax:84px; --kfs:28px; }
-    .kbd-keys.mode-KO  .kbd-letters{ --kmax:68px; --kfs:27px; }
+    .kbd-keys.mode-EN  .kbd-letters{ --kfs:27px; }
+    .kbd-keys.mode-KO  .kbd-letters{ --kfs:26px; }
     .kbd-keys.mode-NUM .kbd-letters{ --kmax:120px; --kfs:34px; }
+    .kbd-keys.qwerty .kbd-key.shift{ font-size:12px; }
     .kbd-mode .m1{ font-size:12px; }
-    .photo-box{ height:152px; width:152px; }
-    .lower{ flex-basis:152px; }
+    .lower{ height:clamp(142px, 20vh, 176px); }
   }
 
   /* ===== 검색 결과 팝업 ===== */
@@ -697,12 +706,12 @@
     <button class="cat-box on" data-cat="PRODUCE" data-ic="🥬"><span class="lb">PRODUCE</span><span class="sub">청과 전체</span></button>
     <button class="cat-box" data-cat="VEGETABLE" data-ic="🥕"><span class="lb">VEGETABLE</span><span class="sub">야채</span></button>
     <button class="cat-box" data-cat="FRUIT" data-ic="🍎"><span class="lb">FRUIT</span><span class="sub">과일</span></button>
-    <button class="cat-box" data-cat="BOX" data-ic="📦"><span class="lb">BOX</span><span class="sub">박스</span></button>
     <button class="cat-box" data-cat="LOCAL" data-ic="🏠"><span class="lb">LOCAL</span><span class="sub">로컬</span></button>
-    <button class="cat-box" data-cat="SALES" data-ic="🏷️"><span class="lb">SALES ITEM</span><span class="sub">광고상품</span></button>
-    <button class="cat-box" data-cat="ETC" data-ic="➕"><span class="lb">ETC</span><span class="sub">기타상품</span></button>
-    <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
+    <button class="cat-box" data-cat="BOX" data-ic="📦"><span class="lb">BOX</span><span class="sub">박스</span></button>
+    <button class="cat-box" data-cat="ETC" data-ic="➕"><span class="lb">NEW ITEM</span><span class="sub">신상품</span></button>
     <button class="cat-box" data-cat="CUSTOM" data-ic="★"><span class="lb">CUSTOM</span><span class="sub">사용자 정의</span></button>
+    <button class="cat-box" data-cat="SALES" data-ic="🏷️"><span class="lb">SALES ITEM</span><span class="sub">광고상품</span></button>
+    <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
   </div>
   <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
   <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
@@ -1854,7 +1863,7 @@
   /* ===== 검색 키보드 (요구2~6) ===== */
 
   var searching=false;       // 검색 팝업 열림 상태
-  var kbdMode='ALL';         // 키보드 표시 모드 ALL(영문+한글) / KO / EN / NUM
+  var kbdMode='EN';          // 키보드 표시 모드 EN(기본) / KO / NUM
   // 영문: ABC 순
   var KB_EN=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
   // 한글: 자음(ㄱㄴㄷ...) 먼저, 그 다음 모음(ㅏㅓㅗ...)
@@ -1865,40 +1874,62 @@
     ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ']    // 모음
   ];
   var KB_NUM=['1','2','3','4','5','6','7','8','9','0'];
-  // 키보드 모드: ALL(기본 · 영문+한글) / KO(한글만) / EN(영문만) / NUM(숫자만)
-  //  · 줄 수가 줄어드는 만큼 키가 커진다 (크기는 CSS 변수로 자동 계산)
-  //  · 켜져 있는 모드 버튼을 다시 누르면 기본(ALL)으로 돌아온다
+  // 키보드 모드: EN(영문 QWERTY · 기본) / KO(한글 두벌식 QWERTY) / NUM(숫자) / SPARE(예비)
+  //  · 실제 키보드와 같은 QWERTY 배열, 줄마다 반 칸씩 어긋나게 배치
+  //  · 한글은 두벌식이므로 SHIFT 로 쌍자음(ㄲㄸㅃㅆㅉ)·ㅒㅖ 입력
   var KBD_MODES=[
     { m:'KO',    m1:'한국어',  m2:'KOREAN'  },
     { m:'EN',    m1:'영어',    m2:'ENGLISH' },
     { m:'NUM',   m1:'숫자',    m2:'NUMBER'  },
-    { m:'SPARE', m1:'예비',    m2:'—',  spare:true }
+    { m:'SPARE', m1:'예비',    m2:'—', spare:true }
   ];
+  var kbdShift=false;                       // 한글 SHIFT 상태
+  // 영문 QWERTY
+  var QW_EN=[
+    ['Q','W','E','R','T','Y','U','I','O','P'],
+    ['A','S','D','F','G','H','J','K','L'],
+    ['Z','X','C','V','B','N','M']
+  ];
+  // 한글 두벌식 QWERTY (기본 / SHIFT)
+  var QW_KO=[
+    ['ㅂ','ㅈ','ㄷ','ㄱ','ㅅ','ㅛ','ㅕ','ㅑ','ㅐ','ㅔ'],
+    ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
+    ['ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ']
+  ];
+  var QW_KO_SHIFT=[
+    ['ㅃ','ㅉ','ㄸ','ㄲ','ㅆ','ㅛ','ㅕ','ㅑ','ㅒ','ㅖ'],
+    ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
+    ['ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ']
+  ];
+  var QW_NUM=[['1','2','3','4','5'],['6','7','8','9','0']];
+
   function renderKeyboard(){
     var bar=$('kbdBar'); if(!bar) return;
     function keyBtn(k,cls){ return '<button class="kbd-key '+cls+'" data-k="'+k+'">'+k+'</button>'; }
-    function line(arr,cls){ return '<div class="kbd-line">'+arr.map(function(k){ return keyBtn(k,cls); }).join('')+'</div>'; }
+    // off = 줄 시작을 반 칸 단위로 밀어 QWERTY 계단 배열을 만든다
+    function line(arr,cls,off){
+      return '<div class="kbd-line" data-off="'+(off||0)+'">'+
+        arr.map(function(k){ return keyBtn(k,cls); }).join('')+'</div>';
+    }
 
-    var EN_ALL=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-    var KO_ALL=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ',
-                'ㅏ','ㅓ','ㅗ','ㅕ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ'];
-    var NUMS=['1','2','3','4','5','6','7','8','9','0'];
-
-    var mode = (kbdMode==='KO'||kbdMode==='EN'||kbdMode==='NUM') ? kbdMode : 'ALL';
+    var mode = (kbdMode==='KO'||kbdMode==='NUM') ? kbdMode : 'EN';   // 기본 = 영문
+    var qwerty = (mode!=='NUM');
     var lines='';
-    if(mode==='EN'){                     // 영문만 — 3줄(9/9/8) → 키가 커짐
-      lines = line(EN_ALL.slice(0,9),'g-en') + line(EN_ALL.slice(9,18),'g-en') + line(EN_ALL.slice(18),'g-en');
-    } else if(mode==='KO'){              // 한글만 — 3줄(11/11/10)
-      lines = line(KO_ALL.slice(0,11),'g-ko') + line(KO_ALL.slice(11,22),'g-ko') + line(KO_ALL.slice(22),'g-ko');
-    } else if(mode==='NUM'){             // 숫자만 — 2줄(5/5) → 가장 큰 키
-      lines = line(NUMS.slice(0,5),'g-num') + line(NUMS.slice(5),'g-num');
-    } else {                             // 기본 — 영문 2줄 + 한글 2줄 (기존 배열 유지)
-      lines = line(EN_ALL.slice(0,16),'g-en') + line(EN_ALL.slice(16),'g-en') +
-              line(KO_ALL.slice(0,16),'g-ko') + line(KO_ALL.slice(16),'g-ko');
+    if(mode==='EN'){
+      lines = line(QW_EN[0],'g-en',0) + line(QW_EN[1],'g-en',1) + line(QW_EN[2],'g-en',3);
+    } else if(mode==='KO'){
+      var L = kbdShift ? QW_KO_SHIFT : QW_KO;
+      lines = line(L[0],'g-ko',0) + line(L[1],'g-ko',1) +
+        '<div class="kbd-line" data-off="1">'+
+          '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">⇧ 쌍자음</button>'+
+          L[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
+        '</div>';
+    } else {
+      lines = line(QW_NUM[0],'g-num',0) + line(QW_NUM[1],'g-num',0);
     }
     var letters='<div class="kbd-letters">'+lines+'</div>';
 
-    // 기능키 열 (가로 1/3 축소) — 위: BACKSPACE(2칸) / DELETE / ← BACK
+    // 기능키 열 (가로 1/3 축소) — BACKSPACE(2칸) / DELETE / ← BACK
     var funcs='<div class="kbd-funcs">'+
       '<button class="kbd-key fn del backsp span2" data-act="del">BACKSPACE</button>'+
       '<button class="kbd-key fn del clr" data-act="clear">DELETE</button>'+
@@ -1907,12 +1938,12 @@
 
     // 키보드 선택 열 — 세로 4칸
     var modes='<div class="kbd-modes">'+KBD_MODES.map(function(x){
-      var on = (!x.spare && kbdMode===x.m) ? ' on' : '';
+      var on = (!x.spare && mode===x.m) ? ' on' : '';
       return '<button class="kbd-mode'+(x.spare?' spare':'')+on+'" data-mode="'+x.m+'">'+
         '<span class="m1">'+x.m1+'</span><span class="m2">'+x.m2+'</span></button>';
     }).join('')+'</div>';
 
-    bar.innerHTML='<div class="kbd-keys mode-'+mode+'">'+letters+funcs+modes+'</div>';
+    bar.innerHTML='<div class="kbd-keys mode-'+mode+(qwerty?' qwerty':'')+'">'+letters+funcs+modes+'</div>';
   }
   renderKeyboard();
 
@@ -2031,13 +2062,15 @@
     if(mb){
       var m=mb.getAttribute('data-mode');
       if(m==='SPARE') return;                       // 예비 버튼 — 아직 기능 미지정
+      if(kbdMode===m) return;                       // 이미 선택된 키보드
       commitPending();
-      kbdMode = (kbdMode===m) ? 'ALL' : m;          // 같은 버튼 재클릭 → 기본(영문+한글)
+      kbdMode=m; kbdShift=false;
       renderKeyboard();
       return;
     }
     var b=e.target.closest('.kbd-key'); if(!b) return;
     var act=b.getAttribute('data-act');
+    if(act==='shift'){ kbdShift=!kbdShift; renderKeyboard(); return; }
     if(act==='none'){ return; }
     if(act==='back'){ if($('backBox')) $('backBox').click(); return; }
     if(act==='del'){ pressDel(); return; }
@@ -2045,6 +2078,7 @@
     if(act==='clear'){ pressClear(); return; }
     var k=b.getAttribute('data-k'); if(k==null) return;
     if(/^[0-9]$/.test(k)) pressNum(k); else pressKey(k);
+    if(kbdShift){ kbdShift=false; renderKeyboard(); }   // 한 글자 입력 후 SHIFT 해제
   });
 
   function openSearch(){
