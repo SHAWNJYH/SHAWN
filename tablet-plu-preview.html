@@ -490,7 +490,7 @@
   /* 기능키 열 — 기존 대비 가로 1/3 축소 */
   .kbd-funcs{ flex:0 0 auto; width:clamp(104px, 12vw, 146px); display:flex; flex-direction:column; gap:4px; }
 
-  /* 키보드 선택 열 — 세로 4칸 (한국어 / 영어 / 숫자 / 예비) */
+  /* 키보드 선택 열 — 글자 줄과 같은 세로 3칸 (한국어 / 영어 / 숫자) */
   .kbd-modes{ flex:0 0 auto; width:clamp(82px, 9vw, 108px); display:flex; flex-direction:column; gap:4px; }
   .kbd-mode{
     flex:1 1 0; min-height:0; padding:2px 3px; border:1px solid var(--line-2); border-radius:9px;
@@ -502,8 +502,6 @@
   .kbd-mode:active{ background:var(--panel-2); }
   .kbd-mode.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
   .kbd-mode.on .m2{ color:rgba(255,255,255,.6); }
-  .kbd-mode.spare{ border-style:dashed; color:var(--ink-dim); background:var(--panel-2); }
-  .kbd-mode.spare .m1{ font-weight:600; }
 
   /* 글자키 — 폭은 균등 분배하되 max-width 로 과확대 방지 (짧은 줄은 왼쪽 정렬 유지) */
   .kbd-key{
@@ -540,7 +538,6 @@
     background:var(--panel-2); color:var(--ink-2); border:1px solid var(--line); box-shadow:none;
   }
   .kbd-key.fn:active{ background:var(--ink); border-color:var(--ink); color:#fff; }
-  .kbd-key.fn.span2{ flex:2 1 0; }
   .kbd-key.fn.del{ color:var(--red); border-color:var(--line); }
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
 
@@ -1874,14 +1871,13 @@
     ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ']    // 모음
   ];
   var KB_NUM=['1','2','3','4','5','6','7','8','9','0'];
-  // 키보드 모드: EN(영문 QWERTY · 기본) / KO(한글 두벌식 QWERTY) / NUM(숫자) / SPARE(예비)
+  // 키보드 모드: EN(영문 QWERTY · 기본) / KO(한글 두벌식 QWERTY) / NUM(숫자)
   //  · 실제 키보드와 같은 QWERTY 배열, 줄마다 반 칸씩 어긋나게 배치
   //  · 한글은 두벌식이므로 SHIFT 로 쌍자음(ㄲㄸㅃㅆㅉ)·ㅒㅖ 입력
   var KBD_MODES=[
     { m:'KO',    m1:'한국어',  m2:'KOREAN'  },
     { m:'EN',    m1:'영어',    m2:'ENGLISH' },
-    { m:'NUM',   m1:'숫자',    m2:'NUMBER'  },
-    { m:'SPARE', m1:'예비',    m2:'—', spare:true }
+    { m:'NUM',   m1:'숫자',    m2:'NUMBER'  }
   ];
   var kbdShift=false;                       // 한글 SHIFT 상태
   // 영문 QWERTY
@@ -1901,7 +1897,7 @@
     ['ㅁ','ㄴ','ㅇ','ㄹ','ㅎ','ㅗ','ㅓ','ㅏ','ㅣ'],
     ['ㅋ','ㅌ','ㅊ','ㅍ','ㅠ','ㅜ','ㅡ']
   ];
-  var QW_NUM=[['1','2','3','4','5'],['6','7','8','9','0']];
+  var QW_NUM=[['1','2','3','4'],['5','6','7','8'],['9','0']];   // 3줄 — 기능키·키보드선택 열과 높이 일치
 
   function renderKeyboard(){
     var bar=$('kbdBar'); if(!bar) return;
@@ -1925,21 +1921,20 @@
           L[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
         '</div>';
     } else {
-      lines = line(QW_NUM[0],'g-num',0) + line(QW_NUM[1],'g-num',0);
+      lines = line(QW_NUM[0],'g-num',0) + line(QW_NUM[1],'g-num',0) + line(QW_NUM[2],'g-num',0);
     }
     var letters='<div class="kbd-letters">'+lines+'</div>';
 
-    // 기능키 열 (가로 1/3 축소) — BACKSPACE(2칸) / DELETE / ← BACK
+    // 기능키 열 (가로 1/3 축소) — 글자 줄과 같은 세로 3칸
     var funcs='<div class="kbd-funcs">'+
-      '<button class="kbd-key fn del backsp span2" data-act="del">BACKSPACE</button>'+
+      '<button class="kbd-key fn del backsp" data-act="del">BACKSPACE</button>'+
       '<button class="kbd-key fn del clr" data-act="clear">DELETE</button>'+
       '<button class="kbd-key fn del backk" data-act="back">← BACK</button>'+
       '</div>';
 
-    // 키보드 선택 열 — 세로 4칸
+    // 키보드 선택 열 — 글자 줄과 같은 세로 3칸
     var modes='<div class="kbd-modes">'+KBD_MODES.map(function(x){
-      var on = (!x.spare && mode===x.m) ? ' on' : '';
-      return '<button class="kbd-mode'+(x.spare?' spare':'')+on+'" data-mode="'+x.m+'">'+
+      return '<button class="kbd-mode'+(mode===x.m?' on':'')+'" data-mode="'+x.m+'">'+
         '<span class="m1">'+x.m1+'</span><span class="m2">'+x.m2+'</span></button>';
     }).join('')+'</div>';
 
@@ -2061,7 +2056,6 @@
     var mb=e.target.closest('.kbd-mode');
     if(mb){
       var m=mb.getAttribute('data-mode');
-      if(m==='SPARE') return;                       // 예비 버튼 — 아직 기능 미지정
       if(kbdMode===m) return;                       // 이미 선택된 키보드
       commitPending();
       kbdMode=m; kbdShift=false;
