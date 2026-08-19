@@ -230,7 +230,7 @@
   .plu-table th.upc-c-no-col, .plu-table td.upc-c-no-col { width:52px; min-width:46px; max-width:64px; text-align:center; vertical-align:middle; white-space:nowrap; color:#6b6b72; font-weight:700; background:var(--bg-elev); }
   .plu-table tbody tr:nth-child(even) td.upc-c-no-col { background:#efefe9; }
   .plu-table tbody tr:hover td.upc-c-no-col { background:var(--accent-soft); }
-  .plu-table thead th.upc-c-no-col { color:#3b5b8c; background:#e8f0fb; z-index:32; }
+  .plu-table thead th.upc-c-no-col { color:#3b5b8c; background:#e8f0fb; z-index:62; }
   .plu-table td.upc-c-no-new { color:#fff !important; background:#c0392b !important; font-weight:800; }
   .plu-table tbody tr:hover td.upc-c-no-new { background:#a93226 !important; }
   .plu-table td.upc-c-no-upd { color:#fff !important; background:#1e7a46 !important; font-weight:800; }
@@ -387,13 +387,15 @@
   .plu-table th.plu-col-rcheck, .plu-table td.plu-c-rcheck { width:97px; min-width:97px; max-width:97px; }
   .plu-table th.plu-col-photo, .plu-table td.plu-c-photo { width:46px; min-width:46px; max-width:46px; }
   .plu-table thead th {
-    position: sticky; top: 0; z-index: 30; background: #e8f0fb; color: #3b5b8c;
+    position: sticky; top: 0; z-index: 60; background: #e8f0fb; color: #3b5b8c;
     font-family: var(--mono); font-size: 11px; font-weight: 700; text-align: left; text-transform: uppercase;
     padding: 13.5px 9px; border-bottom: 1.5px solid var(--border); border-right: 1px solid #cdddf2; white-space: nowrap;
   }
   /* 색상 헤더도 같은 높이로 고정 + 데이터 위에 유지 (스크롤 오버랩 방지) */
-  .plu-table thead th.upc-c-srp, .plu-table thead th.upc-c-srpp, .plu-table thead th.upc-c-blue { position: sticky; top: 0; z-index: 31; }
+  .plu-table thead th.upc-c-srp, .plu-table thead th.upc-c-srpp, .plu-table thead th.upc-c-blue { position: sticky; top: 0; z-index: 61; }
+  .plu-table tbody { position: relative; z-index: 0; }        /* 본문 전체를 헤더 아래 층으로 격리 */
   .plu-table tbody td { position: relative; z-index: 0; }
+  .plu-table tbody td input, .plu-table tbody td select, .plu-table tbody td button { position: relative; z-index: 1; }  /* 셀 내부 요소가 헤더 위로 뜨지 않게 층 고정 */
   .plu-table tbody td { padding: 8px 9px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); color: var(--text); vertical-align: top; }
   .plu-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.05); }
   .plu-table tbody tr:hover { background: var(--accent-soft); }
@@ -1709,13 +1711,16 @@ window.dispatchEvent(new Event('plu-firebase-ready'));
   // POS DESC 생성 규칙 (공용) — 편집 화면(__posAutoGen)과 NEW ITEM 화면이 동일 규칙을 쓴다.
   //  기본            : BRAND(ENG) 3자리 + ')' + ENG DESC → 총 18자
   //  UNIT SIZE·UOM 有 : BRAND(ENG) 3자리 + ')' + ENG DESC 7자리 + '_' + UNIT SIZE + UOM
-  //  BRAND(ENG)가 비어 있으면 생성하지 않음('')
+  //  BRAND(ENG) 無    : ENG DESC에서 앞 18자만 추출해 생성 (ENG DESC도 없으면 '')
   function posDescRule(brand, eng, size, uom){
     brand=String(brand==null?'':brand).toUpperCase().replace(/\s+/g,'');
     eng=String(eng==null?'':eng).toUpperCase();
     size=String(size==null?'':size).trim();
     uom=String(uom==null?'':uom).trim().toUpperCase();
-    if(!brand) return '';
+    if(!brand){
+      var e=eng.trim();
+      return e ? e.substring(0,18) : '';
+    }
     var b3=brand.substring(0,3);
     if(size!=='' && uom!==''){ return (b3+')'+eng.substring(0,7)+'_'+size+uom); }
     return (b3+')'+eng).substring(0,18);
