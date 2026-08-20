@@ -373,7 +373,7 @@
   .cate-btn:active{ border-color:var(--line-2); background:var(--panel); box-shadow:var(--sh-1); }
   .cate-btn:active::before{ opacity:1; }
   /* .ce = 선택 언어(주) · .ck = 보조 언어 — EN/ES 선택시 영문이 .ce, KO 선택시 한글이 .ce */
-  .cate-btn .ce{ font-size:20px; font-weight:600; color:var(--ink); line-height:1.2; letter-spacing:.005em; }
+  .cate-btn .ce{ font-size:20px; font-weight:800; color:var(--ink); line-height:1.2; letter-spacing:.005em; }
   .cate-btn .ck{ font-size:13px; font-weight:500; color:var(--ink-dim); letter-spacing:.01em; }
   /* EN/ES: 영문 20 · 한글 13 | KO: 한글 20 · 영문 13 */
   body.lang-EN .cate-btn .ce, body.lang-ES .cate-btn .ce, body.lang-KO .cate-btn .ce, body.lang-ZH .cate-btn .ce{ font-size:20px; }
@@ -391,7 +391,7 @@
     font-family:var(--num); font-variant-numeric:tabular-nums;
     font-size:31px; font-weight:700; color:var(--red); line-height:1.05; letter-spacing:.005em;
   }
-  .plu-item .en{ font-size:15px; color:var(--ink); font-weight:600; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em; line-height:1.3; }
+  .plu-item .en{ font-size:15px; color:var(--ink); font-weight:800; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em; line-height:1.3; }
   .plu-item .ko{ font-size:15px; color:var(--ink-dim); font-weight:500; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.3; }
   .plu-item:active{ background:var(--panel); border-color:var(--line-2); }
   .plu-item.sel{
@@ -457,6 +457,35 @@
     transition:opacity .4s;
   }
 
+
+  /* ── 목록 줄무늬: 짝수 줄을 한 단계 어둡게 (가로·세로 공통) ──
+     열 개수가 레이아웃마다 달라 nth-child 로 줄 단위를 계산한다.
+     색을 바꾸려면 --row-alt 값만 조정하면 된다. */
+  :root{ --row-alt:#EFEADE; }
+  /* 분류: 가로 5열 → 6~10, 16~20 … 이 둘째 줄 */
+  .cate-grid > .cate-btn:nth-child(10n+6),
+  .cate-grid > .cate-btn:nth-child(10n+7),
+  .cate-grid > .cate-btn:nth-child(10n+8),
+  .cate-grid > .cate-btn:nth-child(10n+9),
+  .cate-grid > .cate-btn:nth-child(10n+10){ background:var(--row-alt); }
+  /* 상품: 가로 4열 */
+  .plu-grid > .plu-item:nth-child(8n+5),
+  .plu-grid > .plu-item:nth-child(8n+6),
+  .plu-grid > .plu-item:nth-child(8n+7),
+  .plu-grid > .plu-item:nth-child(8n+8){ background:var(--row-alt); }
+  /* 세로 3열 — 위 규칙을 끄고 3열 기준으로 다시 계산 */
+  body.portrait .cate-grid > .cate-btn,
+  body.portrait .plu-grid > .plu-item{ background:var(--panel-3); }
+  body.portrait .cate-grid > .cate-btn:nth-child(6n+4),
+  body.portrait .cate-grid > .cate-btn:nth-child(6n+5),
+  body.portrait .cate-grid > .cate-btn:nth-child(6n+6),
+  body.portrait .plu-grid > .plu-item:nth-child(6n+4),
+  body.portrait .plu-grid > .plu-item:nth-child(6n+5),
+  body.portrait .plu-grid > .plu-item:nth-child(6n+6){ background:var(--row-alt); }
+  /* 선택·편집 상태는 줄무늬보다 우선 */
+  .plu-grid > .plu-item.sel,
+  body.portrait .plu-grid > .plu-item.sel{ background:var(--panel); }
+
   /* 사진 패널 */
     /* 사진 영역 — 높이(키패드 높이)에 맞춰 가로도 같은 길이로 확보 (정사각형) */
   .photo-pane{ flex:0 0 auto; height:100%; aspect-ratio:1/1; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; overflow:hidden; }
@@ -504,16 +533,16 @@
   /* 키보드 선택 열 — 한국어·영어 토글 / 숫자 / 한국어·영어 동시 */
   .kbd-modes{ flex:0 0 auto; width:clamp(82px, 9vw, 108px); }
   .kbd-mode{
-    min-height:0; padding:2px 3px; border:1px solid var(--line-2); border-radius:9px;
-    background:var(--panel); color:var(--ink-2); font-family:inherit; cursor:pointer; transition:all .14s;
+    min-height:0; padding:2px 3px; border:1px solid #B9C4D2; border-radius:9px;
+    background:#EEF2F7; color:#2C4160; font-family:inherit; cursor:pointer; transition:all .14s;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
   }
   .kbd-mode .m1{ font-size:13px; font-weight:700; letter-spacing:.01em; line-height:1.15; }
-  .kbd-mode .m2{ font-size:8.5px; font-weight:700; letter-spacing:.08em; color:var(--ink-dim); line-height:1.1; }
+  .kbd-mode .m2{ font-size:8.5px; font-weight:700; letter-spacing:.08em; color:#6C82A0; line-height:1.1; }
   .kbd-mode.both .m1{ font-size:12px; }
-  .kbd-mode:active{ background:var(--panel-2); }
-  .kbd-mode.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
-  .kbd-mode.on .m2{ color:rgba(255,255,255,.6); }
+  .kbd-mode:active{ background:#DFE7F0; }
+  .kbd-mode.on{ background:#2E4A6E; border-color:#243956; color:#fff; }
+  .kbd-mode.on .m2{ color:rgba(255,255,255,.7); }
 
   /* 글자키 */
   .kbd-key{
@@ -533,8 +562,13 @@
   .kbd-keys.qwerty .kbd-line[data-off="1"] > .kbd-key:first-child{ grid-column:2 / span 2; }
   .kbd-keys.qwerty .kbd-line[data-off="2"] > .kbd-key:first-child{ grid-column:3 / span 2; }
   .kbd-keys.qwerty .kbd-line[data-off="3"] > .kbd-key:first-child{ grid-column:4 / span 2; }
-  .kbd-keys.qwerty .kbd-key.shift{ grid-column:span 3; font-size:13px; font-weight:700; letter-spacing:.04em;
-    background:var(--panel-2); color:var(--ink-2); }
+  .kbd-keys.qwerty .kbd-key.shift{
+    grid-column:span 3; background:var(--panel-2); color:var(--ink-2);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
+    padding:0 2px; overflow:hidden; line-height:1.05;
+  }
+  .kbd-key.shift .s1{ font-size:min(15px, 2.1vh); font-weight:800; }
+  .kbd-key.shift .s2{ font-size:min(10px, 1.5vh); font-weight:700; letter-spacing:.02em; opacity:.8; white-space:nowrap; }
   .kbd-keys.qwerty .kbd-key.shift.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
 
   /* 모드별 키 크기 — 줄 수가 적을수록 키가 커진다 */
@@ -544,7 +578,8 @@
   /* 한국어+영어 동시 = 6줄 → 사진 박스 높이는 그대로 두고 키를 작게 */
   .kbd-keys.mode-BOTH .kbd-letters{ --kfs:15px; }
   .kbd-keys.mode-BOTH .kbd-key{ border-radius:7px; }
-  .kbd-keys.mode-BOTH .kbd-key.shift{ font-size:9.5px; letter-spacing:0; }
+  .kbd-keys.mode-BOTH .kbd-key.shift .s1{ font-size:min(11px, 1.5vh); }
+  .kbd-keys.mode-BOTH .kbd-key.shift .s2{ font-size:min(8px, 1.1vh); }
 
   /* 기능키 */
   .kbd-key.fn{
@@ -561,7 +596,7 @@
     .kbd-keys.mode-KO   .kbd-letters{ --kfs:26px; }
     .kbd-keys.mode-NUM  .kbd-letters{ --kmax:120px; --kfs:34px; }
     .kbd-keys.mode-BOTH .kbd-letters{ --kfs:14px; }
-    .kbd-keys.qwerty .kbd-key.shift{ font-size:12px; }
+
     .kbd-mode .m1{ font-size:12px; }
     .lower{ height:clamp(142px, 20vh, 176px); }
   }
@@ -608,14 +643,18 @@
   body.portrait .kbd-toolbar{ display:block; flex:0 0 auto; position:relative; z-index:210; }   /* 검색 팝업 위로 */
   body.portrait .kbd-tb{
     display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
-    height:clamp(42px, 4.4vh, 56px);
+    height:clamp(36px, 3.7vh, 46px);
   }
   body.portrait .kbd-tb > *{ width:auto; height:100%; max-width:none; min-height:0; }
-  body.portrait .kbd-tb .kbd-key.fn{ font-size:11px; letter-spacing:.04em; padding:0 6px; }
-  body.portrait .kbd-tb .kbd-mode{ flex-direction:row; gap:6px; }
-  body.portrait .kbd-tb .kbd-mode .m1{ font-size:12.5px; }
-  body.portrait .kbd-tb .kbd-mode .m2{ font-size:8px; }
-  body.portrait .kbd-tb .kbd-mode.both .m1{ font-size:11.5px; }
+  /* 6개 버튼 모두 2줄 라벨 (한국어 / 영어) */
+  body.portrait .kbd-tb .kbd-key.fn,
+  body.portrait .kbd-tb .kbd-mode{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
+    padding:0 4px; overflow:hidden;
+  }
+  body.portrait .kbd-tb .m1{ font-size:11.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  body.portrait .kbd-tb .m2{ font-size:7.5px; font-weight:700; letter-spacing:.06em; line-height:1.15; white-space:nowrap; opacity:.72; }
+  body.portrait .kbd-tb .kbd-mode.both .m1{ font-size:10.5px; }
 
   /* ── 세로에서는 검색 결과를 1단으로 (폭이 좁아 2단은 글자가 잘림) ── */
   body.portrait .search-results{ grid-template-columns:1fr; background:none; }
@@ -675,18 +714,18 @@
   }
   /* 키보드 선택 버튼도 같은 키캡 재질 */
   body.kbd-deck .kbd-mode{
-    background:linear-gradient(180deg, #EEEAE1 0%, #DFD9CE 100%);
-    border:1px solid #BAB1A0; border-radius:8px;
-    box-shadow:0 2px 0 #ACA292, 0 3px 5px -2px rgba(30,27,22,.3), inset 0 1px 0 rgba(255,255,255,.8);
+    background:linear-gradient(180deg, #F5F8FC 0%, #DDE6F1 100%);
+    border:1px solid #AFBCCC; border-radius:8px; color:#2C4160;
+    box-shadow:0 2px 0 #9DAABC, 0 3px 5px -2px rgba(30,27,22,.3), inset 0 1px 0 rgba(255,255,255,.9);
     transition:transform .05s ease, box-shadow .05s ease, background .05s ease;
   }
   body.kbd-deck .kbd-mode:active{
     transform:translateY(2px);
-    box-shadow:0 0 0 #ACA292, inset 0 2px 5px rgba(30,27,22,.3);
+    box-shadow:0 0 0 #9DAABC, inset 0 2px 5px rgba(30,27,22,.3);
   }
   body.kbd-deck .kbd-mode.on{
-    background:linear-gradient(180deg, #3A362E 0%, #23201A 100%); border-color:#1E1B16; color:#fff;
-    box-shadow:0 2px 0 #14120E, inset 0 1px 0 rgba(255,255,255,.14);
+    background:linear-gradient(180deg, #3D5F87 0%, #27405F 100%); border-color:#1F3350; color:#fff;
+    box-shadow:0 2px 0 #17263A, inset 0 1px 0 rgba(255,255,255,.18);
   }
   body.kbd-deck .kbd-mode.on .m2{ color:rgba(255,255,255,.62); }
 
@@ -721,7 +760,7 @@
     -webkit-tap-highlight-color:transparent;
   }
   .search-item .snum{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:22px; font-weight:700; color:var(--red); flex:0 0 auto; min-width:64px; }
-  .search-item .sen{ font-size:19px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
+  .search-item .sen{ font-size:19px; font-weight:800; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
   .search-item .sko{ font-size:19px; font-weight:400; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
   .search-empty{ grid-column:1/-1; text-align:center; color:var(--ink-dim); padding:44px 20px; font-size:13px; letter-spacing:.03em; }
 
@@ -1306,32 +1345,88 @@
   };
   // 요구1·5: CHINESE 번역 — 영문(CATE(ENG)/ENG DESC) → 중국어(간체). 메뉴·상품 전체에 적용.
   var EN_ZH={
-    ONION:'洋葱', 'GREEN ONION':'大葱', ONIONS:'洋葱', LETTUCE:'生菜', ROMAINE:'罗马生菜', CABBAGE:'卷心菜', 'NAPA CABBAGE':'大白菜',
-    POTATO:'土豆', 'SWEET POTATO':'红薯', CARROT:'胡萝卜', SPINACH:'菠菜', GARLIC:'大蒜', GINGER:'生姜', CUCUMBER:'黄瓜',
-    SQUASH:'南瓜', ZUCCHINI:'西葫芦', EGGPLANT:'茄子', PEPPER:'辣椒', 'BELL PEPPER':'甜椒', TOMATO:'番茄', RADISH:'萝卜',
-    'BEAN SPROUT':'豆芽', MUSHROOM:'蘑菇', BROCCOLI:'西兰花', CORN:'玉米', CHIVE:'韭菜', SCALLION:'大葱', 'PERILLA LEAF':'紫苏叶',
-    PERILLA:'紫苏', 'BOK CHOY':'小白菜', CELERY:'芹菜', LEEK:'韭葱', PUMPKIN:'南瓜', 'CHINESE CABBAGE':'大白菜',
-    APPLE:'苹果', PEAR:'梨', BANANA:'香蕉', GRAPE:'葡萄', STRAWBERRY:'草莓', WATERMELON:'西瓜', BERRY:'浆果',
-    MELON:'甜瓜', ORANGE:'橙子', TANGERINE:'橘子', LEMON:'柠檬', LIME:'青柠', KIWI:'猕猴桃', MANGO:'芒果', PINEAPPLE:'菠萝',
-    PEACH:'桃子', PLUM:'李子', CHERRY:'樱桃', BLUEBERRY:'蓝莓', RASPBERRY:'覆盆子', PERSIMMON:'柿子', CHESTNUT:'栗子',
-    AVOCADO:'牛油果', COCONUT:'椰子', POMEGRANATE:'石榴', FIG:'无花果', DATE:'枣', JUJUBE:'枣',
-    WHITE:'白', RED:'红', GREEN:'绿', YELLOW:'黄', BLACK:'黑', BOX:'箱', BAG:'袋', BUNCH:'把', EACH:'个',
-    ORGANIC:'有机', LOCAL:'本地', FRESH:'新鲜', BABY:'小', LARGE:'大', SMALL:'小', JUMBO:'特大', SEEDLESS:'无籽',
-    'WRAP GREENS':'包饭菜', SPROUT:'芽菜', ROOT:'根', LEAF:'叶', PEELED:'去皮', WHOLE:'整个'
+    // ── 잎채소 ──
+    LETTUCE:'生菜', ROMAINE:'罗马生菜', ICEBERG:'球生菜', BUTTERHEAD:'奶油生菜', ENDIVE:'菊苣', ESCAROLE:'阔叶菊苣',
+    CABBAGE:'卷心菜', 'NAPA CABBAGE':'大白菜', 'CHINESE CABBAGE':'大白菜', 'BOK CHOY':'小白菜', 'BABY BOK CHOY':'小白菜',
+    'GAI LAN':'芥蓝', 'YU CHOY':'菜心', 'CHOY SUM':'菜心', SPINACH:'菠菜', ARUGULA:'芝麻菜', WATERCRESS:'西洋菜',
+    KALE:'羽衣甘蓝', 'COLLARD GREENS':'羽衣甘蓝', 'MUSTARD GREENS':'芥菜', CHARD:'牛皮菜', 'SWISS CHARD':'牛皮菜',
+    'PERILLA LEAF':'紫苏叶', PERILLA:'紫苏叶', 'SESAME LEAF':'紫苏叶', 'WRAP GREENS':'包饭蔬菜', 'CROWN DAISY':'茼蒿',
+    CHICORY:'菊苣', RADICCHIO:'紫菊苣', CILANTRO:'香菜', PARSLEY:'欧芹', BASIL:'罗勒', MINT:'薄荷', DILL:'莳萝',
+    CELERY:'芹菜', LEEK:'韭葱', CHIVE:'韭菜', CHIVES:'韭菜', 'GARLIC CHIVE':'韭菜', SPROUT:'芽菜',
+    'BEAN SPROUT':'豆芽', 'SOYBEAN SPROUT':'黄豆芽', 'MUNG BEAN SPROUT':'绿豆芽',
+    // ── 뿌리·줄기 ──
+    ONION:'洋葱', 'GREEN ONION':'大葱', SCALLION:'大葱', SHALLOT:'红葱头', GARLIC:'大蒜', 'PEELED GARLIC':'去皮大蒜',
+    GINGER:'生姜', POTATO:'土豆', RUSSET:'褐皮土豆', 'SWEET POTATO':'红薯', YAM:'山药', TARO:'芋头',
+    CARROT:'胡萝卜', RADISH:'萝卜', 'KOREAN RADISH':'白萝卜', DAIKON:'白萝卜', BEET:'甜菜根', TURNIP:'芜菁',
+    BURDOCK:'牛蒡', LOTUS:'莲藕', 'LOTUS ROOT':'莲藕', 'GREEN ONION ROOT':'葱白',
+    // ── 열매채소 ──
+    CUCUMBER:'黄瓜', ZUCCHINI:'西葫芦', SQUASH:'南瓜', KABOCHA:'南瓜', PUMPKIN:'南瓜', 'BUTTERNUT SQUASH':'白胡桃南瓜',
+    EGGPLANT:'茄子', TOMATO:'番茄', 'CHERRY TOMATO':'圣女果', PEPPER:'辣椒', 'BELL PEPPER':'甜椒',
+    'GREEN PEPPER':'青椒', 'HOT PEPPER':'辣椒', JALAPENO:'墨西哥辣椒', SERRANO:'塞拉诺辣椒', HABANERO:'哈瓦那辣椒',
+    CHILI:'辣椒', CORN:'玉米', OKRA:'秋葵', PEA:'豌豆', 'SNOW PEA':'荷兰豆', BEAN:'豆角', 'GREEN BEAN':'四季豆',
+    // ── 버섯 ──
+    MUSHROOM:'蘑菇', SHIITAKE:'香菇', ENOKI:'金针菇', OYSTER:'平菇', 'KING OYSTER':'杏鲍菇', BUTTON:'白蘑菇',
+    PORTOBELLO:'波特菇', BEECH:'蟹味菇',
+    // ── 과일 ──
+    APPLE:'苹果', FUJI:'富士苹果', GALA:'嘎啦苹果', HONEYCRISP:'蜜脆苹果', GRANNY:'青苹果',
+    PEAR:'梨', 'ASIAN PEAR':'韩国梨', 'KOREAN PEAR':'韩国梨', BANANA:'香蕉', PLANTAIN:'大蕉',
+    GRAPE:'葡萄', STRAWBERRY:'草莓', BLUEBERRY:'蓝莓', RASPBERRY:'覆盆子', BLACKBERRY:'黑莓', CRANBERRY:'蔓越莓', BERRY:'浆果',
+    WATERMELON:'西瓜', MELON:'甜瓜', CANTALOUPE:'哈密瓜', HONEYDEW:'白兰瓜', 'KOREAN MELON':'香瓜',
+    ORANGE:'橙子', NAVEL:'脐橙', TANGERINE:'橘子', MANDARIN:'橘子', CLEMENTINE:'小柑橘', LEMON:'柠檬', LIME:'青柠',
+    GRAPEFRUIT:'西柚', KIWI:'猕猴桃', MANGO:'芒果', PINEAPPLE:'菠萝', PAPAYA:'木瓜', GUAVA:'番石榴',
+    PEACH:'桃子', NECTARINE:'油桃', PLUM:'李子', APRICOT:'杏', CHERRY:'樱桃', PERSIMMON:'柿子',
+    POMEGRANATE:'石榴', FIG:'无花果', JUJUBE:'枣', DATE:'枣', CHESTNUT:'栗子', AVOCADO:'牛油果',
+    COCONUT:'椰子', LYCHEE:'荔枝', LONGAN:'龙眼', DURIAN:'榴莲', JACKFRUIT:'菠萝蜜', DRAGONFRUIT:'火龙果',
+    // ── 수식어·단위 ──
+    WHITE:'白', RED:'红', GREEN:'绿', YELLOW:'黄', BLACK:'黑', PURPLE:'紫', ORGANIC:'有机', LOCAL:'本地',
+    FRESH:'新鲜', DRIED:'干', FROZEN:'冷冻', BABY:'小', LARGE:'大', SMALL:'小', MEDIUM:'中', JUMBO:'特大',
+    SEEDLESS:'无籽', PEELED:'去皮', WHOLE:'整个', SLICED:'切片', CHOPPED:'切碎', BUNCH:'把', BOX:'箱',
+    BAG:'袋', CASE:'箱', EACH:'个', PACK:'包', ROOT:'根', LEAF:'叶', SEED:'籽', BUD:'芽', SPROUTS:'芽菜'
+  };
+  // 한글명 → 중국어 (영문 사전으로 못 잡을 때 한글로 교차 확인)
+  var KO_ZH={
+    '상추':'生菜','로메인':'罗马生菜','양상추':'球生菜','치커리':'菊苣','깻잎':'紫苏叶','쌈채소':'包饭蔬菜',
+    '배추':'大白菜','양배추':'卷心菜','청경채':'小白菜','시금치':'菠菜','부추':'韭菜','미나리':'水芹',
+    '쑥갓':'茼蒿','근대':'牛皮菜','케일':'羽衣甘蓝','고수':'香菜','파슬리':'欧芹','셀러리':'芹菜',
+    '콩나물':'黄豆芽','숙주':'绿豆芽','새싹':'芽菜',
+    '양파':'洋葱','대파':'大葱','쪽파':'小葱','마늘':'大蒜','생강':'生姜','감자':'土豆','고구마':'红薯',
+    '마':'山药','토란':'芋头','당근':'胡萝卜','무':'萝卜','비트':'甜菜根','순무':'芜菁','우엉':'牛蒡','연근':'莲藕',
+    '오이':'黄瓜','애호박':'西葫芦','호박':'南瓜','단호박':'南瓜','가지':'茄子','토마토':'番茄','방울토마토':'圣女果',
+    '피망':'甜椒','파프리카':'甜椒','고추':'辣椒','풋고추':'青椒','청양고추':'青阳辣椒','옥수수':'玉米',
+    '오크라':'秋葵','완두':'豌豆','깍지완두':'荷兰豆','강낭콩':'四季豆',
+    '버섯':'蘑菇','표고버섯':'香菇','팽이버섯':'金针菇','느타리버섯':'平菇','새송이버섯':'杏鲍菇','양송이버섯':'白蘑菇',
+    '사과':'苹果','부사':'富士苹果','배':'梨','신고배':'韩国梨','바나나':'香蕉','포도':'葡萄','딸기':'草莓',
+    '블루베리':'蓝莓','수박':'西瓜','참외':'香瓜','멜론':'甜瓜','오렌지':'橙子','귤':'橘子','레몬':'柠檬',
+    '라임':'青柠','자몽':'西柚','키위':'猕猴桃','망고':'芒果','파인애플':'菠萝','파파야':'木瓜',
+    '복숭아':'桃子','천도복숭아':'油桃','자두':'李子','살구':'杏','체리':'樱桃','감':'柿子','단감':'甜柿',
+    '석류':'石榴','무화과':'无花果','대추':'枣','밤':'栗子','아보카도':'牛油果','코코넛':'椰子',
+    '리치':'荔枝','용과':'火龙果','두리안':'榴莲','잭프루트':'菠萝蜜'
   };
   // 영문 문자열을 중국어로 변환 (전체 일치 → 단어 단위 / 매핑 없으면 원문 유지)
-  function toZh(eng){
-    var s=String(eng||'').trim(); if(!s) return '';
-    var up=s.toUpperCase();
-    if(EN_ZH[up]) return EN_ZH[up];
-    var parts=up.split(/\s+/), out=[], hit=false;
-    for(var i=0;i<parts.length;i++){
-      // 두 단어 조합 우선 (SWEET POTATO 등)
-      if(i+1<parts.length && EN_ZH[parts[i]+' '+parts[i+1]]){ out.push(EN_ZH[parts[i]+' '+parts[i+1]]); i++; hit=true; continue; }
-      if(EN_ZH[parts[i]]){ out.push(EN_ZH[parts[i]]); hit=true; }
-      else out.push(parts[i]);
+  // 영문 → 중국어. 영문 사전으로 못 잡으면 한글명으로 다시 확인한다(교차검증).
+  function toZh(eng, kor){
+    var e=String(eng||'').trim().toUpperCase();
+    var k=String(kor||'').trim();
+    // 1) 영문 전체 일치
+    if(EN_ZH[e]) return EN_ZH[e];
+    // 2) 한글 전체 일치 (괄호·수식어 제거 후)
+    var kb=k.replace(/\(.*?\)/g,'').trim();
+    if(KO_ZH[kb]) return KO_ZH[kb];
+    // 3) 한글 부분 일치 — 긴 이름부터 검사 (단호박이 호박보다 먼저)
+    if(kb){
+      var keys=Object.keys(KO_ZH).sort(function(a,b){ return b.length-a.length; });
+      for(var i=0;i<keys.length;i++){ if(kb.indexOf(keys[i])>=0) return KO_ZH[keys[i]]; }
     }
-    return hit ? out.join(' ') : up;   // 하나도 못 바꾸면 영문 그대로
+    // 4) 영문 단어 단위 (두 단어 조합 우선 — SWEET POTATO 등)
+    if(e){
+      var parts=e.split(/\s+/), out=[], hit=false;
+      for(var j=0;j<parts.length;j++){
+        if(j+1<parts.length && EN_ZH[parts[j]+' '+parts[j+1]]){ out.push(EN_ZH[parts[j]+' '+parts[j+1]]); j++; hit=true; continue; }
+        if(EN_ZH[parts[j]]){ out.push(EN_ZH[parts[j]]); hit=true; } else out.push(parts[j]);
+      }
+      if(hit) return out.join(' ');
+    }
+    return e || kb;   // 끝내 못 찾으면 영문(없으면 한글) 그대로
   }
   // 영문 문자열을 단어 단위로 스페인어 변환 (매핑 없는 단어는 원문 유지)
   function toEs(eng){
@@ -1726,7 +1821,7 @@
   function cateName(ko, en){
     if(curLang==='KO') return { main: ko||en, sub: en||'' };
     if(curLang==='ES'){ var es=toEs(en||ko); return { main: es||ko, sub: ko||'' }; }
-    if(curLang==='ZH'){ var zh=toZh(en||ko); return { main: zh||ko, sub: ko||'' }; }
+    if(curLang==='ZH'){ var zh=toZh(en, ko); return { main: zh||ko, sub: ko||'' }; }
     return { main: en||ko, sub: (en&&ko)?ko:'' };   // EN
   }
   function renderCateGrid(pane){
@@ -1798,7 +1893,7 @@
   function itemName(ko, en){
     if(curLang==='KO') return { main: ko||en, sub: en||'' };
     if(curLang==='ES'){ var es=toEs(en||ko); return { main: es||ko, sub: ko||'' }; }
-    if(curLang==='ZH'){ var zh=toZh(en||ko); return { main: zh||ko, sub: ko||'' }; }
+    if(curLang==='ZH'){ var zh=toZh(en, ko); return { main: zh||ko, sub: ko||'' }; }
     return { main: en||ko, sub: (en&&ko)?ko:'' };   // EN
   }
   // 요구2: 뒤로가기는 오른쪽 패널 버튼에서 처리
@@ -2086,7 +2181,8 @@
       var K = kbdShift ? QW_KO_SHIFT : QW_KO;
       return line(K[0],'g-ko',0) + line(K[1],'g-ko',1) +
         '<div class="kbd-line" data-off="1">'+
-          '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">⇧ 쌍자음</button>'+
+          '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">'+
+            '<span class="s1">⇧</span><span class="s2">쌍자음</span></button>'+
           K[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
         '</div>';
     }
@@ -2114,11 +2210,16 @@
 
     var letters='<div class="kbd-letters">'+lines+'</div>';
 
-    // BACKSPACE / DELETE / ← BACK
+    // BACKSPACE / DELETE / ← BACK  (세로 버튼 바에서는 한국어+영어 2줄)
+    function fn2(cls, act, ko, en){
+      return '<button class="kbd-key fn del '+cls+sp2+'" data-act="'+act+'">'+
+        (portrait ? ('<span class="m1">'+ko+'</span><span class="m2">'+en+'</span>') : en)+
+        '</button>';
+    }
     var fnBtns =
-      '<button class="kbd-key fn del backsp'+sp2+'" data-act="del">BACKSPACE</button>'+
-      '<button class="kbd-key fn del clr'+sp2+'" data-act="clear">DELETE</button>'+
-      '<button class="kbd-key fn del backk'+sp2+'" data-act="back">← BACK</button>';
+      fn2('backsp','del','지우기','BACKSPACE')+
+      fn2('clr','clear','전체삭제','DELETE')+
+      fn2('backk','back','뒤로','← BACK');
 
     // 1) 한국어⇄영어 토글  2) 숫자  3) 한국어/영어 동시
     var langOn = (mode==='KO'||mode==='EN');
@@ -2320,11 +2421,12 @@
     if(!rows.length){ $('searchResults').innerHTML='<div class="search-empty">"'+esc(q)+'" 검색 결과가 없습니다</div>'; return; }
     var html='';
     rows.slice(0,40).forEach(function(r){
-      var plu=pluOf(r), en=engOf(r), ko=korOf(r);
+      // 선택 언어가 주(主) = 굵게 / 나머지는 보조. 언어가 달라도 크기는 항상 같다.
+      var plu=pluOf(r), nm=itemName(korOf(r), engOf(r));
       html+='<div class="search-item" data-plu="'+esc(plu)+'">'+
         '<span class="snum">'+esc(plu)+'</span>'+
-        (en?'<span class="sen">'+esc(en)+'</span>':'')+
-        (ko?'<span class="sko">'+esc(ko)+'</span>':'')+
+        (nm.main?'<span class="sen">'+esc(nm.main)+'</span>':'')+
+        (nm.sub ?'<span class="sko">'+esc(nm.sub)+'</span>':'')+
         '</div>';
     });
     $('searchResults').innerHTML=html;
