@@ -219,7 +219,7 @@
   .hmart-badge img{ height:100%; width:auto; max-height:100%; border-radius:7px; display:block; object-fit:contain; }
   .hmart-badge span{ color:rgba(255,255,255,.55); }
 
-  .cat-boxes{ display:flex; gap:5px; flex:1; min-width:0; }
+  .cat-boxes{ display:flex; gap:5px; flex:1; min-width:0; margin-left:4px; }
   .cat-box{
     position:relative; overflow:hidden;
     flex:1 1 0; min-width:0; padding:5px 3px; border:1px solid var(--line); border-radius:9px;
@@ -537,8 +537,8 @@
   .kbd-keys.qwerty .kbd-key.shift.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
 
   /* 모드별 키 크기 — 줄 수가 적을수록 키가 커진다 */
-  .kbd-keys.mode-EN   .kbd-letters{ --kfs:30px; }
-  .kbd-keys.mode-KO   .kbd-letters{ --kfs:29px; }
+  .kbd-keys.mode-EN   .kbd-letters{ --kmax:92px; --kfs:30px; }
+  .kbd-keys.mode-KO   .kbd-letters{ --kmax:74px; --kfs:29px; }
   .kbd-keys.mode-NUM  .kbd-letters{ --kmax:132px; --kfs:38px; }
   /* 한국어+영어 동시 = 6줄 → 사진 박스 높이는 그대로 두고 키를 작게 */
   .kbd-keys.mode-BOTH .kbd-letters{ --kfs:15px; }
@@ -556,8 +556,8 @@
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
 
   @media (max-height:790px){
-    .kbd-keys.mode-EN   .kbd-letters{ --kfs:27px; }
-    .kbd-keys.mode-KO   .kbd-letters{ --kfs:26px; }
+    .kbd-keys.mode-EN   .kbd-letters{ --kmax:84px; --kfs:27px; }
+    .kbd-keys.mode-KO   .kbd-letters{ --kmax:68px; --kfs:26px; }
     .kbd-keys.mode-NUM  .kbd-letters{ --kmax:120px; --kfs:34px; }
     .kbd-keys.mode-BOTH .kbd-letters{ --kfs:14px; }
     .kbd-keys.qwerty .kbd-key.shift{ font-size:12px; }
@@ -573,11 +573,22 @@
        · 리스트 : 남는 공간 전부 (화면을 위아래로 꽉 채움)
        · 하단   : 사진(가운데 정사각형) 위 / 키패드 아래
      ══════════════════════════════════════════════════════════════ */
+  .orient-mini{
+    flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    width:39px; padding:4px 2px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .16s ease;
+    border:1px solid var(--line-2); background:var(--panel); color:var(--ink); margin-left:3px;
+  }
+  .orient-mini::before{ content:'VIEW'; font-size:6px; font-weight:700; letter-spacing:.06em; color:var(--ink-dim); }
+  .orient-mini:active{ background:var(--ink); border-color:var(--ink); color:#fff; }
+  .orient-mini:active::before{ color:rgba(255,255,255,.6); }
+  .orient-mini .lb{ font-size:9px; font-weight:700; letter-spacing:0; line-height:1.2; white-space:nowrap; }
+
   /* ── 상단바 ── */
   body.portrait .topbar{ height:auto; flex-wrap:wrap; align-items:center; padding:7px 10px 9px; gap:5px; }
   body.portrait .hmart-badge{ flex:1 1 auto; height:42px; align-self:center; justify-content:flex-start; padding-right:0; }
   body.portrait .hmart-badge::after{ display:none; }
   body.portrait .lang-mini,
+  body.portrait .orient-mini,
   body.portrait .refresh-mini{ height:42px; width:47px; }
   body.portrait .cat-boxes{
     order:9; flex:0 0 100%; width:100%; margin-top:7px;
@@ -599,6 +610,8 @@
   body.portrait .kbd-funcs{ width:clamp(100px, 14vw, 132px); }
   body.portrait .kbd-modes{ width:clamp(80px, 11vw, 104px); }
   body.portrait .kbd-keys{ gap:6px; }
+  body.portrait .kbd-keys.mode-EN  .kbd-letters{ --kmax:70px; }
+  body.portrait .kbd-keys.mode-KO  .kbd-letters{ --kmax:58px; }
   body.portrait .kbd-keys.mode-NUM .kbd-letters{ --kmax:110px; }
 
   /* ── 세로에서는 검색 결과를 1단으로 (폭이 좁아 2단은 글자가 잘림) ── */
@@ -610,69 +623,6 @@
   body.portrait .plu-grid{ grid-template-columns:repeat(3,1fr); }
   body.portrait .weekly-wrap{ grid-template-columns:1fr; }
 
-
-
-  /* ══════════════════════════════════════════════════════════════
-     [실험] 실물 키보드 느낌 — 키패드 영역에만 적용
-     원복 방법: 스크립트에서 document.body.classList.add('kbd-deck') 한 줄만 지우면
-                이전의 납작한 페이퍼 톤 키패드로 그대로 돌아간다.
-     ══════════════════════════════════════════════════════════════ */
-  body.kbd-deck .kbdbar{
-    background:linear-gradient(180deg, #DCD7CD 0%, #CEC8BB 100%);
-    border:1px solid #BDB5A5; border-radius:15px; padding:7px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.75),
-               inset 0 -3px 8px rgba(30,27,22,.10),
-               0 3px 8px -4px rgba(30,27,22,.4);
-  }
-  /* 키캡 — 위쪽 하이라이트 + 아래쪽 두께감 */
-  body.kbd-deck .kbd-key{
-    background:linear-gradient(180deg, #FFFFFF 0%, #F4F1EA 100%);
-    border:1px solid #C6BEAE; border-radius:8px; color:var(--ink); font-weight:700;
-    box-shadow:0 2px 0 #B8AF9E, 0 3px 5px -2px rgba(30,27,22,.3),
-               inset 0 1px 0 rgba(255,255,255,.95);
-    transition:transform .05s ease, box-shadow .05s ease, background .05s ease;
-  }
-  body.kbd-deck .kbd-key:active{
-    transform:translateY(2px);
-    background:linear-gradient(180deg, #EFEBE2 0%, #E3DED3 100%);
-    box-shadow:0 0 0 #B8AF9E, inset 0 2px 5px rgba(30,27,22,.3);
-    color:var(--ink);
-  }
-  /* 기능키 — 조금 어두운 회색 키캡 */
-  body.kbd-deck .kbd-key.fn{
-    background:linear-gradient(180deg, #EEEAE1 0%, #DFD9CE 100%);
-    border-color:#BAB1A0; box-shadow:0 2px 0 #ACA292, 0 3px 5px -2px rgba(30,27,22,.3),
-               inset 0 1px 0 rgba(255,255,255,.8);
-  }
-  body.kbd-deck .kbd-key.fn:active{
-    transform:translateY(2px);
-    background:linear-gradient(180deg, #E2DDD2 0%, #D6D0C3 100%);
-    box-shadow:0 0 0 #ACA292, inset 0 2px 5px rgba(30,27,22,.3);
-  }
-  body.kbd-deck .kbd-key.shift{
-    background:linear-gradient(180deg, #EEEAE1 0%, #DFD9CE 100%); border-color:#BAB1A0;
-    box-shadow:0 2px 0 #ACA292, 0 3px 5px -2px rgba(30,27,22,.3), inset 0 1px 0 rgba(255,255,255,.8);
-  }
-  body.kbd-deck .kbd-key.shift.on{
-    background:linear-gradient(180deg, #3A362E 0%, #23201A 100%); border-color:#1E1B16; color:#fff;
-    box-shadow:0 2px 0 #14120E, inset 0 1px 0 rgba(255,255,255,.14);
-  }
-  /* 키보드 선택 버튼도 같은 키캡 재질 */
-  body.kbd-deck .kbd-mode{
-    background:linear-gradient(180deg, #EEEAE1 0%, #DFD9CE 100%);
-    border:1px solid #BAB1A0; border-radius:8px;
-    box-shadow:0 2px 0 #ACA292, 0 3px 5px -2px rgba(30,27,22,.3), inset 0 1px 0 rgba(255,255,255,.8);
-    transition:transform .05s ease, box-shadow .05s ease, background .05s ease;
-  }
-  body.kbd-deck .kbd-mode:active{
-    transform:translateY(2px);
-    box-shadow:0 0 0 #ACA292, inset 0 2px 5px rgba(30,27,22,.3);
-  }
-  body.kbd-deck .kbd-mode.on{
-    background:linear-gradient(180deg, #3A362E 0%, #23201A 100%); border-color:#1E1B16; color:#fff;
-    box-shadow:0 2px 0 #14120E, inset 0 1px 0 rgba(255,255,255,.14);
-  }
-  body.kbd-deck .kbd-mode.on .m2{ color:rgba(255,255,255,.62); }
 
   /* ===== 검색 결과 팝업 ===== */
   .search-ov{ position:fixed; inset:0; z-index:200; display:none; background:transparent; pointer-events:none; }
@@ -835,6 +785,7 @@
     <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
   </div>
   <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
+  <button class="orient-mini" id="orientBtn" title="가로/세로 전환"><span class="lb" id="orientLb">가로</span></button>
   <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
 </div>
 
@@ -954,19 +905,12 @@
   var $=function(id){ return document.getElementById(id); };
   // H-MART 로고 (임베드 이미지)
   var HMART_LOGO='data:image/png;base64,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';
-  // 상단 로고 — 루트의 H-MART_LOGO.jpg 사용 (파일명 대소문자·공백 표기 차이까지 순서대로 시도)
-  //   Cloudflare Pages 는 파일명 대소문자를 구분하므로 후보를 넉넉히 둔다.
-  var LOGO_SRCS=window.LOGO_SRCS=[
-    'H-MART_LOGO.jpg', '/H-MART_LOGO.jpg',
-    'H-MART_LOGO.JPG', '/H-MART_LOGO.JPG',
-    'H-MART%20LOGO.jpg', '/H-MART%20LOGO.jpg',
-    'H-MART%20LOGO.JPG', '/H-MART%20LOGO.JPG'
-  ];
+  // 상단 로고 — 루트의 H-MART_LOGO.jpg 사용, 없으면 내장 로고로 대체
   (function(){
     var im=$('hmartLogo'); if(!im) return;
-    var i=0;
-    im.onerror=function(){ i++; im.src = (i<LOGO_SRCS.length) ? LOGO_SRCS[i] : HMART_LOGO; };
-    im.src=LOGO_SRCS[0];
+    var srcs=['H-MART_LOGO.jpg','/H-MART_LOGO.jpg'], i=0;
+    im.onerror=function(){ i++; im.src = (i<srcs.length) ? srcs[i] : HMART_LOGO; };
+    im.src=srcs[0];
   })();
   var ADMIN_PIN='1004';   // 임시 (추후 STORE MANAGER 관리)
 
@@ -1995,21 +1939,28 @@
   applyLangClass();
 
 
-  /* ===== 가로 / 세로 레이아웃 자동 전환 =====
-     화면 비율(세로가 더 길면 세로)로 판단한다. 배치만 바뀌고 기능·데이터는 그대로. */
+  /* ===== 가로 / 세로 레이아웃 전환 =====
+     화면 배치만 바꾸고 기능·데이터·상태는 그대로 유지한다. */
   (function(){
-    var last=null;
-    function sync(){
-      var portrait = window.innerHeight > window.innerWidth;
-      if(portrait===last) return;
-      last=portrait;
+    var btn=$('orientBtn'), lb=$('orientLb'); if(!btn) return;
+    var KEY='pluOrient';
+    function apply(v, save){
+      var portrait = (v==='P');
       document.body.classList.toggle('portrait', portrait);
+      if(lb) lb.textContent = portrait ? '세로' : '가로';
+      btn.title = portrait ? '세로 보기 (누르면 가로)' : '가로 보기 (누르면 세로)';
+      if(save){ try{ localStorage.setItem(KEY, v); }catch(e){} }
+      // 배치가 바뀌었으므로 키패드·검색창을 현재 크기에 맞춰 다시 계산
       try{ renderKeyboard(); }catch(e){}
       try{ if(typeof searching!=='undefined' && searching) positionSearchCard(); }catch(e){}
+      try{ window.dispatchEvent(new Event('resize')); }catch(e){}
     }
-    sync();
-    window.addEventListener('resize', sync);
-    window.addEventListener('orientationchange', function(){ setTimeout(sync, 60); });
+    var saved='L';
+    try{ saved = (localStorage.getItem(KEY)==='P') ? 'P' : 'L'; }catch(e){}
+    apply(saved, false);
+    btn.addEventListener('click', function(){
+      apply(document.body.classList.contains('portrait') ? 'L' : 'P', true);
+    });
   })();
 
   /* ===== 검색 키보드 (요구2~6) ===== */
@@ -2034,9 +1985,20 @@
   var kbdLang='EN';          // 첫 번째 토글 버튼이 가리키는 언어
   var kbdShift=false;        // 한글 SHIFT (쌍자음) — BOTH(두벌식)에서만 사용
 
+  // ── 기본 배열: ABC 순 / ㄱㄴㄷ 순 ──
+  var ABC_EN=[
+    ['A','B','C','D','E','F','G','H','I'],
+    ['J','K','L','M','N','O','P','Q','R'],
+    ['S','T','U','V','W','X','Y','Z']
+  ];
+  var ABC_KO=[
+    ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ'],
+    ['ㅌ','ㅍ','ㅎ','ㄲ','ㄸ','ㅃ','ㅆ','ㅉ','ㅏ','ㅓ','ㅗ'],
+    ['ㅕ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
+  ];
   var NUM_ROWS=[['1','2','3','4'],['5','6','7','8'],['9','0']];
 
-  // ── QWERTY 배열 ──
+  // ── 한국어/영어 동시 보기용 QWERTY 배열 ──
   var QW_EN=[
     ['Q','W','E','R','T','Y','U','I','O','P'],
     ['A','S','D','F','G','H','J','K','L'],
@@ -2063,31 +2025,23 @@
     }
     function rowsOf(set,cls){ return set.map(function(r){ return line(r,cls,0); }).join(''); }
 
-    // 한글 QWERTY 3줄 (마지막 줄 앞에 SHIFT — 두벌식이라 쌍자음은 SHIFT 로 입력)
-    function koQwerty(){
-      var K = kbdShift ? QW_KO_SHIFT : QW_KO;
-      return line(K[0],'g-ko',0) + line(K[1],'g-ko',1) +
-        '<div class="kbd-line" data-off="1">'+
-          '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">⇧ 쌍자음</button>'+
-          K[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
-        '</div>';
-    }
-    function enQwerty(){
-      return line(QW_EN[0],'g-en',0) + line(QW_EN[1],'g-en',1) + line(QW_EN[2],'g-en',3);
-    }
-
-    var mode=kbdMode, lines='', rows=3, qwerty=true;
+    var mode=kbdMode, lines='', rows=3, qwerty=false;
     if(mode==='KO'){
-      lines = koQwerty();
+      lines = rowsOf(ABC_KO,'g-ko');
     } else if(mode==='NUM'){
-      qwerty=false;
       lines = rowsOf(NUM_ROWS,'g-num');
-    } else if(mode==='BOTH'){                 // 영문 3줄 + 한글 3줄
-      rows=6;
-      lines = enQwerty() + koQwerty();
+    } else if(mode==='BOTH'){                 // QWERTY 로 영문 3줄 + 한글 3줄
+      rows=6; qwerty=true;
+      var K = kbdShift ? QW_KO_SHIFT : QW_KO;
+      lines = line(QW_EN[0],'g-en',0) + line(QW_EN[1],'g-en',1) + line(QW_EN[2],'g-en',3) +
+              line(K[0],'g-ko',0) + line(K[1],'g-ko',1) +
+              '<div class="kbd-line" data-off="1">'+
+                '<button class="kbd-key shift'+(kbdShift?' on':'')+'" data-act="shift">⇧ 쌍자음</button>'+
+                K[2].map(function(k){ return keyBtn(k,'g-ko'); }).join('')+
+              '</div>';
     } else {                                   // EN — 처음 화면
       mode='EN';
-      lines = enQwerty();
+      lines = rowsOf(ABC_EN,'g-en');
     }
 
     // 기능키·선택버튼이 글자 줄과 정확히 맞도록 차지할 줄 수를 계산
@@ -2117,7 +2071,6 @@
     bar.innerHTML='<div class="kbd-keys mode-'+mode+(qwerty?' qwerty':'')+'" style="--rows:'+rows+'">'+
       letters+funcs+modes+'</div>';
   }
-  document.body.classList.add('kbd-deck');   // [실험] 실물 키보드 느낌 — 원복하려면 이 줄만 삭제
   renderKeyboard();
 
   // 한글 자모 조합 (간단 오토마타) — 초성/중성/종성 결합
@@ -2463,7 +2416,7 @@
   var img=document.getElementById('splashLogo');
 
   // 로고: /H-MART_LOGO.jpg → H-MART_LOGO.jpg → 내장 로고
-  var srcs=(window.LOGO_SRCS||['/H-MART_LOGO.jpg','H-MART_LOGO.jpg']), si=0;
+  var srcs=['/H-MART_LOGO.jpg','H-MART_LOGO.jpg'], si=0;
   function nextSrc(){
     if(si<srcs.length){ img.src=srcs[si++]; return; }
     var em=document.getElementById('hmartLogo');
