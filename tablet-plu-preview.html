@@ -150,8 +150,9 @@
   .splash.out{ opacity:0; pointer-events:none; }
   .splash-in{ display:flex; flex-direction:column; align-items:center; gap:26px; }
   .splash-logo{
-    /* 원래 크기 그대로 (확대하지 않음 · 화면을 넘칠 때만 축소) */
-    width:auto; height:auto;
+    /* 표시 크기를 96px 로 고정 — 원본 파일이 크든 작든 항상 같은 크기로 보인다.
+       (예전에는 width:auto 라 원본 739px 짜리 JPG 를 넣으면 화면 가득 커졌다) */
+    width:96px; height:96px;
     max-width:min(100%, 82vw); max-height:58vh;
     display:block; object-fit:contain; image-rendering:auto;
     opacity:0; transform:scale(.96);
@@ -214,9 +215,9 @@
     border-bottom:1px solid var(--line);
     box-shadow:0 1px 0 rgba(30,27,22,.02);
   }
-  .hmart-badge{ flex:0 0 auto; align-self:stretch; display:flex; align-items:center; justify-content:center; padding:0; margin:0; position:relative; }
+  .hmart-badge{ flex:0 0 auto; width:44px; height:44px; align-self:center; display:flex; align-items:center; justify-content:center; padding:0; margin:0; position:relative; overflow:hidden; }
   .hmart-badge::after{ display:none; }
-  .hmart-badge img{ height:100%; width:auto; max-height:100%; border-radius:7px; display:block; object-fit:contain; }
+  .hmart-badge img{ width:100%; height:100%; max-width:100%; max-height:100%; border-radius:7px; display:block; object-fit:contain; }
   .hmart-badge span{ color:rgba(255,255,255,.55); }
 
   .cat-boxes{ display:flex; gap:5px; flex:1; min-width:0; }
@@ -575,7 +576,7 @@
      ══════════════════════════════════════════════════════════════ */
   /* ── 상단바 ── */
   body.portrait .topbar{ height:auto; flex-wrap:wrap; align-items:center; padding:7px 10px 9px; gap:5px; }
-  body.portrait .hmart-badge{ flex:1 1 auto; height:42px; align-self:center; justify-content:flex-start; padding-right:0; }
+  body.portrait .hmart-badge{ flex:0 0 auto; width:42px; height:42px; margin-right:auto; align-self:center; }
   body.portrait .hmart-badge::after{ display:none; }
   body.portrait .lang-mini,
   body.portrait .refresh-mini{ height:42px; width:47px; }
