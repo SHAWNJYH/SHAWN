@@ -549,7 +549,7 @@
   }
   .pp-img{ width:100%; flex:1 1 auto; min-height:0; border:1px solid var(--line); border-radius:12px;
     background:var(--panel-3); display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .pp-img img{ max-width:100%; max-height:min(58vh, 520px); width:auto; height:auto; object-fit:contain; display:block; }
+  .pp-img img{ max-width:100%; max-height:min(58vh, 500px); width:auto; height:auto; object-fit:contain; display:block; image-rendering:auto; }
   .pp-img .noimg{ color:var(--ink-dim); font-size:12px; font-weight:700; text-align:center; line-height:1.8; padding:56px 16px; }
   .pp-meta{ flex:0 0 auto; display:flex; align-items:center; gap:14px; min-width:0; padding:0 3px; }
   .pp-num{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:34px; font-weight:800; color:var(--red); flex:0 0 auto; line-height:1; }
@@ -738,6 +738,17 @@
   .kbd-key.fn:active{ background:var(--ink); border-color:var(--ink); color:#fff; }
   .kbd-key.fn.del{ color:var(--red); border-color:var(--line); }
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
+  /* (요구9) 정렬 토글 버튼 — 현재 정렬 방식을 2줄로 표시 */
+  .kbd-key.fn.sortbtn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    padding:0 4px; overflow:hidden; border-color:#B9C4D2; background:#EEF2F7; color:#2C4160; }
+  .kbd-key.fn.sortbtn .m1{ font-size:12px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .kbd-key.fn.sortbtn .m2{ font-size:8px; font-weight:700; letter-spacing:.02em; line-height:1.15; white-space:nowrap; opacity:.72; }
+  .kbd-key.fn.sortbtn.on{ background:#2E4A6E; border-color:#243956; color:#fff; }
+  .kbd-key.fn.sortbtn.on .m2{ color:rgba(255,255,255,.7); }
+  body.kbd-deck .kbd-key.fn.sortbtn{ background:linear-gradient(180deg,#F5F8FC 0%,#DDE6F1 100%); border-color:#AFBCCC;
+    box-shadow:0 2px 0 #9DAABC, 0 3px 5px -2px rgba(30,27,22,.3), inset 0 1px 0 rgba(255,255,255,.9); }
+  body.kbd-deck .kbd-key.fn.sortbtn.on{ background:linear-gradient(180deg,#3D5F87 0%,#27405F 100%); border-color:#1F3350; color:#fff;
+    box-shadow:0 2px 0 #17263A, inset 0 1px 0 rgba(255,255,255,.18); }
 
   @media (max-height:790px){
     .kbd-keys.mode-EN   .kbd-letters{ --kfs:27px; }
@@ -1084,11 +1095,11 @@
       <div class="ctrl-grid">
         <!-- 왼쪽 열: 키보드 선택 3개 (renderKeyboard 가 채움) -->
         <div class="ctrl-modes" id="ctrlModes"></div>
-        <!-- 오른쪽 열: 언어 / 업데이트 / 사진 업데이트 -->
+        <!-- 오른쪽 열: 언어 / 업데이트 / 사진 등록 -->
         <div class="ctrl-utils">
           <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
           <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
-          <button class="photoup-mini" id="photoUp" title="사진 촬영·등록"><span class="ic">📸</span><span class="lb">사진 업데이트</span><span class="lb2">PHOTO UPLOAD</span></button>
+          <button class="photoup-mini" id="photoUp" title="사진 촬영·등록"><span class="ic">📸</span><span class="lb">사진 등록</span><span class="lb2">PHOTO SAVE</span></button>
         </div>
       </div>
     </div>
@@ -1159,7 +1170,7 @@
 <!-- (요구3·9) 카메라 오버레이 — 사진 업데이트 / 사진 찾기(KNN) 공용 -->
 <div class="cam-ov" id="camOv">
   <div class="cam-head">
-    <span class="cam-title" id="camTitle">사진 업데이트</span>
+    <span class="cam-title" id="camTitle">사진 등록</span>
     <button class="cam-gear" id="camGear" title="GitHub 저장 설정">GITHUB</button>
     <button class="cam-close" id="camClose">✕</button>
   </div>
@@ -1278,12 +1289,15 @@
     return out;
   };
   window.ppFb = { db, doc, getDoc, setDoc, deleteDoc, collection, getDocs };
-  /* 사진 컬렉션 (plu-preview-images/{PLU} = { b64, updatedAt, store }) 일괄 가져오기 */
+  /* (요구1) 사진은 Firebase 를 쓰지 않는다 — 20대 이상 동시 구동 시 트래픽·읽기 한도 초과.
+     사진은 GitHub(image_produce 폴더) → Cloudflare Pages CDN 에서만 받는다.
+     되살리려면 아래 주석을 풀고 imgSyncGithub 호출부를 바꾸면 된다.
   window.__fbFetchImages = async function(){
     const o = {};
     try{ const snap = await getDocs(collection(db, 'plu-preview-images')); snap.forEach(ds => { o[ds.id] = ds.data(); }); }catch(e){}
     return o;
   };
+  */
   /* Firestore 보안규칙(로그인 필요) 대응: 익명 인증 후 준비 신호 · 3초 폴백 */
   var __fired=false;
   function __fire(){ if(__fired) return; __fired=true; window.dispatchEvent(new Event('fb-ready')); }
@@ -1575,6 +1589,9 @@
   var DATA=null;
   var curCat='PRODUCE', curCate='', selPlu='', searchTerm='', fbReady=false, isAdmin=false;
   var view='cate';   // 'cate' = CATE 버튼 그리드, 'list' = 상품 리스트
+  /* (요구9·10) 정렬 방식 — 'NAME'(이름순) / 'PLU'(번호순). BACK 버튼으로 토글 */
+  var sortMode='NAME';
+  try{ if(localStorage.getItem('ppSortMode')==='PLU') sortMode='PLU'; }catch(e){}
   var curLang='EN';  // 요구8: 표시 언어 EN/KO/ES
 
   /* ===== 사용자 정의(CUSTOM) — 다국어 문구 ===== */
@@ -2553,57 +2570,68 @@
   }
 
   // silent=true → 시작 스플래시용 조용한 업데이트 (팝업·로딩표시 없음, 성공여부 반환)
-  async function refresh(silent){
-    if(!fbReady){
-      if(!silent){ alert('네트워크 준비 중입니다. 잠시 후 다시 시도하세요.'); return false; }
-      await new Promise(function(res){
-        var done=false, fin=function(){ if(!done){ done=true; res(); } };
-        window.addEventListener('fb-ready', fin, { once:true });
-        setTimeout(fin, 3500);
-      });
-      if(!fbReady) return false;
-    }
+  async function refresh(silent, onImgProg){
+    // (요구2·6) PLU 리스트 = Firebase / 사진 = GitHub.
+    //           둘은 서로 독립이라 한쪽이 실패해도 다른 쪽은 계속 진행한다.
+    // onImgProg(받은수, 전체수) — 스플래시·로딩 화면에서 사진 진행 상황 표시용
     syncStore();
-    if(!silent) setLoading(true,'Firebase에서 데이터 가져오는 중…');
+    if(!DATA){ var c0=await cacheGet(); if(c0 && c0.cloud) DATA=c0; }
+
+    // ── 사진(GitHub) — 먼저 걸어두고 뒤에서 기다린다 ──
+    var imgTask = (async function(){
+      try{ return await syncImages(onImgProg); }catch(e){ return false; }
+    })();
+
+    // ── PLU 리스트(Firebase) ──
+    var listOk=false, listErr='';
     try{
-      // 스플래시에서 먼저 호출되는 경우 저장본을 아직 안 읽었을 수 있음 →
-      // 기존 저장값(매장별 설정·메시지·주간광고)을 잃지 않도록 캐시부터 로드
-      if(!DATA){ var c0=await cacheGet(); if(c0 && c0.cloud) DATA=c0; }
-      var raw=await window.__fbFetch();
-      var listRaw=(raw&&raw['plu-list'])||{};
-      var pcAll=(raw&&raw['plu-preview-config'])||{};
-      var hasList=Object.keys(listRaw).length>0;
-      // 매장별 설정 문서 (plu-preview-config/{매장}) — 대소문자 차이도 흡수
-      var pc=await fetchStoreConfig(pcAll);
-      var hasPc=!!pc;
-      // 둘 다 못 받았으면(오프라인·차단) 저장된 데이터를 덮어쓰지 않는다
-      if(!hasList && !hasPc){
-        if(!silent) alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.');
-        return false;
+      if(!fbReady){
+        await new Promise(function(res){
+          var done=false, fin=function(){ if(!done){ done=true; res(); } };
+          window.addEventListener('fb-ready', fin, { once:true });
+          setTimeout(fin, 3500);
+        });
       }
-      pc=pc||{};
-      // PLU MASTER — 못 받았으면 기존 저장본 유지 (청과 카테고리만 파싱됨)
-      var cloud=hasList ? parseSnap(listRaw, (raw['plu-config']||{})) : ((DATA&&DATA.cloud)||{});
-      // 받긴 했지만 청과 문서가 하나도 없으면(서버 구조 변경 등) 기존 저장본을 지우지 않는다
-      if(hasList && !Object.keys(cloud).length && DATA && DATA.cloud && Object.keys(DATA.cloud).length) cloud=DATA.cloud;
-      var custom={};
-      if(pc.sales && (Array.isArray(pc.sales.subs)||Array.isArray(pc.sales.items))) custom.SALES={ subs:(pc.sales.subs||[]), plus:(pc.sales.plus||[]), items:(pc.sales.items||[]) };
-      if(pc.etc && (Array.isArray(pc.etc.subs)||Array.isArray(pc.etc.items))) custom.ETC={ subs:(pc.etc.subs||[]), plus:(pc.etc.plus||[]), items:(pc.etc.items||[]) };
-      // 로컬에만 있던 설정도 병합 (관리자가 아직 서버 저장 안 한 경우)
-      if(DATA&&DATA.custom){ for(var ck in DATA.custom){ if(!custom[ck]) custom[ck]=DATA.custom[ck]; } }
-      var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
-      // 주간 광고 이미지 목록 (관리 페이지에서 저장 → plu-preview-config/{매장}.weekly)
-      var weekly=Array.isArray(pc.weekly)?pc.weekly:((DATA&&DATA.weekly)||[]);
-      DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, store:STORE, savedAt:Date.now() };
-      await cacheSet(DATA);
-      try{ await syncImages(); }catch(e){}   // 사진(plu-preview-images) 동기화 — 실패해도 진행
-      render(); updateMeta(); renderMsg();
-      return true;
-    }catch(e){
-      if(!silent) alert('데이터를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+(e&&e.message?e.message:e));
-      return false;
+      if(!fbReady){ listErr='네트워크 준비 안 됨'; }
+      else{
+        if(!silent) setLoading(true,'PLU 리스트 가져오는 중…');
+        var raw=await window.__fbFetch();
+        var listRaw=(raw&&raw['plu-list'])||{};
+        var pcAll=(raw&&raw['plu-preview-config'])||{};
+        var hasList=Object.keys(listRaw).length>0;
+        var pc=await fetchStoreConfig(pcAll);
+        var hasPc=!!pc;
+        if(!hasList && !hasPc){
+          listErr='PLU 리스트를 가져오지 못했습니다';
+        } else {
+          pc=pc||{};
+          var cloud=hasList ? parseSnap(listRaw, (raw['plu-config']||{})) : ((DATA&&DATA.cloud)||{});
+          if(hasList && !Object.keys(cloud).length && DATA && DATA.cloud && Object.keys(DATA.cloud).length) cloud=DATA.cloud;
+          var custom={};
+          if(pc.sales && (Array.isArray(pc.sales.subs)||Array.isArray(pc.sales.items))) custom.SALES={ subs:(pc.sales.subs||[]), plus:(pc.sales.plus||[]), items:(pc.sales.items||[]) };
+          if(pc.etc && (Array.isArray(pc.etc.subs)||Array.isArray(pc.etc.items))) custom.ETC={ subs:(pc.etc.subs||[]), plus:(pc.etc.plus||[]), items:(pc.etc.items||[]) };
+          if(DATA&&DATA.custom){ for(var ck in DATA.custom){ if(!custom[ck]) custom[ck]=DATA.custom[ck]; } }
+          var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
+          var weekly=Array.isArray(pc.weekly)?pc.weekly:((DATA&&DATA.weekly)||[]);
+          DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, store:STORE, savedAt:Date.now() };
+          await cacheSet(DATA);
+          listOk=true;
+          render(); updateMeta(); renderMsg();
+        }
+      }
+    }catch(e){ listErr=(e&&e.message)?e.message:String(e); }
+
+    // ── 사진 완료 대기 ──
+    var imgOk=false;
+    try{ imgOk=await imgTask; }catch(e){}
+    render();
+
+    if(!silent && !listOk){
+      alert('PLU 리스트를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+listErr+
+            (imgOk ? '\n\n(사진은 정상적으로 받았습니다)' : ''));
     }
-    finally{ if(!silent) setLoading(false); }
+    if(!silent) setLoading(false);
+    return listOk || imgOk;
   }
   window.__ppRefresh = refresh;   // 시작 스플래시에서 호출
 
@@ -2905,18 +2933,34 @@
       return;
     }
     // 표시 이름을 먼저 계산 (정렬·렌더에 재사용 — engForCate 중복 호출 방지)
+    var __rowsCat=rowsForCat(curCat);
     var list=cates.map(function(cate){
       var sp=cateKeyParts(cate);
       var eng=sp.eng || engForCate(cate);
       var nm=cateName(sp.kor, eng);   // 선택 언어로 주 이름
-      return { key:cate, main:String(nm.main||sp.kor||''), sub:String(nm.sub||'') };
+      // (요구10) 번호순 정렬용 — 이 분류에 들어 있는 가장 작은 PLU 번호
+      var minPlu=Infinity;
+      for(var i=0;i<__rowsCat.length;i++){
+        if(cateOf(__rowsCat[i])!==cate) continue;
+        var n=parseInt(pluOf(__rowsCat[i]),10);
+        if(!isNaN(n) && n<minPlu) minPlu=n;
+      }
+      return { key:cate, main:String(nm.main||sp.kor||''), sub:String(nm.sub||''), minPlu:minPlu };
     });
-    // 선택 언어 기준 정렬 — EN/ES = A·B·C 순 / KO = 가·나·다 순
+    // (요구9·10) 이름순 = 선택 언어의 A B C / ㄱ ㄴ ㄷ 순 · 번호순 = 분류 안 최소 PLU 번호 순
     var LOC = (curLang==='KO') ? 'ko' : (curLang==='ES' ? 'es' : (curLang==='ZH' ? 'zh' : 'en'));
-    list.sort(function(a,b){
+    function byName(a,b){
       try{ return a.main.localeCompare(b.main, LOC, { sensitivity:'base', numeric:true }); }
       catch(e){ return a.main<b.main?-1:(a.main>b.main?1:0); }
-    });
+    }
+    if(sortMode==='PLU'){
+      list.sort(function(a,b){
+        if(a.minPlu!==b.minPlu) return a.minPlu-b.minPlu;   // 1000 · 1001 · 1002 …
+        return byName(a,b);                                  // 번호가 같으면 이름순
+      });
+    } else {
+      list.sort(byName);
+    }
     var html='<div class="cate-grid">';
     list.forEach(function(c){
       html+='<button class="cate-btn" data-cate="'+esc(c.key)+'">'+
@@ -2936,7 +2980,24 @@
     var __direct=(curCat==='SALES'||curCat==='ETC') && DATA && DATA.custom && DATA.custom[curCat] && Array.isArray(DATA.custom[curCat].items) && DATA.custom[curCat].items.length;
     var rows=__direct ? rowsForCat(curCat)
                       : rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
-    rows.sort(function(a,b){ var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10); if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1; return x-y; });
+    // (요구9·10) 번호순 = PLU 1000·1001·1002… / 이름순 = 선택 언어 이름의 A B C · ㄱ ㄴ ㄷ 순
+    (function(){
+      var LOC2=(curLang==='KO')?'ko':(curLang==='ES'?'es':(curLang==='ZH'?'zh':'en'));
+      if(sortMode==='PLU'){
+        rows.sort(function(a,b){
+          var x=parseInt(pluOf(a),10), y=parseInt(pluOf(b),10);
+          if(isNaN(x)&&isNaN(y)) return 0; if(isNaN(x)) return 1; if(isNaN(y)) return -1;
+          return x-y;
+        });
+      } else {
+        rows.sort(function(a,b){
+          var na=itemName(korOf(a), engOf(a)).main||'', nb=itemName(korOf(b), engOf(b)).main||'';
+          try{ var c=na.localeCompare(nb, LOC2, { sensitivity:'base', numeric:true }); if(c) return c; }
+          catch(e){ if(na<nb) return -1; if(na>nb) return 1; }
+          return (parseInt(pluOf(a),10)||0)-(parseInt(pluOf(b),10)||0);
+        });
+      }
+    })();
     var sp=cateKeyParts(__direct ? (curCat==='SALES'?'SALES ITEM|광고상품':'ETC|기타상품') : curCate);
     var cEng=sp.eng || engForCate(curCate);
     var cnm=cateName(sp.kor, cEng);
@@ -2994,9 +3055,9 @@
      ═════════════════════════════════════════════════════════════ */
   /* (요구3) 사진은 촬영 원본 화질 그대로 보관한다.
      Firestore 문서 상한(1MB) 때문에 dataURL 길이만 안전선에서 제한한다. */
-  var PHOTO_MAX_DIM=1200;           // 긴 변 최대 픽셀 (그 이하면 원본 크기 그대로)
+  var PHOTO_MAX_DIM=500;            // (요구5) 사진은 500px 로 통일 — 촬영·업로드·표시 모두
   var PHOTO_Q=0.95;                 // JPEG 품질
-  var PHOTO_MAX_CHARS=900000;       // dataURL 길이 상한 (≈ 실제 660KB)
+  var PHOTO_MAX_CHARS=260000;       // dataURL 길이 상한 (≈ 실제 190KB · 500px 에 충분)
   var IMG={};                       // plu → {b64, updatedAt}
   var NOIMG={};                     // 이번 세션에서 정적 파일 404 확인된 PLU (재요청 방지)
   var IDB2='egmm-store-tablet-img';
@@ -3019,20 +3080,105 @@
   function imgStatic(plu){ return 'image_produce/'+encodeURIComponent(plu)+'.jpg'; }
   // 부팅 시 로컬 사진 캐시 로드
   idb2All('img').then(function(all){ for(var k in all){ if(!IMG[k]) IMG[k]=all[k]; } try{ render(); }catch(e){} });
-  // Firebase 사진 컬렉션 → 캐시 병합 (UPDATE·스플래시에서 호출)
-  async function syncImages(){
+  /* ══════════════════════════════════════════════════════════════
+     (요구2·3·6) 사진 동기화 — GitHub(image_produce) → 로컬(IndexedDB)
+       · 목록은 GitHub Git Trees API 로 한 번에 받는다 (파일명 + sha)
+       · 실제 파일은 같은 사이트의 image_produce/{PLU}.jpg 에서 받는다
+         (Cloudflare CDN 이라 GitHub API 호출 한도와 무관하고 빠르다)
+       · sha 가 바뀐 것과 새로 생긴 것만 내려받는다 → 재시작해도 몇 초면 끝난다
+       · 로그인할 때 한 번, UPDATE 버튼을 누를 때 한 번 실행된다
+     ══════════════════════════════════════════════════════════════ */
+  var IMGSHA={};                      // plu → GitHub blob sha (내려받은 시점 기준)
+  var IMG_DIR='image_produce';
+  var imgSyncing=false;
+
+  function loadShaMap(){
+    try{ IMGSHA=JSON.parse(localStorage.getItem('ppImgSha')||'{}')||{}; }catch(e){ IMGSHA={}; }
+  }
+  function saveShaMap(){ try{ localStorage.setItem('ppImgSha', JSON.stringify(IMGSHA)); }catch(e){} }
+  loadShaMap();
+
+  // GitHub 에서 image_produce 폴더의 파일 목록(파일명 + sha)을 받는다
+  async function ghPhotoList(){
+    var c=(function(){ try{ return JSON.parse(localStorage.getItem('ppGitCfg')||'null'); }catch(e){ return null; } })();
+    if(!c || !c.owner || !c.repo) return null;                 // 저장소 정보가 없으면 목록을 알 수 없다
+    var br=c.branch||'main';
+    var head={ 'Accept':'application/vnd.github+json' };
+    if(c.token) head['Authorization']='Bearer '+c.token;       // 비공개 저장소일 때만 필요
+    var api='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)
+          + '/git/trees/'+encodeURIComponent(br)+'?recursive=1';
     try{
-      if(!window.__fbFetchImages) return false;
-      var cloud=await window.__fbFetchImages(), n=0;
-      for(var plu in cloud){
-        var c=cloud[plu]; if(!c||!c.b64) continue;
-        var cur=IMG[plu];
-        if(!cur || (c.updatedAt||0)>(cur.updatedAt||0)){ imgPut(plu, c.b64, c.updatedAt||Date.now()); n++; }
+      var r=await fetch(api, { headers:head });
+      if(!r.ok) return null;
+      var j=await r.json(), out={};
+      (j.tree||[]).forEach(function(t){
+        if(t.type!=='blob') return;
+        var m=/^image_produce\/(.+)\.jpe?g$/i.exec(t.path||'');
+        if(m) out[m[1]]={ sha:t.sha, size:t.size||0 };
+      });
+      return out;
+    }catch(e){ return null; }
+  }
+
+  // 파일 하나를 CDN 에서 받아 dataURL 로 변환
+  function fetchAsDataUrl(url){
+    return fetch(url, { cache:'no-cache' }).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.blob();
+    }).then(function(bl){
+      return new Promise(function(res,rej){
+        var fr=new FileReader();
+        fr.onload=function(){ res(fr.result); };
+        fr.onerror=rej;
+        fr.readAsDataURL(bl);
+      });
+    });
+  }
+
+  /* onProg(받은수, 전체수) — 스플래시 진행 표시에 쓴다 */
+  async function syncImages(onProg){
+    if(imgSyncing) return false;
+    imgSyncing=true;
+    try{
+      var list=await ghPhotoList();
+      if(!list){ return false; }                               // 목록을 못 받으면 로컬 캐시 그대로 사용
+      // 새로 생겼거나 내용이 바뀐 것만 고른다
+      var need=[], plu;
+      for(plu in list){
+        if(IMG[plu] && IMGSHA[plu]===list[plu].sha) continue;
+        need.push(plu);
       }
-      if(n) render();
+      // GitHub 에서 지워진 사진은 로컬에서도 정리
+      for(plu in IMG){
+        if(!list[plu] && IMGSHA[plu]){ delete IMG[plu]; delete IMGSHA[plu]; idb2Put('img', plu, null); }
+      }
+      var total=need.length, got=0;
+      if(onProg) onProg(0, total);
+      if(!total){ saveShaMap(); return true; }
+
+      // 6개씩 동시에 — CDN 이라 이 정도가 태블릿에서 가장 빠르다
+      var CONC=6, idx=0;
+      async function worker(){
+        while(idx<need.length){
+          var p2=need[idx++];
+          try{
+            var url=await fetchAsDataUrl(IMG_DIR+'/'+encodeURIComponent(p2)+'.jpg');
+            imgPut(p2, url, Date.now());
+            IMGSHA[p2]=list[p2].sha;
+          }catch(e){ /* 개별 실패는 넘어간다 */ }
+          got++;
+          if(onProg) onProg(got, total);
+        }
+      }
+      var ws=[]; for(var w=0; w<Math.min(CONC, need.length); w++) ws.push(worker());
+      await Promise.all(ws);
+      saveShaMap();
+      render();
       return true;
     }catch(e){ return false; }
+    finally{ imgSyncing=false; }
   }
+  window.__ppSyncImages = syncImages;
 
   /* ── 정적 폴더(image_produce) 사진을 캐시로 승격 (원본 화질 그대로 보관) ── */
   function toJpegFull(imgEl, maxDim, maxChars){
@@ -3064,29 +3210,40 @@
      · 양옆 화살표로 같은 목록의 앞뒤 상품 사진을 연속으로 넘겨본다 */
   var POPLIST=[], POPIDX=-1;
 
-  // 현재 화면(리스트 또는 검색결과)에 보이는 순서대로 이동 목록을 만든다
+  /* (요구11) 팝업 화살표 이동 목록
+       검색 결과에서 열든 리스트에서 열든, 화살표는 항상 PLU 번호 오름차순으로 넘어간다.
+       예) 사과가 1000 이면 → 1001 → 1002 → 1003 …
+       기준 목록은 지금 보고 있는 카테고리의 전체 상품 (검색 결과 몇 건에 갇히지 않는다). */
   function buildPopList(activePlu, scope){
     var out=[], seen={};
-    var sels = scope==='search'
-      ? ['#searchResults .search-item[data-plu]']
-      : ['.plu-item[data-plu]', '.cate-btn[data-plu]'];
-    sels.forEach(function(sel){
-      [].forEach.call(document.querySelectorAll(sel), function(el){
-        var plu=el.getAttribute('data-plu'); if(!plu || seen[plu]) return;
-        seen[plu]=1;
-        out.push({
-          plu: plu,
-          ko: el.getAttribute('data-ko') || '',
-          en: el.getAttribute('data-en') || ''
-        });
-      });
+    function push(plu, ko, en){
+      plu=String(plu||''); if(!plu || seen[plu]) return;
+      seen[plu]=1; out.push({ plu:plu, ko:ko||'', en:en||'' });
+    }
+    // 1) 현재 카테고리의 전체 상품을 기준으로 삼는다
+    try{
+      var rows=rowsForCat(curCat)||[];
+      if(!rows.length) rows=allRows()||[];
+      rows.forEach(function(r){ push(pluOf(r), korOf(r), engOf(r)); });
+    }catch(e){}
+    // 2) 그래도 못 찾으면 전체 데이터에서
+    if(!seen[activePlu]){
+      try{ (allRows()||[]).forEach(function(r){ push(pluOf(r), korOf(r), engOf(r)); }); }catch(e){}
+    }
+    // 3) 데이터에 없는 번호(사용자 정의 등)면 최소한 자기 자신은 넣는다
+    if(!seen[activePlu] && activePlu) push(activePlu, '', '');
+
+    // PLU 번호 오름차순
+    out.sort(function(a,b){
+      var x=parseInt(a.plu,10), y=parseInt(b.plu,10);
+      if(isNaN(x)&&isNaN(y)) return a.plu<b.plu?-1:1;
+      if(isNaN(x)) return 1; if(isNaN(y)) return -1;
+      return x-y;
     });
-    // 화면에서 못 찾으면 전체 데이터에서 보완
-    if(!out.length && activePlu) out.push({ plu:activePlu, ko:'', en:'' });
     POPLIST=out;
     POPIDX=-1;
-    for(var i=0;i<out.length;i++){ if(out[i].plu===activePlu){ POPIDX=i; break; } }
-    if(POPIDX<0 && out.length){ out.unshift({ plu:activePlu, ko:'', en:'' }); POPIDX=0; }
+    for(var i=0;i<out.length;i++){ if(out[i].plu===String(activePlu)){ POPIDX=i; break; } }
+    if(POPIDX<0) POPIDX=0;
   }
 
   // PLU 로 원본 데이터에서 한글/영문명 보강
@@ -3317,17 +3474,26 @@
     selPlu='';
   }
   // 요구3·6: BACK 버튼 — 검색 중엔 '검색취소', 상품 리스트일 때 '뒤로', 그 외 흐림
+  /* (요구9·10) BACK 버튼 = 정렬 토글
+       이름순 : 분류·상품을 선택 언어의 A B C / ㄱ ㄴ ㄷ 순으로
+       번호순 : 분류는 그 안의 가장 작은 PLU 번호 순, 상품은 PLU 1000·1001·1002… 순으로 */
+  function sortLabel(){ return sortMode==='PLU' ? { ko:'번호순', en:'BY NUMBER' } : { ko:'이름순', en:'BY NAME' }; }
+  function toggleSort(){
+    sortMode = (sortMode==='PLU') ? 'NAME' : 'PLU';
+    try{ localStorage.setItem('ppSortMode', sortMode); }catch(e){}
+    render(); updateBackBtn();
+    try{ renderKeyboard(); }catch(e){}      // 세로 버튼 바 라벨도 갱신
+    if(searching) updateSearch();
+  }
   function updateBackBtn(){
     var b=$('backBox'); if(!b) return;
-    var lb=b.querySelector('.lb'), ic=b.querySelector('.ic');
-    if(searching){ b.classList.remove('dim'); if(ic)ic.textContent='✕'; if(lb)lb.textContent='검색취소'; }
-    else if(view==='list'){ b.classList.remove('dim'); if(ic)ic.textContent='←'; if(lb)lb.textContent='BACK · 뒤로가기'; }
-    else { b.classList.add('dim'); if(ic)ic.textContent='←'; if(lb)lb.textContent='BACK · 뒤로가기'; }
+    var lb=b.querySelector('.lb'), ic=b.querySelector('.ic'), L=sortLabel();
+    b.classList.remove('dim');
+    if(ic) ic.textContent = (sortMode==='PLU') ? '#' : 'A';
+    if(lb) lb.textContent = L.ko+' · '+L.en;
+    b.classList.toggle('sort-plu', sortMode==='PLU');
   }
-  if($('backBox')) $('backBox').addEventListener('click', function(){
-    if(searching){ closeSearch(); goHome(); return; }   // 요구6: 검색취소 → 처음화면
-    if(view==='list') goBack();
-  });
+  if($('backBox')) $('backBox').addEventListener('click', function(){ toggleSort(); });
   // 처음 화면으로 (PRODUCE 카테고리 그리드)
   function goHome(){
     curCat='PRODUCE'; curCate=''; selPlu=''; view='cate';
@@ -3337,7 +3503,13 @@
   }
   // 요구3: DATA UPDATE 버튼 → 확인 팝업 → YES 시 업데이트
   $('refreshBox').addEventListener('click', function(){ $('updateOv').classList.add('show'); });
-  if($('updateYes')) $('updateYes').addEventListener('click', function(){ $('updateOv').classList.remove('show'); refresh(false); });
+  if($('updateYes')) $('updateYes').addEventListener('click', function(){
+    $('updateOv').classList.remove('show');
+    // (요구6) PLU 리스트는 Firebase, 사진은 GitHub 에서 다시 받아온다
+    refresh(false, function(got,total){
+      if(total) setLoading(true, '사진 내려받는 중… '+got+' / '+total);
+    });
+  });
   if($('updateNo')) $('updateNo').addEventListener('click', function(){ $('updateOv').classList.remove('show'); });
   if($('updateOv')) $('updateOv').addEventListener('click', function(e){ if(e.target===$('updateOv')) $('updateOv').classList.remove('show'); });
   // 요구8: 언어 버튼 — 선택 시 붉은색 + 카테고리/상품 이름 언어 전환
@@ -3418,7 +3590,7 @@
 
     function openCam(mode){
       camMode=mode;
-      $('camTitle').textContent = mode==='find' ? '사진으로 상품 찾기' : '사진 업데이트';
+      $('camTitle').textContent = mode==='find' ? '사진으로 상품 찾기' : '사진 등록';
       $('camGear').style.display = mode==='find' ? 'none' : '';
       $('camNote').innerHTML = mode==='find'
         ? '사각 가이드 안에 상품을 맞추고 촬영하면<br>비슷한 상품 5개를 찾아드립니다'
@@ -3536,12 +3708,8 @@
       });
     }
     async function existingPhoto(plu){
+      // (요구1) 로컬 캐시 → 배포된 image_produce 파일 순서로만 확인 (Firebase 사용 안 함)
       if(imgUrl(plu)) return imgUrl(plu);
-      try{
-        var F=window.ppFb;
-        if(F&&F.getDoc){ var sn=await F.getDoc(F.doc(F.db,'plu-preview-images',plu));
-          if(sn&&sn.exists&&sn.exists()){ var d=sn.data()||{}; if(d.b64){ imgPut(plu,d.b64,d.updatedAt||Date.now()); return d.b64; } } }
-      }catch(e){}
       if(navigator.onLine!==false) return await staticProbe(plu);
       return null;
     }
@@ -3564,7 +3732,8 @@
     });
     // (요구3·5) GitHub image_produce/{PLU}.jpg 커밋 — 기존 파일은 sha 로 교체(=삭제 후 새 파일)
     async function githubPut(plu, dataUrl){
-      var c=gitCfg(); if(!c||!c.token) return { ok:false, skip:true };
+      var c=gitCfg();
+      if(!c||!c.owner||!c.repo||!c.token) return { ok:false, skip:true };
       var path='image_produce/'+plu+'.jpg';
       var api='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+path;
       var head={ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' };
@@ -3572,13 +3741,26 @@
       try{
         var g=await fetch(api+'?ref='+encodeURIComponent(c.branch), { headers:head });
         if(g.ok){ var gj=await g.json(); sha=gj&&gj.sha||null; }
-      }catch(e){}
+        else if(g.status===401) return { ok:false, status:401, detail:'토큰이 잘못되었거나 만료됨' };
+        else if(g.status===403) return { ok:false, status:403, detail:'권한 부족 — 토큰에 Contents 쓰기 권한 필요' };
+        // 404 는 "아직 파일 없음" 이므로 정상 (그대로 새로 만든다)
+      }catch(e){ return { ok:false, err:String(e&&e.message||e), detail:'네트워크 오류' }; }
       var body={ message:'PLU photo '+plu+(sha?' (replace)':''), content:dataUrl.split(',')[1], branch:c.branch };
       if(sha) body.sha=sha;
       try{
         var p=await fetch(api, { method:'PUT', headers:head, body:JSON.stringify(body) });
-        return { ok:p.ok, status:p.status };
-      }catch(e){ return { ok:false, err:String(e&&e.message||e) }; }
+        if(p.ok){
+          var nsha=null; try{ var pj=await p.json(); nsha=pj&&pj.content&&pj.content.sha||null; }catch(e){}
+          return { ok:true, sha:nsha };
+        }
+        var t=''; try{ var j=await p.json(); t=(j&&j.message)||''; }catch(e){}
+        var d = p.status===401 ? '토큰이 잘못되었거나 만료됨'
+              : p.status===403 ? '권한 부족 — 토큰에 Contents 쓰기 권한 필요'
+              : p.status===404 ? '저장소·브랜치 이름이 틀림'
+              : p.status===409 ? '브랜치 충돌 — 다시 시도하세요'
+              : p.status===422 ? '요청 거부 ('+t+')' : ('HTTP '+p.status+' '+t);
+        return { ok:false, status:p.status, detail:d };
+      }catch(e){ return { ok:false, err:String(e&&e.message||e), detail:'네트워크 오류' }; }
     }
 
     /* ── 저장 ── */
@@ -3606,21 +3788,22 @@
     async function doUpload(){
       var plu=pendingPlu, url=pendingUrl; if(!plu||!url) return;
       busy(true,'사진 저장 중…');
-      var fbOk=false, gh={ ok:false, skip:true };
-      try{
-        var F=window.ppFb;
-        if(F&&F.setDoc){ await F.setDoc(F.doc(F.db,'plu-preview-images',plu), { b64:url, updatedAt:Date.now(), store:STORE||'' }); fbOk=true; }
-      }catch(e){}
-      gh=await githubPut(plu, url);
+      // (요구1) 사진 저장은 GitHub(image_produce) 단독. Firebase 는 쓰지 않는다.
+      var gh=await githubPut(plu, url);
+      if(!gh.ok && !gh.skip) console.error('[사진 저장 실패 · GitHub]', gh);
+      var kb=Math.round(url.length*0.75/1024);
       imgPut(plu, url, Date.now());
+      if(gh.ok && gh.sha){ IMGSHA[plu]=gh.sha; saveShaMap(); }
       embDirty(plu);
       render();
       busy(false);
       var lines=[];
-      lines.push(fbOk?'Firebase 저장 완료 (모든 태블릿 UPDATE 시 반영)':'Firebase 저장 실패 — 인터넷 연결을 확인하세요');
-      if(gh.skip) lines.push('GitHub 미설정 → image_produce 폴더 커밋 생략');
-      else lines.push(gh.ok?'GitHub image_produce/'+plu+'.jpg 커밋 완료 (배포 후 반영)':'GitHub 커밋 실패 ('+(gh.status||gh.err||'')+') — GITHUB 설정을 확인하세요');
-      askConfirm({ ic:'✓', title:'PLU '+plu+' 사진 등록', msg:lines.join('<br>'), yes:T('ok'), oneBtn:true, cb:null });
+      lines.push('<b>용량</b> 약 '+kb+'KB · 500px');
+      if(gh.skip) lines.push('<b>GitHub 미설정</b> — 위 GITHUB 버튼에서 owner·repo·token 을 입력하세요.<br>지금은 이 태블릿에만 저장되어 다른 태블릿에서 보이지 않습니다.');
+      else if(gh.ok) lines.push('<b>GitHub</b> image_produce/'+plu+'.jpg 저장 완료<br>배포(1~2분) 후 다른 태블릿에서 UPDATE 하면 보입니다');
+      else lines.push('<b>GitHub 실패</b> — '+esc(gh.detail||gh.status||gh.err||'원인 불명')+'<br>지금은 이 태블릿에만 저장됐습니다');
+      askConfirm({ ic: gh.ok?'✓':'!', title:'PLU '+plu+' 사진 등록',
+                   msg:lines.join('<br>'), yes:T('ok'), oneBtn:true, cb:null });
       closeCam();
     }
 
@@ -3862,15 +4045,17 @@
     var letters='<div class="kbd-letters">'+lines+'</div>';
 
     // BACKSPACE / DELETE / ← BACK  (세로 버튼 바에서는 한국어+영어 2줄)
-    function fn2(cls, act, ko, en){
+    function fn2(cls, act, ko, en, always2){
       return '<button class="kbd-key fn del '+cls+sp2+'" data-act="'+act+'">'+
-        (portrait ? ('<span class="m1">'+ko+'</span><span class="m2">'+en+'</span>') : en)+
+        ((portrait||always2) ? ('<span class="m1">'+ko+'</span><span class="m2">'+en+'</span>') : en)+
         '</button>';
     }
+    // (요구9) 세 번째 버튼은 정렬 토글 — 지금 어떤 정렬인지 항상 2줄로 보여준다
+    var __sp = (sortMode==='PLU');
     var fnBtns =
       fn2('backsp','del','지우기','BACKSPACE')+
-      fn2('clr','clear','전체삭제','DELETE')+
-      fn2('backk','back','뒤로','← BACK');
+      fn2('clr','clear','전체지움','CLEAR')+
+      fn2('backk sortbtn'+(__sp?' on':''), 'back', __sp?'번호순':'이름순', __sp?'1000 · 1001 · 1002':'A B C · ㄱ ㄴ ㄷ', true);
 
     // 1) 한국어⇄영어 토글  2) 숫자  3) 한국어/영어 동시
     //    (요구2·10) 키보드 선택 3개는 오른쪽 컨트롤 패널(#ctrlModes)에 표시 →
@@ -4005,7 +4190,12 @@
     } else if(committed){ committed=committed.slice(0,-1); }
     updateSearch();
   }
-  function pressClear(){ committed=''; resetHangul(); updateSearch(); }
+  // (요구8) CLEAR — 입력을 지우고 검색을 닫은 뒤 분류 목록 화면으로 돌아간다
+  function pressClear(){
+    committed=''; resetHangul();
+    if(searching){ closeSearch(); goHome(); }
+    else { updateSearch(); }
+  }
   function pressNum(n){
     if(!searching) openSearch();
     commitPending(); committed+=n;
@@ -4284,19 +4474,40 @@
     ov.classList.add('show');
     var t0=Date.now(), p=0, done=false;
     // 실제 데이터 업데이트 (실패해도 저장된 데이터로 진행)
+    // (요구4) 사진 내려받기 진행상황을 화면에 표시. 사진이 많으면 시간이 걸리므로
+    //         진행 중에는 자동 종료 타이머를 계속 연장한다.
+    var imgGot=0, imgTotal=0, imgActive=false, hardStop=Date.now()+MAX_MS;
+    var txtEl=document.getElementById('splashTxt');
+    var baseTxt = txtEl ? txtEl.textContent : '';
+    function onImgProg(got, total){
+      imgGot=got; imgTotal=total; imgActive=(total>0);
+      hardStop=Date.now()+30000;                     // 받는 동안에는 강제 종료를 미룬다
+      if(txtEl && total) txtEl.textContent='사진 내려받는 중  '+got+' / '+total;
+    }
     try{
-      var task=window.__ppRefresh ? window.__ppRefresh(true) : null;
+      var task=window.__ppRefresh ? window.__ppRefresh(true, onImgProg) : null;
       if(task && task.then) task.then(function(){ done=true; }, function(){ done=true; });
       else done=true;
     }catch(e){ done=true; }
-    setTimeout(function(){ done=true; }, MAX_MS);
+    (function guard(){
+      if(done) return;
+      if(Date.now()>hardStop){ done=true; return; }
+      setTimeout(guard, 500);
+    })();
     (function tick(){
       var el=Date.now()-t0;
-      var target=done ? 100 : Math.min(93, (el/MIN_MS)*93);
+      // 사진을 받는 중이면 진행률을 실제 다운로드 비율에 맞춘다 (40% ~ 96%)
+      var target;
+      if(done) target=100;
+      else if(imgActive) target=40+Math.min(56, (imgGot/Math.max(1,imgTotal))*56);
+      else target=Math.min(38, (el/MIN_MS)*38);
       p+=(target-p)*0.16;
       if(target-p<0.5) p=target;
       setPct(p);
-      if(done && p>=99.5 && el>=MIN_MS){ finish(); return; }
+      if(done && p>=99.5 && el>=MIN_MS){
+        if(txtEl && baseTxt) txtEl.textContent=baseTxt;
+        finish(); return;
+      }
       requestAnimationFrame(tick);
     })();
   }
