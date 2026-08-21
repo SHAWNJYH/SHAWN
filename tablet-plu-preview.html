@@ -502,39 +502,46 @@
   .photo-info .pnum{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:22px; font-weight:700; color:var(--red); }
   .photo-info .pname{ font-size:12px; color:var(--ink-dim); font-weight:500; margin-top:2px; }
 
-  /* ===== (요구2) 오른쪽 컨트롤 패널 — 키보드선택 3 + 언어/업데이트/사진업데이트 ===== */
+  /* ═══ 오른쪽 컨트롤 패널 ═══
+     1행: 사진 찾기 (가로 2칸)   2행: 정렬 · 업데이트   3행: 언어 · 사진 등록
+     모든 버튼은 한글(위) + 영어(아래) 2줄로 통일한다. */
   .photo-pane{ position:relative; z-index:210; }   /* 검색 팝업 중에도 버튼 사용 가능 */
-  .ctrl-grid{ height:100%; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
-  .ctrl-modes, .ctrl-utils{ display:grid; grid-template-rows:repeat(3,1fr); gap:7px; min-height:0; }
-  .ctrl-modes .kbd-mode{ width:auto; max-width:none; }
-  .ctrl-modes .kbd-mode .m1{ font-size:12.5px; }
-  .ctrl-modes .kbd-mode.both .m1{ font-size:11px; }
-  /* 컨트롤 패널 안의 LANG/UPDATE — 상단바용 소형 스타일을 패널 크기에 맞게 재정의 */
-  .ctrl-utils .lang-mini, .ctrl-utils .refresh-mini, .ctrl-utils .photoup-mini{
-    width:auto; height:auto; min-height:0; margin:0; padding:2px 3px; border-radius:9px; gap:1px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  .ctrl-grid{
+    height:100%; width:100%; display:grid;
+    grid-template-columns:1fr 1fr; grid-template-rows:repeat(3,1fr); gap:7px;
+  }
+  .ctrl-grid > button{
+    width:auto; height:auto; min-width:0; min-height:0; margin:0; padding:2px 3px;
+    border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
     font-family:inherit; cursor:pointer; transition:all .14s; overflow:hidden;
   }
-  .ctrl-utils .lang-mini .lb{ font-size:11px; font-weight:800; }
-  .ctrl-utils .lang-mini::before{ font-size:7.5px; }
-  .ctrl-utils .refresh-mini .lb{ font-size:11px; font-weight:800; }
-  .ctrl-utils .refresh-mini .ic{ font-size:12px; }
+  .ctrl-grid > button .lb{ font-size:12px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .ctrl-grid > button .lb2{ font-size:7.5px; font-weight:700; letter-spacing:.06em; line-height:1.15; white-space:nowrap; opacity:.7; }
+  .ctrl-grid > button .ic{ display:none; }
+  .ctrl-grid .span2{ grid-column:1 / -1; }
+  .ctrl-grid .lang-mini::before, .ctrl-grid .refresh-mini::before, .ctrl-grid .find-mini::before{ content:none; }
+
+  /* 사진 찾기 — 초록 */
+  .find-mini{ border:1px solid var(--accent); background:var(--accent); color:#fff; }
+  .find-mini:active{ background:#234534; }
+  .find-mini .lb{ font-size:14px; }
+  .find-mini .lb2{ color:rgba(255,255,255,.66); }
+  /* 정렬 — 파랑 (번호순일 때 진하게) */
+  .sort-mini{ border:1px solid #B9C4D2; background:#EEF2F7; color:#2C4160; }
+  .sort-mini:active{ background:#DFE7F0; }
+  .sort-mini.on{ background:#2E4A6E; border-color:#243956; color:#fff; }
+  .sort-mini.on .lb2{ color:rgba(255,255,255,.72); }
+  /* 언어 · 업데이트 · 사진등록 */
+  .ctrl-grid .lang-mini{ border:1px solid var(--line-2); background:var(--panel); color:var(--ink); }
+  .ctrl-grid .lang-mini:active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .ctrl-grid .refresh-mini{ border:1px solid var(--ink); background:var(--ink); color:#fff; }
+  .ctrl-grid .refresh-mini:active{ background:#000; }
+  .ctrl-grid .refresh-mini .lb2{ color:rgba(255,255,255,.6); }
+  .ctrl-grid .refresh-mini .spin{ width:12px; height:12px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:sp .7s linear infinite; display:none; }
+  .ctrl-grid .refresh-mini.loading .spin{ display:block; }
   .photoup-mini{ border:1px solid var(--red); background:var(--red); color:#fff; }
   .photoup-mini:active{ background:#7C271D; }
-  .photoup-mini .ic{ font-size:12px; line-height:1; opacity:.85; }
-  .photoup-mini .lb{ font-size:10.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
-  .photoup-mini .lb2{ font-size:6.5px; font-weight:700; letter-spacing:.06em; color:rgba(255,255,255,.65); line-height:1.1; white-space:nowrap; }
-
-  /* ===== (요구9) 상단 사진 찾기 버튼 ===== */
-  .find-mini{
-    flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
-    width:56px; padding:4px 2px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .16s ease;
-    border:1px solid var(--accent); background:var(--accent); color:#fff; margin-left:3px;
-  }
-  .find-mini:active{ background:#234534; }
-  .find-mini .ic{ font-size:12px; line-height:1; opacity:.85; }
-  .find-mini .lb{ font-size:8.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
-  .find-mini .lb2{ font-size:5.5px; font-weight:700; letter-spacing:.06em; color:rgba(255,255,255,.62); line-height:1.1; white-space:nowrap; }
+  .photoup-mini .lb2{ color:rgba(255,255,255,.66); }
 
   /* (요구1) PLU 버튼 안 사진 표시는 제거됨 — 사진은 버튼을 누를 때 팝업으로만 표시 */
 
@@ -738,17 +745,19 @@
   .kbd-key.fn:active{ background:var(--ink); border-color:var(--ink); color:#fff; }
   .kbd-key.fn.del{ color:var(--red); border-color:var(--line); }
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
-  /* (요구9) 정렬 토글 버튼 — 현재 정렬 방식을 2줄로 표시 */
-  .kbd-key.fn.sortbtn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
-    padding:0 4px; overflow:hidden; border-color:#B9C4D2; background:#EEF2F7; color:#2C4160; }
-  .kbd-key.fn.sortbtn .m1{ font-size:12px; font-weight:800; line-height:1.15; white-space:nowrap; }
-  .kbd-key.fn.sortbtn .m2{ font-size:8px; font-weight:700; letter-spacing:.02em; line-height:1.15; white-space:nowrap; opacity:.72; }
-  .kbd-key.fn.sortbtn.on{ background:#2E4A6E; border-color:#243956; color:#fff; }
-  .kbd-key.fn.sortbtn.on .m2{ color:rgba(255,255,255,.7); }
-  body.kbd-deck .kbd-key.fn.sortbtn{ background:linear-gradient(180deg,#F5F8FC 0%,#DDE6F1 100%); border-color:#AFBCCC;
-    box-shadow:0 2px 0 #9DAABC, 0 3px 5px -2px rgba(30,27,22,.3), inset 0 1px 0 rgba(255,255,255,.9); }
-  body.kbd-deck .kbd-key.fn.sortbtn.on{ background:linear-gradient(180deg,#3D5F87 0%,#27405F 100%); border-color:#1F3350; color:#fff;
-    box-shadow:0 2px 0 #17263A, inset 0 1px 0 rgba(255,255,255,.18); }
+  /* (요구5) 기능키 한 칸을 좌우로 나눠 한국어 / 숫자 두 버튼을 넣는다 */
+  .fn-split{ display:flex; gap:4px; min-width:0; min-height:0; width:100%; }
+  .fn-split > .kbd-mode.half{
+    flex:1 1 0; min-width:0; width:auto; max-width:none; height:auto;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; padding:0 2px; overflow:hidden;
+  }
+  .fn-split .kbd-mode.half .m1{ font-size:11.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .fn-split .kbd-mode.half .m2{ font-size:7px; font-weight:700; letter-spacing:.04em; line-height:1.15; white-space:nowrap; opacity:.72; }
+  /* 기능키도 2줄 라벨 (가로·세로 동일) */
+  .kbd-key.fn{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; padding:0 4px; overflow:hidden; }
+  .kbd-key.fn .m1{ font-size:12px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .kbd-key.fn .m2{ font-size:7.5px; font-weight:700; letter-spacing:.04em; line-height:1.15; white-space:nowrap; opacity:.72; }
+
 
   @media (max-height:790px){
     .kbd-keys.mode-EN   .kbd-letters{ --kfs:27px; }
@@ -779,13 +788,11 @@
   body.portrait .cat-box{ flex:1 1 135px; min-width:0; padding:7px 4px; min-height:44px; }
   body.portrait .cat-box .lb{ font-size:12px; letter-spacing:.02em; }
   body.portrait .cat-box .sub{ font-size:9.5px; }
-  body.portrait .find-mini{ flex:0 0 auto; height:44px; width:58px; align-self:center; margin-left:0; }
   /* 세로 — 컨트롤 패널 안 버튼 글자 축소 */
   body.portrait .ctrl-grid{ gap:5px; }
-  body.portrait .ctrl-modes, body.portrait .ctrl-utils{ gap:5px; }
-  body.portrait .ctrl-modes .kbd-mode .m1{ font-size:11px; }
-  body.portrait .ctrl-modes .kbd-mode.both .m1{ font-size:9.5px; }
-  body.portrait .ctrl-utils .lang-mini .lb, body.portrait .ctrl-utils .refresh-mini .lb{ font-size:10px; }
+  body.portrait .ctrl-grid > button .lb{ font-size:11px; }
+  body.portrait .ctrl-grid > button .lb2{ font-size:7px; }
+  body.portrait .find-mini .lb{ font-size:13px; }
   body.portrait .photoup-mini .lb{ font-size:9px; }
   body.portrait .photoup-mini .lb2{ display:none; }
 
@@ -808,10 +815,13 @@
   .kbd-toolbar{ display:none; }
   body.portrait .kbd-toolbar{ display:block; flex:0 0 auto; position:relative; z-index:210; }   /* 검색 팝업 위로 */
   body.portrait .kbd-tb{
-    display:grid; grid-template-columns:repeat(3,1fr); gap:6px;   /* 키보드선택 3개가 오른쪽 패널로 이동 → 기능키 3개만 */
+    display:grid; grid-template-columns:1fr 1fr 1.5fr; gap:6px;   /* 3번째 칸은 한국어+숫자 두 버튼이 들어가 조금 넓다 */
     height:clamp(36px, 3.7vh, 46px);
   }
   body.portrait .kbd-tb > *{ width:auto; height:100%; max-width:none; min-height:0; }
+  body.portrait .kbd-tb .fn-split{ height:100%; gap:5px; }
+  body.portrait .fn-split .kbd-mode.half .m1{ font-size:11px; }
+  body.portrait .fn-split .kbd-mode.half .m2{ font-size:6.5px; }
   /* 6개 버튼 모두 2줄 라벨 (한국어 / 영어) */
   body.portrait .kbd-tb .kbd-key.fn,
   body.portrait .kbd-tb .kbd-mode{
@@ -1057,7 +1067,6 @@
     <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
   </div>
   <!-- (요구9) LANG·UPDATE 는 오른쪽 아래 컨트롤 패널로 이동 → 남는 자리에 사진 찾기(KNN) 버튼 -->
-  <button class="find-mini" id="photoFind" title="사진으로 상품 찾기"><span class="ic">📷</span><span class="lb">사진찾기</span><span class="lb2">PHOTO SEARCH</span></button>
 </div>
 
 <!-- (요구 12) 검색·저장날짜·모드뱃지 제거됨 -->
@@ -1092,15 +1101,18 @@
         <div class="photo-info"><div class="pnum" id="photoNum">—</div><div class="pname" id="photoName"></div></div>
       </div>
       ▒▒ -->
+      <!-- (요구6·7·8) 1행 = 사진찾기(2칸) / 2행 = 정렬·업데이트 / 3행 = 언어·사진등록 -->
       <div class="ctrl-grid">
-        <!-- 왼쪽 열: 키보드 선택 3개 (renderKeyboard 가 채움) -->
-        <div class="ctrl-modes" id="ctrlModes"></div>
-        <!-- 오른쪽 열: 언어 / 업데이트 / 사진 등록 -->
-        <div class="ctrl-utils">
-          <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
-          <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
-          <button class="photoup-mini" id="photoUp" title="사진 촬영·등록"><span class="ic">📸</span><span class="lb">사진 등록</span><span class="lb2">PHOTO SAVE</span></button>
-        </div>
+        <button class="find-mini span2" id="photoFind" title="사진으로 상품 찾기">
+          <span class="lb">사진 찾기</span><span class="lb2">PHOTO SEARCH</span></button>
+        <button class="sort-mini" id="sortBtn" title="정렬 바꾸기">
+          <span class="lb" id="sortBtnKo">이름순</span><span class="lb2" id="sortBtnEn">SORT · NAME</span></button>
+        <button class="refresh-mini" id="refreshBox" title="데이터 업데이트">
+          <span class="spin"></span><span class="lb">업데이트</span><span class="lb2">UPDATE</span></button>
+        <button class="lang-mini" id="langBtn" title="언어 변경">
+          <span class="lb" id="langBtnKo">영어</span><span class="lb2" id="langBtnLb">ENGLISH</span></button>
+        <button class="photoup-mini" id="photoUp" title="사진 촬영·등록">
+          <span class="lb">사진 등록</span><span class="lb2">PHOTO SAVE</span></button>
       </div>
     </div>
   </div>
@@ -3482,18 +3494,19 @@
     sortMode = (sortMode==='PLU') ? 'NAME' : 'PLU';
     try{ localStorage.setItem('ppSortMode', sortMode); }catch(e){}
     render(); updateBackBtn();
-    try{ renderKeyboard(); }catch(e){}      // 세로 버튼 바 라벨도 갱신
     if(searching) updateSearch();
   }
+  // (요구7) 정렬 버튼은 오른쪽 컨트롤 패널로 이동
   function updateBackBtn(){
-    var b=$('backBox'); if(!b) return;
-    var lb=b.querySelector('.lb'), ic=b.querySelector('.ic'), L=sortLabel();
-    b.classList.remove('dim');
-    if(ic) ic.textContent = (sortMode==='PLU') ? '#' : 'A';
-    if(lb) lb.textContent = L.ko+' · '+L.en;
-    b.classList.toggle('sort-plu', sortMode==='PLU');
+    var b=$('sortBtn'); if(!b) return;
+    var plu=(sortMode==='PLU');
+    var ko=$('sortBtnKo'), en=$('sortBtnEn');
+    if(ko) ko.textContent = plu ? '번호순' : '이름순';
+    if(en) en.textContent = plu ? 'SORT · NUMBER' : 'SORT · NAME';
+    b.classList.toggle('on', plu);
+    b.title = plu ? '번호순 (누르면 이름순)' : '이름순 (누르면 번호순)';
   }
-  if($('backBox')) $('backBox').addEventListener('click', function(){ toggleSort(); });
+  if($('sortBtn')) $('sortBtn').addEventListener('click', function(){ toggleSort(); });
   // 처음 화면으로 (PRODUCE 카테고리 그리드)
   function goHome(){
     curCat='PRODUCE'; curCate=''; selPlu=''; view='cate';
@@ -3522,7 +3535,9 @@
     curLang=lang;
     var lr=$('langRow');
     if(lr){ [].forEach.call(lr.querySelectorAll('.lang-btn'), function(x){ x.classList.toggle('on', x.getAttribute('data-lang')===lang); }); }
-    var lb=$('langBtnLb'); if(lb){ lb.textContent = lang==='KO'?'KOREAN':(lang==='ES'?'SPANISH':(lang==='ZH'?'中文':'ENGLISH')); }
+    var lb=$('langBtnLb'), lk=$('langBtnKo');
+    if(lb){ lb.textContent = lang==='KO'?'KOREAN':(lang==='ES'?'SPANISH':(lang==='ZH'?'CHINESE':'ENGLISH')); }
+    if(lk){ lk.textContent = lang==='KO'?'한국어':(lang==='ES'?'스페인어':(lang==='ZH'?'중국어':'영어')); }
     applyLangClass();
     render();
     // 언어를 바꾸면 열려 있는 사진 팝업의 상품명도 다시 그린다
@@ -4045,32 +4060,33 @@
     var letters='<div class="kbd-letters">'+lines+'</div>';
 
     // BACKSPACE / DELETE / ← BACK  (세로 버튼 바에서는 한국어+영어 2줄)
-    function fn2(cls, act, ko, en, always2){
+    // (요구1·2) 가로·세로 모두 같은 명칭 — 한글(위) + 영어(아래) 2줄로 통일
+    function fn2(cls, act, ko, en){
       return '<button class="kbd-key fn del '+cls+sp2+'" data-act="'+act+'">'+
-        ((portrait||always2) ? ('<span class="m1">'+ko+'</span><span class="m2">'+en+'</span>') : en)+
-        '</button>';
+        '<span class="m1">'+ko+'</span><span class="m2">'+en+'</span></button>';
     }
-    // (요구9) 세 번째 버튼은 정렬 토글 — 지금 어떤 정렬인지 항상 2줄로 보여준다
-    var __sp = (sortMode==='PLU');
-    var fnBtns =
-      fn2('backsp','del','지우기','BACKSPACE')+
-      fn2('clr','clear','전체지움','CLEAR')+
-      fn2('backk sortbtn'+(__sp?' on':''), 'back', __sp?'번호순':'이름순', __sp?'1000 · 1001 · 1002':'A B C · ㄱ ㄴ ㄷ', true);
-
-    // 1) 한국어⇄영어 토글  2) 숫자  3) 한국어/영어 동시
-    //    (요구2·10) 키보드 선택 3개는 오른쪽 컨트롤 패널(#ctrlModes)에 표시 →
-    //    키패드에서 빠진 만큼 글자키가 가로로 넓어진다.
+    // (요구5) 세 번째 칸 = 한국어 / 숫자 두 버튼을 한 칸 안에 나란히
     var langOn = (mode==='KO'||mode==='EN');
-    var shown = langOn ? mode : kbdLang;
-    var modeBtns =
-      '<button class="kbd-mode'+(langOn?' on':'')+'" data-mode="TOGGLE">'+
+    var shown  = langOn ? mode : kbdLang;
+    var halfBtns='<span class="fn-split'+sp2+'">'+
+      '<button class="kbd-mode half'+(langOn?' on':'')+'" data-mode="TOGGLE">'+
         '<span class="m1">'+(shown==='KO'?'한국어':'영어')+'</span>'+
         '<span class="m2">'+(shown==='KO'?'KOREAN':'ENGLISH')+'</span></button>'+
-      '<button class="kbd-mode'+(mode==='NUM'?' on':'')+'" data-mode="NUM">'+
+      '<button class="kbd-mode half'+(mode==='NUM'?' on':'')+'" data-mode="NUM">'+
         '<span class="m1">숫자</span><span class="m2">NUMBER</span></button>'+
-      '<button class="kbd-mode both'+(mode==='BOTH'?' on':'')+'" data-mode="BOTH">'+
+      '</span>';
+
+    var fnBtns =
+      fn2('backsp','del','지우기','BACKSPACE')+
+      fn2('clr','clear','이전 목록','CLEAR / BACK')+
+      halfBtns;
+
+    /* (요구4) '한국어/영어 동시' 버튼은 화면에서 제거했다.
+       기능(BOTH 모드) 자체는 남아 있으므로 되살리려면 아래 주석을 풀어
+       위 halfBtns 나 컨트롤 패널에 붙이면 된다.
+    var bothBtn='<button class="kbd-mode both'+(mode==='BOTH'?' on':'')+'" data-mode="BOTH">'+
         '<span class="m1">한국어/영어</span><span class="m2">KOR / ENG</span></button>';
-    var cm=$('ctrlModes'); if(cm) cm.innerHTML=modeBtns;
+    */
 
     var tb=$('kbdToolbar');
     if(portrait){
@@ -4190,11 +4206,15 @@
     } else if(committed){ committed=committed.slice(0,-1); }
     updateSearch();
   }
-  // (요구8) CLEAR — 입력을 지우고 검색을 닫은 뒤 분류 목록 화면으로 돌아간다
+  /* (요구3) CLEAR / BACK — 어느 상황에서든 "이전 분류 목록" 으로 돌아간다
+       · 검색 중  : 입력을 지우고 검색을 닫은 뒤 분류 목록으로
+       · 상품 목록: 그 상품이 속한 분류 목록으로
+       · 분류 목록: 처음 화면(청과 전체)으로 */
   function pressClear(){
     committed=''; resetHangul();
-    if(searching){ closeSearch(); goHome(); }
-    else { updateSearch(); }
+    if(searching){ closeSearch(); goBack(); return; }
+    if(view==='list'){ goBack(); return; }
+    goHome();
   }
   function pressNum(n){
     if(!searching) openSearch();
@@ -4224,7 +4244,7 @@
     var act=b.getAttribute('data-act');
     if(act==='shift'){ kbdShift=!kbdShift; renderKeyboard(); return; }
     if(act==='none'){ return; }
-    if(act==='back'){ if($('backBox')) $('backBox').click(); return; }
+    if(act==='back'){ toggleSort(); return; }   // (호환용) 이전 BACK 액션 → 정렬 토글
     if(act==='del'){ pressDel(); return; }
     if(act==='space'){ pressSpace(); return; }
     if(act==='clear'){ pressClear(); return; }
