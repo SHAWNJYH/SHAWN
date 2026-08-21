@@ -683,10 +683,10 @@
   .sp2{ grid-row:span 2; }                       /* 글자 2줄 높이를 차지 */
 
   /* 기능키 열 — 기존 대비 가로 1/3 축소 */
-  .kbd-funcs{ flex:0 0 auto; width:clamp(104px, 12vw, 146px); }
+  .kbd-funcs{ flex:0 0 auto; width:clamp(104px, 12vw, 146px); grid-template-columns:1fr; }
 
   /* 키보드 선택 열 — 한국어·영어 토글 / 숫자 / 한국어·영어 동시 */
-  .kbd-modes{ flex:0 0 auto; width:clamp(82px, 9vw, 108px); }
+  .kbd-modes{ flex:0 0 auto; width:clamp(82px, 9vw, 108px); grid-template-columns:1fr; }
   .kbd-mode{
     min-height:0; padding:2px 3px; border:1px solid #B9C4D2; border-radius:9px;
     background:#EEF2F7; color:#2C4160; font-family:inherit; cursor:pointer; transition:all .14s;
@@ -713,18 +713,18 @@
 
   /* QWERTY 배열 — 20칸 그리드에 키를 2칸씩, 줄마다 반 칸씩 밀어 실제 키보드처럼 어긋나게 */
   .kbd-keys.qwerty .kbd-line{ display:grid; grid-template-columns:repeat(20,1fr); gap:4px; }
-  .kbd-keys.qwerty .kbd-key{ grid-column:span 2; max-width:none; }
+  .kbd-keys.qwerty .kbd-line .kbd-key{ grid-column:span 2; max-width:none; }   /* 글자줄 안에서만 적용 */
   .kbd-keys.qwerty .kbd-line[data-off="1"] > .kbd-key:first-child{ grid-column:2 / span 2; }
   .kbd-keys.qwerty .kbd-line[data-off="2"] > .kbd-key:first-child{ grid-column:3 / span 2; }
   .kbd-keys.qwerty .kbd-line[data-off="3"] > .kbd-key:first-child{ grid-column:4 / span 2; }
-  .kbd-keys.qwerty .kbd-key.shift{
+  .kbd-keys.qwerty .kbd-line .kbd-key.shift{
     grid-column:span 3; background:var(--panel-2); color:var(--ink-2);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;
     padding:0 2px; overflow:hidden; line-height:1.05;
   }
   .kbd-key.shift .s1{ font-size:min(15px, 2.1vh); font-weight:800; }
   .kbd-key.shift .s2{ font-size:min(10px, 1.5vh); font-weight:700; letter-spacing:.02em; opacity:.8; white-space:nowrap; }
-  .kbd-keys.qwerty .kbd-key.shift.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
+  .kbd-keys.qwerty .kbd-line .kbd-key.shift.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
 
   /* 모드별 키 크기 — 줄 수가 적을수록 키가 커진다 */
   .kbd-keys.mode-EN   .kbd-letters{ --kfs:30px; }
@@ -746,7 +746,7 @@
   .kbd-key.fn.del{ color:var(--red); border-color:var(--line); }
   .kbd-key.fn.backk{ color:var(--ink); background:var(--panel); border-color:var(--line-2); font-size:12px; }
   /* (요구5) 기능키 한 칸을 좌우로 나눠 한국어 / 숫자 두 버튼을 넣는다 */
-  .fn-split{ display:flex; gap:4px; min-width:0; min-height:0; width:100%; }
+  .fn-split{ display:flex; gap:4px; min-width:0; min-height:0; width:100%; grid-column:1 / -1; justify-self:stretch; }
   .fn-split > .kbd-mode.half{
     flex:1 1 0; min-width:0; width:auto; max-width:none; height:auto;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; padding:0 2px; overflow:hidden;
