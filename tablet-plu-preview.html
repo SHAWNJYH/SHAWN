@@ -502,6 +502,151 @@
   .photo-info .pnum{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:22px; font-weight:700; color:var(--red); }
   .photo-info .pname{ font-size:12px; color:var(--ink-dim); font-weight:500; margin-top:2px; }
 
+  /* ===== (요구2) 오른쪽 컨트롤 패널 — 키보드선택 3 + 언어/업데이트/사진업데이트 ===== */
+  .photo-pane{ position:relative; z-index:210; }   /* 검색 팝업 중에도 버튼 사용 가능 */
+  .ctrl-grid{ height:100%; width:100%; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  .ctrl-modes, .ctrl-utils{ display:grid; grid-template-rows:repeat(3,1fr); gap:7px; min-height:0; }
+  .ctrl-modes .kbd-mode{ width:auto; max-width:none; }
+  .ctrl-modes .kbd-mode .m1{ font-size:12.5px; }
+  .ctrl-modes .kbd-mode.both .m1{ font-size:11px; }
+  /* 컨트롤 패널 안의 LANG/UPDATE — 상단바용 소형 스타일을 패널 크기에 맞게 재정의 */
+  .ctrl-utils .lang-mini, .ctrl-utils .refresh-mini, .ctrl-utils .photoup-mini{
+    width:auto; height:auto; min-height:0; margin:0; padding:2px 3px; border-radius:9px; gap:1px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:inherit; cursor:pointer; transition:all .14s; overflow:hidden;
+  }
+  .ctrl-utils .lang-mini .lb{ font-size:11px; font-weight:800; }
+  .ctrl-utils .lang-mini::before{ font-size:7.5px; }
+  .ctrl-utils .refresh-mini .lb{ font-size:11px; font-weight:800; }
+  .ctrl-utils .refresh-mini .ic{ font-size:12px; }
+  .photoup-mini{ border:1px solid var(--red); background:var(--red); color:#fff; }
+  .photoup-mini:active{ background:#7C271D; }
+  .photoup-mini .ic{ font-size:12px; line-height:1; opacity:.85; }
+  .photoup-mini .lb{ font-size:10.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .photoup-mini .lb2{ font-size:6.5px; font-weight:700; letter-spacing:.06em; color:rgba(255,255,255,.65); line-height:1.1; white-space:nowrap; }
+
+  /* ===== (요구9) 상단 사진 찾기 버튼 ===== */
+  .find-mini{
+    flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+    width:56px; padding:4px 2px; border-radius:8px; cursor:pointer; font-family:inherit; transition:all .16s ease;
+    border:1px solid var(--accent); background:var(--accent); color:#fff; margin-left:3px;
+  }
+  .find-mini:active{ background:#234534; }
+  .find-mini .ic{ font-size:12px; line-height:1; opacity:.85; }
+  .find-mini .lb{ font-size:8.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
+  .find-mini .lb2{ font-size:5.5px; font-weight:700; letter-spacing:.06em; color:rgba(255,255,255,.62); line-height:1.1; white-space:nowrap; }
+
+  /* ===== (요구6·7) PLU 버튼 안 사진 — 글자는 왼쪽, 사진은 오른쪽 + 흰색 STROKE ===== */
+  .plu-item .thumb{ display:none; position:absolute; top:0; right:0; bottom:0; height:100%; aspect-ratio:1/1; z-index:0; pointer-events:none; }
+  .plu-item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:0 12px 12px 0; }
+  .plu-item .thumb::after{ content:''; position:absolute; inset:0; background:linear-gradient(90deg, var(--panel-3) 0%, rgba(251,249,244,0) 34%); border-radius:0 12px 12px 0; }
+  .plu-item.has-img{ align-items:flex-start; text-align:left; padding-left:12px; }
+  .plu-item.has-img .thumb{ display:block; }
+  .plu-item.has-img .num, .plu-item.has-img .en, .plu-item.has-img .ko{
+    position:relative; z-index:1; max-width:100%;
+    text-shadow:-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px rgba(255,255,255,.95);
+  }
+  .plu-item.sel .thumb img{ border-radius:0 11px 11px 0; }
+
+  /* ===== (요구8) PLU 사진 팝업 — 클릭한 쪽의 반대편에 표시 ===== */
+  .photo-pop{ position:fixed; inset:0; z-index:300; display:none; background:rgba(30,27,22,.22); }
+  .photo-pop.show{ display:block; }
+  .photo-pop .pp-card{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:min(40vw, 400px); background:var(--panel); border:1px solid var(--line-2); border-radius:18px;
+    box-shadow:var(--sh-3); padding:13px 13px 12px; display:flex; flex-direction:column; gap:9px;
+  }
+  .photo-pop.side-right .pp-card{ right:3vw; }
+  .photo-pop.side-left  .pp-card{ left:3vw; }
+  .pp-img{ width:100%; aspect-ratio:1/1; border:1px solid var(--line); border-radius:12px; background:var(--panel-3);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .pp-img img{ width:100%; height:100%; object-fit:contain; }
+  .pp-img .noimg{ color:var(--ink-dim); font-size:12px; font-weight:600; text-align:center; line-height:1.7; }
+  .pp-meta{ display:flex; align-items:baseline; gap:12px; min-width:0; padding:0 3px; }
+  .pp-num{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:30px; font-weight:800; color:var(--red); flex:0 0 auto; }
+  .pp-name{ font-size:16px; font-weight:700; color:var(--ink); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  body.portrait .photo-pop .pp-card{ width:min(62vw, 400px); }
+
+  /* ===== (요구3·9) 카메라 오버레이 ===== */
+  .cam-ov{ position:fixed; inset:0; z-index:320; display:none; flex-direction:column; background:var(--bg); }
+  .cam-ov.show{ display:flex; }
+  .cam-head{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .cam-title{ flex:1; font-family:var(--display); font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  .cam-gear{ border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink-2); border-radius:8px; padding:8px 12px; font-size:10px; font-weight:800; letter-spacing:.1em; cursor:pointer; font-family:inherit; }
+  .cam-close{ border:1px solid var(--line-2); background:var(--panel); border-radius:9px; width:38px; height:38px; font-size:15px; cursor:pointer; font-family:inherit; color:var(--ink-2); }
+  .cam-close:active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .cam-body{ flex:1 1 auto; min-height:0; position:relative; display:flex; }
+  .cam-stage{ display:none; flex:1 1 auto; min-height:0; min-width:0; padding:12px; gap:14px; }
+  .cam-stage.on{ display:flex; }
+  /* 촬영 */
+  #stShoot{ flex-direction:row; align-items:stretch; justify-content:center; }
+  .cam-vwrap{ position:relative; flex:0 1 auto; aspect-ratio:1/1; max-width:100%; max-height:100%; align-self:center;
+    height:min(100%, 78vw); border-radius:16px; overflow:hidden; background:#111; border:1px solid var(--line-2); }
+  .cam-vwrap video{ width:100%; height:100%; object-fit:cover; display:block; }
+  .cam-guide{ position:absolute; inset:9%; border:2px dashed rgba(255,255,255,.75); border-radius:14px; pointer-events:none; }
+  .cam-side{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding:0 8px; }
+  .cam-note{ font-size:12.5px; color:var(--ink-2); font-weight:600; text-align:center; line-height:1.8; }
+  .cam-shutter{ width:78px; height:78px; border-radius:50%; border:5px solid var(--ink); background:#fff; cursor:pointer; box-shadow:var(--sh-2); transition:transform .1s; }
+  .cam-shutter:active{ transform:scale(.92); background:#EDEAE3; }
+  body.portrait #stShoot{ flex-direction:column; align-items:center; }
+  body.portrait .cam-vwrap{ height:auto; width:min(86vw, 62vh); }
+  /* 편집 */
+  #stEdit{ flex-direction:row; align-items:stretch; justify-content:center; overflow:auto; }
+  .edit-left{ flex:0 1 auto; display:flex; flex-direction:column; gap:10px; align-items:center; min-width:0; }
+  #editCanvas{ width:min(52vh, 86vw, 440px); height:min(52vh, 86vw, 440px); border:1px solid var(--line-2); border-radius:14px; background:#fff; touch-action:none; box-shadow:var(--sh-2); }
+  .edit-tools{ display:flex; flex-wrap:wrap; gap:7px; align-items:center; justify-content:center; max-width:min(52vh,86vw,440px); }
+  .et-btn{ border:1px solid var(--line-2); background:var(--panel); color:var(--ink); border-radius:9px; padding:9px 12px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .et-btn.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .et-btn:active{ transform:translateY(1px); }
+  .et-tol{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; color:var(--ink-2); }
+  .et-tol input{ width:88px; accent-color:var(--accent); }
+  .edit-right{ flex:0 0 auto; display:flex; flex-direction:column; gap:12px; justify-content:center; }
+  .plu-in{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:var(--sh-1); }
+  .plu-in-lb{ font-size:9.5px; font-weight:800; letter-spacing:.16em; color:var(--ink-dim); margin-bottom:6px; }
+  .plu-in-disp{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:30px; font-weight:800; color:var(--red); min-height:38px; letter-spacing:.06em; }
+  .plu-in-disp .ph{ font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink-dim); letter-spacing:.02em; }
+  .plu-in-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+  .plu-in-pad button{ padding:12px 0; min-width:62px; border:1px solid var(--line); border-radius:10px; background:var(--panel-3); font-size:19px; font-weight:700; color:var(--ink); cursor:pointer; font-family:inherit; }
+  .plu-in-pad button:active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .plu-in-pad button.fn{ font-size:12px; font-weight:800; color:var(--ink-dim); }
+  .edit-actions{ display:flex; gap:9px; }
+  .edit-actions.center{ justify-content:center; flex:0 0 auto; }
+  .ea-btn{ flex:1; padding:15px 14px; border:1px solid var(--line-2); border-radius:11px; background:var(--panel); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; letter-spacing:.03em; }
+  .ea-btn.go{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .ea-btn:active{ transform:translateY(1px); }
+  body.portrait #stEdit{ flex-direction:column; align-items:center; }
+  /* KNN 결과 */
+  #stResult{ flex-direction:column; }
+  .knn-head{ flex:0 0 auto; font-family:var(--display); font-size:17px; font-weight:600; padding:2px 4px; }
+  .knn-cards{ flex:1 1 auto; min-height:0; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:10px; align-content:start; }
+  .knn-card{ border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:10px; display:flex; flex-direction:column; gap:7px; cursor:pointer; box-shadow:var(--sh-1); font-family:inherit; text-align:left; }
+  .knn-card:active{ border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .knn-card .ki{ width:100%; aspect-ratio:1/1; border-radius:9px; overflow:hidden; background:var(--panel-3); border:1px solid var(--line); }
+  .knn-card .ki img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .knn-card .kn{ font-family:var(--num); font-size:22px; font-weight:800; color:var(--red); line-height:1; }
+  .knn-card .km{ font-size:12.5px; font-weight:700; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .knn-card .ks{ font-size:10px; font-weight:800; letter-spacing:.06em; color:var(--accent); }
+  .knn-none{ grid-column:1/-1; text-align:center; color:var(--ink-dim); font-size:13px; padding:40px 16px; line-height:1.9; font-weight:600; }
+  .cam-busy{ position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; background:rgba(237,234,227,.9); z-index:5; }
+  .cam-busy.on{ display:flex; }
+  .cam-busy .sp{ width:34px; height:34px; border:3px solid var(--line-2); border-top-color:var(--accent); border-radius:50%; animation:sp .7s linear infinite; }
+  .cam-busy .t{ font-size:13px; font-weight:700; color:var(--ink-2); letter-spacing:.02em; text-align:center; line-height:1.7; }
+
+  /* ===== (요구5) 교체 확인 ===== */
+  .confirm-card.wide{ width:520px; max-width:94vw; }
+  .dup-pair{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0 6px; }
+  .dup-cell{ display:flex; flex-direction:column; gap:6px; }
+  .dup-lb{ font-size:10px; font-weight:800; letter-spacing:.14em; color:var(--ink-dim); }
+  .dup-lb.new{ color:var(--accent); }
+  .dup-img{ width:100%; aspect-ratio:1/1; border:1px solid var(--line); border-radius:11px; background:var(--panel-3); overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .dup-img img{ width:100%; height:100%; object-fit:contain; }
+  .dup-img .noimg{ font-size:11px; color:var(--ink-dim); font-weight:600; }
+
+  /* GitHub 설정 */
+  .git-form{ display:flex; flex-direction:column; gap:8px; margin:14px 0 4px; }
+  .git-form input{ border:1px solid var(--line-2); border-radius:9px; padding:11px 12px; font-size:13px; font-family:var(--mono); background:var(--panel-3); color:var(--ink); outline:none; }
+  .git-form input:focus{ border-color:var(--accent); }
+
   .empty{ text-align:center; color:var(--ink-dim); padding:64px 20px; font-size:13px; font-weight:500; letter-spacing:.03em; line-height:1.8; grid-column:1/-1; }
 
   /* ===== 하단 관리자 메시지 ===== */
@@ -620,8 +765,15 @@
   body.portrait .cat-box{ flex:1 1 135px; min-width:0; padding:7px 4px; min-height:44px; }
   body.portrait .cat-box .lb{ font-size:12px; letter-spacing:.02em; }
   body.portrait .cat-box .sub{ font-size:9.5px; }
-  body.portrait .lang-mini,
-  body.portrait .refresh-mini{ flex:0 0 auto; height:44px; width:52px; align-self:center; margin-left:0; }
+  body.portrait .find-mini{ flex:0 0 auto; height:44px; width:58px; align-self:center; margin-left:0; }
+  /* 세로 — 컨트롤 패널 안 버튼 글자 축소 */
+  body.portrait .ctrl-grid{ gap:5px; }
+  body.portrait .ctrl-modes, body.portrait .ctrl-utils{ gap:5px; }
+  body.portrait .ctrl-modes .kbd-mode .m1{ font-size:11px; }
+  body.portrait .ctrl-modes .kbd-mode.both .m1{ font-size:9.5px; }
+  body.portrait .ctrl-utils .lang-mini .lb, body.portrait .ctrl-utils .refresh-mini .lb{ font-size:10px; }
+  body.portrait .photoup-mini .lb{ font-size:9px; }
+  body.portrait .photoup-mini .lb2{ display:none; }
 
   /* ── 하단 — 가로와 같은 배치: 키패드(왼쪽) + 사진(오른쪽) ──
      좁은 폭에 맞춰 키패드 크기만 조금 줄인다. 사진은 위로 밀리지 않고 오른쪽 정사각형 유지. */
@@ -642,7 +794,7 @@
   .kbd-toolbar{ display:none; }
   body.portrait .kbd-toolbar{ display:block; flex:0 0 auto; position:relative; z-index:210; }   /* 검색 팝업 위로 */
   body.portrait .kbd-tb{
-    display:grid; grid-template-columns:repeat(6,1fr); gap:6px;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px;   /* 키보드선택 3개가 오른쪽 패널로 이동 → 기능키 3개만 */
     height:clamp(36px, 3.7vh, 46px);
   }
   body.portrait .kbd-tb > *{ width:auto; height:100%; max-width:none; min-height:0; }
@@ -751,21 +903,22 @@
     display:grid; grid-template-columns:1fr 1fr; align-content:start;
     background:linear-gradient(var(--line),var(--line)) no-repeat 50% 0 / 1px 100%;
   }
-  /* 검색 결과는 '결과 표시' 전용 — 이미 찾기가 끝난 상태이므로 클릭되지 않는다 */
+  /* (요구8) 검색 결과 클릭 → 반대편에 사진 팝업 */
   .search-item{
     display:flex; flex-direction:row; align-items:center; gap:12px; min-width:0;
     padding:11px 14px; margin:0 8px; border-radius:10px;
     border-bottom:1px solid var(--line);
-    cursor:default; pointer-events:none; user-select:none; -webkit-user-select:none;
-    -webkit-tap-highlight-color:transparent;
+    cursor:pointer; user-select:none; -webkit-user-select:none;
+    -webkit-tap-highlight-color:transparent; transition:background .12s;
   }
+  .search-item:active{ background:var(--panel-3); }
   .search-item .snum{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:22px; font-weight:700; color:var(--red); flex:0 0 auto; min-width:64px; }
   .search-item .sen{ font-size:19px; font-weight:800; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
   .search-item .sko{ font-size:19px; font-weight:400; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 1 auto; min-width:0; }
   .search-empty{ grid-column:1/-1; text-align:center; color:var(--ink-dim); padding:44px 20px; font-size:13px; letter-spacing:.03em; }
 
   /* ===== 확인 팝업 ===== */
-  .confirm-ov{ position:fixed; inset:0; z-index:250; display:none; align-items:center; justify-content:center; background:rgba(30,27,22,.45); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  .confirm-ov{ position:fixed; inset:0; z-index:340; display:none; align-items:center; justify-content:center; background:rgba(30,27,22,.45); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }   /* 카메라 오버레이(320) 위 */
   .confirm-ov.show{ display:flex; }
   .confirm-card{ width:340px; max-width:88vw; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:32px 28px 26px; text-align:center; box-shadow:var(--sh-3); }
   .confirm-ic{ width:48px; height:48px; margin:0 auto 16px; border-radius:50%; border:1px solid var(--line-2); background:var(--panel-3); color:var(--ink-2); font-size:20px; display:flex; align-items:center; justify-content:center; }
@@ -889,8 +1042,8 @@
     <button class="cat-box" data-cat="SALES" data-ic="🏷️"><span class="lb">SALES ITEM</span><span class="sub">광고상품</span></button>
     <button class="cat-box" data-cat="WEEKLY" data-ic="🗓️"><span class="lb">WEEKLY SALES</span><span class="sub">주간광고상품</span></button>
   </div>
-  <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
-  <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
+  <!-- (요구9) LANG·UPDATE 는 오른쪽 아래 컨트롤 패널로 이동 → 남는 자리에 사진 찾기(KNN) 버튼 -->
+  <button class="find-mini" id="photoFind" title="사진으로 상품 찾기"><span class="ic">📷</span><span class="lb">사진찾기</span><span class="lb2">PHOTO SEARCH</span></button>
 </div>
 
 <!-- (요구 12) 검색·저장날짜·모드뱃지 제거됨 -->
@@ -914,11 +1067,26 @@
       <button class="back-box" id="backBox" style="display:none;"><span class="ic">←</span><span class="lb">BACK · 뒤로가기</span></button>
       <div class="kbdbar" id="kbdBar"></div>
     </div>
-    <!-- 오른쪽: 정사각형 사진 -->
-    <div class="photo-pane">
+    <!-- 오른쪽: 컨트롤 패널 (요구1·2) -->
+    <div class="photo-pane" id="ctrlPane">
+      <!-- ▒▒ (요구1) 사진 표시 박스 — 기능 보류(주석 처리).
+           사진 폴더는 그대로 image_produce/{PLU}.jpg 를 사용하며,
+           사진 표시는 PLU 클릭 시 팝업(#photoPop)으로 대체되었다.
+           복구하려면 아래 주석을 해제하고 ctrl-grid 를 제거하면 된다.
       <div class="photo-top">
         <div class="photo-box" id="photoBox"><div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div></div>
         <div class="photo-info"><div class="pnum" id="photoNum">—</div><div class="pname" id="photoName"></div></div>
+      </div>
+      ▒▒ -->
+      <div class="ctrl-grid">
+        <!-- 왼쪽 열: 키보드 선택 3개 (renderKeyboard 가 채움) -->
+        <div class="ctrl-modes" id="ctrlModes"></div>
+        <!-- 오른쪽 열: 언어 / 업데이트 / 사진 업데이트 -->
+        <div class="ctrl-utils">
+          <button class="lang-mini" id="langBtn" title="언어 변경"><span class="ic">🌐</span><span class="lb" id="langBtnLb">ENGLISH</span></button>
+          <button class="refresh-mini" id="refreshBox" title="데이터 업데이트"><span class="spin"></span><span class="ic">↻</span><span class="lb">UPDATE</span></button>
+          <button class="photoup-mini" id="photoUp" title="사진 촬영·등록"><span class="ic">📸</span><span class="lb">사진 업데이트</span><span class="lb2">PHOTO UPLOAD</span></button>
+        </div>
       </div>
     </div>
   </div>
@@ -967,12 +1135,114 @@
   </div>
 </div>
 
+<!-- (요구8) PLU 사진 팝업 — 클릭한 쪽의 반대편에 표시 -->
+<div class="photo-pop" id="photoPop">
+  <div class="pp-card">
+    <div class="pp-img" id="ppImg"><div class="noimg">등록된 사진이 없습니다</div></div>
+    <div class="pp-meta"><span class="pp-num" id="ppNum">—</span><span class="pp-name" id="ppName"></span></div>
+  </div>
+</div>
+
+<!-- (요구3·9) 카메라 오버레이 — 사진 업데이트 / 사진 찾기(KNN) 공용 -->
+<div class="cam-ov" id="camOv">
+  <div class="cam-head">
+    <span class="cam-title" id="camTitle">사진 업데이트</span>
+    <button class="cam-gear" id="camGear" title="GitHub 저장 설정">GITHUB</button>
+    <button class="cam-close" id="camClose">✕</button>
+  </div>
+  <div class="cam-body">
+    <!-- 1) 촬영 -->
+    <div class="cam-stage" id="stShoot">
+      <div class="cam-vwrap">
+        <video id="camVideo" playsinline autoplay muted></video>
+        <div class="cam-guide"></div>
+      </div>
+      <div class="cam-side">
+        <div class="cam-note" id="camNote">사각 가이드 안에 상품을 맞추고<br>촬영 버튼을 누르세요</div>
+        <button class="cam-shutter" id="camShut" title="촬영"></button>
+      </div>
+    </div>
+    <!-- 2) 편집 (배경 지우기) + PLU 입력 — 사진 업데이트 모드 전용 -->
+    <div class="cam-stage" id="stEdit">
+      <div class="edit-left">
+        <canvas id="editCanvas" width="300" height="300"></canvas>
+        <div class="edit-tools">
+          <button class="et-btn on" id="etWand" title="탭한 곳과 비슷한 색을 지웁니다">배경 지우기</button>
+          <button class="et-btn" id="etBrush" title="문질러서 지웁니다">브러시 지우개</button>
+          <label class="et-tol">허용치 <input type="range" id="etTol" min="10" max="80" value="34"></label>
+          <button class="et-btn" id="etUndo">되돌리기</button>
+          <button class="et-btn" id="etReset">원본</button>
+        </div>
+      </div>
+      <div class="edit-right">
+        <div class="plu-in">
+          <div class="plu-in-lb">PLU 번호</div>
+          <div class="plu-in-disp" id="pluInDisp"><span class="ph">번호 입력</span></div>
+          <div class="plu-in-pad" id="pluInPad">
+            <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+            <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+            <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+            <button data-k="clear" class="fn">지움</button><button data-k="0">0</button><button data-k="back" class="fn">←</button>
+          </div>
+        </div>
+        <div class="edit-actions">
+          <button class="ea-btn" id="eaRetake">다시 찍기</button>
+          <button class="ea-btn go" id="eaSave">등록</button>
+        </div>
+      </div>
+    </div>
+    <!-- 3) KNN 결과 — 사진 찾기 모드 전용 -->
+    <div class="cam-stage" id="stResult">
+      <div class="knn-head" id="knnHead">비슷한 상품</div>
+      <div class="knn-cards" id="knnCards"></div>
+      <div class="edit-actions center"><button class="ea-btn" id="knnRetry">다시 찍기</button></div>
+    </div>
+    <div class="cam-busy" id="camBusy"><div class="sp"></div><div class="t" id="camBusyT">처리 중…</div></div>
+  </div>
+</div>
+
+<!-- (요구5) 이미 사진이 등록된 경우 — 교체 확인 -->
+<div class="confirm-ov" id="dupOv">
+  <div class="confirm-card wide">
+    <div class="confirm-ic">📷</div>
+    <div class="confirm-title">이미 사진이 등록되어 있습니다</div>
+    <div class="dup-pair">
+      <div class="dup-cell"><div class="dup-lb">등록된 사진</div><div class="dup-img" id="dupOld"></div></div>
+      <div class="dup-cell"><div class="dup-lb new">새 사진</div><div class="dup-img" id="dupNew"></div></div>
+    </div>
+    <div class="confirm-msg" id="dupMsg"></div>
+    <div class="confirm-btns">
+      <button class="confirm-no" id="dupNo">취소</button>
+      <button class="confirm-yes" id="dupYes">교체</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub 저장 설정 (선택) — 설정 시 image_produce/{PLU}.jpg 로 자동 커밋 -->
+<div class="confirm-ov" id="gitOv">
+  <div class="confirm-card">
+    <div class="confirm-ic">⚙</div>
+    <div class="confirm-title">GITHUB 저장 설정</div>
+    <div class="confirm-msg">설정하면 사진이 저장소의 image_produce 폴더에<br>자동 커밋되어 theshawn.org 에 배포됩니다.<br>(미설정 시 Firebase에만 저장)</div>
+    <div class="git-form">
+      <input id="gitOwner" placeholder="OWNER (예: egmm-it)" autocomplete="off">
+      <input id="gitRepo" placeholder="REPO (저장소 이름)" autocomplete="off">
+      <input id="gitBranch" placeholder="BRANCH (기본 main)" autocomplete="off">
+      <input id="gitToken" type="password" placeholder="TOKEN (contents write 권한)" autocomplete="off">
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-no" id="gitNo">취소</button>
+      <button class="confirm-yes" id="gitYes">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="load-ov" id="loadOv"><div class="load-card"><div class="sp"></div><div class="t" id="loadT">데이터 불러오는 중…</div></div></div>
 
 <!-- Firebase (REFRESH 시에만) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   const firebaseConfig = {
     apiKey: "AIzaSyC6t78BS99LX3261cRmApBG8AcZ8HPVxr0",
@@ -994,7 +1264,13 @@
     }
     return out;
   };
-  window.ppFb = { db, doc, getDoc };
+  window.ppFb = { db, doc, getDoc, setDoc, deleteDoc, collection, getDocs };
+  /* 사진 컬렉션 (plu-preview-images/{PLU} = { b64, updatedAt, store }) 일괄 가져오기 */
+  window.__fbFetchImages = async function(){
+    const o = {};
+    try{ const snap = await getDocs(collection(db, 'plu-preview-images')); snap.forEach(ds => { o[ds.id] = ds.data(); }); }catch(e){}
+    return o;
+  };
   /* Firestore 보안규칙(로그인 필요) 대응: 익명 인증 후 준비 신호 · 3초 폴백 */
   var __fired=false;
   function __fire(){ if(__fired) return; __fired=true; window.dispatchEvent(new Event('fb-ready')); }
@@ -2213,15 +2489,19 @@
 
   /* ===== 진입 모드 ===== */
   $('gateCashier').addEventListener('click', function(){ enter(false); });
-  $('gateAdmin').addEventListener('click', function(){ $('pin').classList.add('show'); pinBuf=''; renderPin(); });
+  var pinCb=null;   // 통과 시 실행할 콜백 (기본: 관리자 진입)
+  function askPin(cb){ pinCb=cb||null; $('pin').classList.add('show'); pinBuf=''; renderPin(); $('pinErr').textContent=''; }
+  $('gateAdmin').addEventListener('click', function(){ askPin(function(){ enter(true); }); });
   var pinBuf='';
   function renderPin(){ $('pinDisp').textContent='●'.repeat(pinBuf.length); }
   $('pinPad').addEventListener('click', function(e){ var b=e.target.closest('.pin-key'); if(!b) return; var k=b.getAttribute('data-k');
     if(k==='clear'){ pinBuf=''; } else if(k==='back'){ pinBuf=pinBuf.slice(0,-1); } else if(pinBuf.length<6){ pinBuf+=k; }
     renderPin(); $('pinErr').textContent='';
-    if(pinBuf.length>=4 && pinBuf===ADMIN_PIN){ $('pin').classList.remove('show'); enter(true); }
+    if(pinBuf.length>=4 && pinBuf===ADMIN_PIN){ $('pin').classList.remove('show'); var f=pinCb; pinCb=null; if(f) f(); }
     else if(pinBuf.length>=4){ $('pinErr').textContent='비밀번호가 맞지 않습니다'; setTimeout(function(){ pinBuf=''; renderPin(); },700); }
   });
+  // 팝업 바깥 탭 → 닫기 (사진 업데이트 등 콜백 진입 시 취소 용도)
+  $('pin').addEventListener('click', function(e){ if(e.target===$('pin') && pinCb){ $('pin').classList.remove('show'); pinCb=null; } });
   function enter(admin){
     isAdmin=admin;
     document.body.classList.toggle('admin', admin);
@@ -2303,6 +2583,7 @@
       var weekly=Array.isArray(pc.weekly)?pc.weekly:((DATA&&DATA.weekly)||[]);
       DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, store:STORE, savedAt:Date.now() };
       await cacheSet(DATA);
+      try{ await syncImages(); }catch(e){}   // 사진(plu-preview-images) 동기화 — 실패해도 진행
       render(); updateMeta(); renderMsg();
       return true;
     }catch(e){
@@ -2326,6 +2607,11 @@
   var FIRSTRUN_HTML = ($('listPane') ? $('listPane').innerHTML : '');
 
   function render(){
+    renderCore();
+    // (요구6) 렌더 후 각 PLU 버튼에 사진 썸네일 부착
+    try{ decorateThumbs($('listPane')); }catch(e){}
+  }
+  function renderCore(){
     var pane=$('listPane');
     // WEEKLY 선택 시: 하단(키보드+사진) 접고 리스트 영역을 화면 끝까지 확장
     var __wk=(curCat==='WEEKLY');
@@ -2691,18 +2977,107 @@
   $('askNo').addEventListener('click', closeAsk);
   $('askOv').addEventListener('click', function(e){ if(e.target===$('askOv')) closeAsk(); });
 
-  /* ===== 사진 ===== */
-  function showPhoto(plu, name){
-    selPlu=plu;
-    $('photoNum').textContent=plu||'—';
-    $('photoName').textContent=name||'';
-    var box=$('photoBox');
-    box.innerHTML='<div class="noimg">사진 불러오는 중…</div>';
-    var img=new Image();
-    img.onload=function(){ box.innerHTML=''; box.appendChild(img); };
-    img.onerror=function(){ box.innerHTML='<div class="noimg">등록된 사진이 없습니다<br>('+esc(plu)+'.jpg)</div>'; };
-    img.src='image_produce/'+encodeURIComponent(plu)+'.jpg';
+  /* ═════════════════════════════════════════════════════════════
+     사진 캐시 — Firebase(plu-preview-images) 미러 + 정적 폴더(image_produce) 겸용
+     · IMG[plu] = { b64, updatedAt }  (100×100 JPEG dataURL)
+     · IndexedDB 'egmm-store-tablet-img' : img(사진) / emb(KNN 임베딩)
+     · 표시 우선순위: 캐시(b64) → image_produce/{PLU}.jpg → 없음
+     ═════════════════════════════════════════════════════════════ */
+  var IMG={};                       // plu → {b64, updatedAt}
+  var NOIMG={};                     // 이번 세션에서 정적 파일 404 확인된 PLU (재요청 방지)
+  var IDB2='egmm-store-tablet-img';
+  function idb2(){ return new Promise(function(res,rej){ var r=indexedDB.open(IDB2,1);
+    r.onupgradeneeded=function(){ var d=r.result; if(!d.objectStoreNames.contains('img')) d.createObjectStore('img'); if(!d.objectStoreNames.contains('emb')) d.createObjectStore('emb'); };
+    r.onsuccess=function(){ res(r.result); }; r.onerror=function(){ rej(r.error); }; }); }
+  function idb2Put(st,key,val){ return idb2().then(function(d){ return new Promise(function(res){ try{ var p=d.transaction(st,'readwrite').objectStore(st).put(val,key); p.onsuccess=function(){res(true);}; p.onerror=function(){res(false);} }catch(e){ res(false); } }); }); }
+  function idb2Get(st,key){ return idb2().then(function(d){ return new Promise(function(res){ try{ var g=d.transaction(st,'readonly').objectStore(st).get(key); g.onsuccess=function(){res(g.result||null);}; g.onerror=function(){res(null);} }catch(e){ res(null); } }); }); }
+  function idb2All(st){ return idb2().then(function(d){ return new Promise(function(res){ try{
+    var out={}, os=d.transaction(st,'readonly').objectStore(st), rq=os.openCursor();
+    rq.onsuccess=function(){ var c=rq.result; if(c){ out[c.key]=c.value; c.continue(); } else res(out); };
+    rq.onerror=function(){ res(out); };
+  }catch(e){ res({}); } }); }); }
+  function imgPut(plu, b64, updatedAt, skipIdb){
+    IMG[plu]={ b64:b64, updatedAt:updatedAt||Date.now() };
+    delete NOIMG[plu];
+    if(!skipIdb) idb2Put('img', plu, IMG[plu]);
   }
+  function imgUrl(plu){ return (IMG[plu]&&IMG[plu].b64) || null; }
+  function imgStatic(plu){ return 'image_produce/'+encodeURIComponent(plu)+'.jpg'; }
+  // 부팅 시 로컬 사진 캐시 로드
+  idb2All('img').then(function(all){ for(var k in all){ if(!IMG[k]) IMG[k]=all[k]; } try{ render(); }catch(e){} });
+  // Firebase 사진 컬렉션 → 캐시 병합 (UPDATE·스플래시에서 호출)
+  async function syncImages(){
+    try{
+      if(!window.__fbFetchImages) return false;
+      var cloud=await window.__fbFetchImages(), n=0;
+      for(var plu in cloud){
+        var c=cloud[plu]; if(!c||!c.b64) continue;
+        var cur=IMG[plu];
+        if(!cur || (c.updatedAt||0)>(cur.updatedAt||0)){ imgPut(plu, c.b64, c.updatedAt||Date.now()); n++; }
+      }
+      if(n) render();
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* ── (요구6) PLU 버튼 썸네일: 캐시 b64 → 정적 파일 순서. 성공한 정적 파일은
+        100×100 으로 축소해 캐시에 넣어 KNN 색인·팝업에도 재사용한다. ── */
+  function shrink100(imgEl){
+    try{
+      var c=document.createElement('canvas'); c.width=100; c.height=100;
+      var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,100,100);
+      var w=imgEl.naturalWidth||100, h=imgEl.naturalHeight||100, s=Math.min(w,h);
+      x.drawImage(imgEl,(w-s)/2,(h-s)/2,s,s,0,0,100,100);
+      return c.toDataURL('image/jpeg', .85);
+    }catch(e){ return null; }
+  }
+  function decorateThumbs(pane){
+    [].forEach.call(pane.querySelectorAll('.plu-item[data-plu]'), function(it){
+      var plu=it.getAttribute('data-plu'); if(!plu || it.querySelector('.thumb')) return;
+      var cached=imgUrl(plu);
+      if(!cached && NOIMG[plu]) return;
+      var wrap=document.createElement('span'); wrap.className='thumb';
+      var im=document.createElement('img'); im.alt=''; im.decoding='async';
+      if(!cached) im.loading='lazy';                 // 캐시(dataURL)는 즉시, 정적 파일만 lazy
+      im.onload=function(){
+        it.classList.add('has-img');
+        if(!imgUrl(plu)){ var b=shrink100(im); if(b) imgPut(plu, b); }   // 정적 파일 → 캐시 승격
+      };
+      im.onerror=function(){ NOIMG[plu]=1; wrap.remove(); it.classList.remove('has-img'); };
+      wrap.appendChild(im); it.appendChild(wrap);
+      im.src = cached || imgStatic(plu);
+      if(im.complete && im.naturalWidth>0) im.onload();
+    });
+  }
+
+  /* ===== (요구8) 사진 팝업 — 클릭한 쪽의 반대편에 표시 ===== */
+  function showPhoto(plu, name, anchorEl){
+    selPlu=plu;
+    var pop=$('photoPop'); if(!pop) return;
+    var side='side-right';
+    try{
+      if(anchorEl && anchorEl.getBoundingClientRect){
+        var r=anchorEl.getBoundingClientRect();
+        side = ((r.left+r.right)/2 < window.innerWidth/2) ? 'side-right' : 'side-left';
+      }
+    }catch(e){}
+    pop.classList.remove('side-left','side-right'); pop.classList.add(side);
+    $('ppNum').textContent=plu||'—';
+    $('ppName').textContent=name||'';
+    var box=$('ppImg');
+    var cached=imgUrl(plu);
+    if(cached){ box.innerHTML=''; var i0=new Image(); i0.src=cached; box.appendChild(i0); }
+    else{
+      box.innerHTML='<div class="noimg">사진 불러오는 중…</div>';
+      var img=new Image();
+      img.onload=function(){ box.innerHTML=''; box.appendChild(img); var b=shrink100(img); if(b) imgPut(plu,b); };
+      img.onerror=function(){ NOIMG[plu]=1; box.innerHTML='<div class="noimg">등록된 사진이 없습니다<br>('+esc(plu)+'.jpg)</div>'; };
+      img.src=imgStatic(plu);
+    }
+    pop.classList.add('show');
+  }
+  function closePhotoPop(){ var p=$('photoPop'); if(p) p.classList.remove('show'); }
+  if($('photoPop')) $('photoPop').addEventListener('click', function(e){ e.stopPropagation(); closePhotoPop(); });
 
   /* ===== 관리자 메시지 ===== */
   function renderMsg(){
@@ -2759,8 +3134,8 @@
       it.classList.add('sel');
       var plu=it.getAttribute('data-plu');
       var enEl=it.querySelector('.en'), koEl=it.querySelector('.ko');
-      var nm=(koEl?koEl.textContent:'')||(enEl?enEl.textContent:'');
-      showPhoto(plu, nm);
+      var nm=(enEl?enEl.textContent:'')||(koEl?koEl.textContent:'');
+      showPhoto(plu, nm, it);   // (요구8) 클릭한 쪽의 반대편에 팝업
     }
   });
 
@@ -2828,8 +3203,11 @@
   $('listPane').addEventListener('scroll', clearLongPress, { passive:true });
   $('listPane').addEventListener('contextmenu', function(e){ if(e.target.closest('.plu-item')) e.preventDefault(); });
   function resetPhoto(){
-    $('photoBox').innerHTML='<div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div>';
-    $('photoNum').textContent='—'; $('photoName').textContent='';
+    // (요구1) 사진 박스는 보류 — 팝업만 닫는다
+    closePhotoPop();
+    var pb=$('photoBox'); if(pb) pb.innerHTML='<div class="noimg">PLU를 선택하면<br>사진이 표시됩니다</div>';
+    var pn=$('photoNum'); if(pn) pn.textContent='—';
+    var pm=$('photoName'); if(pm) pm.textContent='';
     selPlu='';
   }
   // 요구3·6: BACK 버튼 — 검색 중엔 '검색취소', 상품 리스트일 때 '뒤로', 그 외 흐림
@@ -2869,7 +3247,7 @@
     var lb=$('langBtnLb'); if(lb){ lb.textContent = lang==='KO'?'KOREAN':(lang==='ES'?'SPANISH':(lang==='ZH'?'中文':'ENGLISH')); }
     applyLangClass();
     render();
-    if(selPlu){ var it=document.querySelector('.plu-item[data-plu="'+selPlu+'"]'); if(it){ var nm=itemName(it.getAttribute('data-ko')||'', it.getAttribute('data-en')||''); $('photoName').textContent=nm.main||''; } }
+    if(selPlu){ var it=document.querySelector('.plu-item[data-plu="'+selPlu+'"]'); if(it){ var nm=itemName(it.getAttribute('data-ko')||'', it.getAttribute('data-en')||''); var pmEl=$('photoName'); if(pmEl) pmEl.textContent=nm.main||''; var pn2=$('ppName'); if(pn2&&$('photoPop').classList.contains('show')) pn2.textContent=nm.main||''; } }
   }
   // LANGUAGE 버튼: EN → KO → ES → EN 순환
   if($('langBtn')) $('langBtn').addEventListener('click', function(){
@@ -2880,6 +3258,355 @@
   function applyLangClass(){ document.body.classList.remove('lang-EN','lang-KO','lang-ES','lang-ZH'); document.body.classList.add('lang-'+curLang); }
   applyLangClass();
 
+
+  /* ═════════════════════════════════════════════════════════════
+     (요구3~5·9) 사진 업데이트 + 사진 찾기(KNN)
+     · 사진 업데이트: 비밀번호 → 카메라 촬영 → 배경 지우기 → PLU 입력 →
+       100×100 JPEG(≤50KB) → 중복 확인(교체/취소) → 저장
+     · 저장 경로: ① Firebase plu-preview-images/{PLU} (즉시 반영·태블릿 간 공유)
+                  ② GitHub image_produce/{PLU}.jpg (설정 시 — theshawn.org 배포 폴더)
+     · 사진 찾기: 촬영 → MobileNet v2 임베딩 → 등록 사진과 코사인 유사도 → 후보 5개
+     ═════════════════════════════════════════════════════════════ */
+  (function(){
+    var camMode='upload';           // 'upload' | 'find'
+    var camStream=null;
+    var srcData=null;               // 촬영 원본 ImageData (300×300)
+    var undoStack=[];
+    var tool='wand';                // 'wand' | 'brush'
+    var pluBuf='';
+    var EC=$('editCanvas'), EX=EC?EC.getContext('2d',{willReadFrequently:true}):null;
+
+    function pluName(plu){
+      plu=String(plu||''); var hit=null;
+      function scan(rows){ if(hit||!Array.isArray(rows)) return; for(var i=0;i<rows.length;i++){ if(pluOf(rows[i])===plu){ hit=rows[i]; return; } } }
+      try{
+        if(DATA&&DATA.cloud){ for(var k in DATA.cloud){ scan(DATA.cloud[k]); if(hit) break; } }
+        if(!hit&&DATA&&DATA.custom){ ['SALES','ETC'].forEach(function(c){ if(DATA.custom[c]) scan(DATA.custom[c].items); }); }
+        if(!hit&&Array.isArray(customList)){ for(var j=0;j<customList.length;j++){ if(String(customList[j].plu)===plu){ hit={kor:customList[j].ko,eng:customList[j].en}; break; } } }
+      }catch(e){}
+      if(!hit) return '';
+      var nm=itemName(korOf(hit)||hit.kor||'', engOf(hit)||hit.eng||'');
+      return nm.main||nm.sub||'';
+    }
+
+    function stage(id){ ['stShoot','stEdit','stResult'].forEach(function(s){ var el=$(s); if(el) el.classList.toggle('on', s===id); }); }
+    function busy(on,msg){ var b=$('camBusy'); if(!b) return; b.classList.toggle('on',!!on); if(msg) $('camBusyT').innerHTML=msg; }
+
+    /* ── 카메라 ── */
+    async function startCam(){
+      stopCam();
+      var tries=[
+        { video:{ facingMode:{ ideal:'environment' }, width:{ideal:1280}, height:{ideal:1280} }, audio:false },
+        { video:true, audio:false }
+      ];
+      for(var i=0;i<tries.length;i++){
+        try{ camStream=await navigator.mediaDevices.getUserMedia(tries[i]); break; }catch(e){}
+      }
+      if(!camStream){ $('camNote').innerHTML='카메라를 열 수 없습니다.<br>브라우저 카메라 권한을 확인하세요.'; return false; }
+      var v=$('camVideo'); v.srcObject=camStream;
+      try{ await v.play(); }catch(e){}
+      return true;
+    }
+    function stopCam(){ if(camStream){ try{ camStream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){} camStream=null; } var v=$('camVideo'); if(v) v.srcObject=null; }
+
+    function openCam(mode){
+      camMode=mode;
+      $('camTitle').textContent = mode==='find' ? '사진으로 상품 찾기' : '사진 업데이트';
+      $('camGear').style.display = mode==='find' ? 'none' : '';
+      $('camNote').innerHTML = mode==='find'
+        ? '사각 가이드 안에 상품을 맞추고 촬영하면<br>비슷한 상품 5개를 찾아드립니다'
+        : '사각 가이드 안에 상품을 맞추고<br>촬영 버튼을 누르세요';
+      pluBuf=''; renderPluIn(); undoStack=[]; srcData=null;
+      $('camOv').classList.add('show'); stage('stShoot'); busy(false);
+      startCam();
+    }
+    function closeCam(){ stopCam(); busy(false); $('camOv').classList.remove('show'); }
+    $('camClose').addEventListener('click', closeCam);
+
+    /* ── 촬영: 중앙 정사각 → 300×300 ── */
+    function captureTo(canvas){
+      var v=$('camVideo'), w=v.videoWidth||0, h=v.videoHeight||0;
+      if(!w||!h) return false;
+      var s=Math.min(w,h), x=canvas.getContext('2d');
+      x.fillStyle='#fff'; x.fillRect(0,0,canvas.width,canvas.height);
+      x.drawImage(v,(w-s)/2,(h-s)/2,s,s,0,0,canvas.width,canvas.height);
+      return true;
+    }
+    $('camShut').addEventListener('click', function(){
+      if(camMode==='find'){ doFind(); return; }
+      if(!captureTo(EC)){ $('camNote').innerHTML='카메라 준비 중입니다.<br>잠시 후 다시 시도하세요.'; return; }
+      srcData=EX.getImageData(0,0,EC.width,EC.height);
+      undoStack=[]; stopCam(); stage('stEdit');
+    });
+    $('eaRetake').addEventListener('click', function(){ stage('stShoot'); startCam(); });
+    $('knnRetry').addEventListener('click', function(){ stage('stShoot'); startCam(); });
+
+    /* ── (요구5) 배경 지우기 — 탭 위치와 비슷한 색을 흰색으로 (플러드필) + 브러시 지우개 ── */
+    function pushUndo(){ try{ undoStack.push(EX.getImageData(0,0,EC.width,EC.height)); if(undoStack.length>12) undoStack.shift(); }catch(e){} }
+    $('etUndo').addEventListener('click', function(){ var d=undoStack.pop(); if(d) EX.putImageData(d,0,0); });
+    $('etReset').addEventListener('click', function(){ if(srcData){ pushUndo(); EX.putImageData(srcData,0,0); } });
+    $('etWand').addEventListener('click', function(){ tool='wand'; $('etWand').classList.add('on'); $('etBrush').classList.remove('on'); });
+    $('etBrush').addEventListener('click', function(){ tool='brush'; $('etBrush').classList.add('on'); $('etWand').classList.remove('on'); });
+
+    function canvasPos(e){
+      var r=EC.getBoundingClientRect();
+      var cx=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX);
+      var cy=(e.touches&&e.touches[0]?e.touches[0].clientY:e.clientY);
+      return { x:Math.max(0,Math.min(EC.width-1, Math.round((cx-r.left)/r.width*EC.width))),
+               y:Math.max(0,Math.min(EC.height-1,Math.round((cy-r.top)/r.height*EC.height))) };
+    }
+    function flood(px,py){
+      var tol=parseInt($('etTol').value,10)||34, tol2=tol*tol*3;
+      var img=EX.getImageData(0,0,EC.width,EC.height), d=img.data, W=EC.width, H=EC.height;
+      var i0=(py*W+px)*4, r0=d[i0], g0=d[i0+1], b0=d[i0+2];
+      var seen=new Uint8Array(W*H), stack=[py*W+px];
+      while(stack.length){
+        var p=stack.pop(); if(seen[p]) continue; seen[p]=1;
+        var i=p*4, dr=d[i]-r0, dg=d[i+1]-g0, db=d[i+2]-b0;
+        if(dr*dr+dg*dg+db*db>tol2) continue;
+        d[i]=255; d[i+1]=255; d[i+2]=255;
+        var x=p%W, y=(p-x)/W;
+        if(x>0)   stack.push(p-1);
+        if(x<W-1) stack.push(p+1);
+        if(y>0)   stack.push(p-W);
+        if(y<H-1) stack.push(p+W);
+      }
+      EX.putImageData(img,0,0);
+    }
+    var brushing=false;
+    function brushAt(x,y){ EX.fillStyle='#fff'; EX.beginPath(); EX.arc(x,y,13,0,Math.PI*2); EX.fill(); }
+    EC.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      var p=canvasPos(e);
+      pushUndo();
+      if(tool==='wand'){ flood(p.x,p.y); }
+      else{ brushing=true; brushAt(p.x,p.y); try{ EC.setPointerCapture(e.pointerId); }catch(x){} }
+    });
+    EC.addEventListener('pointermove', function(e){ if(brushing){ var p=canvasPos(e); brushAt(p.x,p.y); } });
+    ['pointerup','pointercancel'].forEach(function(ev){ EC.addEventListener(ev, function(){ brushing=false; }); });
+
+    /* ── PLU 입력 패드 ── */
+    function renderPluIn(){ $('pluInDisp').innerHTML = pluBuf ? esc(pluBuf) : '<span class="ph">번호 입력</span>'; }
+    $('pluInPad').addEventListener('click', function(e){
+      var b=e.target.closest('button'); if(!b) return; var k=b.getAttribute('data-k');
+      if(k==='clear') pluBuf='';
+      else if(k==='back') pluBuf=pluBuf.slice(0,-1);
+      else if(pluBuf.length<6) pluBuf+=k;
+      renderPluIn();
+    });
+
+    /* ── (요구4) 100×100 · 50KB 이하 JPEG ── */
+    function finalJpeg(){
+      var c=document.createElement('canvas'); c.width=100; c.height=100;
+      var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,100,100);
+      x.drawImage(EC,0,0,EC.width,EC.height,0,0,100,100);
+      var q=0.9, url=c.toDataURL('image/jpeg',q);
+      while(url.length*0.75>50*1024 && q>0.3){ q-=0.1; url=c.toDataURL('image/jpeg',q); }   // base64→바이트 환산 ≤50KB
+      return url;
+    }
+
+    /* ── 기존 사진 존재 확인: 캐시 → Firebase 문서 → 정적 파일 ── */
+    function staticProbe(plu){
+      return new Promise(function(res){
+        var img=new Image(), done=false;
+        var fin=function(v){ if(!done){ done=true; res(v); } };
+        img.onload=function(){ var b=shrink100(img); if(b) imgPut(plu,b); fin(imgUrl(plu)||imgStatic(plu)); };
+        img.onerror=function(){ fin(null); };
+        setTimeout(function(){ fin(null); }, 4500);
+        img.src=imgStatic(plu)+'?t='+Date.now();
+      });
+    }
+    async function existingPhoto(plu){
+      if(imgUrl(plu)) return imgUrl(plu);
+      try{
+        var F=window.ppFb;
+        if(F&&F.getDoc){ var sn=await F.getDoc(F.doc(F.db,'plu-preview-images',plu));
+          if(sn&&sn.exists&&sn.exists()){ var d=sn.data()||{}; if(d.b64){ imgPut(plu,d.b64,d.updatedAt||Date.now()); return d.b64; } } }
+      }catch(e){}
+      if(navigator.onLine!==false) return await staticProbe(plu);
+      return null;
+    }
+
+    /* ── GitHub 저장 설정 (선택) ── */
+    function gitCfg(){ try{ return JSON.parse(localStorage.getItem('ppGitCfg')||'null'); }catch(e){ return null; } }
+    $('camGear').addEventListener('click', function(){
+      var c=gitCfg()||{};
+      $('gitOwner').value=c.owner||''; $('gitRepo').value=c.repo||'';
+      $('gitBranch').value=c.branch||''; $('gitToken').value=c.token||'';
+      $('gitOv').classList.add('show');
+    });
+    $('gitNo').addEventListener('click', function(){ $('gitOv').classList.remove('show'); });
+    $('gitYes').addEventListener('click', function(){
+      var c={ owner:$('gitOwner').value.trim(), repo:$('gitRepo').value.trim(),
+              branch:$('gitBranch').value.trim()||'main', token:$('gitToken').value.trim() };
+      if(c.owner&&c.repo&&c.token){ try{ localStorage.setItem('ppGitCfg', JSON.stringify(c)); }catch(e){} }
+      else{ try{ localStorage.removeItem('ppGitCfg'); }catch(e){} }
+      $('gitOv').classList.remove('show');
+    });
+    // (요구3·5) GitHub image_produce/{PLU}.jpg 커밋 — 기존 파일은 sha 로 교체(=삭제 후 새 파일)
+    async function githubPut(plu, dataUrl){
+      var c=gitCfg(); if(!c||!c.token) return { ok:false, skip:true };
+      var path='image_produce/'+plu+'.jpg';
+      var api='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+path;
+      var head={ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' };
+      var sha=null;
+      try{
+        var g=await fetch(api+'?ref='+encodeURIComponent(c.branch), { headers:head });
+        if(g.ok){ var gj=await g.json(); sha=gj&&gj.sha||null; }
+      }catch(e){}
+      var body={ message:'PLU photo '+plu+(sha?' (replace)':''), content:dataUrl.split(',')[1], branch:c.branch };
+      if(sha) body.sha=sha;
+      try{
+        var p=await fetch(api, { method:'PUT', headers:head, body:JSON.stringify(body) });
+        return { ok:p.ok, status:p.status };
+      }catch(e){ return { ok:false, err:String(e&&e.message||e) }; }
+    }
+
+    /* ── 저장 ── */
+    var pendingUrl=null, pendingPlu='';
+    $('eaSave').addEventListener('click', async function(){
+      var plu=pluBuf.trim();
+      if(!/^\d{3,6}$/.test(plu)){ askConfirm({ ic:'!', title:'PLU 번호', msg:'PLU 번호(3~6자리 숫자)를 입력하세요.', yes:T('ok'), oneBtn:true }); return; }
+      busy(true,'사진 확인 중…');
+      pendingUrl=finalJpeg(); pendingPlu=plu;
+      var old=await existingPhoto(plu);
+      busy(false);
+      if(old){
+        // (요구5) 기존 사진 + 새 사진 나란히 보여주고 교체/취소
+        $('dupOld').innerHTML='<img src="'+old+'" alt="">';
+        $('dupNew').innerHTML='<img src="'+pendingUrl+'" alt="">';
+        $('dupMsg').innerHTML='PLU <b>'+esc(plu)+'</b> — 교체하면 기존 사진은 삭제되고<br>새 사진으로 등록됩니다.';
+        $('dupOv').classList.add('show');
+      } else {
+        doUpload();
+      }
+    });
+    $('dupNo').addEventListener('click', function(){ $('dupOv').classList.remove('show'); });
+    $('dupYes').addEventListener('click', function(){ $('dupOv').classList.remove('show'); doUpload(); });
+
+    async function doUpload(){
+      var plu=pendingPlu, url=pendingUrl; if(!plu||!url) return;
+      busy(true,'사진 저장 중…');
+      var fbOk=false, gh={ ok:false, skip:true };
+      try{
+        var F=window.ppFb;
+        if(F&&F.setDoc){ await F.setDoc(F.doc(F.db,'plu-preview-images',plu), { b64:url, updatedAt:Date.now(), store:STORE||'' }); fbOk=true; }
+      }catch(e){}
+      gh=await githubPut(plu, url);
+      imgPut(plu, url, Date.now());
+      embDirty(plu);
+      render();
+      busy(false);
+      var lines=[];
+      lines.push(fbOk?'Firebase 저장 완료 (모든 태블릿 UPDATE 시 반영)':'Firebase 저장 실패 — 인터넷 연결을 확인하세요');
+      if(gh.skip) lines.push('GitHub 미설정 → image_produce 폴더 커밋 생략');
+      else lines.push(gh.ok?'GitHub image_produce/'+plu+'.jpg 커밋 완료 (배포 후 반영)':'GitHub 커밋 실패 ('+(gh.status||gh.err||'')+') — GITHUB 설정을 확인하세요');
+      askConfirm({ ic:'✓', title:'PLU '+plu+' 사진 등록', msg:lines.join('<br>'), yes:T('ok'), oneBtn:true, cb:null });
+      closeCam();
+    }
+
+    /* ── (요구2·3) 사진 업데이트 버튼 → 비밀번호 → 카메라 ── */
+    $('photoUp').addEventListener('click', function(){ askPin(function(){ openCam('upload'); }); });
+
+    /* ═════════ (요구9) 사진 찾기 — MobileNet v2 임베딩 + kNN ═════════ */
+    var tfReady=null, model=null;
+    var EMB={};                       // plu → { v:Float32Array, updatedAt }
+    function embDirty(plu){ delete EMB[plu]; idb2Put('emb', plu, null); }
+    function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){ rej(new Error('load fail: '+src)); }; document.head.appendChild(s); }); }
+    function ensureModel(){
+      if(model) return Promise.resolve(model);
+      if(!tfReady){
+        tfReady=(async function(){
+          busy(true,'인식 모델 내려받는 중…<br>(처음 한 번만, 약 15MB)');
+          if(!window.tf) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+          if(!window.mobilenet) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js');
+          model=await window.mobilenet.load({ version:2, alpha:1.0 });
+          return model;
+        })().catch(function(e){ tfReady=null; throw e; });
+      }
+      return tfReady;
+    }
+    function embedEl(el){
+      var t=window.tf.tidy(function(){
+        var e=model.infer(el, true);
+        return window.tf.div(e, window.tf.norm(e,2,1,true));
+      });
+      var v=t.dataSync(); t.dispose();
+      return new Float32Array(v);
+    }
+    function imgElFromB64(b64){ return new Promise(function(res,rej){ var i=new Image(); i.onload=function(){ res(i); }; i.onerror=rej; i.src=b64; }); }
+    async function ensureIndex(){
+      var plus=Object.keys(IMG); if(!plus.length) return 0;
+      var stored=await idb2All('emb');
+      var need=[], k;
+      for(k=0;k<plus.length;k++){
+        var plu=plus[k], up=IMG[plu].updatedAt||0;
+        if(EMB[plu]&&EMB[plu].updatedAt===up) continue;
+        var st=stored[plu];
+        if(st&&st.updatedAt===up&&st.v){ EMB[plu]={ v:new Float32Array(st.v), updatedAt:up }; continue; }
+        need.push(plu);
+      }
+      for(k=0;k<need.length;k++){
+        var p2=need[k];
+        busy(true,'사진 색인 중… '+(k+1)+' / '+need.length);
+        try{
+          var el=await imgElFromB64(IMG[p2].b64);
+          var v=embedEl(el);
+          EMB[p2]={ v:v, updatedAt:IMG[p2].updatedAt||0 };
+          idb2Put('emb', p2, { v:Array.prototype.slice.call(v), updatedAt:EMB[p2].updatedAt });
+        }catch(e){}
+      }
+      return Object.keys(EMB).length;
+    }
+    async function doFind(){
+      var cap=document.createElement('canvas'); cap.width=300; cap.height=300;
+      if(!captureTo(cap)){ $('camNote').innerHTML='카메라 준비 중입니다.<br>잠시 후 다시 시도하세요.'; return; }
+      stopCam();
+      try{
+        await ensureModel();
+        var n=await ensureIndex();
+        if(!n){
+          busy(false); stage('stResult');
+          $('knnHead').textContent='비슷한 상품';
+          $('knnCards').innerHTML='<div class="knn-none">등록된 사진이 없습니다.<br>먼저 [사진 업데이트]로 상품 사진을 등록하세요.</div>';
+          return;
+        }
+        busy(true,'비슷한 상품 찾는 중…');
+        var q=embedEl(cap);
+        var scores=[];
+        for(var plu in EMB){
+          var v=EMB[plu].v, s=0;
+          for(var i=0;i<v.length&&i<q.length;i++) s+=v[i]*q[i];
+          scores.push({ plu:plu, s:s });
+        }
+        scores.sort(function(a,b){ return b.s-a.s; });
+        var top=scores.slice(0,5);
+        busy(false); stage('stResult');
+        var best=top.length?top[0].s:0;
+        $('knnHead').textContent = best>=0.45 ? '비슷한 상품 — 눌러서 확인' : '확실한 일치 없음 — 가까운 순서';
+        $('knnCards').innerHTML = top.map(function(t){
+          var nm=pluName(t.plu);
+          return '<button class="knn-card" data-plu="'+esc(t.plu)+'" data-name="'+esc(nm)+'">'+
+            '<span class="ki"><img src="'+(imgUrl(t.plu)||imgStatic(t.plu))+'" alt=""></span>'+
+            '<span class="kn">'+esc(t.plu)+'</span>'+
+            (nm?'<span class="km">'+esc(nm)+'</span>':'')+
+            '<span class="ks">'+Math.round(Math.max(0,Math.min(1,t.s))*100)+'% MATCH</span>'+
+          '</button>';
+        }).join('');
+      }catch(e){
+        busy(false); stage('stResult');
+        $('knnHead').textContent='사진 찾기';
+        $('knnCards').innerHTML='<div class="knn-none">인식 모델을 불러오지 못했습니다.<br>인터넷 연결 후 다시 시도하세요.</div>';
+      }
+    }
+    $('knnCards').addEventListener('click', function(e){
+      var c=e.target.closest('.knn-card'); if(!c) return;
+      var plu=c.getAttribute('data-plu'), nm=c.getAttribute('data-name')||pluName(plu);
+      closeCam();
+      showPhoto(plu, nm, null);   // 화면 오른쪽 팝업으로 표시
+    });
+    $('photoFind').addEventListener('click', function(){ openCam('find'); });
+  })();
 
   /* ===== 가로 / 세로 레이아웃 자동 전환 =====
      화면 비율(세로가 더 길면 세로)로 판단한다. 배치만 바뀌고 기능·데이터는 그대로. */
@@ -2995,29 +3722,31 @@
       fn2('backk','back','뒤로','← BACK');
 
     // 1) 한국어⇄영어 토글  2) 숫자  3) 한국어/영어 동시
+    //    (요구2·10) 키보드 선택 3개는 오른쪽 컨트롤 패널(#ctrlModes)에 표시 →
+    //    키패드에서 빠진 만큼 글자키가 가로로 넓어진다.
     var langOn = (mode==='KO'||mode==='EN');
     var shown = langOn ? mode : kbdLang;
     var modeBtns =
-      '<button class="kbd-mode'+(langOn?' on':'')+sp2+'" data-mode="TOGGLE">'+
+      '<button class="kbd-mode'+(langOn?' on':'')+'" data-mode="TOGGLE">'+
         '<span class="m1">'+(shown==='KO'?'한국어':'영어')+'</span>'+
         '<span class="m2">'+(shown==='KO'?'KOREAN':'ENGLISH')+'</span></button>'+
-      '<button class="kbd-mode'+(mode==='NUM'?' on':'')+sp2+'" data-mode="NUM">'+
+      '<button class="kbd-mode'+(mode==='NUM'?' on':'')+'" data-mode="NUM">'+
         '<span class="m1">숫자</span><span class="m2">NUMBER</span></button>'+
-      '<button class="kbd-mode both'+(mode==='BOTH'?' on':'')+sp2+'" data-mode="BOTH">'+
+      '<button class="kbd-mode both'+(mode==='BOTH'?' on':'')+'" data-mode="BOTH">'+
         '<span class="m1">한국어/영어</span><span class="m2">KOR / ENG</span></button>';
+    var cm=$('ctrlModes'); if(cm) cm.innerHTML=modeBtns;
 
     var tb=$('kbdToolbar');
     if(portrait){
-      // 세로 — 6개 버튼을 리스트와 키패드 사이에 균일한 크기로 한 줄 배치.
-      //        키패드는 그만큼 가로로 넓어진다.
-      if(tb) tb.innerHTML='<div class="kbd-tb">'+fnBtns+modeBtns+'</div>';
+      // 세로 — 기능키 3개만 리스트와 키패드 사이 한 줄 배치. 키패드는 그만큼 가로로 넓어진다.
+      if(tb) tb.innerHTML='<div class="kbd-tb">'+fnBtns+'</div>';
       bar.innerHTML='<div class="kbd-keys mode-'+mode+(qwerty?' qwerty':'')+'" style="--rows:'+rows+'">'+
         letters+'</div>';
     } else {
-      // 가로 — 기존 그대로 (오른쪽에 세로 두 열)
+      // 가로 — 글자키(가로 확장) + 기능키 열
       if(tb) tb.innerHTML='';
       bar.innerHTML='<div class="kbd-keys mode-'+mode+(qwerty?' qwerty':'')+'" style="--rows:'+rows+'">'+
-        letters+'<div class="kbd-funcs">'+fnBtns+'</div><div class="kbd-modes">'+modeBtns+'</div></div>';
+        letters+'<div class="kbd-funcs">'+fnBtns+'</div></div>';
     }
   }
   document.body.classList.add('kbd-deck');   // [실험] 실물 키보드 느낌 — 원복하려면 이 줄만 삭제
@@ -3162,9 +3891,10 @@
     if(/^[0-9]$/.test(k)) pressNum(k); else pressKey(k);
     if(kbdShift){ kbdShift=false; renderKeyboard(); }   // 한 글자 입력 후 SHIFT 해제
   }
-  // 키패드 + (세로 전용) 버튼 바 둘 다 같은 핸들러 사용
+  // 키패드 + (세로 전용) 버튼 바 + 컨트롤 패널(키보드 선택) 모두 같은 핸들러 사용
   $('kbdBar').addEventListener('click', onKbdClick);
   if($('kbdToolbar')) $('kbdToolbar').addEventListener('click', onKbdClick);
+  if($('ctrlModes')) $('ctrlModes').addEventListener('click', onKbdClick);
 
   function openSearch(){
     searching=true; document.body.classList.add('searching'); $('searchOv').classList.add('show');
@@ -3196,7 +3926,7 @@
     rows.slice(0,40).forEach(function(r){
       // 선택 언어가 주(主) = 굵게 / 나머지는 보조. 언어가 달라도 크기는 항상 같다.
       var plu=pluOf(r), nm=itemName(korOf(r), engOf(r));
-      html+='<div class="search-item" data-plu="'+esc(plu)+'">'+
+      html+='<div class="search-item" data-plu="'+esc(plu)+'" data-name="'+esc(nm.main||nm.sub||'')+'">'+
         '<span class="snum">'+esc(plu)+'</span>'+
         (nm.main?'<span class="sen">'+esc(nm.main)+'</span>':'')+
         (nm.sub ?'<span class="sko">'+esc(nm.sub)+'</span>':'')+
@@ -3204,12 +3934,11 @@
     });
     $('searchResults').innerHTML=html;
   }
-  // 검색결과는 클릭 대상이 아님 (번호·목록이 나온 시점에 찾기 완료)
-  //  → 혹시 발생하는 클릭·터치는 모두 무시하고 팝업을 유지한다
-  ['click','pointerdown','touchstart'].forEach(function(ev){
-    $('searchResults').addEventListener(ev, function(e){
-      if(e.target.closest('.search-item')){ e.preventDefault(); e.stopPropagation(); }
-    }, true);
+  // (요구8) 검색 결과 클릭 → 왼쪽 결과는 오른쪽에, 오른쪽 결과는 왼쪽에 사진 팝업 (검색은 유지)
+  $('searchResults').addEventListener('click', function(e){
+    var it=e.target.closest('.search-item'); if(!it) return;
+    e.preventDefault(); e.stopPropagation();
+    showPhoto(it.getAttribute('data-plu')||'', it.getAttribute('data-name')||'', it);
   });
   $('searchClose').addEventListener('click', closeSearch);
   $('searchOv').addEventListener('click', function(e){ if(e.target===$('searchOv')) closeSearch(); });
