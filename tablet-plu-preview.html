@@ -815,11 +815,13 @@
   .kbd-toolbar{ display:none; }
   body.portrait .kbd-toolbar{ display:block; flex:0 0 auto; position:relative; z-index:210; }   /* 검색 팝업 위로 */
   body.portrait .kbd-tb{
-    display:grid; grid-template-columns:1fr 1fr 1.5fr; gap:6px;   /* 3번째 칸은 한국어+숫자 두 버튼이 들어가 조금 넓다 */
+    /* 4칸 균등 그리드 — 한국어·숫자 칸이 2칸을 차지하고 내부에서 다시 반씩 나누므로
+       네 버튼(지우기 · 삭제/뒤로 · 한국어 · 숫자)의 가로 크기가 모두 같아진다 */
+    display:grid; grid-template-columns:repeat(4,1fr); gap:6px;
     height:clamp(36px, 3.7vh, 46px);
   }
   body.portrait .kbd-tb > *{ width:auto; height:100%; max-width:none; min-height:0; }
-  body.portrait .kbd-tb .fn-split{ height:100%; gap:5px; }
+  body.portrait .kbd-tb .fn-split{ grid-column:span 2; height:100%; gap:6px; }
   body.portrait .fn-split .kbd-mode.half .m1{ font-size:11px; }
   body.portrait .fn-split .kbd-mode.half .m2{ font-size:6.5px; }
   /* 6개 버튼 모두 2줄 라벨 (한국어 / 영어) */
@@ -4078,7 +4080,7 @@
 
     var fnBtns =
       fn2('backsp','del','지우기','BACKSPACE')+
-      fn2('clr','clear','이전 목록','CLEAR / BACK')+
+      fn2('clr','clear','삭제 / 뒤로','CLEAR / BACK')+
       halfBtns;
 
     /* (요구4) '한국어/영어 동시' 버튼은 화면에서 제거했다.
