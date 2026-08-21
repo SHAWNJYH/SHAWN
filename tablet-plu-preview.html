@@ -536,36 +536,39 @@
   .find-mini .lb{ font-size:8.5px; font-weight:800; line-height:1.15; white-space:nowrap; }
   .find-mini .lb2{ font-size:5.5px; font-weight:700; letter-spacing:.06em; color:rgba(255,255,255,.62); line-height:1.1; white-space:nowrap; }
 
-  /* ===== (요구6·7) PLU 버튼 안 사진 — 글자는 왼쪽, 사진은 오른쪽 + 흰색 STROKE ===== */
-  .plu-item .thumb{ display:none; position:absolute; top:0; right:0; bottom:0; height:100%; aspect-ratio:1/1; z-index:0; pointer-events:none; }
-  .plu-item .thumb img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:0 12px 12px 0; }
-  .plu-item .thumb::after{ content:''; position:absolute; inset:0; background:linear-gradient(90deg, var(--panel-3) 0%, rgba(251,249,244,0) 34%); border-radius:0 12px 12px 0; }
-  .plu-item.has-img{ align-items:flex-start; text-align:left; padding-left:12px; }
-  .plu-item.has-img .thumb{ display:block; }
-  .plu-item.has-img .num, .plu-item.has-img .en, .plu-item.has-img .ko{
-    position:relative; z-index:1; max-width:100%;
-    text-shadow:-1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 3px rgba(255,255,255,.95);
-  }
-  .plu-item.sel .thumb img{ border-radius:0 11px 11px 0; }
+  /* (요구1) PLU 버튼 안 사진 표시는 제거됨 — 사진은 버튼을 누를 때 팝업으로만 표시 */
 
-  /* ===== (요구8) PLU 사진 팝업 — 클릭한 쪽의 반대편에 표시 ===== */
-  .photo-pop{ position:fixed; inset:0; z-index:300; display:none; background:rgba(30,27,22,.22); }
-  .photo-pop.show{ display:block; }
+  /* ===== (요구2) PLU 사진 팝업 — 화면 가운데 + 양옆 화살표로 연속 이동 ===== */
+  .photo-pop{ position:fixed; inset:0; z-index:300; display:none; background:rgba(30,27,22,.55);
+    backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); align-items:center; justify-content:center; gap:14px; padding:18px; }
+  .photo-pop.show{ display:flex; }
   .photo-pop .pp-card{
-    position:absolute; top:50%; transform:translateY(-50%);
-    width:min(40vw, 400px); background:var(--panel); border:1px solid var(--line-2); border-radius:18px;
-    box-shadow:var(--sh-3); padding:13px 13px 12px; display:flex; flex-direction:column; gap:9px;
+    position:relative; width:min(58vw, 620px); max-height:92%; background:var(--panel);
+    border:1px solid var(--line-2); border-radius:18px; box-shadow:var(--sh-3);
+    padding:14px 14px 13px; display:flex; flex-direction:column; gap:10px; overflow:hidden;
   }
-  .photo-pop.side-right .pp-card{ right:3vw; }
-  .photo-pop.side-left  .pp-card{ left:3vw; }
-  .pp-img{ width:100%; aspect-ratio:1/1; border:1px solid var(--line); border-radius:12px; background:var(--panel-3);
-    display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .pp-img img{ width:100%; height:100%; object-fit:contain; }
-  .pp-img .noimg{ color:var(--ink-dim); font-size:12px; font-weight:600; text-align:center; line-height:1.7; }
-  .pp-meta{ display:flex; align-items:baseline; gap:12px; min-width:0; padding:0 3px; }
-  .pp-num{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:30px; font-weight:800; color:var(--red); flex:0 0 auto; }
-  .pp-name{ font-size:16px; font-weight:700; color:var(--ink); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  body.portrait .photo-pop .pp-card{ width:min(62vw, 400px); }
+  .pp-img{ width:100%; flex:1 1 auto; min-height:0; border:1px solid var(--line); border-radius:12px;
+    background:var(--panel-3); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .pp-img img{ max-width:100%; max-height:min(58vh, 520px); width:auto; height:auto; object-fit:contain; display:block; }
+  .pp-img .noimg{ color:var(--ink-dim); font-size:12px; font-weight:700; text-align:center; line-height:1.8; padding:56px 16px; }
+  .pp-meta{ flex:0 0 auto; display:flex; align-items:center; gap:14px; min-width:0; padding:0 3px; }
+  .pp-num{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:34px; font-weight:800; color:var(--red); flex:0 0 auto; line-height:1; }
+  .pp-names{ display:flex; flex-direction:column; gap:2px; min-width:0; flex:1 1 auto; }
+  .pp-names span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pp-ko{ font-size:17px; font-weight:800; color:var(--ink); }
+  .pp-en{ font-size:14px; font-weight:700; color:var(--ink-2); }
+  .pp-zh{ font-size:15px; font-weight:700; color:var(--accent); }
+  .pp-idx{ flex:0 0 auto; font-size:11px; font-weight:800; letter-spacing:.08em; color:var(--ink-dim);
+    font-variant-numeric:tabular-nums; }
+  /* 양옆 화살표 */
+  .pp-nav{ flex:0 0 auto; width:64px; height:64px; border-radius:50%; border:1px solid rgba(255,255,255,.28);
+    background:rgba(30,27,22,.5); color:#fff; font-size:30px; line-height:1; font-family:inherit; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:all .14s; }
+  .pp-nav:active{ background:#fff; color:var(--ink); }
+  .pp-nav[disabled]{ opacity:.22; pointer-events:none; }
+  body.portrait .photo-pop .pp-card{ width:min(80vw, 560px); }
+  body.portrait .pp-nav{ width:54px; height:54px; font-size:26px; }
+  @media (max-width:900px){ .pp-nav{ width:52px; height:52px; font-size:25px; } .photo-pop{ gap:8px; padding:12px; } }
 
   /* ===== (요구3·9) 카메라 오버레이 ===== */
   .cam-ov{ position:fixed; inset:0; z-index:320; display:none; flex-direction:column; background:var(--bg); }
@@ -1135,12 +1138,22 @@
   </div>
 </div>
 
-<!-- (요구8) PLU 사진 팝업 — 클릭한 쪽의 반대편에 표시 -->
+<!-- (요구2) PLU 사진 팝업 — 가운데 표시, 양옆 화살표로 앞뒤 상품 연속 보기 -->
 <div class="photo-pop" id="photoPop">
-  <div class="pp-card">
+  <button class="pp-nav" id="ppPrev" title="이전 상품">&#8249;</button>
+  <div class="pp-card" id="ppCard">
     <div class="pp-img" id="ppImg"><div class="noimg">등록된 사진이 없습니다</div></div>
-    <div class="pp-meta"><span class="pp-num" id="ppNum">—</span><span class="pp-name" id="ppName"></span></div>
+    <div class="pp-meta">
+      <span class="pp-num" id="ppNum">—</span>
+      <span class="pp-names">
+        <span class="pp-ko" id="ppKo"></span>
+        <span class="pp-en" id="ppEn"></span>
+        <span class="pp-zh" id="ppZh"></span>
+      </span>
+      <span class="pp-idx" id="ppIdx"></span>
+    </div>
   </div>
+  <button class="pp-nav" id="ppNext" title="다음 상품">&#8250;</button>
 </div>
 
 <!-- (요구3·9) 카메라 오버레이 — 사진 업데이트 / 사진 찾기(KNN) 공용 -->
@@ -2606,11 +2619,7 @@
   // 데이터 없을 때 보여줄 첫 실행 안내 — CUSTOM/WEEKLY 화면이 덮어쓴 뒤 복구용
   var FIRSTRUN_HTML = ($('listPane') ? $('listPane').innerHTML : '');
 
-  function render(){
-    renderCore();
-    // (요구6) 렌더 후 각 PLU 버튼에 사진 썸네일 부착
-    try{ decorateThumbs($('listPane')); }catch(e){}
-  }
+  function render(){ renderCore(); }
   function renderCore(){
     var pane=$('listPane');
     // WEEKLY 선택 시: 하단(키보드+사진) 접고 리스트 영역을 화면 끝까지 확장
@@ -2983,6 +2992,11 @@
      · IndexedDB 'egmm-store-tablet-img' : img(사진) / emb(KNN 임베딩)
      · 표시 우선순위: 캐시(b64) → image_produce/{PLU}.jpg → 없음
      ═════════════════════════════════════════════════════════════ */
+  /* (요구3) 사진은 촬영 원본 화질 그대로 보관한다.
+     Firestore 문서 상한(1MB) 때문에 dataURL 길이만 안전선에서 제한한다. */
+  var PHOTO_MAX_DIM=1200;           // 긴 변 최대 픽셀 (그 이하면 원본 크기 그대로)
+  var PHOTO_Q=0.95;                 // JPEG 품질
+  var PHOTO_MAX_CHARS=900000;       // dataURL 길이 상한 (≈ 실제 660KB)
   var IMG={};                       // plu → {b64, updatedAt}
   var NOIMG={};                     // 이번 세션에서 정적 파일 404 확인된 PLU (재요청 방지)
   var IDB2='egmm-store-tablet-img';
@@ -3020,64 +3034,159 @@
     }catch(e){ return false; }
   }
 
-  /* ── (요구6) PLU 버튼 썸네일: 캐시 b64 → 정적 파일 순서. 성공한 정적 파일은
-        100×100 으로 축소해 캐시에 넣어 KNN 색인·팝업에도 재사용한다. ── */
-  function shrink100(imgEl){
+  /* ── 정적 폴더(image_produce) 사진을 캐시로 승격 (원본 화질 그대로 보관) ── */
+  function toJpegFull(imgEl, maxDim, maxChars){
     try{
-      var c=document.createElement('canvas'); c.width=100; c.height=100;
-      var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,100,100);
-      var w=imgEl.naturalWidth||100, h=imgEl.naturalHeight||100, s=Math.min(w,h);
-      x.drawImage(imgEl,(w-s)/2,(h-s)/2,s,s,0,0,100,100);
-      return c.toDataURL('image/jpeg', .85);
+      var w=imgEl.naturalWidth||imgEl.width, h=imgEl.naturalHeight||imgEl.height;
+      if(!w||!h) return null;
+      var lim=maxDim||PHOTO_MAX_DIM, sc=Math.min(1, lim/Math.max(w,h));
+      var cw=Math.max(1,Math.round(w*sc)), ch=Math.max(1,Math.round(h*sc));
+      var c=document.createElement('canvas'), url;
+      var cap=maxChars||PHOTO_MAX_CHARS;
+      for(var pass=0; pass<6; pass++){
+        c.width=cw; c.height=ch;
+        var x=c.getContext('2d');
+        x.fillStyle='#fff'; x.fillRect(0,0,cw,ch);
+        x.imageSmoothingQuality='high';
+        x.drawImage(imgEl,0,0,w,h,0,0,cw,ch);
+        var q=PHOTO_Q;
+        url=c.toDataURL('image/jpeg', q);
+        while(url.length>cap && q>0.55){ q-=0.07; url=c.toDataURL('image/jpeg', q); }
+        if(url.length<=cap) return url;
+        cw=Math.max(1,Math.round(cw*0.8)); ch=Math.max(1,Math.round(ch*0.8));   // 그래도 크면 해상도를 낮춘다
+      }
+      return url;
     }catch(e){ return null; }
   }
-  function decorateThumbs(pane){
-    [].forEach.call(pane.querySelectorAll('.plu-item[data-plu]'), function(it){
-      var plu=it.getAttribute('data-plu'); if(!plu || it.querySelector('.thumb')) return;
-      var cached=imgUrl(plu);
-      if(!cached && NOIMG[plu]) return;
-      var wrap=document.createElement('span'); wrap.className='thumb';
-      var im=document.createElement('img'); im.alt=''; im.decoding='async';
-      if(!cached) im.loading='lazy';                 // 캐시(dataURL)는 즉시, 정적 파일만 lazy
-      im.onload=function(){
-        it.classList.add('has-img');
-        if(!imgUrl(plu)){ var b=shrink100(im); if(b) imgPut(plu, b); }   // 정적 파일 → 캐시 승격
-      };
-      im.onerror=function(){ NOIMG[plu]=1; wrap.remove(); it.classList.remove('has-img'); };
-      wrap.appendChild(im); it.appendChild(wrap);
-      im.src = cached || imgStatic(plu);
-      if(im.complete && im.naturalWidth>0) im.onload();
+
+  /* ═════════ (요구2) PLU 사진 팝업 ═════════
+     · 화면 가운데에 크게 표시. PLU 번호 + 한글/영어/중국어 상품명
+     · 양옆 화살표로 같은 목록의 앞뒤 상품 사진을 연속으로 넘겨본다 */
+  var POPLIST=[], POPIDX=-1;
+
+  // 현재 화면(리스트 또는 검색결과)에 보이는 순서대로 이동 목록을 만든다
+  function buildPopList(activePlu, scope){
+    var out=[], seen={};
+    var sels = scope==='search'
+      ? ['#searchResults .search-item[data-plu]']
+      : ['.plu-item[data-plu]', '.cate-btn[data-plu]'];
+    sels.forEach(function(sel){
+      [].forEach.call(document.querySelectorAll(sel), function(el){
+        var plu=el.getAttribute('data-plu'); if(!plu || seen[plu]) return;
+        seen[plu]=1;
+        out.push({
+          plu: plu,
+          ko: el.getAttribute('data-ko') || '',
+          en: el.getAttribute('data-en') || ''
+        });
+      });
     });
+    // 화면에서 못 찾으면 전체 데이터에서 보완
+    if(!out.length && activePlu) out.push({ plu:activePlu, ko:'', en:'' });
+    POPLIST=out;
+    POPIDX=-1;
+    for(var i=0;i<out.length;i++){ if(out[i].plu===activePlu){ POPIDX=i; break; } }
+    if(POPIDX<0 && out.length){ out.unshift({ plu:activePlu, ko:'', en:'' }); POPIDX=0; }
   }
 
-  /* ===== (요구8) 사진 팝업 — 클릭한 쪽의 반대편에 표시 ===== */
-  function showPhoto(plu, name, anchorEl){
-    selPlu=plu;
-    var pop=$('photoPop'); if(!pop) return;
-    var side='side-right';
-    try{
-      if(anchorEl && anchorEl.getBoundingClientRect){
-        var r=anchorEl.getBoundingClientRect();
-        side = ((r.left+r.right)/2 < window.innerWidth/2) ? 'side-right' : 'side-left';
-      }
-    }catch(e){}
-    pop.classList.remove('side-left','side-right'); pop.classList.add(side);
-    $('ppNum').textContent=plu||'—';
-    $('ppName').textContent=name||'';
-    var box=$('ppImg');
-    var cached=imgUrl(plu);
-    if(cached){ box.innerHTML=''; var i0=new Image(); i0.src=cached; box.appendChild(i0); }
-    else{
+  // PLU 로 원본 데이터에서 한글/영문명 보강
+  function namesOf(plu, ko, en){
+    if(!ko || !en){
+      try{
+        var rows=allRows?allRows():[];
+        for(var i=0;i<rows.length;i++){
+          if(String(pluOf(rows[i]))===String(plu)){
+            ko=ko||korOf(rows[i]); en=en||engOf(rows[i]); break;
+          }
+        }
+      }catch(e){}
+    }
+    return { ko:ko||'', en:en||'' };
+  }
+
+  function renderPop(){
+    var pop=$('photoPop'); if(!pop || POPIDX<0 || !POPLIST[POPIDX]) return;
+    var cur=POPLIST[POPIDX];
+    var nm=namesOf(cur.plu, cur.ko, cur.en);
+    selPlu=cur.plu;
+
+    $('ppNum').textContent = cur.plu || '—';
+    $('ppKo').textContent  = nm.ko || '';
+    $('ppEn').textContent  = nm.en || '';
+    var zh='';
+    try{ zh = toZh(nm.en, nm.ko) || ''; }catch(e){}
+    if(zh && zh===nm.en) zh='';                      // 번역이 안 된 경우 중복 표시 안 함
+    $('ppZh').textContent = zh;
+    $('ppZh').style.display = zh ? '' : 'none';
+    $('ppEn').style.display = nm.en ? '' : 'none';
+    $('ppKo').style.display = nm.ko ? '' : 'none';
+    $('ppIdx').textContent = POPLIST.length>1 ? (POPIDX+1)+' / '+POPLIST.length : '';
+
+    $('ppPrev').disabled = (POPLIST.length<2);
+    $('ppNext').disabled = (POPLIST.length<2);
+
+    // 사진: 캐시(원본 화질) → 정적 폴더 → 없음
+    var box=$('ppImg'), plu=cur.plu, cached=imgUrl(plu);
+    if(cached){
+      box.innerHTML=''; var i0=new Image(); i0.alt=''; i0.src=cached; box.appendChild(i0);
+    } else if(NOIMG[plu]){
+      box.innerHTML='<div class="noimg">등록된 사진이 없습니다<br>('+esc(plu)+'.jpg)</div>';
+    } else {
       box.innerHTML='<div class="noimg">사진 불러오는 중…</div>';
-      var img=new Image();
-      img.onload=function(){ box.innerHTML=''; box.appendChild(img); var b=shrink100(img); if(b) imgPut(plu,b); };
-      img.onerror=function(){ NOIMG[plu]=1; box.innerHTML='<div class="noimg">등록된 사진이 없습니다<br>('+esc(plu)+'.jpg)</div>'; };
+      var img=new Image(); img.alt='';
+      img.onload=function(){
+        if(!$('photoPop').classList.contains('show')) return;
+        if(POPLIST[POPIDX] && POPLIST[POPIDX].plu!==plu) return;   // 그 사이 다른 상품으로 넘어갔으면 무시
+        box.innerHTML=''; box.appendChild(img);
+        var b=toJpegFull(img); if(b) imgPut(plu,b);
+      };
+      img.onerror=function(){
+        NOIMG[plu]=1;
+        if(POPLIST[POPIDX] && POPLIST[POPIDX].plu!==plu) return;
+        box.innerHTML='<div class="noimg">등록된 사진이 없습니다<br>('+esc(plu)+'.jpg)</div>';
+      };
       img.src=imgStatic(plu);
     }
+  }
+
+  function popStep(d){
+    if(!POPLIST.length) return;
+    POPIDX=(POPIDX+d+POPLIST.length)%POPLIST.length;   // 끝에서 처음으로 순환
+    renderPop();
+  }
+
+  // plu: 번호 / ko,en: 알고 있으면 전달 / scope: 'search' 면 검색 결과 순서로 이동
+  function showPhoto(plu, ko, en, scope){
+    var pop=$('photoPop'); if(!pop) return;
+    buildPopList(plu, scope);
+    renderPop();
     pop.classList.add('show');
   }
   function closePhotoPop(){ var p=$('photoPop'); if(p) p.classList.remove('show'); }
-  if($('photoPop')) $('photoPop').addEventListener('click', function(e){ e.stopPropagation(); closePhotoPop(); });
+
+  if($('photoPop')){
+    $('photoPop').addEventListener('click', function(e){
+      e.stopPropagation();
+      if(e.target===this) closePhotoPop();            // 바깥 여백을 눌렀을 때만 닫는다
+    });
+    $('ppCard').addEventListener('click', function(e){ e.stopPropagation(); closePhotoPop(); });
+    $('ppPrev').addEventListener('click', function(e){ e.stopPropagation(); popStep(-1); });
+    $('ppNext').addEventListener('click', function(e){ e.stopPropagation(); popStep(1); });
+    // 좌우 스와이프로도 이동
+    var sx=0, sy=0, sw=false;
+    $('photoPop').addEventListener('pointerdown', function(e){ sx=e.clientX; sy=e.clientY; sw=true; });
+    $('photoPop').addEventListener('pointerup', function(e){
+      if(!sw) return; sw=false;
+      var dx=e.clientX-sx, dy=e.clientY-sy;
+      if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){ e.stopPropagation(); popStep(dx<0?1:-1); }
+    });
+    document.addEventListener('keydown', function(e){
+      if(!$('photoPop').classList.contains('show')) return;
+      if(e.key==='ArrowLeft') popStep(-1);
+      else if(e.key==='ArrowRight') popStep(1);
+      else if(e.key==='Escape') closePhotoPop();
+    });
+  }
 
   /* ===== 관리자 메시지 ===== */
   function renderMsg(){
@@ -3132,10 +3241,7 @@
     if(it){
       [].forEach.call(this.querySelectorAll('.plu-item'), function(x){ x.classList.remove('sel'); });
       it.classList.add('sel');
-      var plu=it.getAttribute('data-plu');
-      var enEl=it.querySelector('.en'), koEl=it.querySelector('.ko');
-      var nm=(enEl?enEl.textContent:'')||(koEl?koEl.textContent:'');
-      showPhoto(plu, nm, it);   // (요구8) 클릭한 쪽의 반대편에 팝업
+      showPhoto(it.getAttribute('data-plu'), it.getAttribute('data-ko')||'', it.getAttribute('data-en')||'');
     }
   });
 
@@ -3247,7 +3353,8 @@
     var lb=$('langBtnLb'); if(lb){ lb.textContent = lang==='KO'?'KOREAN':(lang==='ES'?'SPANISH':(lang==='ZH'?'中文':'ENGLISH')); }
     applyLangClass();
     render();
-    if(selPlu){ var it=document.querySelector('.plu-item[data-plu="'+selPlu+'"]'); if(it){ var nm=itemName(it.getAttribute('data-ko')||'', it.getAttribute('data-en')||''); var pmEl=$('photoName'); if(pmEl) pmEl.textContent=nm.main||''; var pn2=$('ppName'); if(pn2&&$('photoPop').classList.contains('show')) pn2.textContent=nm.main||''; } }
+    // 언어를 바꾸면 열려 있는 사진 팝업의 상품명도 다시 그린다
+    try{ if($('photoPop') && $('photoPop').classList.contains('show')) renderPop(); }catch(e){}
   }
   // LANGUAGE 버튼: EN → KO → ES → EN 순환
   if($('langBtn')) $('langBtn').addEventListener('click', function(){
@@ -3323,13 +3430,17 @@
     function closeCam(){ stopCam(); busy(false); $('camOv').classList.remove('show'); }
     $('camClose').addEventListener('click', closeCam);
 
-    /* ── 촬영: 중앙 정사각 → 300×300 ── */
+    /* ── (요구3) 촬영: 중앙 정사각을 카메라 원본 해상도 그대로 담는다 ── */
     function captureTo(canvas){
       var v=$('camVideo'), w=v.videoWidth||0, h=v.videoHeight||0;
       if(!w||!h) return false;
-      var s=Math.min(w,h), x=canvas.getContext('2d');
-      x.fillStyle='#fff'; x.fillRect(0,0,canvas.width,canvas.height);
-      x.drawImage(v,(w-s)/2,(h-s)/2,s,s,0,0,canvas.width,canvas.height);
+      var s=Math.min(w,h);
+      var px=Math.min(s, PHOTO_MAX_DIM);          // 원본 정사각 크기 (상한만 적용)
+      canvas.width=px; canvas.height=px;
+      var x=canvas.getContext('2d');
+      x.imageSmoothingQuality='high';
+      x.fillStyle='#fff'; x.fillRect(0,0,px,px);
+      x.drawImage(v,(w-s)/2,(h-s)/2,s,s,0,0,px,px);
       return true;
     }
     $('camShut').addEventListener('click', function(){
@@ -3395,13 +3506,21 @@
       renderPluIn();
     });
 
-    /* ── (요구4) 100×100 · 50KB 이하 JPEG ── */
+    /* ── (요구3) 저장도 원본 화질 그대로. 길이 상한을 넘을 때만 품질→해상도 순으로 낮춘다 ── */
     function finalJpeg(){
-      var c=document.createElement('canvas'); c.width=100; c.height=100;
-      var x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,100,100);
-      x.drawImage(EC,0,0,EC.width,EC.height,0,0,100,100);
-      var q=0.9, url=c.toDataURL('image/jpeg',q);
-      while(url.length*0.75>50*1024 && q>0.3){ q-=0.1; url=c.toDataURL('image/jpeg',q); }   // base64→바이트 환산 ≤50KB
+      var cw=EC.width, ch=EC.height, url;
+      for(var pass=0; pass<6; pass++){
+        var c=document.createElement('canvas'); c.width=cw; c.height=ch;
+        var x=c.getContext('2d');
+        x.imageSmoothingQuality='high';
+        x.fillStyle='#fff'; x.fillRect(0,0,cw,ch);
+        x.drawImage(EC,0,0,EC.width,EC.height,0,0,cw,ch);
+        var q=PHOTO_Q;
+        url=c.toDataURL('image/jpeg', q);
+        while(url.length>PHOTO_MAX_CHARS && q>0.55){ q-=0.07; url=c.toDataURL('image/jpeg', q); }
+        if(url.length<=PHOTO_MAX_CHARS) return url;
+        cw=Math.max(1,Math.round(cw*0.8)); ch=Math.max(1,Math.round(ch*0.8));
+      }
       return url;
     }
 
@@ -3410,7 +3529,7 @@
       return new Promise(function(res){
         var img=new Image(), done=false;
         var fin=function(v){ if(!done){ done=true; res(v); } };
-        img.onload=function(){ var b=shrink100(img); if(b) imgPut(plu,b); fin(imgUrl(plu)||imgStatic(plu)); };
+        img.onload=function(){ var b=toJpegFull(img); if(b) imgPut(plu,b); fin(imgUrl(plu)||imgStatic(plu)); };
         img.onerror=function(){ fin(null); };
         setTimeout(function(){ fin(null); }, 4500);
         img.src=imgStatic(plu)+'?t='+Date.now();
@@ -3509,23 +3628,55 @@
     $('photoUp').addEventListener('click', function(){ askPin(function(){ openCam('upload'); }); });
 
     /* ═════════ (요구9) 사진 찾기 — MobileNet v2 임베딩 + kNN ═════════ */
+    /* (요구4) 인식 모델은 앱이 뜰 때 미리 한 번만 불러오고, 앱이 닫힐 때까지 메모리에 유지한다.
+              가중치는 IndexedDB 에 저장해 두 번째 실행부터는 네트워크에서 다시 받지 않는다.
+       · MODEL_KEY 를 바꾸면 캐시를 강제로 새로 받는다.
+       · 전처리 조건(inputRange)을 두 경로 모두 같게 고정해야 임베딩이 어긋나지 않는다. */
+    var MODEL_KEY='indexeddb://plu-mnet-v2';
+    var MODEL_OPT={ version:2, alpha:1.0, inputRange:[-1,1] };
     var tfReady=null, model=null;
     var EMB={};                       // plu → { v:Float32Array, updatedAt }
     function embDirty(plu){ delete EMB[plu]; idb2Put('emb', plu, null); }
-    function loadScript(src){ return new Promise(function(res,rej){ var s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=function(){ rej(new Error('load fail: '+src)); }; document.head.appendChild(s); }); }
-    function ensureModel(){
+    function loadScript(src){
+      return new Promise(function(res,rej){
+        var ex=document.querySelector('script[data-lib="'+src+'"]');
+        if(ex){ if(ex.getAttribute('data-done')==='1') return res(); ex.addEventListener('load',res); ex.addEventListener('error',rej); return; }
+        var s=document.createElement('script'); s.src=src; s.setAttribute('data-lib',src);
+        s.onload=function(){ s.setAttribute('data-done','1'); res(); };
+        s.onerror=function(){ rej(new Error('load fail: '+src)); };
+        document.head.appendChild(s);
+      });
+    }
+    // silent=true 면 진행 표시 없이 조용히 준비 (부팅 직후 백그라운드 로드용)
+    function ensureModel(silent){
       if(model) return Promise.resolve(model);
       if(!tfReady){
         tfReady=(async function(){
-          busy(true,'인식 모델 내려받는 중…<br>(처음 한 번만, 약 15MB)');
+          if(!silent) busy(true,'인식 모델 준비 중…');
           if(!window.tf) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
           if(!window.mobilenet) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js');
-          model=await window.mobilenet.load({ version:2, alpha:1.0 });
+          // ① 기기에 저장된 가중치로 먼저 시도 (네트워크 사용 안 함)
+          try{
+            var opt={ version:MODEL_OPT.version, alpha:MODEL_OPT.alpha, inputRange:MODEL_OPT.inputRange, modelUrl:MODEL_KEY };
+            model=await window.mobilenet.load(opt);
+            return model;
+          }catch(e){ /* 캐시 없음 → 아래에서 내려받는다 */ }
+          // ② 처음 한 번만 네트워크에서 받고, 곧바로 기기에 저장
+          if(!silent) busy(true,'인식 모델 내려받는 중…<br>(처음 한 번만, 약 15MB)');
+          model=await window.mobilenet.load({ version:MODEL_OPT.version, alpha:MODEL_OPT.alpha, inputRange:MODEL_OPT.inputRange });
+          try{ if(model && model.model && model.model.save) await model.model.save(MODEL_KEY); }catch(e){}
           return model;
         })().catch(function(e){ tfReady=null; throw e; });
       }
       return tfReady;
     }
+    // 앱 시작 직후 백그라운드로 미리 준비 (첫 화면 렌더를 방해하지 않도록 뒤로 미룬다)
+    window.__knnWarmup=function(){ ensureModel(true).catch(function(){}); };
+    (function(){
+      var kick=function(){ setTimeout(window.__knnWarmup, 1200); };
+      if('requestIdleCallback' in window) requestIdleCallback(kick, { timeout:4000 });
+      else setTimeout(kick, 2500);
+    })();
     function embedEl(el){
       var t=window.tf.tidy(function(){
         var e=model.infer(el, true);
@@ -3603,9 +3754,9 @@
       var c=e.target.closest('.knn-card'); if(!c) return;
       var plu=c.getAttribute('data-plu'), nm=c.getAttribute('data-name')||pluName(plu);
       closeCam();
-      showPhoto(plu, nm, null);   // 화면 오른쪽 팝업으로 표시
+      showPhoto(plu, '', '');     // 사진 팝업으로 표시
     });
-    $('photoFind').addEventListener('click', function(){ openCam('find'); });
+    $('photoFind').addEventListener('click', function(){ ensureModel(true).catch(function(){}); openCam('find'); });
   })();
 
   /* ===== 가로 / 세로 레이아웃 자동 전환 =====
@@ -3926,7 +4077,8 @@
     rows.slice(0,40).forEach(function(r){
       // 선택 언어가 주(主) = 굵게 / 나머지는 보조. 언어가 달라도 크기는 항상 같다.
       var plu=pluOf(r), nm=itemName(korOf(r), engOf(r));
-      html+='<div class="search-item" data-plu="'+esc(plu)+'" data-name="'+esc(nm.main||nm.sub||'')+'">'+
+      html+='<div class="search-item" data-plu="'+esc(plu)+'" data-name="'+esc(nm.main||nm.sub||'')+'"'+
+        ' data-ko="'+esc(korOf(r)||'')+'" data-en="'+esc(engOf(r)||'')+'">'+
         '<span class="snum">'+esc(plu)+'</span>'+
         (nm.main?'<span class="sen">'+esc(nm.main)+'</span>':'')+
         (nm.sub ?'<span class="sko">'+esc(nm.sub)+'</span>':'')+
@@ -3934,11 +4086,11 @@
     });
     $('searchResults').innerHTML=html;
   }
-  // (요구8) 검색 결과 클릭 → 왼쪽 결과는 오른쪽에, 오른쪽 결과는 왼쪽에 사진 팝업 (검색은 유지)
+  // (요구2) 검색 결과 클릭 → 사진 팝업 (화살표로 검색 결과 순서대로 이동, 검색창은 유지)
   $('searchResults').addEventListener('click', function(e){
     var it=e.target.closest('.search-item'); if(!it) return;
     e.preventDefault(); e.stopPropagation();
-    showPhoto(it.getAttribute('data-plu')||'', it.getAttribute('data-name')||'', it);
+    showPhoto(it.getAttribute('data-plu')||'', it.getAttribute('data-ko')||'', it.getAttribute('data-en')||'', 'search');
   });
   $('searchClose').addEventListener('click', closeSearch);
   $('searchOv').addEventListener('click', function(e){ if(e.target===$('searchOv')) closeSearch(); });
