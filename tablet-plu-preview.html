@@ -546,7 +546,7 @@
   /* (요구1) PLU 버튼 안 사진 표시는 제거됨 — 사진은 버튼을 누를 때 팝업으로만 표시 */
 
   /* ===== (요구2) PLU 사진 팝업 — 화면 가운데 + 양옆 화살표로 연속 이동 ===== */
-  .photo-pop{ position:fixed; inset:0; z-index:300; display:none; background:rgba(30,27,22,.55);
+  .photo-pop{ position:fixed; inset:0; z-index:300; display:none; background:rgba(30,27,22,.55); padding-top:max(env(safe-area-inset-top), 28px); box-sizing:border-box;
     backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); align-items:center; justify-content:center; gap:14px; padding:18px; }
   .photo-pop.show{ display:flex; }
   .photo-pop .pp-card{
@@ -578,10 +578,25 @@
   @media (max-width:900px){ .pp-nav{ width:52px; height:52px; font-size:25px; } .photo-pop{ gap:8px; padding:12px; } }
 
   /* ===== (요구3·9) 카메라 오버레이 ===== */
-  .cam-ov{ position:fixed; inset:0; z-index:320; display:none; flex-direction:column; background:var(--bg); }
+  .cam-ov{
+    position:fixed; inset:0; z-index:320; display:none; flex-direction:column; background:var(--bg);
+    /* (요구2) 아이패드 상단 시계·배터리 영역을 가리지 않는다 */
+    padding-top:max(env(safe-area-inset-top), 28px);
+    padding-bottom:max(env(safe-area-inset-bottom, 0px), 6px);
+    box-sizing:border-box;
+  }
+  .cam-ov::before{
+    content:''; position:absolute; top:0; left:0; right:0;
+    height:max(env(safe-area-inset-top), 28px);
+    background:var(--panel); border-bottom:1px solid var(--line); pointer-events:none;
+  }
   .cam-ov.show{ display:flex; }
-  .cam-head{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); }
-  .cam-title{ flex:1; font-family:var(--display); font-size:18px; font-weight:600; letter-spacing:-.01em; }
+  .cam-head{ flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:11px 16px 12px; background:var(--panel); border-bottom:1px solid var(--line); }
+  .cam-head .cam-sub{ font-size:9.5px; font-weight:800; letter-spacing:.2em; color:var(--ink-dim); display:block; margin-bottom:2px; }
+  .cam-step{ flex:0 0 auto; display:flex; align-items:center; gap:6px; margin-right:4px; }
+  .cam-step i{ width:7px; height:7px; border-radius:50%; background:var(--line-2); font-style:normal; transition:all .18s; }
+  .cam-step i.on{ background:var(--accent); transform:scale(1.35); }
+  .cam-title{ flex:1; font-family:var(--display); font-size:19px; font-weight:600; letter-spacing:-.01em; line-height:1.15; }
   .cam-gear{ border:1px solid var(--line-2); background:var(--panel-2); color:var(--ink-2); border-radius:8px; padding:8px 12px; font-size:10px; font-weight:800; letter-spacing:.1em; cursor:pointer; font-family:inherit; }
   .cam-close{ border:1px solid var(--line-2); background:var(--panel); border-radius:9px; width:38px; height:38px; font-size:15px; cursor:pointer; font-family:inherit; color:var(--ink-2); }
   .cam-close:active{ background:var(--ink); color:#fff; border-color:var(--ink); }
@@ -594,12 +609,24 @@
     height:min(100%, 78vw); border-radius:16px; overflow:hidden; background:#111; border:1px solid var(--line-2); }
   .cam-vwrap video{ width:100%; height:100%; object-fit:cover; display:block; }
   .cam-guide{ position:absolute; inset:9%; border:2px dashed rgba(255,255,255,.75); border-radius:14px; pointer-events:none; }
-  .cam-side{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding:0 8px; }
+  .cam-side{ flex:0 0 auto; width:min(30vw,260px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:0 8px; }
   .cam-note{ font-size:12.5px; color:var(--ink-2); font-weight:600; text-align:center; line-height:1.8; }
+  /* (요구4) 이 PLU 에 이미 등록된 사진들 */
+  .shot-have{ width:100%; max-width:230px; border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:10px; box-shadow:var(--sh-1); }
+  .shot-have .hd{ font-size:9.5px; font-weight:800; letter-spacing:.16em; color:var(--ink-dim); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .shot-have .hd b{ color:var(--red); font-family:var(--num); font-size:13px; letter-spacing:0; }
+  .shot-list{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .shot-cell{ position:relative; aspect-ratio:1/1; border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--panel-3); }
+  .shot-cell img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .shot-cell .no{ position:absolute; left:3px; top:3px; background:rgba(30,27,22,.72); color:#fff; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:5px; letter-spacing:.04em; }
+  .shot-cell .del{ position:absolute; right:3px; bottom:3px; width:20px; height:20px; border-radius:50%; border:0; background:var(--red); color:#fff; font-size:10px; font-weight:800; cursor:pointer; font-family:inherit; line-height:1; }
+  .shot-empty{ font-size:11px; color:var(--ink-dim); font-weight:600; text-align:center; padding:10px 4px; line-height:1.7; }
   .cam-shutter{ width:78px; height:78px; border-radius:50%; border:5px solid var(--ink); background:#fff; cursor:pointer; box-shadow:var(--sh-2); transition:transform .1s; }
   .cam-shutter:active{ transform:scale(.92); background:#EDEAE3; }
   body.portrait #stShoot{ flex-direction:column; align-items:center; }
-  body.portrait .cam-vwrap{ height:auto; width:min(86vw, 62vh); }
+  body.portrait .cam-vwrap{ height:auto; width:min(86vw, 52vh); }
+  body.portrait .cam-side{ width:min(86vw,440px); flex-direction:row; justify-content:center; align-items:center; gap:18px; }
+  body.portrait .shot-have{ max-width:none; }
   /* 편집 */
   #stEdit{ flex-direction:row; align-items:stretch; justify-content:center; overflow:auto; }
   .edit-left{ flex:0 1 auto; display:flex; flex-direction:column; gap:10px; align-items:center; min-width:0; }
@@ -610,7 +637,7 @@
   .et-btn:active{ transform:translateY(1px); }
   .et-tol{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; color:var(--ink-2); }
   .et-tol input{ width:88px; accent-color:var(--accent); }
-  .edit-right{ flex:0 0 auto; display:flex; flex-direction:column; gap:12px; justify-content:center; }
+  .edit-right{ flex:0 0 auto; display:flex; flex-direction:column; gap:11px; justify-content:center; align-items:stretch; }
   .plu-in{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:var(--sh-1); }
   .plu-in-lb{ font-size:9.5px; font-weight:800; letter-spacing:.16em; color:var(--ink-dim); margin-bottom:6px; }
   .plu-in-disp{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:30px; font-weight:800; color:var(--red); min-height:38px; letter-spacing:.06em; }
@@ -944,7 +971,9 @@
   .search-empty{ grid-column:1/-1; text-align:center; color:var(--ink-dim); padding:44px 20px; font-size:13px; letter-spacing:.03em; }
 
   /* ===== 확인 팝업 ===== */
-  .confirm-ov{ position:fixed; inset:0; z-index:340; display:none; align-items:center; justify-content:center; background:rgba(30,27,22,.45); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }   /* 카메라 오버레이(320) 위 */
+  .confirm-ov{ position:fixed; inset:0; z-index:340; display:none; align-items:center; justify-content:center;
+    background:rgba(30,27,22,.45); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+    padding-top:max(env(safe-area-inset-top), 28px); box-sizing:border-box; }   /* 카메라 오버레이(320) 위 · 상태바 침범 금지 */
   .confirm-ov.show{ display:flex; }
   .confirm-card{ width:340px; max-width:88vw; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:32px 28px 26px; text-align:center; box-shadow:var(--sh-3); }
   .confirm-ic{ width:48px; height:48px; margin:0 auto 16px; border-radius:50%; border:1px solid var(--line-2); background:var(--panel-3); color:var(--ink-2); font-size:20px; display:flex; align-items:center; justify-content:center; }
@@ -1184,7 +1213,8 @@
 <!-- (요구3·9) 카메라 오버레이 — 사진 업데이트 / 사진 찾기(KNN) 공용 -->
 <div class="cam-ov" id="camOv">
   <div class="cam-head">
-    <span class="cam-title" id="camTitle">사진 등록</span>
+    <span class="cam-title"><span class="cam-sub" id="camSub">PHOTO</span><span id="camTitle">사진 등록</span></span>
+    <span class="cam-step" id="camStep"><i class="on"></i><i></i><i></i></span>
     <button class="cam-gear" id="camGear" title="GitHub 저장 설정">GITHUB</button>
     <button class="cam-close" id="camClose">✕</button>
   </div>
@@ -1222,6 +1252,11 @@
             <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
             <button data-k="clear" class="fn">지움</button><button data-k="0">0</button><button data-k="back" class="fn">←</button>
           </div>
+        </div>
+        <!-- (요구4) 이 PLU 에 이미 등록된 사진들 — 여러 장 보관 · 개별 삭제 -->
+        <div class="shot-have" id="shotHave" style="display:none;">
+          <div class="hd">등록된 사진 <b id="shotPlu"></b> <span id="shotCnt"></span></div>
+          <div class="shot-list" id="shotList"></div>
         </div>
         <div class="edit-actions">
           <button class="ea-btn" id="eaRetake">다시 찍기</button>
@@ -3090,8 +3125,38 @@
     delete NOIMG[plu];
     if(!skipIdb) idb2Put('img', plu, IMG[plu]);
   }
-  function imgUrl(plu){ return (IMG[plu]&&IMG[plu].b64) || null; }
+  function imgUrl(plu){
+    if(IMG[plu]&&IMG[plu].b64) return IMG[plu].b64;
+    var k=imgPrimary(plu);                      // 1000 이 없고 1000-1 만 있는 경우 대비
+    return (k&&IMG[k]&&IMG[k].b64) || null;
+  }
   function imgStatic(plu){ return 'image_produce/'+encodeURIComponent(plu)+'.jpg'; }
+
+  /* ── (요구4·5) 한 PLU 에 사진 여러 장 ──
+     저장 키는 1000 · 1000-1 · 1000-2 … 형태. 앞부분이 실제 PLU 번호다. */
+  function baseOfKey(k){ var m=/^([^-]+)/.exec(String(k||'')); return m?m[1]:String(k||''); }
+  // 해당 PLU 에 등록된 사진 키들을 번호 순으로
+  function imgKeysOf(plu){
+    plu=String(plu||''); if(!plu) return [];
+    var out=[];
+    for(var k in IMG){ if(baseOfKey(k)===plu) out.push(k); }
+    out.sort(function(a,b){
+      var x=a.indexOf('-')<0?-1:parseInt(a.split('-')[1],10);
+      var y=b.indexOf('-')<0?-1:parseInt(b.split('-')[1],10);
+      return x-y;
+    });
+    return out;
+  }
+  // 새로 저장할 때 쓸 다음 빈 키
+  function nextImgKey(plu){
+    plu=String(plu||'');
+    if(!IMG[plu]) return plu;
+    for(var i=1;i<200;i++){ if(!IMG[plu+'-'+i]) return plu+'-'+i; }
+    return plu+'-'+Date.now();
+  }
+  // 대표 사진(첫 장) — 목록·팝업에서 쓴다
+  function imgPrimary(plu){ var ks=imgKeysOf(plu); return ks.length?ks[0]:null; }
+  window.__baseOfKey=baseOfKey; window.__imgKeysOf=imgKeysOf; window.__nextImgKey=nextImgKey;
   // 부팅 시 로컬 사진 캐시 로드
   idb2All('img').then(function(all){ for(var k in all){ if(!IMG[k]) IMG[k]=all[k]; } try{ render(); }catch(e){} });
   /* ══════════════════════════════════════════════════════════════
@@ -3112,27 +3177,51 @@
   function saveShaMap(){ try{ localStorage.setItem('ppImgSha', JSON.stringify(IMGSHA)); }catch(e){} }
   loadShaMap();
 
-  // GitHub 에서 image_produce 폴더의 파일 목록(파일명 + sha)을 받는다
+  /* 사진 목록 받기 — 두 갈래
+       ① image_produce/index.json (배포된 목록 파일) : CDN 에서 바로 받으므로
+          토큰도 필요 없고 GitHub API 호출 한도(비로그인 시간당 60회)에도 걸리지 않는다.
+          태블릿 20대가 동시에 켜져도 안전하다. 사진을 등록할 때 이 파일도 함께 갱신된다.
+       ② ①이 없으면 GitHub Git Trees API (저장소 정보가 있는 태블릿만 가능)
+     반환 형태: { "1000":{sha,size}, "1000-1":{sha,size}, ... } */
   async function ghPhotoList(){
-    var c=(function(){ try{ return JSON.parse(localStorage.getItem('ppGitCfg')||'null'); }catch(e){ return null; } })();
-    if(!c || !c.owner || !c.repo) return null;                 // 저장소 정보가 없으면 목록을 알 수 없다
+    // ① 배포된 목록 파일
+    try{
+      var r=await fetch(IMG_DIR+'/index.json?t='+Date.now(), { cache:'no-store' });
+      if(r.ok){
+        var j=await r.json();
+        var m=(j&&j.files)?j.files:j;
+        if(m && typeof m==='object' && Object.keys(m).length){
+          var out={};
+          Object.keys(m).forEach(function(k){
+            var v=m[k];
+            out[String(k)] = (v && typeof v==='object') ? { sha:String(v.sha||v.updatedAt||''), size:v.size||0 }
+                                                        : { sha:String(v||''), size:0 };
+          });
+          return out;
+        }
+      }
+    }catch(e){}
+    // ② GitHub Trees API (예비)
+    var c=gitCfgRead();
+    if(!c || !c.owner || !c.repo) return null;
     var br=c.branch||'main';
     var head={ 'Accept':'application/vnd.github+json' };
-    if(c.token) head['Authorization']='Bearer '+c.token;       // 비공개 저장소일 때만 필요
+    if(c.token) head['Authorization']='Bearer '+c.token;
     var api='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)
           + '/git/trees/'+encodeURIComponent(br)+'?recursive=1';
     try{
-      var r=await fetch(api, { headers:head });
-      if(!r.ok) return null;
-      var j=await r.json(), out={};
-      (j.tree||[]).forEach(function(t){
+      var r2=await fetch(api, { headers:head });
+      if(!r2.ok) return null;
+      var j2=await r2.json(), out2={};
+      (j2.tree||[]).forEach(function(t){
         if(t.type!=='blob') return;
-        var m=/^image_produce\/(.+)\.jpe?g$/i.exec(t.path||'');
-        if(m) out[m[1]]={ sha:t.sha, size:t.size||0 };
+        var mm=/^image_produce\/(.+)\.jpe?g$/i.exec(t.path||'');
+        if(mm) out2[mm[1]]={ sha:t.sha, size:t.size||0 };
       });
-      return out;
+      return out2;
     }catch(e){ return null; }
   }
+  function gitCfgRead(){ try{ return JSON.parse(localStorage.getItem('ppGitCfg')||'null'); }catch(e){ return null; } }
 
   // 파일 하나를 CDN 에서 받아 dataURL 로 변환
   function fetchAsDataUrl(url){
@@ -3585,7 +3674,17 @@
       return nm.main||nm.sub||'';
     }
 
-    function stage(id){ ['stShoot','stEdit','stResult'].forEach(function(s){ var el=$(s); if(el) el.classList.toggle('on', s===id); }); }
+    function stage(id){
+      ['stShoot','stEdit','stResult'].forEach(function(s){ var el=$(s); if(el) el.classList.toggle('on', s===id); });
+      // 헤더의 단계 점 (촬영 → 편집·번호 → 결과)
+      var step={ stShoot:0, stEdit:1, stResult:2 }[id]||0;
+      var dots=$('camStep'); if(dots){ [].forEach.call(dots.children, function(d,i){ d.classList.toggle('on', i<=step); }); }
+      var sub=$('camSub');
+      if(sub) sub.textContent = (camMode==='find')
+        ? (id==='stResult' ? 'STEP 2 · RESULT' : 'STEP 1 · SHOOT')
+        : (id==='stEdit' ? 'STEP 2 · EDIT & PLU' : 'STEP 1 · SHOOT');
+      if(id==='stShoot'||id==='stEdit'){ try{ renderShotHave(); }catch(e){} }
+    }
     function busy(on,msg){ var b=$('camBusy'); if(!b) return; b.classList.toggle('on',!!on); if(msg) $('camBusyT').innerHTML=msg; }
 
     /* ── 카메라 ── */
@@ -3609,6 +3708,7 @@
       camMode=mode;
       $('camTitle').textContent = mode==='find' ? '사진으로 상품 찾기' : '사진 등록';
       $('camGear').style.display = mode==='find' ? 'none' : '';
+      var dots=$('camStep'); if(dots) dots.children[2].style.display = (mode==='find') ? 'none' : '';
       $('camNote').innerHTML = mode==='find'
         ? '사각 가이드 안에 상품을 맞추고 촬영하면<br>비슷한 상품 5개를 찾아드립니다'
         : '사각 가이드 안에 상품을 맞추고<br>촬영 버튼을 누르세요';
@@ -3686,7 +3786,8 @@
     ['pointerup','pointercancel'].forEach(function(ev){ EC.addEventListener(ev, function(){ brushing=false; }); });
 
     /* ── PLU 입력 패드 ── */
-    function renderPluIn(){ $('pluInDisp').innerHTML = pluBuf ? esc(pluBuf) : '<span class="ph">번호 입력</span>'; }
+    function renderPluIn(){
+      try{ renderShotHave(); }catch(e){} $('pluInDisp').innerHTML = pluBuf ? esc(pluBuf) : '<span class="ph">번호 입력</span>'; }
     $('pluInPad').addEventListener('click', function(e){
       var b=e.target.closest('button'); if(!b) return; var k=b.getAttribute('data-k');
       if(k==='clear') pluBuf='';
@@ -3780,20 +3881,23 @@
       }catch(e){ return { ok:false, err:String(e&&e.message||e), detail:'네트워크 오류' }; }
     }
 
-    /* ── 저장 ── */
+    /* ── (요구4) 저장 — 한 PLU 에 여러 장. 키는 1000 · 1000-1 · 1000-2 … ── */
     var pendingUrl=null, pendingPlu='';
     $('eaSave').addEventListener('click', async function(){
       var plu=pluBuf.trim();
       if(!/^\d{3,6}$/.test(plu)){ askConfirm({ ic:'!', title:'PLU 번호', msg:'PLU 번호(3~6자리 숫자)를 입력하세요.', yes:T('ok'), oneBtn:true }); return; }
       busy(true,'사진 확인 중…');
       pendingUrl=finalJpeg(); pendingPlu=plu;
-      var old=await existingPhoto(plu);
+      try{ await existingPhoto(plu); }catch(e){}     // 배포된 사진이 있으면 캐시로 끌어온다
       busy(false);
-      if(old){
-        // (요구5) 기존 사진 + 새 사진 나란히 보여주고 교체/취소
-        $('dupOld').innerHTML='<img src="'+old+'" alt="">';
+      var have=imgKeysOf(plu);
+      if(have.length){
+        // 이미 있으면 "추가" 인지 확인만 한다 (교체가 아니라 여러 장 보관)
+        $('dupOld').innerHTML='<img src="'+(imgUrl(plu)||'')+'" alt="">';
         $('dupNew').innerHTML='<img src="'+pendingUrl+'" alt="">';
-        $('dupMsg').innerHTML='PLU <b>'+esc(plu)+'</b> — 교체하면 기존 사진은 삭제되고<br>새 사진으로 등록됩니다.';
+        $('dupMsg').innerHTML='PLU <b>'+esc(plu)+'</b> — 이미 <b>'+have.length+'장</b>이 등록되어 있습니다.<br>'+
+          '이 사진을 <b>'+esc(nextImgKey(plu))+'.jpg</b> 로 추가합니다.<br>'+
+          '<span style="font-size:11px;color:var(--ink-dim)">여러 장을 등록하면 사진 찾기 정확도가 올라갑니다.</span>';
         $('dupOv').classList.add('show');
       } else {
         doUpload();
@@ -3804,25 +3908,114 @@
 
     async function doUpload(){
       var plu=pendingPlu, url=pendingUrl; if(!plu||!url) return;
+      var key=nextImgKey(plu);                        // 1000 · 1000-1 · 1000-2 …
       busy(true,'사진 저장 중…');
-      // (요구1) 사진 저장은 GitHub(image_produce) 단독. Firebase 는 쓰지 않는다.
-      var gh=await githubPut(plu, url);
+      var gh=await githubPut(key, url);
       if(!gh.ok && !gh.skip) console.error('[사진 저장 실패 · GitHub]', gh);
       var kb=Math.round(url.length*0.75/1024);
-      imgPut(plu, url, Date.now());
-      if(gh.ok && gh.sha){ IMGSHA[plu]=gh.sha; saveShaMap(); }
-      embDirty(plu);
+      imgPut(key, url, Date.now());
+      if(gh.ok && gh.sha){ IMGSHA[key]=gh.sha; saveShaMap(); }
+      embDirty(key);
+      var man={ ok:false, skip:true };
+      if(gh.ok) man=await manifestPut(key, gh.sha||String(Date.now()));   // 목록 파일도 갱신
       render();
       busy(false);
+      var n=imgKeysOf(plu).length;
       var lines=[];
-      lines.push('<b>용량</b> 약 '+kb+'KB · 500px');
+      lines.push('<b>'+esc(key)+'.jpg</b> · 약 '+kb+'KB · 500px');
+      lines.push('이 PLU 에 등록된 사진 <b>'+n+'장</b>');
       if(gh.skip) lines.push('<b>GitHub 미설정</b> — 위 GITHUB 버튼에서 owner·repo·token 을 입력하세요.<br>지금은 이 태블릿에만 저장되어 다른 태블릿에서 보이지 않습니다.');
-      else if(gh.ok) lines.push('<b>GitHub</b> image_produce/'+plu+'.jpg 저장 완료<br>배포(1~2분) 후 다른 태블릿에서 UPDATE 하면 보입니다');
+      else if(gh.ok) lines.push('<b>GitHub 저장 완료</b>'+(man.ok?' · 목록 갱신됨':'')+'<br>배포(1~2분) 후 다른 태블릿에서 UPDATE 하면 보입니다');
       else lines.push('<b>GitHub 실패</b> — '+esc(gh.detail||gh.status||gh.err||'원인 불명')+'<br>지금은 이 태블릿에만 저장됐습니다');
       askConfirm({ ic: gh.ok?'✓':'!', title:'PLU '+plu+' 사진 등록',
-                   msg:lines.join('<br>'), yes:T('ok'), oneBtn:true, cb:null });
-      closeCam();
+                   msg:lines.join('<br>'), yes:T('ok'), oneBtn:true,
+                   cb:function(){ pluBuf=plu; renderPluIn(); renderShotHave(); stage('stShoot'); startCam(); } });
     }
+
+    /* image_produce/index.json 갱신 — 태블릿들이 GitHub API 없이 목록을 받게 해준다 */
+    async function manifestPut(key, sha, removeKey){
+      var c=gitCfgRead();
+      if(!c||!c.owner||!c.repo||!c.token) return { ok:false, skip:true };
+      var path=IMG_DIR+'/index.json';
+      var api='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+path;
+      var head={ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' };
+      for(var attempt=0; attempt<2; attempt++){
+        var cur={ files:{} }, curSha=null;
+        try{
+          var g=await fetch(api+'?ref='+encodeURIComponent(c.branch||'main')+'&t='+Date.now(), { headers:head, cache:'no-store' });
+          if(g.ok){
+            var gj=await g.json(); curSha=gj.sha||null;
+            try{ cur=JSON.parse(decodeURIComponent(escape(atob((gj.content||'').replace(/\n/g,''))))) || { files:{} }; }catch(e){ cur={ files:{} }; }
+            if(!cur.files) cur={ files:cur };
+          }
+        }catch(e){}
+        if(removeKey) delete cur.files[removeKey];
+        if(key) cur.files[key]={ sha:sha||'', at:Date.now() };
+        cur.updatedAt=Date.now();
+        var body={ message:'photo index '+(removeKey?('- '+removeKey):('+ '+key)),
+                   content:btoa(unescape(encodeURIComponent(JSON.stringify(cur)))),
+                   branch:c.branch||'main' };
+        if(curSha) body.sha=curSha;
+        try{
+          var r=await fetch(api, { method:'PUT', headers:head, body:JSON.stringify(body) });
+          if(r.ok) return { ok:true };
+          if(r.status===409 || r.status===422) continue;      // 다른 태블릿이 먼저 고쳤다 → 다시 읽고 재시도
+          return { ok:false, status:r.status };
+        }catch(e){ return { ok:false, err:String(e&&e.message||e) }; }
+      }
+      return { ok:false, detail:'목록 갱신 충돌' };
+    }
+
+    /* GitHub 에서 사진 파일 삭제 */
+    async function githubDel(key){
+      var c=gitCfgRead();
+      if(!c||!c.owner||!c.repo||!c.token) return { ok:false, skip:true };
+      var path=IMG_DIR+'/'+key+'.jpg';
+      var api='https://api.github.com/repos/'+encodeURIComponent(c.owner)+'/'+encodeURIComponent(c.repo)+'/contents/'+path;
+      var head={ 'Authorization':'Bearer '+c.token, 'Accept':'application/vnd.github+json' };
+      try{
+        var g=await fetch(api+'?ref='+encodeURIComponent(c.branch||'main'), { headers:head });
+        if(!g.ok) return { ok:false, status:g.status };
+        var gj=await g.json();
+        var r=await fetch(api, { method:'DELETE', headers:head,
+          body:JSON.stringify({ message:'remove photo '+key, sha:gj.sha, branch:c.branch||'main' }) });
+        return r.ok ? { ok:true } : { ok:false, status:r.status };
+      }catch(e){ return { ok:false, err:String(e&&e.message||e) }; }
+    }
+
+    /* (요구4) 촬영 화면에 이 PLU 의 사진들을 보여주고 개별 삭제 */
+    function renderShotHave(){
+      var box=$('shotHave'); if(!box) return;
+      if(camMode==='find'){ box.style.display='none'; return; }
+      var plu=(pluBuf||'').trim();
+      if(!/^\d{3,6}$/.test(plu)){ box.style.display='none'; return; }
+      var ks=imgKeysOf(plu);
+      box.style.display='';
+      $('shotPlu').textContent=plu;
+      $('shotCnt').textContent = ks.length ? ks.length+'장' : '';
+      $('shotList').innerHTML = ks.length
+        ? ks.map(function(k,i){
+            return '<div class="shot-cell" data-key="'+esc(k)+'">'+
+              '<img src="'+(IMG[k]&&IMG[k].b64||imgStatic(k))+'" alt="">'+
+              '<span class="no">'+(i+1)+'</span>'+
+              '<button class="del" title="삭제">✕</button></div>';
+          }).join('')
+        : '<div class="shot-empty">아직 등록된 사진이 없습니다</div>';
+    }
+    if($('shotList')) $('shotList').addEventListener('click', async function(e){
+      var b=e.target.closest('.del'); if(!b) return;
+      var cell=b.closest('.shot-cell'), key=cell&&cell.getAttribute('data-key'); if(!key) return;
+      askConfirm({ ic:'✕', title:'사진 삭제', msg:'<b>'+esc(key)+'.jpg</b> 를 삭제할까요?',
+        yes:'삭제', no:T('no'), cb:async function(){
+          busy(true,'삭제 중…');
+          var d=await githubDel(key);
+          if(d.ok) await manifestPut(null, null, key);
+          delete IMG[key]; delete IMGSHA[key]; saveShaMap();
+          idb2Put('img', key, null); embDirty(key);
+          renderShotHave(); render(); busy(false);
+          if(!d.ok && !d.skip) askConfirm({ ic:'!', title:'삭제', msg:'이 태블릿에서는 지웠지만<br>GitHub 삭제는 실패했습니다.', yes:T('ok'), oneBtn:true });
+        } });
+    });
 
     /* ── (요구2·3) 사진 업데이트 버튼 → 비밀번호 → 카메라 ── */
     $('photoUp').addEventListener('click', function(){ askPin(function(){ openCam('upload'); }); });
@@ -3919,17 +4112,22 @@
         if(!n){
           busy(false); stage('stResult');
           $('knnHead').textContent='비슷한 상품';
-          $('knnCards').innerHTML='<div class="knn-none">등록된 사진이 없습니다.<br>먼저 [사진 업데이트]로 상품 사진을 등록하세요.</div>';
+          $('knnCards').innerHTML='<div class="knn-none">등록된 사진이 없습니다.<br>먼저 [사진 등록]으로 상품 사진을 등록하세요.</div>';
           return;
         }
         busy(true,'비슷한 상품 찾는 중…');
         var q=embedEl(cap);
-        var scores=[];
-        for(var plu in EMB){
-          var v=EMB[plu].v, s=0;
-          for(var i=0;i<v.length&&i<q.length;i++) s+=v[i]*q[i];
-          scores.push({ plu:plu, s:s });
+        /* (요구5) 같은 상품이라도 모양이 매번 다르므로 1000 · 1000-1 · 1000-2 …
+           등록된 모든 사진과 비교한다. 그리고 PLU 별로는 가장 잘 맞는 한 장만 남긴다. */
+        var bestByPlu={};
+        for(var key in EMB){
+          var v=EMB[key].v, sc=0;
+          for(var i=0;i<v.length&&i<q.length;i++) sc+=v[i]*q[i];
+          var base=baseOfKey(key);
+          if(!bestByPlu[base] || sc>bestByPlu[base].s) bestByPlu[base]={ plu:base, key:key, s:sc };
         }
+        var scores=[];
+        for(var bp in bestByPlu) scores.push(bestByPlu[bp]);
         scores.sort(function(a,b){ return b.s-a.s; });
         var top=scores.slice(0,5);
         busy(false); stage('stResult');
@@ -3937,11 +4135,12 @@
         $('knnHead').textContent = best>=0.45 ? '비슷한 상품 — 눌러서 확인' : '확실한 일치 없음 — 가까운 순서';
         $('knnCards').innerHTML = top.map(function(t){
           var nm=pluName(t.plu);
+          var n=imgKeysOf(t.plu).length;
           return '<button class="knn-card" data-plu="'+esc(t.plu)+'" data-name="'+esc(nm)+'">'+
-            '<span class="ki"><img src="'+(imgUrl(t.plu)||imgStatic(t.plu))+'" alt=""></span>'+
+            '<span class="ki"><img src="'+((IMG[t.key]&&IMG[t.key].b64)||imgStatic(t.key))+'" alt=""></span>'+
             '<span class="kn">'+esc(t.plu)+'</span>'+
             (nm?'<span class="km">'+esc(nm)+'</span>':'')+
-            '<span class="ks">'+Math.round(Math.max(0,Math.min(1,t.s))*100)+'% MATCH</span>'+
+            '<span class="ks">'+Math.round(Math.max(0,Math.min(1,t.s))*100)+'% MATCH'+(n>1?(' · '+n+'장 중 최적'):'')+'</span>'+
           '</button>';
         }).join('');
       }catch(e){
