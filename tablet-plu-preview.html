@@ -3753,12 +3753,16 @@
       var v=$('camVideo'), w=v.videoWidth||0, h=v.videoHeight||0;
       if(!w||!h) return false;
       var s=Math.min(w,h);
-      var px=Math.min(s, PHOTO_MAX_DIM);          // 원본 정사각 크기 (상한만 적용)
+      /* (정확도 개선) 화면의 점선 가이드(inset 9%) 안쪽만 담는다.
+         가이드 밖 매장 배경이 비교에 섞이지 않아 인식률이 오르고,
+         등록 때는 지워야 할 배경도 그만큼 줄어든다. */
+      var g=Math.round(s*0.09), gs=s-2*g;
+      var px=Math.min(gs, PHOTO_MAX_DIM);         // 원본 정사각 크기 (상한만 적용)
       canvas.width=px; canvas.height=px;
       var x=canvas.getContext('2d');
       x.imageSmoothingQuality='high';
       x.fillStyle='#fff'; x.fillRect(0,0,px,px);
-      x.drawImage(v,(w-s)/2,(h-s)/2,s,s,0,0,px,px);
+      x.drawImage(v,(w-s)/2+g,(h-s)/2+g,gs,gs,0,0,px,px);
       return true;
     }
     $('camShut').addEventListener('click', function(){
@@ -4094,38 +4098,46 @@
     /* ── (요구2·3) 사진 업데이트 버튼 → 비밀번호 → 카메라 ── */
     $('photoUp').addEventListener('click', function(){ askPin(function(){ openCam('upload'); }); });
 
-    /* ═════════ (요구9) 사진 찾기 — Apple MobileCLIP(S2) 임베딩 + kNN ═════════
-       · MobileNet v2 → MobileCLIP-S2 로 교체. 같은 kNN 구조에서 임베딩 엔진만 바꿨다.
-       · Transformers.js(v3.8.1)가 브라우저 안에서 ONNX 로 직접 실행 — 서버 호출·과금 없음.
-       · 가중치(약 36MB, q8 양자화)는 처음 한 번만 내려받고 브라우저 캐시에 저장된다.
-       · EMB_TAG 가 바뀌면(모델 교체) 기존 색인은 자동으로 무효화되어 첫 검색 때 재색인한다. */
-    var CLIP_LIB='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
-    var CLIP_ID='Xenova/mobileclip_s2';
-    var EMB_TAG='mclip-s2-q8-v1';     // 임베딩 색인 버전 — 모델을 바꾸면 이 값을 바꾼다
-    var tfReady=null, clipProc=null, clipVis=null, RawImageC=null;
+    /* ═════════ (요구9) 사진 찾기 — MobileNet v2 임베딩 + kNN ═════════
+       (참고) MobileCLIP-S2(q8) 교체를 시도했으나 8비트 양자화 품질 문제로 인식률이 오히려
+       떨어져 검증된 MobileNet v2 로 복귀. 가중치는 IndexedDB 에 저장해 두 번째 실행부터는
+       네트워크에서 다시 받지 않는다. MODEL_KEY 를 바꾸면 캐시를 강제로 새로 받는다.
+       전처리 조건(inputRange)은 색인·질의 두 경로 모두 같게 고정해야 임베딩이 어긋나지 않는다. */
+    var MODEL_KEY='indexeddb://plu-mnet-v2';
+    var MODEL_OPT={ version:2, alpha:1.0, inputRange:[-1,1] };
+    var EMB_TAG='mnet2-v2';           // 임베딩 색인 버전 — 모델·색인 방식을 바꾸면 이 값을 바꾼다 (v2: 색상 히스토그램 추가)
+    var tfReady=null, model=null;
     var EMB={};                       // key(1000·1000-1…) → { v:Float32Array, updatedAt }
     function embDirty(plu){ delete EMB[plu]; idb2Put('emb', plu, null); }
+    function loadScript(src){
+      return new Promise(function(res,rej){
+        var ex=document.querySelector('script[data-lib="'+src+'"]');
+        if(ex){ if(ex.getAttribute('data-done')==='1') return res(); ex.addEventListener('load',res); ex.addEventListener('error',rej); return; }
+        var s=document.createElement('script'); s.src=src; s.setAttribute('data-lib',src);
+        s.onload=function(){ s.setAttribute('data-done','1'); res(); };
+        s.onerror=function(){ rej(new Error('load fail: '+src)); };
+        document.head.appendChild(s);
+      });
+    }
     // silent=true 면 진행 표시 없이 조용히 준비 (부팅 직후 백그라운드 로드용)
     function ensureModel(silent){
-      if(clipVis) return Promise.resolve(clipVis);
+      if(model) return Promise.resolve(model);
       if(!tfReady){
         tfReady=(async function(){
           if(!silent) busy(true,'인식 모델 준비 중…');
-          var T=await import(CLIP_LIB);
-          try{ T.env.allowLocalModels=false; }catch(e){}
-          RawImageC=T.RawImage;
-          if(!silent) busy(true,'인식 모델 확인 중…<br>(처음 한 번만 약 36MB 내려받습니다)');
-          clipProc=await T.AutoProcessor.from_pretrained(CLIP_ID);
+          if(!window.tf) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+          if(!window.mobilenet) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js');
+          // ① 기기에 저장된 가중치로 먼저 시도 (네트워크 사용 안 함)
           try{
-            clipVis=await T.CLIPVisionModelWithProjection.from_pretrained(CLIP_ID, { dtype:'q8', device:'wasm' });
-          }catch(e){
-            // q8 파일을 못 받으면 원본 정밀도로 재시도 (용량은 크지만 동작 보장)
-            if(!silent) busy(true,'인식 모델 내려받는 중…<br>(대체 버전)');
-            clipVis=await T.CLIPVisionModelWithProjection.from_pretrained(CLIP_ID, { dtype:'fp32', device:'wasm' });
-          }
-          // 이전 MobileNet(tf.js) 가중치 캐시(~15MB)는 더 이상 쓰지 않으므로 정리
-          try{ indexedDB.deleteDatabase('tensorflowjs'); }catch(e){}
-          return clipVis;
+            var opt={ version:MODEL_OPT.version, alpha:MODEL_OPT.alpha, inputRange:MODEL_OPT.inputRange, modelUrl:MODEL_KEY };
+            model=await window.mobilenet.load(opt);
+            return model;
+          }catch(e){ /* 캐시 없음 → 아래에서 내려받는다 */ }
+          // ② 처음 한 번만 네트워크에서 받고, 곧바로 기기에 저장
+          if(!silent) busy(true,'인식 모델 내려받는 중…<br>(처음 한 번만, 약 15MB)');
+          model=await window.mobilenet.load({ version:MODEL_OPT.version, alpha:MODEL_OPT.alpha, inputRange:MODEL_OPT.inputRange });
+          try{ if(model && model.model && model.model.save) await model.model.save(MODEL_KEY); }catch(e){}
+          return model;
         })().catch(function(e){ tfReady=null; throw e; });
       }
       return tfReady;
@@ -4137,24 +4149,65 @@
       if('requestIdleCallback' in window) requestIdleCallback(kick, { timeout:4000 });
       else setTimeout(kick, 2500);
     })();
-    /* 캔버스/이미지 → MobileCLIP 임베딩 (L2 정규화된 512차원 벡터) */
-    async function embedEl(el){
-      var c;
-      if(el.getContext){ c=el; }
-      else{
-        // <img> 는 캔버스로 옮겨 픽셀을 읽는다 (긴 변 448px 로 제한해 전처리 부담을 줄인다)
-        var w=el.naturalWidth||el.width||300, h=el.naturalHeight||el.height||300;
-        var s=Math.min(1, 448/Math.max(w,h));
-        c=document.createElement('canvas');
-        c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s));
-        c.getContext('2d').drawImage(el,0,0,c.width,c.height);
-      }
-      var d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
-      var img=new RawImageC(d.data, c.width, c.height, 4);
-      var inp=await clipProc(img);
-      var out=await clipVis(inp);
-      var e=out.image_embeds.normalize();
-      return new Float32Array(e.data);
+    /* 캔버스/이미지 → MobileNet 임베딩 (L2 정규화된 1280차원 벡터) */
+    function embedEl(el){
+      var t=window.tf.tidy(function(){
+        var e=model.infer(el, true);
+        return window.tf.div(e, window.tf.norm(e,2,1,true));
+      });
+      var v=t.dataSync(); t.dispose();
+      return new Float32Array(v);
+    }
+
+    /* ── (정확도 개선) 색상 히스토그램 보조 점수 ──
+       MobileNet 은 모양 위주라 "빨간 사과 vs 초록 사과"처럼 색만 다른 상품에 약하다.
+       색상(HSV) 분포를 26칸(색상 24 + 밝은 무채색 1 + 어두운 무채색 1)으로 집계해
+       임베딩 점수와 85:15 로 섞는다. 지워진 배경(검정)과 투명 픽셀은 집계에서 뺀다. */
+    function colorHistOf(el){
+      try{
+        var c, w, h;
+        if(el.getContext){ c=el; w=c.width; h=c.height; }
+        else{
+          w=el.naturalWidth||el.width||1; h=el.naturalHeight||el.height||1;
+          var s=Math.min(1, 128/Math.max(w,h));
+          c=document.createElement('canvas');
+          c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s));
+          c.getContext('2d').drawImage(el,0,0,c.width,c.height);
+          w=c.width; h=c.height;
+        }
+        var d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data;
+        var hist=new Float32Array(26), step=Math.max(1, Math.round(Math.sqrt(w*h/16384)));
+        for(var y=0;y<h;y+=step) for(var x=0;x<w;x+=step){
+          var i=(y*w+x)*4, r=d[i]/255, g=d[i+1]/255, b=d[i+2]/255, a=d[i+3];
+          if(a<32) continue;                                   // 투명(지워진 배경)
+          var mx=Math.max(r,g,b), mn=Math.min(r,g,b), v=mx, sat=mx?(mx-mn)/mx:0;
+          if(v<0.16) continue;                                 // 검정 배경(JPEG 합성) 무시
+          if(sat<0.22){ hist[v>=0.55?24:25]+=1; continue; }    // 무채색: 밝음/어두움
+          var hdeg;
+          if(mx===mn) hdeg=0;
+          else if(mx===r) hdeg=60*(((g-b)/(mx-mn))%6);
+          else if(mx===g) hdeg=60*(((b-r)/(mx-mn))+2);
+          else hdeg=60*(((r-g)/(mx-mn))+4);
+          if(hdeg<0) hdeg+=360;
+          hist[Math.min(23, Math.floor(hdeg/15))]+=sat;        // 채도로 가중
+        }
+        var sum=0, k;
+        /* 색상환 경계(빨강 0°/360°) 분리를 막기 위해 색상 24칸에 원형 1-2-1 스무딩 */
+        var sm=new Float32Array(26);
+        for(k=0;k<24;k++) sm[k]=hist[(k+23)%24]*0.25 + hist[k]*0.5 + hist[(k+1)%24]*0.25;
+        sm[24]=hist[24]; sm[25]=hist[25];
+        hist=sm;
+        for(k=0;k<26;k++) sum+=hist[k];
+        if(!sum) return null;
+        for(k=0;k<26;k++) hist[k]/=sum;
+        return hist;
+      }catch(e){ return null; }
+    }
+    function histSim(a,b){                                     // 히스토그램 교집합 (0~1)
+      if(!a||!b) return 0;
+      var s=0, n=Math.min(a.length,b.length);
+      for(var i=0;i<n;i++) s+=Math.min(a[i],b[i]);
+      return s;
     }
     /* (정확도 개선) 질의 사진을 ①원본 ②좌우반전 ③중앙 12% 확대 3가지로 임베딩해 평균한다.
        촬영 각도·거리·좌우 방향 차이에 덜 민감해져 같은 상품을 더 잘 찾는다.
@@ -4188,18 +4241,23 @@
         var plu=plus[k], up=IMG[plu].updatedAt||0;
         if(EMB[plu]&&EMB[plu].updatedAt===up) continue;
         var st=stored[plu];
-        /* m(모델 태그)이 현재 모델과 다르면 옛 MobileNet 색인 → 버리고 새로 만든다 */
-        if(st&&st.updatedAt===up&&st.v&&st.m===EMB_TAG){ EMB[plu]={ v:new Float32Array(st.v), updatedAt:up }; continue; }
+        /* m(모델 태그)이 현재 색인 버전과 다르면(옛 버전·CLIP 시험판) 버리고 새로 만든다 */
+        if(st&&st.updatedAt===up&&st.v&&st.m===EMB_TAG){
+          EMB[plu]={ v:new Float32Array(st.v), updatedAt:up, c:(st.c?new Float32Array(st.c):null) };
+          continue;
+        }
         need.push(plu);
       }
       for(k=0;k<need.length;k++){
         var p2=need[k];
-        busy(true,'사진 색인 중… '+(k+1)+' / '+need.length+(need.length>3?'<br>(새 인식 모델 적용 — 한 번만)':''));
+        busy(true,'사진 색인 중… '+(k+1)+' / '+need.length);
         try{
           var el=await imgElFromB64(IMG[p2].b64);
           var v=await embedEl(el);
-          EMB[p2]={ v:v, updatedAt:IMG[p2].updatedAt||0 };
-          idb2Put('emb', p2, { v:Array.prototype.slice.call(v), updatedAt:EMB[p2].updatedAt, m:EMB_TAG });
+          var ch=colorHistOf(el);
+          EMB[p2]={ v:v, updatedAt:IMG[p2].updatedAt||0, c:ch };
+          idb2Put('emb', p2, { v:Array.prototype.slice.call(v), updatedAt:EMB[p2].updatedAt, m:EMB_TAG,
+                               c:(ch?Array.prototype.slice.call(ch):null) });
         }catch(e){}
       }
       return Object.keys(EMB).length;
@@ -4219,12 +4277,15 @@
         }
         busy(true,'비슷한 상품 찾는 중…');
         var q=await embedQuery(cap);
+        var qh=colorHistOf(cap);
         /* (요구5) 같은 상품이라도 모양이 매번 다르므로 1000 · 1000-1 · 1000-2 …
-           등록된 모든 사진과 비교한다. 그리고 PLU 별로는 가장 잘 맞는 한 장만 남긴다. */
+           등록된 모든 사진과 비교한다. 그리고 PLU 별로는 가장 잘 맞는 한 장만 남긴다.
+           (정확도 개선) 임베딩(모양) 85% + 색상 분포 15% 로 점수를 섞는다. */
         var bestByPlu={};
         for(var key in EMB){
           var v=EMB[key].v, sc=0;
           for(var i=0;i<v.length&&i<q.length;i++) sc+=v[i]*q[i];
+          if(qh&&EMB[key].c) sc=0.85*sc+0.15*histSim(qh,EMB[key].c);
           var base=baseOfKey(key);
           if(!bestByPlu[base] || sc>bestByPlu[base].s) bestByPlu[base]={ plu:base, key:key, s:sc };
         }
@@ -4253,7 +4314,7 @@
       }catch(e){
         busy(false); stage('stResult');
         $('knnHead').textContent='사진 찾기';
-        $('knnCards').innerHTML='<div class="knn-none">인식 모델을 불러오지 못했습니다.<br>인터넷 연결을 확인한 뒤 다시 시도하세요.<br>(처음 한 번은 약 36MB 다운로드가 필요합니다)</div>';
+        $('knnCards').innerHTML='<div class="knn-none">인식 모델을 불러오지 못했습니다.<br>인터넷 연결을 확인한 뒤 다시 시도하세요.<br>(처음 한 번은 약 15MB 다운로드가 필요합니다)</div>';
       }
     }
     $('knnCards').addEventListener('click', function(e){
