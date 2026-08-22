@@ -612,7 +612,9 @@
   .cam-side{ flex:0 0 auto; width:min(30vw,260px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:0 8px; }
   .cam-note{ font-size:12.5px; color:var(--ink-2); font-weight:600; text-align:center; line-height:1.8; }
   /* (요구4) 이 PLU 에 이미 등록된 사진들 */
-  .shot-have{ width:100%; max-width:230px; border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:10px; box-shadow:var(--sh-1); }
+  .shot-have{ width:100%; max-width:230px; border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:10px; box-shadow:var(--sh-1); box-sizing:border-box; }
+  #stEdit .shot-have{ max-width:100%; }
+  #stEdit .shot-list{ max-height:134px; overflow-y:auto; }
   .shot-have .hd{ font-size:9.5px; font-weight:800; letter-spacing:.16em; color:var(--ink-dim); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
   .shot-have .hd b{ color:var(--red); font-family:var(--num); font-size:13px; letter-spacing:0; }
   .shot-list{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
@@ -628,30 +630,50 @@
   body.portrait .cam-side{ width:min(86vw,440px); flex-direction:row; justify-content:center; align-items:center; gap:18px; }
   body.portrait .shot-have{ max-width:none; }
   /* 편집 */
-  #stEdit{ flex-direction:row; align-items:stretch; justify-content:center; overflow:auto; }
-  .edit-left{ flex:0 1 auto; display:flex; flex-direction:column; gap:10px; align-items:center; min-width:0; }
-  #editCanvas{ width:min(52vh, 86vw, 440px); height:min(52vh, 86vw, 440px); border:1px solid var(--line-2); border-radius:14px; background:#fff; touch-action:none; box-shadow:var(--sh-2); }
+  /* (수정) 스크롤 금지 — 공간이 모자라면 촬영 사진(캔버스)을 화면 표시만 축소한다. 픽셀(300×300)은 그대로. */
+  #stEdit{ flex-direction:row; align-items:stretch; justify-content:center; overflow:hidden; }
+  .edit-left{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; align-items:center; min-width:0; min-height:0; }
+  .edit-cwrap{ flex:1 1 auto; min-height:0; min-width:0; width:100%; display:flex; align-items:center; justify-content:center; }
+  #editCanvas{ height:min(52vh, 440px); max-height:100%; max-width:100%; width:auto; aspect-ratio:1/1; border:1px solid var(--line-2); border-radius:14px; background:#fff; touch-action:none; box-shadow:var(--sh-2); }
   .edit-tools{ display:flex; flex-wrap:wrap; gap:7px; align-items:center; justify-content:center; max-width:min(52vh,86vw,440px); }
   .et-btn{ border:1px solid var(--line-2); background:var(--panel); color:var(--ink); border-radius:9px; padding:9px 12px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; }
   .et-btn.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .et-btn:active{ transform:translateY(1px); }
   .et-tol{ display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; color:var(--ink-2); }
   .et-tol input{ width:88px; accent-color:var(--accent); }
-  .edit-right{ flex:0 0 auto; display:flex; flex-direction:column; gap:11px; justify-content:center; align-items:stretch; }
+  /* (수정) 폭을 항상 고정 — 등록된 사진 박스가 나타나도 키패드 크기가 변하지 않는다 */
+  .edit-right{ flex:0 0 auto; width:262px; display:flex; flex-direction:column; gap:11px; justify-content:flex-start; align-items:stretch; min-height:0; max-height:100%; overflow-y:auto; }
+  .edit-right > :first-child{ margin-top:auto; }
+  .edit-right > .edit-actions{ margin-bottom:auto; }
   .plu-in{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; box-shadow:var(--sh-1); }
   .plu-in-lb{ font-size:9.5px; font-weight:800; letter-spacing:.16em; color:var(--ink-dim); margin-bottom:6px; }
   .plu-in-disp{ font-family:var(--num); font-variant-numeric:tabular-nums; font-size:30px; font-weight:800; color:var(--red); min-height:38px; letter-spacing:.06em; }
   .plu-in-disp .ph{ font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink-dim); letter-spacing:.02em; }
-  .plu-in-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
-  .plu-in-pad button{ padding:12px 0; min-width:62px; border:1px solid var(--line); border-radius:10px; background:var(--panel-3); font-size:19px; font-weight:700; color:var(--ink); cursor:pointer; font-family:inherit; }
+  /* (수정) 키패드 크기 완전 고정 — 어떤 상황에서도 버튼 크기가 변하지 않는다 */
+  .plu-in-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:8px auto 0; width:100%; max-width:224px; }
+  .plu-in-pad button{ height:46px; padding:0; min-width:0; border:1px solid var(--line); border-radius:10px; background:var(--panel-3); font-size:19px; font-weight:700; color:var(--ink); cursor:pointer; font-family:inherit; }
   .plu-in-pad button:active{ background:var(--ink); color:#fff; border-color:var(--ink); }
   .plu-in-pad button.fn{ font-size:12px; font-weight:800; color:var(--ink-dim); }
-  .edit-actions{ display:flex; gap:9px; }
+  /* (신규) 상품명으로 PLU 찾기 */
+  .plu-name-find{ margin-top:9px; border-top:1px dashed var(--line); padding-top:9px; }
+  .plu-name-find input{ width:100%; box-sizing:border-box; border:1px solid var(--line-2); border-radius:9px; padding:9px 10px; font-size:13px; font-weight:600; font-family:inherit; color:var(--ink); background:var(--panel-3); outline:none; }
+  .plu-name-find input:focus{ border-color:var(--accent); }
+  .plu-name-res{ margin-top:6px; display:none; max-height:150px; overflow-y:auto; border:1px solid var(--line); border-radius:9px; background:var(--panel); }
+  .plu-name-res.show{ display:block; }
+  .plu-name-res button{ display:flex; width:100%; gap:8px; align-items:center; border:0; border-bottom:1px solid var(--line); background:transparent; padding:8px 9px; font-family:inherit; cursor:pointer; text-align:left; }
+  .plu-name-res button:last-child{ border-bottom:0; }
+  .plu-name-res button:active{ background:var(--panel-3); }
+  .plu-name-res .rp{ font-family:var(--num); font-weight:800; font-size:14px; color:var(--red); flex:0 0 auto; }
+  .plu-name-res .rn{ font-size:11.5px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; }
+  .plu-name-res .none{ font-size:11px; color:var(--ink-dim); font-weight:600; text-align:center; padding:10px; }
+  .edit-actions{ display:flex; gap:9px; flex:0 0 auto; }
   .edit-actions.center{ justify-content:center; flex:0 0 auto; }
   .ea-btn{ flex:1; padding:15px 14px; border:1px solid var(--line-2); border-radius:11px; background:var(--panel); color:var(--ink); font-size:13px; font-weight:800; cursor:pointer; font-family:inherit; letter-spacing:.03em; }
   .ea-btn.go{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .ea-btn:active{ transform:translateY(1px); }
   body.portrait #stEdit{ flex-direction:column; align-items:center; }
+  body.portrait .edit-left{ width:100%; }
+  body.portrait .edit-right{ width:min(86vw, 400px); flex:0 0 auto; max-height:56%; }
   /* KNN 결과 */
   #stResult{ flex-direction:column; }
   .knn-head{ flex:0 0 auto; font-family:var(--display); font-size:17px; font-weight:600; padding:2px 4px; }
@@ -1233,7 +1255,7 @@
     <!-- 2) 편집 (배경 지우기) + PLU 입력 — 사진 업데이트 모드 전용 -->
     <div class="cam-stage" id="stEdit">
       <div class="edit-left">
-        <canvas id="editCanvas" width="300" height="300"></canvas>
+        <div class="edit-cwrap"><canvas id="editCanvas" width="300" height="300"></canvas></div>
         <div class="edit-tools">
           <button class="et-btn on" id="etWand" title="탭한 곳과 비슷한 색을 지웁니다">배경 지우기</button>
           <button class="et-btn" id="etBrush" title="문질러서 지웁니다">브러시 지우개</button>
@@ -1251,6 +1273,11 @@
             <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
             <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
             <button data-k="clear" class="fn">지움</button><button data-k="0">0</button><button data-k="back" class="fn">←</button>
+          </div>
+          <!-- (신규) 상품명으로 PLU 찾기 — 결과를 누르면 위 번호에 자동 입력 -->
+          <div class="plu-name-find">
+            <input id="pluNameQ" placeholder="상품명으로 PLU 찾기 (한글·영문)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <div class="plu-name-res" id="pluNameRes"></div>
           </div>
         </div>
         <!-- (요구4) 이 PLU 에 이미 등록된 사진들 — 여러 장 보관 · 개별 삭제 -->
@@ -3713,6 +3740,8 @@
         ? '사각 가이드 안에 상품을 맞추고 촬영하면<br>비슷한 상품 5개를 찾아드립니다'
         : '사각 가이드 안에 상품을 맞추고<br>촬영 버튼을 누르세요';
       pluBuf=''; renderPluIn(); undoStack=[]; srcData=null;
+      nameIdx=null;                                   // 데이터 갱신 반영을 위해 매번 새로 색인
+      if($('pluNameQ')){ $('pluNameQ').value=''; renderNameRes(''); }
       $('camOv').classList.add('show'); stage('stShoot'); busy(false);
       startCam();
     }
@@ -3795,6 +3824,51 @@
       else if(pluBuf.length<6) pluBuf+=k;
       renderPluIn();
     });
+
+    /* ── (신규) 상품명으로 PLU 찾기 ──
+       PLU MASTER 전체 + 커스텀 리스트에서 한글/영문 이름을 부분 일치로 검색.
+       결과를 누르면 PLU 번호가 위 입력칸에 바로 채워진다. */
+    var nameIdx=null;
+    function buildNameIdx(){
+      if(nameIdx) return nameIdx;
+      var out=[], seen={};
+      function add(plu,ko,en){
+        plu=String(plu||'').trim();
+        if(!/^\d{3,6}$/.test(plu) || seen[plu]) return;
+        seen[plu]=1;
+        out.push({ plu:plu, ko:String(ko||''), en:String(en||''),
+                   s:(String(ko||'')+' '+String(en||'')).toUpperCase() });
+      }
+      try{ (allRows()||[]).forEach(function(r){ add(pluOf(r), korOf(r), engOf(r)); }); }catch(e){}
+      try{ if(Array.isArray(customList)) customList.forEach(function(c){ add(c.plu, c.ko, c.en); }); }catch(e){}
+      nameIdx=out; return out;
+    }
+    function renderNameRes(q){
+      var box=$('pluNameRes'); if(!box) return;
+      q=String(q||'').trim().toUpperCase();
+      if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
+      var idx=buildNameIdx(), hits=[], i;
+      for(i=0;i<idx.length && hits.length<8;i++){ if(idx[i].s.indexOf(q)>=0) hits.push(idx[i]); }
+      box.innerHTML = hits.length
+        ? hits.map(function(h){
+            var nm=itemName(h.ko,h.en);
+            return '<button type="button" data-plu="'+esc(h.plu)+'">'+
+              '<span class="rp">'+esc(h.plu)+'</span>'+
+              '<span class="rn">'+esc(nm.main||nm.sub||h.ko||h.en)+'</span></button>';
+          }).join('')
+        : '<div class="none">일치하는 상품이 없습니다</div>';
+      box.classList.add('show');
+    }
+    if($('pluNameQ')){
+      $('pluNameQ').addEventListener('input', function(){ renderNameRes(this.value); });
+      $('pluNameRes').addEventListener('click', function(e){
+        var b=e.target.closest('button[data-plu]'); if(!b) return;
+        pluBuf=b.getAttribute('data-plu')||'';
+        $('pluNameQ').value=''; renderNameRes('');
+        try{ $('pluNameQ').blur(); }catch(x){}
+        renderPluIn();
+      });
+    }
 
     /* ── (요구3) 저장도 원본 화질 그대로. 길이 상한을 넘을 때만 품질→해상도 순으로 낮춘다 ── */
     function finalJpeg(){
@@ -4020,45 +4094,38 @@
     /* ── (요구2·3) 사진 업데이트 버튼 → 비밀번호 → 카메라 ── */
     $('photoUp').addEventListener('click', function(){ askPin(function(){ openCam('upload'); }); });
 
-    /* ═════════ (요구9) 사진 찾기 — MobileNet v2 임베딩 + kNN ═════════ */
-    /* (요구4) 인식 모델은 앱이 뜰 때 미리 한 번만 불러오고, 앱이 닫힐 때까지 메모리에 유지한다.
-              가중치는 IndexedDB 에 저장해 두 번째 실행부터는 네트워크에서 다시 받지 않는다.
-       · MODEL_KEY 를 바꾸면 캐시를 강제로 새로 받는다.
-       · 전처리 조건(inputRange)을 두 경로 모두 같게 고정해야 임베딩이 어긋나지 않는다. */
-    var MODEL_KEY='indexeddb://plu-mnet-v2';
-    var MODEL_OPT={ version:2, alpha:1.0, inputRange:[-1,1] };
-    var tfReady=null, model=null;
-    var EMB={};                       // plu → { v:Float32Array, updatedAt }
+    /* ═════════ (요구9) 사진 찾기 — Apple MobileCLIP(S2) 임베딩 + kNN ═════════
+       · MobileNet v2 → MobileCLIP-S2 로 교체. 같은 kNN 구조에서 임베딩 엔진만 바꿨다.
+       · Transformers.js(v3.8.1)가 브라우저 안에서 ONNX 로 직접 실행 — 서버 호출·과금 없음.
+       · 가중치(약 36MB, q8 양자화)는 처음 한 번만 내려받고 브라우저 캐시에 저장된다.
+       · EMB_TAG 가 바뀌면(모델 교체) 기존 색인은 자동으로 무효화되어 첫 검색 때 재색인한다. */
+    var CLIP_LIB='https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1';
+    var CLIP_ID='Xenova/mobileclip_s2';
+    var EMB_TAG='mclip-s2-q8-v1';     // 임베딩 색인 버전 — 모델을 바꾸면 이 값을 바꾼다
+    var tfReady=null, clipProc=null, clipVis=null, RawImageC=null;
+    var EMB={};                       // key(1000·1000-1…) → { v:Float32Array, updatedAt }
     function embDirty(plu){ delete EMB[plu]; idb2Put('emb', plu, null); }
-    function loadScript(src){
-      return new Promise(function(res,rej){
-        var ex=document.querySelector('script[data-lib="'+src+'"]');
-        if(ex){ if(ex.getAttribute('data-done')==='1') return res(); ex.addEventListener('load',res); ex.addEventListener('error',rej); return; }
-        var s=document.createElement('script'); s.src=src; s.setAttribute('data-lib',src);
-        s.onload=function(){ s.setAttribute('data-done','1'); res(); };
-        s.onerror=function(){ rej(new Error('load fail: '+src)); };
-        document.head.appendChild(s);
-      });
-    }
     // silent=true 면 진행 표시 없이 조용히 준비 (부팅 직후 백그라운드 로드용)
     function ensureModel(silent){
-      if(model) return Promise.resolve(model);
+      if(clipVis) return Promise.resolve(clipVis);
       if(!tfReady){
         tfReady=(async function(){
           if(!silent) busy(true,'인식 모델 준비 중…');
-          if(!window.tf) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
-          if(!window.mobilenet) await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js');
-          // ① 기기에 저장된 가중치로 먼저 시도 (네트워크 사용 안 함)
+          var T=await import(CLIP_LIB);
+          try{ T.env.allowLocalModels=false; }catch(e){}
+          RawImageC=T.RawImage;
+          if(!silent) busy(true,'인식 모델 확인 중…<br>(처음 한 번만 약 36MB 내려받습니다)');
+          clipProc=await T.AutoProcessor.from_pretrained(CLIP_ID);
           try{
-            var opt={ version:MODEL_OPT.version, alpha:MODEL_OPT.alpha, inputRange:MODEL_OPT.inputRange, modelUrl:MODEL_KEY };
-            model=await window.mobilenet.load(opt);
-            return model;
-          }catch(e){ /* 캐시 없음 → 아래에서 내려받는다 */ }
-          // ② 처음 한 번만 네트워크에서 받고, 곧바로 기기에 저장
-          if(!silent) busy(true,'인식 모델 내려받는 중…<br>(처음 한 번만, 약 15MB)');
-          model=await window.mobilenet.load({ version:MODEL_OPT.version, alpha:MODEL_OPT.alpha, inputRange:MODEL_OPT.inputRange });
-          try{ if(model && model.model && model.model.save) await model.model.save(MODEL_KEY); }catch(e){}
-          return model;
+            clipVis=await T.CLIPVisionModelWithProjection.from_pretrained(CLIP_ID, { dtype:'q8', device:'wasm' });
+          }catch(e){
+            // q8 파일을 못 받으면 원본 정밀도로 재시도 (용량은 크지만 동작 보장)
+            if(!silent) busy(true,'인식 모델 내려받는 중…<br>(대체 버전)');
+            clipVis=await T.CLIPVisionModelWithProjection.from_pretrained(CLIP_ID, { dtype:'fp32', device:'wasm' });
+          }
+          // 이전 MobileNet(tf.js) 가중치 캐시(~15MB)는 더 이상 쓰지 않으므로 정리
+          try{ indexedDB.deleteDatabase('tensorflowjs'); }catch(e){}
+          return clipVis;
         })().catch(function(e){ tfReady=null; throw e; });
       }
       return tfReady;
@@ -4070,13 +4137,47 @@
       if('requestIdleCallback' in window) requestIdleCallback(kick, { timeout:4000 });
       else setTimeout(kick, 2500);
     })();
-    function embedEl(el){
-      var t=window.tf.tidy(function(){
-        var e=model.infer(el, true);
-        return window.tf.div(e, window.tf.norm(e,2,1,true));
-      });
-      var v=t.dataSync(); t.dispose();
-      return new Float32Array(v);
+    /* 캔버스/이미지 → MobileCLIP 임베딩 (L2 정규화된 512차원 벡터) */
+    async function embedEl(el){
+      var c;
+      if(el.getContext){ c=el; }
+      else{
+        // <img> 는 캔버스로 옮겨 픽셀을 읽는다 (긴 변 448px 로 제한해 전처리 부담을 줄인다)
+        var w=el.naturalWidth||el.width||300, h=el.naturalHeight||el.height||300;
+        var s=Math.min(1, 448/Math.max(w,h));
+        c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s));
+        c.getContext('2d').drawImage(el,0,0,c.width,c.height);
+      }
+      var d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
+      var img=new RawImageC(d.data, c.width, c.height, 4);
+      var inp=await clipProc(img);
+      var out=await clipVis(inp);
+      var e=out.image_embeds.normalize();
+      return new Float32Array(e.data);
+    }
+    /* (정확도 개선) 질의 사진을 ①원본 ②좌우반전 ③중앙 12% 확대 3가지로 임베딩해 평균한다.
+       촬영 각도·거리·좌우 방향 차이에 덜 민감해져 같은 상품을 더 잘 찾는다.
+       등록 사진 색인(EMB)은 그대로 두므로 재색인이 필요 없다. */
+    async function embedQuery(cap){
+      var vs=[await embedEl(cap)];
+      try{
+        var c2=document.createElement('canvas'); c2.width=cap.width; c2.height=cap.height;
+        var x2=c2.getContext('2d'); x2.translate(c2.width,0); x2.scale(-1,1); x2.drawImage(cap,0,0);
+        vs.push(await embedEl(c2));
+      }catch(e){}
+      try{
+        var m=Math.round(cap.width*0.12);
+        var c3=document.createElement('canvas'); c3.width=cap.width; c3.height=cap.height;
+        c3.getContext('2d').drawImage(cap, m, m, cap.width-2*m, cap.height-2*m, 0, 0, c3.width, c3.height);
+        vs.push(await embedEl(c3));
+      }catch(e){}
+      var n=vs[0].length, out=new Float32Array(n), i, j, s=0;
+      for(i=0;i<vs.length;i++) for(j=0;j<n;j++) out[j]+=vs[i][j];
+      for(j=0;j<n;j++) s+=out[j]*out[j];
+      s=Math.sqrt(s)||1;
+      for(j=0;j<n;j++) out[j]/=s;
+      return out;
     }
     function imgElFromB64(b64){ return new Promise(function(res,rej){ var i=new Image(); i.onload=function(){ res(i); }; i.onerror=rej; i.src=b64; }); }
     async function ensureIndex(){
@@ -4087,17 +4188,18 @@
         var plu=plus[k], up=IMG[plu].updatedAt||0;
         if(EMB[plu]&&EMB[plu].updatedAt===up) continue;
         var st=stored[plu];
-        if(st&&st.updatedAt===up&&st.v){ EMB[plu]={ v:new Float32Array(st.v), updatedAt:up }; continue; }
+        /* m(모델 태그)이 현재 모델과 다르면 옛 MobileNet 색인 → 버리고 새로 만든다 */
+        if(st&&st.updatedAt===up&&st.v&&st.m===EMB_TAG){ EMB[plu]={ v:new Float32Array(st.v), updatedAt:up }; continue; }
         need.push(plu);
       }
       for(k=0;k<need.length;k++){
         var p2=need[k];
-        busy(true,'사진 색인 중… '+(k+1)+' / '+need.length);
+        busy(true,'사진 색인 중… '+(k+1)+' / '+need.length+(need.length>3?'<br>(새 인식 모델 적용 — 한 번만)':''));
         try{
           var el=await imgElFromB64(IMG[p2].b64);
-          var v=embedEl(el);
+          var v=await embedEl(el);
           EMB[p2]={ v:v, updatedAt:IMG[p2].updatedAt||0 };
-          idb2Put('emb', p2, { v:Array.prototype.slice.call(v), updatedAt:EMB[p2].updatedAt });
+          idb2Put('emb', p2, { v:Array.prototype.slice.call(v), updatedAt:EMB[p2].updatedAt, m:EMB_TAG });
         }catch(e){}
       }
       return Object.keys(EMB).length;
@@ -4116,7 +4218,7 @@
           return;
         }
         busy(true,'비슷한 상품 찾는 중…');
-        var q=embedEl(cap);
+        var q=await embedQuery(cap);
         /* (요구5) 같은 상품이라도 모양이 매번 다르므로 1000 · 1000-1 · 1000-2 …
            등록된 모든 사진과 비교한다. 그리고 PLU 별로는 가장 잘 맞는 한 장만 남긴다. */
         var bestByPlu={};
@@ -4129,10 +4231,15 @@
         var scores=[];
         for(var bp in bestByPlu) scores.push(bestByPlu[bp]);
         scores.sort(function(a,b){ return b.s-a.s; });
-        var top=scores.slice(0,5);
+        /* (수정) 50% 이하 MATCH 는 아예 보여주지 않는다 — 50% 초과만 표시 */
+        var top=scores.filter(function(t){ return t.s>0.5; }).slice(0,5);
         busy(false); stage('stResult');
-        var best=top.length?top[0].s:0;
-        $('knnHead').textContent = best>=0.45 ? '비슷한 상품 — 눌러서 확인' : '확실한 일치 없음 — 가까운 순서';
+        if(!top.length){
+          $('knnHead').textContent='확실한 일치 없음';
+          $('knnCards').innerHTML='<div class="knn-none">50%를 넘는 일치 상품이 없습니다.<br>상품을 가이드 안에 꽉 차게, 밝은 곳에서 다시 촬영해 보세요.</div>';
+          return;
+        }
+        $('knnHead').textContent='비슷한 상품 — 눌러서 확인';
         $('knnCards').innerHTML = top.map(function(t){
           var nm=pluName(t.plu);
           var n=imgKeysOf(t.plu).length;
@@ -4146,7 +4253,7 @@
       }catch(e){
         busy(false); stage('stResult');
         $('knnHead').textContent='사진 찾기';
-        $('knnCards').innerHTML='<div class="knn-none">인식 모델을 불러오지 못했습니다.<br>인터넷 연결 후 다시 시도하세요.</div>';
+        $('knnCards').innerHTML='<div class="knn-none">인식 모델을 불러오지 못했습니다.<br>인터넷 연결을 확인한 뒤 다시 시도하세요.<br>(처음 한 번은 약 36MB 다운로드가 필요합니다)</div>';
       }
     }
     $('knnCards').addEventListener('click', function(e){
