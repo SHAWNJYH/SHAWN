@@ -1193,6 +1193,26 @@
     var R={ '야채':[1000,1999], '과일':[2000,2999], '로컬':[10000,12999], '글로벌':[3000,4999], '박스':[80000,82999], '유기농':[90000,94999], '임시':[13000,14000] };
     var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
   }
+  // [데이터 불러오기] 신규 행 분류 규칙 — PLU 번호 범위 → 중간 카테고리
+  //  1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농
+  //  names: 설정된 중간 카테고리명 중 첫 일치(대소문자·공백 무시)를 사용 ('청과박스'가 없으면 '박스')
+  var PLU_RANGE_RULES=[
+    {min:1000,  max:1999,  names:['야채']},
+    {min:2000,  max:2999,  names:['과일']},
+    {min:3000,  max:4999,  names:['로컬']},
+    {min:80000, max:82999, names:['청과박스','박스']},
+    {min:90000, max:92999, names:['유기농']}
+  ];
+  function subByPluRange(main, plu){
+    var mt=mainTab(main); var subs=(mt&&mt.subs)||[]; if(!subs.length) return '';
+    var s=String(plu==null?'':plu).trim(); if(!/^\d+$/.test(s)) return '';
+    var n=parseInt(s,10); if(isNaN(n)) return '';
+    for(var i=0;i<PLU_RANGE_RULES.length;i++){ var r=PLU_RANGE_RULES[i]; if(n<r.min||n>r.max) continue;
+      for(var j=0;j<r.names.length;j++){ var want=String(r.names[j]).trim().toLowerCase(); for(var k=0;k<subs.length;k++){ if(String(subs[k]).trim().toLowerCase()===want) return subs[k]; } }
+      return '';
+    }
+    return '';
+  }
   // 행이 속한 서브카테고리(저장된 sub 우선, 없으면 추론 마이그레이션)
   function openCatEditor(){ $('catEdAdd').onclick=addCatEdCat; $('catEdSave').onclick=saveCatEditor; $('catEdClose').onclick=function(){ $('catEdOv').classList.remove('show'); }; $('catEdOv').onclick=function(e){ if(e.target===$('catEdOv')) $('catEdOv').classList.remove('show'); }; $('catEdHint').textContent=''; renderCatEd(); $('catEdOv').classList.add('show'); }
   function catEdSubHTML(sub){ return '<div class="cated-sub"><input class="cated-sub-in" value="'+escapeHtml(sub||'')+'" data-orig="'+escapeHtml(sub||'')+'" placeholder="중간 카테고리"><button class="cated-del-sub" type="button" title="삭제">✕</button></div>'; }
@@ -2696,8 +2716,9 @@
           '<div class="em-box">'+
             '<label class="icp-lbl">상위 카테고리</label>'+
             '<select class="icp-sel" id="icpTop">'+topOpts+'</select>'+
-            '<label class="icp-lbl">중간 카테고리</label>'+
+            '<label class="icp-lbl">중간 카테고리 <span style="font-weight:400;opacity:.75;">(신규 행 · PLU 번호 범위 밖일 때)</span></label>'+
             '<select class="icp-sel" id="icpSub"></select>'+
+            '<div class="icp-note">· 기존 PLU와 겹치지 않는 행은 새로 추가됩니다. 중간 카테고리는 PLU 번호로 자동 분류:<br>&nbsp;&nbsp;1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농</div>'+
             '<div class="icp-opt">'+
               '<label class="dcv-switch" title="MARGIN — ON: 평균마진(%) 사용 / OFF: 미사용"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
               '<span class="icp-lbl" style="margin:0;">MARGIN (불러오기 평균마진)</span>'+
@@ -2749,8 +2770,9 @@
       var ti=parseInt($('icpTop').value,10)||0; var t=PLU_TABS[ti]||PLU_TABS[0];
       var mv=Number($('icpMargin').value); if(!isFinite(mv)||mv<0)mv=0; if(mv>99)mv=99;
       var applyMargin=(autoOn && $('icpMgSw').checked);
+      var si=parseInt($('icpSub').value,10); var subs=t.subs||[]; var selSub=(si>=0 && subs[si]!=null)?String(subs[si]):'';
       close();
-      importToCategory(t.label, picked, { applyMargin:applyMargin, margin:mv });
+      importToCategory(t.label, picked, { applyMargin:applyMargin, margin:mv, sub:selSub });
     };
   }
   /* ===== 가격변경 이력 (Firebase 공유 · 컬렉션 plu-list-hist / 문서 price) ===== */
@@ -2982,8 +3004,18 @@
         var __priceInChosen = __priceKey && chosen.some(function(c){ return String(c.key).toUpperCase()===String(__priceKey).toUpperCase(); });
         var __now=Date.now(); var __priceRecs=[];
         var nMatch=0, nMiss=0, nAuto=0, nKept=0;
-        rows.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; if(!tgt){ nMiss++; return; } nMatch++;
-          var __oldPrice=(__priceInChosen)?String(getVal(tgt, __priceKey)||''):'';
+        // [신규 입력] PLU가 기존 데이터와 겹치지 않으면 새 행으로 추가 — 중간 카테고리는 PLU 번호 범위(PLU_RANGE_RULES)로 분류,
+        //  범위 밖이면 불러오기 창에서 선택한 중간 카테고리. PLU가 비어 있는 줄은 추가 불가(무시).
+        var nNew=0, newBySub={}, newSubOrder=[]; var fallbackSub=String(opts.sub==null?'':opts.sub);
+        rows.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; var isNew=false;
+          if(!tgt){
+            if(!p){ nMiss++; return; }
+            tgt=copyRow(null); tgt.plu=p;
+            var sb=subByPluRange(cat, p) || fallbackSub; tgt.sub=sb;
+            existing.push(tgt); byPlu[p]=tgt; isNew=true; nNew++;
+            if(!(sb in newBySub)){ newBySub[sb]=0; newSubOrder.push(sb); } newBySub[sb]++;
+          } else { nMatch++; }
+          var __oldPrice=(__priceInChosen && !isNew)?String(getVal(tgt, __priceKey)||''):'';
           chosen.forEach(function(col){ if(String(col.key).toUpperCase()==='ITEMCODE1'){ __applyItemCodes(tgt, er); return; }
             // [조건5] Cancel 선택 시 — 이미 값이 있는 MSRP/SRP는 건너뜀 (나머지 필드는 정상 갱신)
             if(!updatePrice && (col===spC||col===srpC) && String(getVal(tgt, col.key)||'').trim()!==''){ nKept++; return; }
@@ -2999,13 +3031,14 @@
             }
           }
           if(tareTouched) normalizeTareRow(tgt, gFirst);
-          if(__priceInChosen){ var __newPrice=String(getVal(tgt, __priceKey)||''); if(__oldPrice!==__newPrice && __newPrice!==''){ tgt.extra=tgt.extra||{}; tgt.extra['__PRICEUPD']=String(__now); __priceRecs.push({ ts:__now, cat:cat, sub:(tgt.sub||''), plu:String(p), eng:String(getVal(tgt,'ENG')||''), kor:String(getVal(tgt,'KOR')||''), oldp:__oldPrice, newp:__newPrice }); } }
+          if(__priceInChosen && !isNew){ var __newPrice=String(getVal(tgt, __priceKey)||''); if(__oldPrice!==__newPrice && __newPrice!==''){ tgt.extra=tgt.extra||{}; tgt.extra['__PRICEUPD']=String(__now); __priceRecs.push({ ts:__now, cat:cat, sub:(tgt.sub||''), plu:String(p), eng:String(getVal(tgt,'ENG')||''), kor:String(getVal(tgt,'KOR')||''), oldp:__oldPrice, newp:__newPrice }); } }
         });
-        if(!nMatch){ showToast('PLU가 일치하는 행이 없습니다','error'); return; }
+        if(!nMatch && !nNew){ showToast('가져올 수 있는 행이 없습니다 (PLU 없음)','error'); return; }
+        var __newDesc=nNew?(' · 신규 '+nNew+'행 추가 ('+newSubOrder.map(function(sb){ return (sb||'(중간 카테고리 없음)')+' '+newBySub[sb]; }).join(', ')+')'):'';
         var __icMulti=rows.filter(function(r){return Array.isArray(r.itemCodes)&&r.itemCodes.length>1;}).length;
-        if(!(await uiConfirm('['+cat+'] PLU 기준으로 데이터를 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+(__icMulti?(' · ITEM CODE 다중 '+__icMulti+'건'):'')+(nAuto?(' · MSRP 자동적용 '+nAuto+'건(마진 '+opts.margin+'%)'):'')+(nKept?(' · 기존 가격 유지 '+nKept+'칸'):'')+(__priceRecs.length?(' · 가격변경 '+__priceRecs.length+'건'):'')+(nMiss?(' · 미일치 '+nMiss+'행 무시'):'')+(__skipped.length?('\n· 매칭 안 된 엑셀 열 무시: '+__skipped.join(', ')):'')))) return;
+        if(!(await uiConfirm('['+cat+'] PLU 기준으로 데이터를 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+__newDesc+(__icMulti?(' · ITEM CODE 다중 '+__icMulti+'건'):'')+(nAuto?(' · MSRP 자동적용 '+nAuto+'건(마진 '+opts.margin+'%)'):'')+(nKept?(' · 기존 가격 유지 '+nKept+'칸'):'')+(__priceRecs.length?(' · 가격변경 '+__priceRecs.length+'건'):'')+(nMiss?(' · PLU 없는 '+nMiss+'행 무시'):'')+(__skipped.length?('\n· 매칭 안 된 엑셀 열 무시: '+__skipped.join(', ')):'')))) return;
         var ok=await saveCat(cat, existing, layoutByCat[cat]||defaultLayout([]));
-        if(ok){ if(__priceRecs.length){ try{ addHist('price', __priceRecs); }catch(e){} } editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 업데이트 완료 ('+nMatch+'행'+(__priceRecs.length?(', 가격변경 '+__priceRecs.length+'건'):'')+')','success'); }
+        if(ok){ if(__priceRecs.length){ try{ addHist('price', __priceRecs); }catch(e){} } editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 업데이트 완료 (갱신 '+nMatch+'행'+(nNew?(', 신규 '+nNew+'행'):'')+(__priceRecs.length?(', 가격변경 '+__priceRecs.length+'건'):'')+')','success'); }
         else showToast('저장 실패','error');
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
