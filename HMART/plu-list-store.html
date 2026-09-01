@@ -850,8 +850,8 @@
     {min:1000,  max:1999,  names:['야채','VEGETABLE','VEG']},
     {min:2000,  max:2999,  names:['과일','FRUIT']},
     {min:3000,  max:4999,  names:['로컬','LOCAL']},
-    {min:80000, max:82999, names:['청과박스','박스','BOX']},
-    {min:90000, max:92999, names:['유기농','ORGANIC']}
+    {min:80000, max:84999, names:['청과박스','박스','BOX']},
+    {min:90000, max:94999, names:['유기농','ORGANIC']}
   ];
   function pluRangeRule(plu){ var s=String(plu==null?'':plu).trim(); if(!/^\d+$/.test(s)) return null; var n=parseInt(s,10); if(isNaN(n)) return null; for(var i=0;i<PLU_RANGE_RULES.length;i++){ var r=PLU_RANGE_RULES[i]; if(n>=r.min && n<=r.max) return r; } return null; }
   function __normSubNm(x){ return String(x==null?'':x).replace(/\s+/g,'').toLowerCase(); }
