@@ -1194,14 +1194,14 @@
     var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
   }
   // [PLU 번호 범위 → 중간 카테고리] 데이터 불러오기 시 모든 행(기존·신규)의 중간 카테고리를 PLU 번호로 결정. sub 미저장 행의 추론에도 사용.
-  //  1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농
+  //  1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~84999 청과박스 · 90000~94999 유기농
   //  names: 설정된 중간 카테고리명과 대소문자·공백 무시 정확 일치 → 없으면 포함(부분) 일치 → 그래도 없으면 names[0]로 자동 생성
   var PLU_RANGE_RULES=[
     {min:1000,  max:1999,  names:['야채','VEGETABLE','VEG']},
     {min:2000,  max:2999,  names:['과일','FRUIT']},
     {min:3000,  max:4999,  names:['로컬','LOCAL']},
-    {min:80000, max:82999, names:['청과박스','박스','BOX']},
-    {min:90000, max:92999, names:['유기농','ORGANIC']}
+    {min:80000, max:84999, names:['청과박스','박스','BOX']},
+    {min:90000, max:94999, names:['유기농','ORGANIC']}
   ];
   function pluRangeRule(plu){
     var s=String(plu==null?'':plu).trim(); if(!/^\d+$/.test(s)) return null;
@@ -2739,7 +2739,7 @@
             '<select class="icp-sel" id="icpTop">'+topOpts+'</select>'+
             '<label class="icp-lbl">중간 카테고리 <span style="font-weight:400;opacity:.75;">(신규 행 · PLU 번호 범위 밖일 때)</span></label>'+
             '<select class="icp-sel" id="icpSub"></select>'+
-            '<div class="icp-note">· 기존 PLU와 겹치면 갱신, 겹치지 않으면 새로 추가됩니다. 중간 카테고리는 PLU 번호로 자동 분류(기존 행도 이동):<br>&nbsp;&nbsp;1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농</div>'+
+            '<div class="icp-note">· 기존 PLU와 겹치면 갱신, 겹치지 않으면 새로 추가됩니다. 중간 카테고리는 PLU 번호로 자동 분류(기존 행도 이동):<br>&nbsp;&nbsp;1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~84999 청과박스 · 90000~94999 유기농</div>'+
             '<div class="icp-opt">'+
               '<label class="dcv-switch" title="MARGIN — ON: 평균마진(%) 사용 / OFF: 미사용"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
               '<span class="icp-lbl" style="margin:0;">MARGIN (불러오기 평균마진)</span>'+
