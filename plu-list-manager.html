@@ -1193,25 +1193,45 @@
     var R={ '야채':[1000,1999], '과일':[2000,2999], '로컬':[10000,12999], '글로벌':[3000,4999], '박스':[80000,82999], '유기농':[90000,94999], '임시':[13000,14000] };
     var r=R[sub]; return r?{min:r[0],max:r[1]}:null;
   }
-  // [데이터 불러오기] 신규 행 분류 규칙 — PLU 번호 범위 → 중간 카테고리
+  // [PLU 번호 범위 → 중간 카테고리] 데이터 불러오기 시 모든 행(기존·신규)의 중간 카테고리를 PLU 번호로 결정. sub 미저장 행의 추론에도 사용.
   //  1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농
-  //  names: 설정된 중간 카테고리명 중 첫 일치(대소문자·공백 무시)를 사용 ('청과박스'가 없으면 '박스')
+  //  names: 설정된 중간 카테고리명과 대소문자·공백 무시 정확 일치 → 없으면 포함(부분) 일치 → 그래도 없으면 names[0]로 자동 생성
   var PLU_RANGE_RULES=[
-    {min:1000,  max:1999,  names:['야채']},
-    {min:2000,  max:2999,  names:['과일']},
-    {min:3000,  max:4999,  names:['로컬']},
-    {min:80000, max:82999, names:['청과박스','박스']},
-    {min:90000, max:92999, names:['유기농']}
+    {min:1000,  max:1999,  names:['야채','VEGETABLE','VEG']},
+    {min:2000,  max:2999,  names:['과일','FRUIT']},
+    {min:3000,  max:4999,  names:['로컬','LOCAL']},
+    {min:80000, max:82999, names:['청과박스','박스','BOX']},
+    {min:90000, max:92999, names:['유기농','ORGANIC']}
   ];
-  function subByPluRange(main, plu){
-    var mt=mainTab(main); var subs=(mt&&mt.subs)||[]; if(!subs.length) return '';
-    var s=String(plu==null?'':plu).trim(); if(!/^\d+$/.test(s)) return '';
-    var n=parseInt(s,10); if(isNaN(n)) return '';
-    for(var i=0;i<PLU_RANGE_RULES.length;i++){ var r=PLU_RANGE_RULES[i]; if(n<r.min||n>r.max) continue;
-      for(var j=0;j<r.names.length;j++){ var want=String(r.names[j]).trim().toLowerCase(); for(var k=0;k<subs.length;k++){ if(String(subs[k]).trim().toLowerCase()===want) return subs[k]; } }
-      return '';
-    }
+  function pluRangeRule(plu){
+    var s=String(plu==null?'':plu).trim(); if(!/^\d+$/.test(s)) return null;
+    var n=parseInt(s,10); if(isNaN(n)) return null;
+    for(var i=0;i<PLU_RANGE_RULES.length;i++){ var r=PLU_RANGE_RULES[i]; if(n>=r.min && n<=r.max) return r; }
+    return null;
+  }
+  function __normSubNm(x){ return String(x==null?'':x).replace(/\s+/g,'').toLowerCase(); }
+  // 규칙의 후보명을 설정된 서브 목록에서 찾음 (정확 일치 우선, 그 다음 부분 일치). 없으면 ''
+  function resolveRuleSub(rule, subs){
+    subs=subs||[]; var j,k;
+    for(j=0;j<rule.names.length;j++){ var w=__normSubNm(rule.names[j]); for(k=0;k<subs.length;k++){ if(__normSubNm(subs[k])===w) return subs[k]; } }
+    for(j=0;j<rule.names.length;j++){ var w2=__normSubNm(rule.names[j]); for(k=0;k<subs.length;k++){ if(__normSubNm(subs[k]).indexOf(w2)>=0) return subs[k]; } }
     return '';
+  }
+  // PLU 번호로 정한 중간 카테고리. 설정에 해당 서브가 없으면 ''(호출측에서 자동 생성/대체 처리)
+  function subByPluRange(main, plu){
+    var mt=mainTab(main); var subs=(mt&&mt.subs)||[]; var rule=pluRangeRule(plu); if(!rule) return '';
+    return resolveRuleSub(rule, subs);
+  }
+  // 불러오기 대상 행들에 필요한 서브 중 설정에 없는 것을 청과(해당 상위) 탭에 추가하고 plu-config 저장
+  async function ensureRangeSubs(main, plus){
+    var mt=mainTab(main); if(!mt) return [];
+    var subs=(mt.subs||[]).slice(); var added=[];
+    (plus||[]).forEach(function(p){ var rule=pluRangeRule(p); if(!rule) return; if(resolveRuleSub(rule, subs)) return; subs.push(rule.names[0]); added.push(rule.names[0]); });
+    if(!added.length) return [];
+    var tabs=PLU_TABS.map(function(t){ return {label:t.label, doc:(t.doc||t.label), subs:(t.label===main?subs:(t.subs||[]).slice())}; });
+    await fns().setDoc(fns().doc(db(), CFG_COL, CFG_DOC), {tabs:tabs, updatedAt:Date.now()}, {merge:true});
+    applyTabs(tabs);
+    return added;
   }
   // 행이 속한 서브카테고리(저장된 sub 우선, 없으면 추론 마이그레이션)
   function openCatEditor(){ $('catEdAdd').onclick=addCatEdCat; $('catEdSave').onclick=saveCatEditor; $('catEdClose').onclick=function(){ $('catEdOv').classList.remove('show'); }; $('catEdOv').onclick=function(e){ if(e.target===$('catEdOv')) $('catEdOv').classList.remove('show'); }; $('catEdHint').textContent=''; renderCatEd(); $('catEdOv').classList.add('show'); }
@@ -1252,7 +1272,8 @@
   }
   function mainTab(main){ for(var i=0;i<PLU_TABS.length;i++){ if(PLU_TABS[i].label===main) return PLU_TABS[i]; } return null; }
   function subOfRowInferred(main, r){
-    if(main==='청과'){ var n=parseInt(r&&r.plu,10); if(!isNaN(n)){ var subs=(mainTab('청과')||{}).subs||[]; for(var i=0;i<subs.length;i++){ var rg=rangeFor('청과',subs[i]); if(rg && n>=rg.min && n<=rg.max) return subs[i]; } } }
+    if(main==='청과'){ var rs=subByPluRange('청과', r&&r.plu); if(rs) return rs;
+      var n=parseInt(r&&r.plu,10); if(!isNaN(n)){ var subs=(mainTab('청과')||{}).subs||[]; for(var i=0;i<subs.length;i++){ var rg=rangeFor('청과',subs[i]); if(rg && n>=rg.min && n<=rg.max) return subs[i]; } } }
     var mt=mainTab(main); return (mt && mt.subs && mt.subs[0]) || '';
   }
   var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집', 'SEATTLE FOOD':'행복떡집', 'HANAYANG(떡)':'한양떡집', 'HANAYANG':'한양떡집' };
@@ -2718,7 +2739,7 @@
             '<select class="icp-sel" id="icpTop">'+topOpts+'</select>'+
             '<label class="icp-lbl">중간 카테고리 <span style="font-weight:400;opacity:.75;">(신규 행 · PLU 번호 범위 밖일 때)</span></label>'+
             '<select class="icp-sel" id="icpSub"></select>'+
-            '<div class="icp-note">· 기존 PLU와 겹치지 않는 행은 새로 추가됩니다. 중간 카테고리는 PLU 번호로 자동 분류:<br>&nbsp;&nbsp;1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농</div>'+
+            '<div class="icp-note">· 기존 PLU와 겹치면 갱신, 겹치지 않으면 새로 추가됩니다. 중간 카테고리는 PLU 번호로 자동 분류(기존 행도 이동):<br>&nbsp;&nbsp;1000~1999 야채 · 2000~2999 과일 · 3000~4999 로컬 · 80000~82999 청과박스 · 90000~92999 유기농</div>'+
             '<div class="icp-opt">'+
               '<label class="dcv-switch" title="MARGIN — ON: 평균마진(%) 사용 / OFF: 미사용"><input type="checkbox" id="icpMgSw"><span class="dcv-slider"></span></label>'+
               '<span class="icp-lbl" style="margin:0;">MARGIN (불러오기 평균마진)</span>'+
@@ -3004,17 +3025,24 @@
         var __priceInChosen = __priceKey && chosen.some(function(c){ return String(c.key).toUpperCase()===String(__priceKey).toUpperCase(); });
         var __now=Date.now(); var __priceRecs=[];
         var nMatch=0, nMiss=0, nAuto=0, nKept=0;
-        // [신규 입력] PLU가 기존 데이터와 겹치지 않으면 새 행으로 추가 — 중간 카테고리는 PLU 번호 범위(PLU_RANGE_RULES)로 분류,
-        //  범위 밖이면 불러오기 창에서 선택한 중간 카테고리. PLU가 비어 있는 줄은 추가 불가(무시).
-        var nNew=0, newBySub={}, newSubOrder=[]; var fallbackSub=String(opts.sub==null?'':opts.sub);
+        // [PLU 번호 → 중간 카테고리] 불러오는 모든 행은 PLU 번호 범위(PLU_RANGE_RULES)로 중간 카테고리를 정한다.
+        //  · 기존 PLU와 겹치면 갱신 + 범위에 맞는 중간 카테고리로 이동(범위 밖이면 기존 위치 유지)
+        //  · 겹치지 않으면 새 행 추가(범위 밖이면 불러오기 창에서 선택한 중간 카테고리). PLU가 비어 있는 줄은 무시.
+        //  · 범위에 해당하는 중간 카테고리가 설정에 없으면 확인 후 자동 추가(ensureRangeSubs)
+        var nNew=0, nMoved=0, newBySub={}, newSubOrder=[], movedBySub={}, movedSubOrder=[], __needSubs=[]; var fallbackSub=String(opts.sub==null?'':opts.sub);
+        var __catSubs=((mainTab(cat)||{}).subs||[]);
+        function __rangeSubFor(p){ var rule=pluRangeRule(p); if(!rule) return ''; var r=resolveRuleSub(rule, __catSubs); if(r) return r; if(__needSubs.indexOf(rule.names[0])<0) __needSubs.push(rule.names[0]); return rule.names[0]; }
         rows.forEach(function(er){ var p=String(pluValOf(er)).trim(); var tgt=p?byPlu[p]:null; var isNew=false;
+          if(!p){ nMiss++; return; }
+          var rsub=__rangeSubFor(p);
           if(!tgt){
-            if(!p){ nMiss++; return; }
             tgt=copyRow(null); tgt.plu=p;
-            var sb=subByPluRange(cat, p) || fallbackSub; tgt.sub=sb;
+            var sb=rsub || fallbackSub; tgt.sub=sb;
             existing.push(tgt); byPlu[p]=tgt; isNew=true; nNew++;
             if(!(sb in newBySub)){ newBySub[sb]=0; newSubOrder.push(sb); } newBySub[sb]++;
-          } else { nMatch++; }
+          } else { nMatch++;
+            if(rsub){ var __cur=rowSub(cat, tgt); if(__cur!==rsub){ nMoved++; if(!(rsub in movedBySub)){ movedBySub[rsub]=0; movedSubOrder.push(rsub); } movedBySub[rsub]++; } tgt.sub=rsub; }
+          }
           var __oldPrice=(__priceInChosen && !isNew)?String(getVal(tgt, __priceKey)||''):'';
           chosen.forEach(function(col){ if(String(col.key).toUpperCase()==='ITEMCODE1'){ __applyItemCodes(tgt, er); return; }
             // [조건5] Cancel 선택 시 — 이미 값이 있는 MSRP/SRP는 건너뜀 (나머지 필드는 정상 갱신)
@@ -3034,11 +3062,14 @@
           if(__priceInChosen && !isNew){ var __newPrice=String(getVal(tgt, __priceKey)||''); if(__oldPrice!==__newPrice && __newPrice!==''){ tgt.extra=tgt.extra||{}; tgt.extra['__PRICEUPD']=String(__now); __priceRecs.push({ ts:__now, cat:cat, sub:(tgt.sub||''), plu:String(p), eng:String(getVal(tgt,'ENG')||''), kor:String(getVal(tgt,'KOR')||''), oldp:__oldPrice, newp:__newPrice }); } }
         });
         if(!nMatch && !nNew){ showToast('가져올 수 있는 행이 없습니다 (PLU 없음)','error'); return; }
-        var __newDesc=nNew?(' · 신규 '+nNew+'행 추가 ('+newSubOrder.map(function(sb){ return (sb||'(중간 카테고리 없음)')+' '+newBySub[sb]; }).join(', ')+')'):'';
+        var __newDesc=(nNew?(' · 신규 '+nNew+'행 추가 ('+newSubOrder.map(function(sb){ return (sb||'(중간 카테고리 없음)')+' '+newBySub[sb]; }).join(', ')+')'):'')
+          +(nMoved?(' · 카테고리 이동 '+nMoved+'행 ('+movedSubOrder.map(function(sb){ return sb+' '+movedBySub[sb]; }).join(', ')+')'):'')
+          +(__needSubs.length?('\n· 설정에 없는 중간 카테고리 자동 추가: '+__needSubs.join(', ')):'');
         var __icMulti=rows.filter(function(r){return Array.isArray(r.itemCodes)&&r.itemCodes.length>1;}).length;
         if(!(await uiConfirm('['+cat+'] PLU 기준으로 데이터를 업데이트합니다.\n· 일치 '+nMatch+'행 갱신'+__newDesc+(__icMulti?(' · ITEM CODE 다중 '+__icMulti+'건'):'')+(nAuto?(' · MSRP 자동적용 '+nAuto+'건(마진 '+opts.margin+'%)'):'')+(nKept?(' · 기존 가격 유지 '+nKept+'칸'):'')+(__priceRecs.length?(' · 가격변경 '+__priceRecs.length+'건'):'')+(nMiss?(' · PLU 없는 '+nMiss+'행 무시'):'')+(__skipped.length?('\n· 매칭 안 된 엑셀 열 무시: '+__skipped.join(', ')):'')))) return;
+        if(__needSubs.length){ try{ await ensureRangeSubs(cat, rows.map(pluValOf)); }catch(e){ showToast('중간 카테고리 설정 저장 실패 — plu-config 권한 확인','error'); return; } }
         var ok=await saveCat(cat, existing, layoutByCat[cat]||defaultLayout([]));
-        if(ok){ if(__priceRecs.length){ try{ addHist('price', __priceRecs); }catch(e){} } editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 업데이트 완료 (갱신 '+nMatch+'행'+(nNew?(', 신규 '+nNew+'행'):'')+(__priceRecs.length?(', 가격변경 '+__priceRecs.length+'건'):'')+')','success'); }
+        if(ok){ if(__priceRecs.length){ try{ addHist('price', __priceRecs); }catch(e){} } editMode=false; work=null; workLayout=null; workDirty=false; renderContent(); showToast(cat+' 업데이트 완료 (갱신 '+nMatch+'행'+(nMoved?(', 이동 '+nMoved+'행'):'')+(nNew?(', 신규 '+nNew+'행'):'')+(__priceRecs.length?(', 가격변경 '+__priceRecs.length+'건'):'')+')','success'); }
         else showToast('저장 실패','error');
       }catch(err){ showToast('엑셀을 읽지 못했습니다','error'); }
     };
