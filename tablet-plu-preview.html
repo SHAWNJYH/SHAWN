@@ -20,7 +20,12 @@
 <!--
   tablet-plu-preview.html — 매장 태블릿 PLU 조회 (11인치 아이패드 = 1194×834 가로 기준)
   ─────────────────────────────────────────────────────────────────
-  [데이터] PLU MASTER = plu-list 컬렉션 + plu-config (plu-list-store 와 동일)
+  [데이터] PLU MASTER = egmm-hq-it 프로젝트 / DB egmm / PLU-LIST 트리 (plu-local-ver 가 기록하는 위치)
+    · 구조: PLU-LIST/_META(목차·savedAt) + PLU-LIST/{대분류}/{소분류}/{상품문서 plu·r.v}
+    · 이 태블릿은 청과(PRODUCE) 대분류만 내려받는다
+    · _META.savedAt 이 캐시와 같으면 상품 문서를 다시 읽지 않는다 (읽기 횟수 절감 — 20대 동시 구동)
+    · 광고·신상품·주간광고 설정(plu-preview-config)·매장 PIN(plu-store-pins)은 기존 the-shawn 유지
+      (tablet-plu-preview-manager.html 이 그쪽에 기록하므로 — 그 페이지 이전 시 함께 옮기면 됨)
     · 평소: 브라우저 저장(IndexedDB 'egmm-store-tablet')에서만 읽음 → 오프라인 동작
     · REFRESH: Firebase 에서 1회 가져와 저장 후 표시 (실시간 구독 없음)
   [레이아웃]
@@ -1373,15 +1378,231 @@
   };
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
-  window.__fbFetch = async function(){
-    const cols = ['plu-list','plu-config','plu-preview-config'];
-    const out = {};
-    for(const c of cols){
-      const o = {};
-      try{ const snap = await getDocs(collection(db, c)); snap.forEach(ds => { o[ds.id] = ds.data(); }); }catch(e){}
-      out[c] = o;
+
+  /* ══════════════════════════════════════════════════════════════
+     (2026-09) PLU 리스트 저장소 이전 — plu-local-ver 가 기록하는 위치를 읽는다
+       · 프로젝트: egmm-hq-it  /  Firestore DB 이름: egmm ((default) 아님!)
+       · 트리: PLU-LIST/_META (목차·savedAt)  +  PLU-LIST/{대분류ID}/{소분류ID}/{상품문서}
+       · 상품 문서: { plu, order, r:{ id, v:{ITEM_PLU·ITEM_KOREA·ITEM_ENGLISH·CATEGORY_*…}, sv:{매장:{…}} } }
+       · 보안 규칙이 로그인을 요구하므로 이 프로젝트에도 익명 인증이 켜져 있어야 한다
+     기존 the-shawn 연결(app/db)은 plu-preview-config · plu-store-pins 용으로 그대로 둔다.
+     ══════════════════════════════════════════════════════════════ */
+  const pluConfig = {
+    apiKey: "AIzaSyAHUP5maMayaUUDVVvkVSzBooAgdD8UOC0",
+    authDomain: "egmm-hq-it.firebaseapp.com",
+    projectId: "egmm-hq-it",
+    storageBucket: "egmm-hq-it.firebasestorage.app",
+    messagingSenderId: "675894371062",
+    appId: "1:675894371062:web:02c893e4d65da18f5602d7"
+  };
+  const PLU_DBID = "egmm";          // plu-local-ver 와 동일 — 콘솔의 DB 이름
+  const PLU_ROOT = "PLU-LIST";
+  const pluApp = initializeApp(pluConfig, "plu");
+  const pluDb  = getFirestore(pluApp, PLU_DBID);
+
+  /* egmm-hq-it 익명 인증 — __fbFetchPlu 가 내부에서 기다린다 (4초 폴백) */
+  const pluAuthReady = new Promise(function(res){
+    let done=false; const fin=function(){ if(!done){ done=true; res(); } };
+    try{
+      const a=getAuth(pluApp);
+      onAuthStateChanged(a, function(u){ if(u) fin(); });
+      signInAnonymously(a).catch(function(e){ console.warn('[egmm-hq-it 익명 인증 실패]', e&&e.code||e); fin(); });
+    }catch(e){ fin(); }
+    setTimeout(fin, 4000);
+  });
+
+  function pluErrText(e){
+    const t=String((e&&(e.code||e.message))||e||'');
+    if(/permission|denied/i.test(t)) return 'egmm-hq-it 접근 거부 — Firestore(DB: egmm) 규칙과 익명(Anonymous) 인증을 확인하세요';
+    if(/unavailable|network|offline|fetch/i.test(t)) return '네트워크 연결 실패';
+    return t.slice(0,120);
+  }
+
+  /* ── 필드 키 정규화 매칭 ──
+     plu-local-ver 는 필드 라벨을 keyFromLabel 로 키화한다: "KOR DESC" → KOR_DESC.
+     레이아웃마다 키가 다르다 (델리 사양 ITEM_KOREA / 사용자 지정 KOR_DESC / 구 레이아웃 KOR).
+     그래서 문서의 모든 키와 후보를 같은 방식(대문자 · 영숫자/한글만)으로 정규화해 비교한다.
+     후보 순서 = 우선순위, 값이 비어 있으면 다음 후보로 넘어간다. */
+  function normK(k){ return String(k||'').toUpperCase().replace(/[^A-Z0-9\uAC00-\uD7A3]/g,''); }
+  function keyMap(v){ const m={}; for(const k in v){ const n=normK(k); if(!(n in m)) m[n]=k; } return m; }
+  const CAND = {
+    plu : ['ITEMPLU','PLU','PLUNO','PLUNUMBER'],
+    kor : ['ITEMKOREA','KORDESC','KOREANDESC','ITEMKOR','KORNAME','KOR','KOREA','KOREAN','한글명','한글','상품명'],
+    eng : ['ITEMENGLISH','ENGDESC','ENGLISHDESC','ITEMENG','ENGNAME','ENG','ENGLISH','영문명','영문'],
+    cko : ['CATEGORYKOREA','CATEKOR','CATEGORYKOR','카테고리'],
+    cen : ['CATEGORYENGLISH','CATEENG','CATEGORYENG'],
+    cate: ['CATE','CATEGORY']                    // 구 레이아웃 — "한글 (ENG)" 합쳐진 값
+  };
+  function pickN(v, km, names){
+    for(const n of names){
+      const k=km[n];
+      if(k!=null && v[k]!=null && String(v[k]).trim()!=='') return String(v[k]).trim();
     }
+    return '';
+  }
+  /* 상품 문서 ID → PLU 복원: ID 는 PLU 그대로, 소분류 내 중복은 {PLU}-D2… (plu-local-ver 규칙) */
+  function pluFromId(id){
+    const t=String(id||'').replace(/-D\d+$/,'');
+    return /^R-/.test(t) ? '' : t;               // R-{내부id} = PLU 없는 행
+  }
+
+  /* 청과 대분류 찾기 — _META.tree 에서 이름/ID 로 판별 */
+  function isProduceBig(b){
+    const t=(String(b&&b.id||'')+' '+String(b&&b.name||'')).toLowerCase();
+    return t.indexOf('produce')>=0 || t.indexOf('청과')>=0;
+  }
+
+  /* PLU 리스트 읽기.
+       store        : 선택 매장 이름 (매장별 값 sv 를 마스터 v 위에 덮음)
+       cachedSavedAt: 캐시가 알고 있는 _META.savedAt — 같으면 상품 문서를 읽지 않는다
+     반환: { unchanged:true, meta }  또는  { cloud:{ '청과':[rows…] }, meta, got } */
+  window.__fbFetchPlu = async function(store, cachedSavedAt){
+    await pluAuthReady;
+    let ms;
+    try{ ms = await getDoc(doc(pluDb, PLU_ROOT, '_META')); }
+    catch(e){ throw new Error(pluErrText(e)); }
+    if(!ms.exists() || !ms.data() || ms.data().ver!=='v3')
+      throw new Error('egmm-hq-it(DB egmm)에 PLU 데이터가 없습니다 — plu-local-ver 에서 Firebase 업로드를 먼저 실행하세요');
+    const meta = ms.data();
+    if(cachedSavedAt && meta.savedAt && meta.savedAt===cachedSavedAt)
+      return { unchanged:true, meta };                       // 변경 없음 — 상품 문서 안 읽음
+
+    const bigs=(meta.tree||[]).filter(isProduceBig);
+    if(!bigs.length)
+      throw new Error('청과 대분류를 찾지 못했습니다 — 현재 대분류: '+(meta.tree||[]).map(function(b){return b.name||b.id;}).join(', '));
+
+    const normStore = String(store||'').toUpperCase().replace(/\s+/g,'');
+
+    const cloud={}; let got=0;
+    for(const b of bigs){
+      const rows=[];
+      for(const sb of (b.subs||[])){
+        let snap;
+        try{ snap = await getDocs(collection(pluDb, PLU_ROOT, b.id, sb.id)); }
+        catch(e){ throw new Error(pluErrText(e)); }
+        const part=[];
+        snap.forEach(function(ds){
+          const dd=ds.data(); if(!dd || !dd.r) return;      // _META 등 색인 문서 제외
+          const v0=(dd.r&&dd.r.v)||{};
+          /* 매장별 값(sv) 덮어쓰기 — 매장 이름 정규화(대문자·공백 제거) 매칭 */
+          let v=v0;
+          const svAll=dd.r&&dd.r.sv;
+          if(svAll && normStore){
+            for(const sk in svAll){
+              if(String(sk).toUpperCase().replace(/\s+/g,'')===normStore){
+                v=Object.assign({}, v0, svAll[sk]); break;
+              }
+            }
+          }
+          const km=keyMap(v);
+          // PLU: 문서 plu 필드 → v 안 후보 → 문서 ID (셋 다 실패하면 빈값)
+          let plu=String(dd.plu!=null?dd.plu:'').trim();
+          if(!plu) plu=pickN(v,km,CAND.plu);
+          if(!plu) plu=pluFromId(ds.id);
+          const kor=pickN(v,km,CAND.kor);
+          const eng=pickN(v,km,CAND.eng);
+          let cKo=pickN(v,km,CAND.cko);
+          let cEn=pickN(v,km,CAND.cen);
+          const cRaw=(!cKo&&!cEn)?pickN(v,km,CAND.cate):'';   // 구 레이아웃 "한글 (ENG)"
+          part.push({
+            plu:plu, kor:kor, eng:eng,
+            cate: (cKo&&cEn) ? (cKo+' ('+cEn+')') : (cKo||cEn||cRaw||''),
+            sub: String(sb.name||sb.id||''),               // 소분류 한글 원본 (야채·과일·로컬·박스·유기농…)
+            order: (typeof dd.order==='number'?dd.order:0),
+            extra: { 'CATE(KOR)':cKo, 'CATE(ENG)':cEn, 'ITEM_POS':String(v.ITEM_POS||'') }
+          });
+        });
+        part.sort(function(a,c){ return (a.order||0)-(c.order||0); });
+        for(const r of part){ delete r.order; rows.push(r); }
+        got+=part.length;
+      }
+      cloud[String(b.name||b.id)]=rows;
+    }
+    return { cloud:cloud, meta:meta, got:got };
+  };
+
+  /* 매장 목록 — plu-local-ver 가 기록하는 STORE/{매장ID} = { name, order }.
+     게이트의 매장 선택지가 데이터의 매장별 값(sv) 키와 정확히 같은 이름이 되도록
+     같은 위치에서 읽는다. 실패하면 게이트가 app-config/stores → 내장 목록으로 폴백. */
+  window.__fbFetchStores = async function(){
+    await pluAuthReady;
+    const snap = await getDocs(collection(pluDb, 'STORE'));
+    const arr=[];
+    snap.forEach(function(ds){ const d=ds.data(); if(d && d.name) arr.push({ name:String(d.name), order:(typeof d.order==='number'?d.order:999) }); });
+    arr.sort(function(a,b){ return a.order-b.order; });
+    return arr.map(function(x){ return x.name; });
+  };
+
+  /* ── 진단 도구 (Safari 콘솔에서 실행) ─────────────────────────
+       __ppFbDebug()  : egmm-hq-it 연결 → _META → 소분류별 첫 문서의 실제 필드 키와
+                        매핑 결과(plu·kor·eng·cate)를 표로 출력. 안 물리는 필드가 있으면
+                        여기 나온 키 이름을 알려주면 후보에 추가한다.
+     ──────────────────────────────────────────────────────── */
+  window.__ppFbDebug = async function(){
+    const out={ ok:false };
+    console.log('%c[PLU 진단] egmm-hq-it / DB '+PLU_DBID+' / '+PLU_ROOT,'font-weight:bold');
+    try{ await pluAuthReady; }catch(e){}
+    let ms;
+    try{ ms=await getDoc(doc(pluDb, PLU_ROOT, '_META')); }
+    catch(e){ console.error('✗ _META 읽기 실패:', pluErrText(e), e); out.err=pluErrText(e); return out; }
+    if(!ms.exists()){ console.error('✗ _META 문서 없음 — plu-local-ver 에서 Firebase 업로드를 먼저 실행'); out.err='NO _META'; return out; }
+    const meta=ms.data();
+    console.log('✓ _META  ver='+meta.ver+'  savedAt='+meta.savedAt+'  total='+meta.total);
+    console.log('  대분류:', (meta.tree||[]).map(b=>b.name+'('+b.id+'/'+(b.subs||[]).length+'소분류)').join(' · '));
+    const bigs=(meta.tree||[]).filter(isProduceBig);
+    if(!bigs.length){ console.error('✗ 청과 대분류 없음'); out.err='NO PRODUCE'; return out; }
+    out.rows=[]; out.keys={};
+    for(const b of bigs){
+      for(const sb of (b.subs||[])){
+        let snap;
+        try{ snap=await getDocs(collection(pluDb, PLU_ROOT, b.id, sb.id)); }
+        catch(e){ console.error('✗ '+b.id+'/'+sb.id+' 읽기 실패:', pluErrText(e)); continue; }
+        let n=0, first=null, miss=0;
+        snap.forEach(ds=>{ const dd=ds.data(); if(!dd||!dd.r) return; n++; if(!first) first={id:ds.id, dd:dd}; });
+        if(first){
+          const v=(first.dd.r&&first.dd.r.v)||{};
+          const km=keyMap(v);
+          const plu=String(first.dd.plu||'').trim()||pickN(v,km,CAND.plu)||pluFromId(first.id);
+          const kor=pickN(v,km,CAND.kor), eng=pickN(v,km,CAND.eng);
+          out.keys[b.id+'/'+sb.id]=Object.keys(v);
+          /* 분류(중간 카테고리) 값 분석 — "번호로 표시" 원인 추적용:
+             숫자만인 분류 값 = 화면에 번호로 표시 / 빈 분류 = 분류 그리드에서 그 행이 사라짐 */
+          let numCate=0, emptyCate=0, noName=0; const cateVals={};
+          snap.forEach(ds2=>{
+            const d2=ds2.data(); if(!d2||!d2.r) return;
+            const v2=(d2.r&&d2.r.v)||{}, km2=keyMap(v2);
+            const ck2=pickN(v2,km2,CAND.cko)||pickN(v2,km2,CAND.cate)||pickN(v2,km2,CAND.cen);
+            if(!ck2) emptyCate++;
+            else{ cateVals[ck2]=(cateVals[ck2]||0)+1; if(/^[0-9.\-\s]+$/.test(ck2)) numCate++; }
+            if(!pickN(v2,km2,CAND.kor)&&!pickN(v2,km2,CAND.eng)) noName++;
+          });
+          const topCate=Object.keys(cateVals).sort((a,c)=>cateVals[c]-cateVals[a]).slice(0,4)
+            .map(k=>k+'×'+cateVals[k]).join(' · ');
+          out.rows.push({ 소분류:sb.name+'('+sb.id+')', 문서수:n, 예시ID:first.id,
+            PLU:plu||'✗', KOR:kor||'✗', ENG:eng||'✗',
+            '분류값(상위)':topCate||'(없음)',
+            '숫자분류':numCate, '빈분류':emptyCate, '이름없음':noName,
+            필드키:Object.keys(v).join(', ').slice(0,120) });
+          if(numCate) console.warn('  ⚠ '+sb.name+': 분류 값이 숫자만인 행 '+numCate+'건 → 화면에 번호로 표시됩니다');
+          if(emptyCate) console.warn('  ⚠ '+sb.name+': 분류 값이 빈 행 '+emptyCate+'건 → 카테고리별 보기에서 보이지 않습니다 (순서대로 보기에는 나옴)');
+          if(noName) console.warn('  ⚠ '+sb.name+': 한글·영문 이름이 모두 빈 행 '+noName+'건 → 버튼에 PLU 번호만 표시됩니다');
+          if(!kor&&!eng) miss++;
+        } else {
+          out.rows.push({ 소분류:sb.name+'('+sb.id+')', 문서수:n, 예시ID:'-', PLU:'-', KOR:'-', ENG:'-', 필드키:'(상품 문서 없음)' });
+        }
+      }
+    }
+    try{ console.table(out.rows); }catch(e){ console.log(out.rows); }
+    out.ok=true;
+    console.log('※ PLU/KOR/ENG 에 ✗ 가 보이면 그 소분류의 "필드키" 목록을 복사해서 알려주세요.');
     return out;
+  };
+
+  /* the-shawn — 광고·신상품·주간광고 설정만 (plu-list 전체 덤프는 더 이상 읽지 않는다) */
+  window.__fbFetchPreview = async function(){
+    const o = {};
+    try{ const snap = await getDocs(collection(db, 'plu-preview-config')); snap.forEach(ds => { o[ds.id] = ds.data(); }); }catch(e){}
+    return o;
   };
   window.ppFb = { db, doc, getDoc, setDoc, deleteDoc, collection, getDocs };
   /* (요구1) 사진은 Firebase 를 쓰지 않는다 — 20대 이상 동시 구동 시 트래픽·읽기 한도 초과.
@@ -1451,6 +1672,9 @@
     return false;
   }
 
+  /* [레거시 · 2026-09 이후 미사용] the-shawn plu-list 덤프 파서.
+     PLU 리스트가 egmm-hq-it/PLU-LIST 트리로 이전되면서 __fbFetchPlu 가 대신한다.
+     되돌릴 일이 있으면 refresh() 에서 이 함수를 다시 연결하면 된다. */
   // plu-list(PLU MASTER) → { 카테고리: [rows] }, 각 row {plu, extra, sub}
   function parseSnap(upcList, upcConfig){
     var map=buildDocidMap(upcConfig);
@@ -1494,6 +1718,20 @@
   var SUB_ALIAS={ 'SEATTLE FOOD(떡)':'행복떡집','SEATTLE FOOD':'행복떡집','HANAYANG(떡)':'한양떡집','HANAYANG':'한양떡집' };
   function rowSub(r){ var s=(r&&r.sub!=null?String(r.sub):''); if(SUB_ALIAS[s]!=null) s=SUB_ALIAS[s]; return s; }
   var VEG=['야채','vegetable'], FRUIT=['과일','fruit'], BOX=['박스','box'], LOCAL=['로컬','local'];
+  /* (2026-09 사용자 확정) PLU 번호 범위 → 상단 카테고리
+       야채 1000~1999 / 청과("과일" 버튼) 2000~2999 / 로컬 3000~3999 / 박스 80000~89999 */
+  var PLU_RANGES={
+    VEGETABLE:[[1000,1999]],
+    FRUIT    :[[2000,2999]],
+    LOCAL    :[[3000,3999]],
+    BOX      :[[80000,89999]]
+  };
+  function pluInRange(r, catKey){
+    var n=parseInt(pluOf(r),10); if(isNaN(n)) return false;
+    var rs=PLU_RANGES[catKey]||[];
+    for(var i=0;i<rs.length;i++){ if(n>=rs[i][0] && n<=rs[i][1]) return true; }
+    return false;
+  }
   function subMatch(r, keys){
     // sub 필드 + CATE 필드 모두에서 키워드 매칭 (야채/과일 등은 sub 또는 cate 어느 쪽에 있을 수 있음)
     var s=(rowSub(r)+' '+cateOf(r)).toLowerCase();
@@ -1554,11 +1792,13 @@
     if(!DATA) return [];
     var pool=[];
     for(var lab in DATA.cloud){ var _rs2=DATA.cloud[lab]; if(!Array.isArray(_rs2)) _rs2=(_rs2&&Array.isArray(_rs2.rows))?_rs2.rows:[]; _rs2.forEach(function(r){ if(!isReserve(r)) pool.push(r); }); }  // 요구4: RESERVE 제외
-    if(catKey==='PRODUCE') return pool.filter(function(r){ return subMatch(r,VEG)||subMatch(r,FRUIT); });
-    if(catKey==='VEGETABLE') return pool.filter(function(r){ return subMatch(r,VEG); });
-    if(catKey==='FRUIT') return pool.filter(function(r){ return subMatch(r,FRUIT); });
-    if(catKey==='BOX') return pool.filter(function(r){ return subMatch(r,BOX); });
-    if(catKey==='LOCAL') return pool.filter(function(r){ return subMatch(r,LOCAL); });
+    /* (2026-09 사용자 확정) 상단 카테고리는 PLU 번호 범위로 구분한다 —
+       데이터의 소분류·카테고리 필드 값과 무관하게 번호가 기준이다.
+         야채 1000~1999 · 청과(과일 버튼) 2000~2999 · 로컬 3000~3999 · 박스 80000~89999
+       범위 밖 번호(유기농 90000번대 등)와 번호 없는 행은 "청과 전체"에서만 보인다.
+       이전의 소분류 이름 키워드 방식(subMatch)은 아래 PLU_RANGES 로 대체 — subMatch 는 SALES/ETC 용으로만 남는다. */
+    if(catKey==='PRODUCE') return pool;                    // 청과 전체 = 대분류 전체
+    if(PLU_RANGES[catKey]) return pool.filter(function(r){ return pluInRange(r, catKey); });
     if(catKey==='SALES'||catKey==='ETC'){
       var conf=(DATA.custom&&DATA.custom[catKey])||null;
       // 매니저(tablet-plu-preview-manager)에서 직접 입력한 항목 우선
@@ -1616,8 +1856,19 @@
   }
   // 원본 cate 값 (합쳐진 "한글 (ENG)" 형태 또는 단일)
   function cateRawOf(r){ if(!r) return ''; if(r.cate!=null && String(r.cate).trim()!=='') return String(r.cate).trim(); return extraGet(r,['CATEGORY','CATE']); }
-  // 카테고리 고유 키 (그룹핑용) — 한글+영문 조합
-  function cateOf(r){ var ko=cateKorOf(r), en=cateEngOf(r); if(ko&&en) return ko+' \u0001 '+en; return ko||en||cateRawOf(r); }
+  // 카테고리 고유 키 (그룹핑용) — 한글+영문 조합.
+  // (2026-09) 숫자·기호만인 분류 값(예: "3000")은 분류가 아니라 PLU 범위 표기이므로
+  //           분류 없음('')으로 취급한다 — 번호로 된 분류 버튼이 생기지 않는다.
+  function isNumericCate(s){ s=String(s==null?'':s).trim(); return !!s && /^[0-9.\-~\s]+$/.test(s); }
+  function cateOf(r){
+    var ko=cateKorOf(r), en=cateEngOf(r);
+    if(isNumericCate(ko)) ko='';
+    if(isNumericCate(en)) en='';
+    if(ko&&en) return ko+' \u0001 '+en;
+    var one=ko||en; if(one) return one;
+    var raw=cateRawOf(r);
+    return isNumericCate(raw) ? '' : raw;
+  }
   // 카테고리 키 → {kor, eng}
   function cateKeyParts(key){ var p=String(key||'').split(' \u0001 '); if(p.length===2) return {kor:p[0], eng:p[1]}; return splitCate(key); }
   // CATE 를 한글/영문으로 분리 ("상추 (LETTUCE)" → {kor:'상추', eng:'LETTUCE'})
@@ -2656,9 +2907,17 @@
   function setLoading(on,msg){ $('loadOv').classList.toggle('show',on); if(msg)$('loadT').textContent=msg; $('refreshBox').classList.toggle('loading',on); }
   // 매장 식별자가 로그인 이후에 정해진 경우(첫 로그인) 다시 읽어온다
   function syncStore(){
-    if(STORE) return STORE;
-    STORE=readStore();
-    if(STORE) KEY='snapshot::'+STORE;
+    /* (2026-09) 게이트에서 다른 매장을 선택하면 localStorage 값이 바뀐다.
+       이전에는 STORE 가 한 번 정해지면 갱신되지 않아 이전 매장 데이터가 그대로 남았다.
+       이제 저장된 매장과 다르면 STORE·캐시 키를 새 매장으로 옮기고 메모리 데이터를 비운다
+       (매장별 캐시 snapshot::{매장} 에서 다시 읽거나 새로 내려받는다). */
+    var cur=readStore();
+    if(cur && cur!==STORE){
+      STORE=cur; KEY='snapshot::'+STORE;
+      DATA=null;                       // 이전 매장 데이터 폐기 — 새 매장 캐시/다운로드로 대체
+    } else if(!STORE && cur){
+      STORE=cur; KEY='snapshot::'+STORE;
+    }
     return STORE;
   }
   // 매장별로 따로 저장된 설정(plu-preview-config/{매장}) 가져오기
@@ -2707,27 +2966,40 @@
       if(!fbReady){ listErr='네트워크 준비 안 됨'; }
       else{
         if(!silent) setLoading(true,'PLU 리스트 가져오는 중…');
-        var raw=await window.__fbFetch();
-        var listRaw=(raw&&raw['plu-list'])||{};
-        var pcAll=(raw&&raw['plu-preview-config'])||{};
-        var hasList=Object.keys(listRaw).length>0;
+        /* (2026-09) PLU 리스트 = egmm-hq-it / DB egmm / PLU-LIST (plu-local-ver 저장 위치)
+                     광고·설정   = the-shawn / plu-preview-config (기존 그대로)
+           둘을 나란히 시작해 동시에 기다린다. */
+        var pluTask=(async function(){
+          try{ return { r: await window.__fbFetchPlu(STORE, DATA&&DATA.pluSavedAt) }; }
+          catch(e){ return { err:(e&&e.message)?e.message:String(e) }; }
+        })();
+        var pcAll=await window.__fbFetchPreview();
         var pc=await fetchStoreConfig(pcAll);
         var hasPc=!!pc;
+        var pluRes=await pluTask;
+        var plu=pluRes.r||null;
+        if(pluRes.err && !silent) console.warn('[PLU 리스트]', pluRes.err);
+        var hasList=!!(plu && (plu.unchanged || (plu.cloud && Object.keys(plu.cloud).length)));
         if(!hasList && !hasPc){
-          listErr='PLU 리스트를 가져오지 못했습니다';
+          listErr=pluRes.err || 'PLU 리스트를 가져오지 못했습니다';
         } else {
           pc=pc||{};
-          var cloud=hasList ? parseSnap(listRaw, (raw['plu-config']||{})) : ((DATA&&DATA.cloud)||{});
-          if(hasList && !Object.keys(cloud).length && DATA && DATA.cloud && Object.keys(DATA.cloud).length) cloud=DATA.cloud;
+          // unchanged = _META.savedAt 이 캐시와 동일 → 캐시 그대로 (상품 문서 재다운로드 없음)
+          var cloud = (plu && plu.cloud) ? plu.cloud
+                    : ((DATA&&DATA.cloud)||{});
+          if(plu && plu.cloud && !Object.keys(plu.cloud).length && DATA && DATA.cloud && Object.keys(DATA.cloud).length) cloud=DATA.cloud;
           var custom={};
           if(pc.sales && (Array.isArray(pc.sales.subs)||Array.isArray(pc.sales.items))) custom.SALES={ subs:(pc.sales.subs||[]), plus:(pc.sales.plus||[]), items:(pc.sales.items||[]) };
           if(pc.etc && (Array.isArray(pc.etc.subs)||Array.isArray(pc.etc.items))) custom.ETC={ subs:(pc.etc.subs||[]), plus:(pc.etc.plus||[]), items:(pc.etc.items||[]) };
           if(DATA&&DATA.custom){ for(var ck in DATA.custom){ if(!custom[ck]) custom[ck]=DATA.custom[ck]; } }
           var msg=(pc.msg!=null)?String(pc.msg):((DATA&&DATA.msg)||'');
           var weekly=Array.isArray(pc.weekly)?pc.weekly:((DATA&&DATA.weekly)||[]);
-          DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, store:STORE, savedAt:Date.now() };
+          DATA={ cloud:cloud, custom:custom, msg:msg, weekly:weekly, store:STORE, savedAt:Date.now(),
+                 // plu-local-ver 업로드 시각 — 다음 UPDATE 때 같으면 상품 문서를 다시 읽지 않는다
+                 pluSavedAt:(plu&&plu.meta&&plu.meta.savedAt)||((DATA&&DATA.pluSavedAt)||null) };
           await cacheSet(DATA);
           listOk=true;
+          if(pluRes.err) listErr=pluRes.err;   // 설정만 성공한 경우 기록 (팝업은 listOk 로 억제)
           render(); updateMeta(); renderMsg();
         }
       }
@@ -2738,14 +3010,29 @@
     try{ imgOk=await imgTask; }catch(e){}
     render();
 
+    if(!listOk && listErr){ window.__ppLastPluErr=listErr; console.error('[PLU 리스트]', listErr); }
     if(!silent && !listOk){
-      alert('PLU 리스트를 가져오지 못했습니다.\n인터넷 연결을 확인하세요.\n\n'+listErr+
-            (imgOk ? '\n\n(사진은 정상적으로 받았습니다)' : ''));
+      alert('PLU 리스트를 가져오지 못했습니다.\n\n'+listErr+
+            (imgOk ? '\n\n(사진은 정상적으로 받았습니다)' : '')+
+            '\n\n콘솔에서 __ppFbDebug() 를 실행하면 원인을 자세히 보여줍니다.');
+    }
+    // 스플래시(조용한) 첫 로드가 실패했고 보여줄 캐시도 없으면 — 원인을 화면에 알린다 (한 번만)
+    if(silent && !listOk && listErr && !window.__ppErrShown &&
+       (!DATA || !DATA.cloud || !Object.keys(DATA.cloud).length)){
+      window.__ppErrShown=1;
+      setTimeout(function(){ alert('PLU 리스트를 가져오지 못했습니다.\n\n'+listErr+
+        '\n\n· egmm-hq-it Firestore(DB: egmm) 보안 규칙과 익명(Anonymous) 인증 확인'+
+        '\n· plu-local-ver 에서 Firebase 업로드 실행 여부 확인'+
+        '\n· 콘솔 진단: __ppFbDebug()'); }, 600);
     }
     if(!silent) setLoading(false);
     return listOk || imgOk;
   }
   window.__ppRefresh = refresh;   // 시작 스플래시에서 호출
+  /* 콘솔 확인용 — Safari 개발자 콘솔에서 데이터 상태 점검 (__toZh 와 같은 용도) */
+  window.__ppData=function(){ return DATA; };
+  window.__ppRows=function(cat){ return rowsForCat(cat||curCat); };
+  window.__ppSearch=function(q){ return searchRows(q); };
 
   async function boot(){
     var c=await cacheGet();
@@ -3067,11 +3354,15 @@
     if(!cates.length){
       if((curCat==='SALES'||curCat==='ETC') && isAdmin){
         pane.innerHTML='<div class="empty">아직 설정된 항목이 없습니다.<br>관리자 모드에서 표시할 분류를 등록하세요.</div>';
+        return;
       } else if(curCat==='SALES'||curCat==='ETC'){
         pane.innerHTML='<div class="empty">이 카테고리는 관리자가 설정합니다.</div>';
-      } else {
-        pane.innerHTML='<div class="empty">표시할 항목이 없습니다</div>';
+        return;
       }
+      /* (2026-09) 로컬·박스처럼 PLU 범위로만 구분되고 중간 분류가 없는 카테고리 —
+         빈 분류 화면 대신 곧장 상품 목록 전체를 보여준다 (정렬·보기 전환 그대로 적용) */
+      if(rowsForCat(curCat).length){ renderProductList(pane, true); return; }
+      pane.innerHTML='<div class="empty">표시할 항목이 없습니다</div>';
       return;
     }
     // 표시 이름을 먼저 계산 (정렬·렌더에 재사용 — engForCate 중복 호출 방지)
@@ -3121,10 +3412,11 @@
 
 
   // (요구3·5) 상품 리스트 — PLU 최대·붉은 BOLD, 영/한
-  function renderProductList(pane){
-    // 매니저 직접입력(SALES/ETC items)은 분류 필터 없이 전체 표시
+  function renderProductList(pane, showAll){
+    // 매니저 직접입력(SALES/ETC items)은 분류 필터 없이 전체 표시.
+    // showAll=true — 중간 분류가 없는 카테고리(PLU 범위 구분: 로컬·박스 등)의 전체 목록
     var __direct=(curCat==='SALES'||curCat==='ETC') && DATA && DATA.custom && DATA.custom[curCat] && Array.isArray(DATA.custom[curCat].items) && DATA.custom[curCat].items.length;
-    var rows=__direct ? rowsForCat(curCat)
+    var rows=(__direct||showAll) ? rowsForCat(curCat)
                       : rowsForCat(curCat).filter(function(r){ return cateOf(r)===curCate; });
     // (요구9·10) 번호순 = PLU 1000·1001·1002… / 이름순 = 선택 언어 이름의 A B C · ㄱ ㄴ ㄷ 순
     (function(){
@@ -3144,6 +3436,25 @@
         });
       }
     })();
+    if(showAll && !__direct){
+      // 상단 카테고리 버튼의 한글 라벨(로컬·박스 등)을 제목으로
+      var __cb=document.querySelector('.cat-box[data-cat="'+curCat+'"]');
+      var __lb=__cb ? (((__cb.querySelector('.sub')||{}).textContent)||curCat) : curCat;
+      var __hd='<div class="crumb"><span class="crumb-title">'+esc(__lb)+'<span class="cnt">'+rows.length+'개</span></span>'+
+        (vmodeApplies()?vmodeHtml():'')+'</div>';
+      if(!rows.length){ pane.innerHTML=__hd+'<div class="empty">표시할 상품이 없습니다</div>'; return; }
+      var __html=__hd+'<div class="plu-grid">';
+      rows.forEach(function(r){
+        var plu=pluOf(r), en=engOf(r), ko=korOf(r), nm=itemName(ko, en);
+        __html+='<button class="plu-item'+(plu===selPlu?' sel':'')+'" data-plu="'+esc(plu)+'" data-ko="'+esc(ko)+'" data-en="'+esc(en)+'">'+
+          '<span class="num">'+esc(plu)+'</span>'+
+          (nm.main?('<span class="en">'+esc(nm.main)+'</span>'):'')+
+          (nm.sub?('<span class="ko">'+esc(nm.sub)+'</span>'):'')+
+          '</button>';
+      });
+      pane.innerHTML=__html+'</div>';
+      return;
+    }
     var sp=cateKeyParts(__direct ? (curCat==='SALES'?'SALES ITEM|광고상품':'ETC|기타상품') : curCate);
     var cEng=sp.eng || engForCate(curCate);
     var cnm=cateName(sp.kor, cEng);
@@ -4762,10 +5073,21 @@
 })();
 </script>
 <script>
-/* === 매장 PIN 진입 게이트 === 매장 선택 + PIN (plu-store-pins) 통과 전 화면 잠금 · 자동 로그인 없음 */
+/* === 매장 진입 게이트 (2026-09 개정) ===
+   · 일반 매장: 매장 선택 → ENTER 만으로 입장 (PIN 제거 — plu-store-pins 조회 안 함)
+   · EGMM(99): 본사 전용 — 선택하면 PIN 입력이 나타나고 10041004 를 넣어야 입장
+   · 화면 잠금 · 자동 로그인 없음 (같은 탭 새로고침만 유지) */
 (function(){
   'use strict';
   var FALLBACK=['TACOMA','FEDERALWAY','BELLEVUE','BALLARD','REDMOND','LYNNWOOD','G-MART','MELLOW WAY','DISTRICT-H','M2M','UNIVERSITY'];
+  /* EGMM(99) = 본사 매장 — app-config/stores 목록에 없어도 항상 선택지에 넣는다.
+     저장 값(theShawnStore)은 'EGMM' — plu-local-ver 매장별 값(sv)의 키와 일치해야 한다. */
+  var EGMM_STORE='EGMM', EGMM_LABEL='EGMM (99)', EGMM_PIN='10041004';
+  function withEgmm(list){
+    var out=list.slice();
+    if(out.indexOf(EGMM_STORE)<0) out.push(EGMM_STORE);
+    return out;
+  }
   var VALID=null,_vp=null;
   function fbReady(cb){ if(window.ppFb) cb(); else window.addEventListener('fb-ready', cb, {once:true}); }
   function getDocData(col,id){
@@ -4775,16 +5097,34 @@
       });
     });
   }
+  /* 매장 목록 소스 (2026-09): ① plu-local-ver 의 STORE 컬렉션 (egmm-hq-it — 데이터의
+     매장별 값 sv 키와 같은 이름) → ② the-shawn app-config/stores → ③ 내장 목록.
+     어느 경로든 EGMM(99) 은 항상 붙는다. */
+  function pluStoresFn(){
+    return new Promise(function(res){
+      if(window.__fbFetchStores) return res(window.__fbFetchStores);
+      var n=0, t=setInterval(function(){
+        if(window.__fbFetchStores){ clearInterval(t); res(window.__fbFetchStores); }
+        else if(++n>50){ clearInterval(t); res(null); }   // 5초 — 모듈(CDN) 로드 실패 대비
+      },100);
+    });
+  }
   function loadStores(){
     if(VALID) return Promise.resolve(VALID);
     if(_vp) return _vp;
     var to=new Promise(function(r){ setTimeout(function(){ r('__t__'); },6000); });
-    var fp=getDocData('app-config','stores').then(function(d){
-      var l=(d&&Array.isArray(d.list))?d.list.map(function(x){return String((x&&x.name)||x||'').trim().toUpperCase();}).filter(Boolean):[];
-      return l.length?l:FALLBACK.slice();
-    }).catch(function(){ return FALLBACK.slice(); });
+    var fp=pluStoresFn().then(function(fn){ return fn?fn():[]; }).catch(function(){ return []; })
+      .then(function(l1){
+        var a=(l1||[]).map(function(x){ return String(x||'').trim().toUpperCase(); }).filter(Boolean);
+        if(a.length) return withEgmm(a);
+        // 폴백: 기존 the-shawn app-config/stores
+        return getDocData('app-config','stores').then(function(d){
+          var l=(d&&Array.isArray(d.list))?d.list.map(function(x){return String((x&&x.name)||x||'').trim().toUpperCase();}).filter(Boolean):[];
+          return withEgmm(l.length?l:FALLBACK.slice());
+        });
+      }).catch(function(){ return withEgmm(FALLBACK.slice()); });
     _vp=Promise.race([fp,to]).then(function(r){
-      if(r==='__t__'){ fp.then(function(real){ VALID=real; fill(); }); VALID=FALLBACK.slice(); }
+      if(r==='__t__'){ fp.then(function(real){ VALID=real; fill(); }); VALID=withEgmm(FALLBACK.slice()); }
       else VALID=r;
       fill(); return VALID;
     });
@@ -4793,7 +5133,10 @@
   function fill(){
     var sel=document.getElementById('ppgStore'); if(!sel||!VALID) return;
     var cur=sel.value || (function(){ try{ return localStorage.getItem('theShawnStore')||''; }catch(e){ return ''; } })();
-    sel.innerHTML='<option value="">SELECT STORE</option>'+VALID.map(function(n){ return '<option value="'+n.replace(/"/g,'&quot;')+'">'+n+'</option>'; }).join('');
+    sel.innerHTML='<option value="">SELECT STORE</option>'+VALID.map(function(n){
+      var lb=(n===EGMM_STORE)?EGMM_LABEL:n;                 // EGMM 은 (99) 표기로 표시
+      return '<option value="'+n.replace(/"/g,'&quot;')+'">'+lb+'</option>';
+    }).join('');
     if(cur && VALID.indexOf(String(cur).toUpperCase())>=0) sel.value=String(cur).toUpperCase();
   }
   function unlock(){ var o=document.getElementById('ppGateOv'); if(o) o.remove(); document.documentElement.classList.remove('pp-gate-lock'); }
@@ -4810,7 +5153,9 @@
       o.innerHTML='<div class="ppg-card">'
         +'<h1 class="ppg-title">PLU PREVIEW</h1>'
         +'<div class="ppg-field"><label>STORE</label><select id="ppgStore"><option value="">LOADING…</option></select></div>'
-        +'<div class="ppg-field"><label>PIN</label>'
+        // PIN 은 EGMM(99) 전용 — 일반 매장 선택 시에는 이 영역 전체가 숨는다
+        +'<div class="ppg-field" id="ppgPinField" style="display:none">'
+          +'<label>EGMM PIN</label>'
           +'<div class="ppg-pin" id="ppgPin"><span class="ph" id="ppgPh">ENTER PIN</span><span id="ppgDots"></span></div>'
           +'<div class="ppg-pad" id="ppgPad">'+pad+'</div>'
         +'</div>'
@@ -4821,6 +5166,12 @@
       (document.body||document.documentElement).appendChild(o);
       fill(); loadStores();
       document.getElementById('ppgEnter').onclick=submit;
+      document.getElementById('ppgStore').addEventListener('change', function(){
+        PIN=''; renderPin();
+        var er0=document.getElementById('ppgErr'); if(er0) er0.textContent='';
+        var pf=document.getElementById('ppgPinField');
+        if(pf) pf.style.display = (this.value===EGMM_STORE) ? '' : 'none';
+      });
       document.getElementById('ppgCancel').onclick=function(){ location.replace('index.html'); };
       // 자체 키패드 — 아이패드 기본 키보드가 뜨지 않고, 로그인 카드 안에서만 동작
       document.getElementById('ppgPad').addEventListener('click', function(e){
@@ -4851,24 +5202,27 @@
     if(ph) ph.style.display=PIN.length?'none':'';
     if(box) box.classList.toggle('on', PIN.length>0);
   }
-  var busy=false;
+  function enterAs(st){
+    var prev=''; try{ prev=String(localStorage.getItem('theShawnStore')||'').toUpperCase().trim(); }catch(e){}
+    try{ localStorage.setItem('theShawnStore', st); }catch(e){}
+    try{ sessionStorage.setItem('ppGate','1'); }catch(e){}
+    if(prev && prev!==st){ location.reload(); return; }   // 매장 변경 — 스플래시부터 그 매장 데이터로 재시작
+    unlock();
+  }
   function submit(){
-    if(busy) return;
     var st=(document.getElementById('ppgStore').value||'').trim().toUpperCase();
-    var pin=PIN.trim();
     var er=document.getElementById('ppgErr');
     if(er) er.textContent='';
     if(!st){ if(er) er.textContent='SELECT STORE'; return; }
-    if(!pin){ if(er) er.textContent='ENTER PIN'; return; }
-    busy=true; if(er) er.textContent='CHECKING…';
-    getDocData('plu-store-pins', st).then(function(d){
-      busy=false;
-      if(!d || d.pin==null){ if(er) er.textContent='PIN NOT SET · ASK MANAGER'; return; }
-      if(String(d.pin)!==String(pin)){ if(er) er.textContent='WRONG PIN'; PIN=''; renderPin(); return; }
-      try{ localStorage.setItem('theShawnStore', st); }catch(e){}
-      try{ sessionStorage.setItem('ppGate','1'); }catch(e){}
-      unlock();
-    }).catch(function(){ busy=false; if(er) er.textContent='CONNECTION ERROR — TRY AGAIN'; });
+    if(st===EGMM_STORE){
+      // EGMM(99) 본사 — PIN 10041004 필수 (Firebase 조회 없음)
+      var pin=PIN.trim();
+      if(!pin){ if(er) er.textContent='ENTER PIN'; return; }
+      if(pin!==EGMM_PIN){ if(er) er.textContent='WRONG PIN'; PIN=''; renderPin(); return; }
+      enterAs(st); return;
+    }
+    // 일반 매장 — 선택만으로 입장 (PIN 제거 · plu-store-pins 조회 안 함)
+    enterAs(st);
   }
   document.documentElement.classList.add('pp-gate-lock');
   document.addEventListener('DOMContentLoaded', function(){
