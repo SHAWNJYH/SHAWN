@@ -432,7 +432,8 @@
   }
   async function matchPin(entered, stored){
     entered = String(entered||'').trim(); stored = String(stored||'');
-    if (stored.slice(0,2)==='h:' || stored.slice(0,2)==='p:') return (await hashPin(entered))===stored;
+    if (stored.slice(0,2)==='h:') return (await hashPin(entered))===stored;   // 해시 저장
+    if (stored.slice(0,2)==='p:') return entered===stored.slice(2);           // 평문(마커) 저장
     return entered===stored;                       // 레거시 평문
   }
   function waitFb(ms){                              // firebase 모듈(fbSM) 준비 대기
