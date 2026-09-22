@@ -358,14 +358,97 @@
 
   /* 태블릿에서 목록 스크롤 관성(momentum) 활성화 */
   .data-scroll, .stock-scroll { -webkit-overflow-scrolling: touch; }
+
+  /* ══════════ CAMPEON PIN 게이트 ══════════
+     구 campeon-wholsale.html 로그인 페이지를 대시보드 내장 팝업으로 대체.
+     인증 전에는 화면을 블러 처리하고 조작을 막는다. */
+  body.locked { overflow: hidden; }
+  body.locked .app, body.locked header { filter: blur(6px); pointer-events: none; user-select: none; }
+  #pinGate {
+    position: fixed; inset: 0; z-index: 6000;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(15,23,42,.55);
+  }
+  #pinGate .pg-card {
+    background: #fff; border-radius: 14px; padding: 30px 34px 24px;
+    width: 340px; max-width: calc(100vw - 32px);
+    box-shadow: 0 18px 50px rgba(0,0,0,.35); text-align: center;
+  }
+  #pinGate h3 { font-size: 15px; letter-spacing: .6px; color: #0f172a; margin-bottom: 4px; }
+  #pinGate .pg-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+  #pinGate input[type=password] {
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px;
+    font-size: 20px; text-align: center; letter-spacing: 8px; font-family: inherit;
+  }
+  #pinGate input[type=password]:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  #pinGate .pg-err { color: #dc2626; font-size: 12px; font-weight: 700; min-height: 16px; margin-top: 8px; }
+  #pinGate .pg-btn {
+    width: 100%; margin-top: 10px; border: none; border-radius: 8px; background: #101827; color: #fff;
+    padding: 13px 0; font-size: 14px; font-weight: 800; letter-spacing: 1px; cursor: pointer;
+  }
+  #pinGate .pg-btn:hover { filter: brightness(1.18); }
+  #pinGate label.pg-auto {
+    display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 13px;
+    font-size: 12px; color: #475569; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
 </style>
 </head>
 <body>
 <div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
-<!-- 진입 가드 제거: campeon-wholsale.html(구 로그인 페이지)은 은퇴 — index 포털에서 바로 진입.
-     존재하지 않는 파일로 리다이렉트되면서 호스팅 폴백(index)이 깊은 주소에 뜨는
-     WHOLSALE/WHOLSALE/… 주소 중첩 루프의 1차 원인이었음. 데이터 저장소(Firestore
-     campeon-wholsale/sales-data 문서)는 파일과 무관하므로 영향 없음. -->
+<!-- ══ CAMPEON PIN 게이트 ══
+     구 campeon-wholsale.html(은퇴) 로그인을 대시보드 내장 팝업으로 대체.
+     · 기본 PIN: 1004
+     · PIN 변경: 아래 CAMPEON_PIN_HASH 값을 새 PIN의 SHA-256으로 교체.
+       (이 페이지 접속 후 브라우저 콘솔에서  await pinHash('새PIN')  실행하면 해시가 출력됨)
+     · '자동 로그인' 체크 시 이 기기에서는 다시 묻지 않음(localStorage.campeonAutoLogin).
+       기존 로그인 시스템과 같은 키를 쓰므로 예전에 자동 로그인한 기기는 그대로 통과. -->
+<div id="pinGate" hidden>
+  <div class="pg-card">
+    <h3>CAMPEON WHOLESALE</h3>
+    <div class="pg-sub">SALES MANAGEMENT &middot; PIN 입력</div>
+    <input id="pgInput" type="password" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="PIN" aria-label="PIN">
+    <div class="pg-err" id="pgErr"></div>
+    <button class="pg-btn" id="pgBtn" type="button">확인</button>
+    <label class="pg-auto"><input type="checkbox" id="pgAuto"> 이 기기에서 자동 로그인 (다시 묻지 않음)</label>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  var CAMPEON_PIN_HASH = '75992a5ac67ff644d3063976c2effd10bdd93fcc109798e3d5c1acf2e530d01a';  // ← PIN의 SHA-256 (기본 PIN: 1004)
+  async function sha256(t){
+    var d = new TextEncoder().encode(String(t));
+    var b = await crypto.subtle.digest('SHA-256', d);
+    return Array.from(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+  }
+  window.pinHash = sha256;                          // 콘솔에서 새 PIN 해시 생성용
+  var passed = false;
+  try { passed = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1'; } catch(e){}
+  var ov = document.getElementById('pinGate');
+  if (passed){ if (ov) ov.remove(); return; }       // 이번 세션/자동 로그인 기기 → 게이트 없이 통과
+  document.body.classList.add('locked');            // 이후 파싱되는 화면은 블러+조작 차단 상태로 뜸
+  ov.hidden = false;
+  var inp = document.getElementById('pgInput'), err = document.getElementById('pgErr');
+  async function submit(){
+    var v = (inp.value || '').trim();
+    if (!v){ err.textContent = 'PIN을 입력하세요'; inp.focus(); return; }
+    if (!(window.crypto && crypto.subtle)){ err.textContent = '이 환경에서는 PIN 확인이 불가합니다 (HTTPS로 접속하세요)'; return; }
+    try {
+      if (await sha256(v) === CAMPEON_PIN_HASH){
+        try {
+          sessionStorage.setItem('campeonGate','1');
+          if (document.getElementById('pgAuto').checked) localStorage.setItem('campeonAutoLogin','1');
+        } catch(e){}
+        document.body.classList.remove('locked');
+        ov.remove();
+      } else { err.textContent = 'PIN이 올바르지 않습니다'; inp.value=''; inp.focus(); }
+    } catch(e){ err.textContent = 'PIN 확인 중 오류가 발생했습니다'; }
+  }
+  document.getElementById('pgBtn').addEventListener('click', submit);
+  inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') submit(); });
+  setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 80);
+})();
+</script>
 <header>
   <div class="logo">SALES MANAGEMENT <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
   <nav>
