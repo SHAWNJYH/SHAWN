@@ -1303,14 +1303,12 @@ function renderStockData(){
   renderMonthTotals('stock');
 }
 
-/* ═════════════════════════ DASHBOARD ═════════════════════════ */
-/* 부서 집계는 열 '위치'가 아니라 부서 '이름' 기준으로 매핑한다.
-   (원본 엑셀 dashboard는 Seafood 행이 sales!E(=houseware 열)를 읽는 위치 기반 수식이라
-    Seafood↔Houseware 값이 서로 바뀌어 표시되는 버그가 있었음 — 여기서 이름 기준으로 교정)
-   sales 필드: g=Grocery, p=Produce, m=Meat, h=Houseware, s=Seafood, d=Deli, b=Bakery      */
+/* ═════════════════════════ DASHBOARD — 수식 그대로 ═════════════════════════ */
+/* dashboard 수식의 열 참조를 그대로 유지:
+   Grocery←sales!B, Produce←C, Meat←D, Seafood←E, Houseware←F, Deli←G, Bakery←H            */
 const DEPT_ROWS = [
   ['Grocery','g'], ['Produce','p'], ['Meat','m'],
-  ['Seafood','s'], ['Houseware','h'], ['Deli','d'], ['Bakery','b']
+  ['Seafood','h'], ['Houseware','s'], ['Deli','d'], ['Bakery','b']
 ];
 function sumSalesCol(col, from, to){           // SUMIFS(sales!col, date range)
   let s=0; for (const r of DB.sales){ if (r.date>=from && r.date<=to && typeof r[col]==='number') s+=r[col]; }
