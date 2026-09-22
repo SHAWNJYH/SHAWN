@@ -362,15 +362,10 @@
 </head>
 <body>
 <div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
-<script>
-  /* === 진입 가드 === campeon-wholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
-  (function(){
-    try{
-      var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
-      if(!ok){ location.replace('campeon-wholsale.html'); }
-    }catch(e){}
-  })();
-</script>
+<!-- 진입 가드 제거: campeon-wholsale.html(구 로그인 페이지)은 은퇴 — index 포털에서 바로 진입.
+     존재하지 않는 파일로 리다이렉트되면서 호스팅 폴백(index)이 깊은 주소에 뜨는
+     WHOLSALE/WHOLSALE/… 주소 중첩 루프의 1차 원인이었음. 데이터 저장소(Firestore
+     campeon-wholsale/sales-data 문서)는 파일과 무관하므로 영향 없음. -->
 <header>
   <div class="logo">SALES MANAGEMENT <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
   <nav>
@@ -380,7 +375,7 @@
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
   <div class="today"><span class="sync" id="syncState">OFFLINE</span>Today: <b id="todayLabel"></b></div>
-  <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
+  <button onclick="location.href=(/^https?:$/.test(location.protocol)?'/':'../index.html')" title="포털(index)로 돌아가기" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← HOME</button>
 </header>
 
 <div class="app">
@@ -1303,12 +1298,14 @@ function renderStockData(){
   renderMonthTotals('stock');
 }
 
-/* ═════════════════════════ DASHBOARD — 수식 그대로 ═════════════════════════ */
-/* dashboard 수식의 열 참조를 그대로 유지:
-   Grocery←sales!B, Produce←C, Meat←D, Seafood←E, Houseware←F, Deli←G, Bakery←H            */
+/* ═════════════════════════ DASHBOARD ═════════════════════════ */
+/* 부서 집계는 열 '위치'가 아니라 부서 '이름' 기준으로 매핑한다.
+   (원본 엑셀 dashboard는 Seafood 행이 sales!E(=houseware 열)를 읽는 위치 기반 수식이라
+    Seafood↔Houseware 값이 서로 바뀌어 표시되는 버그가 있었음 — 여기서 이름 기준으로 교정)
+   sales 필드: g=Grocery, p=Produce, m=Meat, h=Houseware, s=Seafood, d=Deli, b=Bakery      */
 const DEPT_ROWS = [
   ['Grocery','g'], ['Produce','p'], ['Meat','m'],
-  ['Seafood','h'], ['Houseware','s'], ['Deli','d'], ['Bakery','b']
+  ['Seafood','s'], ['Houseware','h'], ['Deli','d'], ['Bakery','b']
 ];
 function sumSalesCol(col, from, to){           // SUMIFS(sales!col, date range)
   let s=0; for (const r of DB.sales){ if (r.date>=from && r.date<=to && typeof r[col]==='number') s+=r[col]; }
