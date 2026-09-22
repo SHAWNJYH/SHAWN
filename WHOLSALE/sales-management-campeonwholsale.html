@@ -395,15 +395,9 @@
 </head>
 <body>
 <div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
-<!-- ══ CAMPEON PIN 게이트 ══
-     구 campeon-wholsale.html(은퇴) 로그인을 대시보드 내장 팝업으로 대체.
-     · PIN 원본: Firestore app-config/egmm-users 의 CAMPEON 계정 pin
-       (index EGMM 사용자 관리와 동일 체계 — 이름 또는 id 가 CAMPEON 인 항목.
-        보조 위치: app-config/campeon 문서의 pin 필드)
-     · PIN 변경: EGMM 콘솔 사용자 관리에서 CAMPEON 계정 PIN 변경 → 즉시 반영(파일 수정 불필요)
-     · 첫 로그인 성공 시 해시 형태로 로컬 캐시 → 이후 오프라인에서도 로그인 가능
-     · '자동 로그인' 체크 시 이 기기에서는 다시 묻지 않음(localStorage.campeonAutoLogin).
-       기존 로그인 시스템과 같은 키라 예전에 자동 로그인한 기기는 그대로 통과. -->
+<!-- ══ CAMPEON PIN 게이트 ══  PIN: 98003 고정.
+     파일에는 SHA-256 해시로만 저장. PIN 변경: 콘솔에서 await pinHash('새PIN') 실행 →
+     나온 값을 아래 PIN_HASH 상수에 교체. -->
 <div id="pinGate" hidden>
   <div class="pg-card">
     <h3>CAMPEON WHOLESALE</h3>
@@ -417,92 +411,32 @@
 <script>
 (function(){
   'use strict';
-  /* PIN 검증: Firestore의 CAMPEON 계정 pin 과 대조 (index hashPin/matchUserPin 과 동일 규칙)
-     형식: 'h:'+SHA256('THE-SHAWN::'+PIN) / 'p:'+PIN / 레거시 평문 */
-  var CACHE_KEY = 'campeonPinStored';               // 오프라인용 캐시(항상 해시 형태로만 저장)
-  async function hashPin(v){
-    v = String(v);
-    if (window.crypto && window.crypto.subtle){
-      try{
-        var buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode('THE-SHAWN::'+v));
-        return 'h:'+Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
-      }catch(e){}
-    }
-    return 'p:'+v;
+  var PIN_HASH = 'fd9548a510dc50c42763a5bf3523a1cc98d13a67d4102eba08beb393570d49f4';   // ← SHA-256('98003')
+  async function sha256(t){
+    var b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(t)));
+    return Array.from(new Uint8Array(b)).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
   }
-  async function matchPin(entered, stored){
-    entered = String(entered||'').trim(); stored = String(stored||'');
-    if (stored.slice(0,2)==='h:') return (await hashPin(entered))===stored;   // 해시 저장
-    if (stored.slice(0,2)==='p:') return entered===stored.slice(2);           // 평문(마커) 저장
-    return entered===stored;                       // 레거시 평문
-  }
-  function waitFb(ms){                              // firebase 모듈(fbSM) 준비 대기
-    return new Promise(function(res){
-      if (window.fbSM) return res(window.fbSM);
-      var t = setTimeout(function(){ res(window.fbSM||null); }, ms);
-      window.addEventListener('fbsm-ready', function(){ clearTimeout(t); res(window.fbSM||null); }, {once:true});
-    });
-  }
-  async function fetchStoredPin(){
-    var fb = await waitFb(6000);
-    if (fb){
-      try{
-        var snap = await fb.getDoc(fb.doc(fb.db,'app-config','egmm-users'));
-        var d = (snap && snap.exists && snap.exists()) ? (snap.data()||{}) : {};
-        var users = Array.isArray(d.users) ? d.users : [];
-        var u = users.filter(function(x){
-          var nm=String(x&&x.name||'').trim().toUpperCase(), id=String(x&&x.id||'').trim().toUpperCase();
-          return nm==='CAMPEON' || id==='CAMPEON';
-        })[0];
-        var stored = u ? String(u.pin||'') : '';
-        if (!stored){                               // 보조 위치: app-config/campeon 문서
-          try{
-            var s2 = await fb.getDoc(fb.doc(fb.db,'app-config','campeon'));
-            if (s2 && s2.exists && s2.exists()) stored = String((s2.data()||{}).pin||'');
-          }catch(e2){}
-        }
-        if (stored){
-          var cacheVal = (stored.slice(0,2)==='h:'||stored.slice(0,2)==='p:') ? stored : await hashPin(stored);
-          try{ localStorage.setItem(CACHE_KEY, cacheVal); }catch(e){}   // 평문이면 해시로 변환해 저장
-          return { stored: stored, src: 'live' };
-        }
-        return { stored: null, src: 'missing' };    // 연결은 됐지만 CAMPEON 계정 없음
-      }catch(e){ /* 오프라인/권한 오류 → 캐시 폴백 */ }
-    }
-    var c = null; try{ c = localStorage.getItem(CACHE_KEY); }catch(e){}
-    return c ? { stored: c, src: 'cache' } : { stored: null, src: 'offline' };
-  }
+  window.pinHash = sha256;                          // PIN 변경 시 콘솔에서 해시 생성용
   var passed = false;
   try { passed = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1'; } catch(e){}
   var ov = document.getElementById('pinGate');
-  if (passed){ if (ov) ov.remove(); return; }       // 이번 세션/자동 로그인 기기 → 게이트 없이 통과
-  document.body.classList.add('locked');            // 이후 파싱되는 화면은 블러+조작 차단 상태로 뜸
+  if (passed){ if (ov) ov.remove(); return; }       // 이번 세션/자동 로그인 기기 → 통과
+  document.body.classList.add('locked');
   ov.hidden = false;
   var inp=document.getElementById('pgInput'), err=document.getElementById('pgErr'), btn=document.getElementById('pgBtn');
-  var busy=false;
   async function submit(){
-    if (busy) return;
     var v = (inp.value || '').trim();
     if (!v){ err.textContent = 'PIN을 입력하세요'; inp.focus(); return; }
-    busy = true; btn.disabled = true; err.textContent = '확인 중…';
-    try{
-      var r = await fetchStoredPin();
-      if (!r.stored){
-        err.textContent = (r.src==='missing')
-          ? 'Firebase에 CAMPEON 계정(PIN)이 없습니다 — EGMM 사용자 관리에서 확인하세요'
-          : '인터넷 연결 후 다시 시도하세요 (첫 로그인은 온라인 필요)';
-        return;
-      }
-      if (await matchPin(v, r.stored)){
-        try{
-          sessionStorage.setItem('campeonGate','1');
-          if (document.getElementById('pgAuto').checked) localStorage.setItem('campeonAutoLogin','1');
-        }catch(e){}
-        document.body.classList.remove('locked');
-        ov.remove();
-      } else { err.textContent = 'PIN이 올바르지 않습니다'; inp.value=''; inp.focus(); }
-    } catch(e){ err.textContent = 'PIN 확인 중 오류가 발생했습니다'; }
-    finally { busy=false; if (btn) btn.disabled = false; }
+    var ok = false;
+    try { ok = (await sha256(v)) === PIN_HASH; } catch(e){ err.textContent='HTTPS로 접속하세요'; return; }
+    if (ok){
+      try {
+        sessionStorage.setItem('campeonGate','1');
+        if (document.getElementById('pgAuto').checked) localStorage.setItem('campeonAutoLogin','1');
+      } catch(e){}
+      document.body.classList.remove('locked');
+      ov.remove();
+    } else { err.textContent = 'PIN이 올바르지 않습니다'; inp.value=''; inp.focus(); }
   }
   btn.addEventListener('click', submit);
   inp.addEventListener('keydown', function(e){ if (e.key === 'Enter') submit(); });
