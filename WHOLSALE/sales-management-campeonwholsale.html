@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SALES MANAGEMENT v1.0 · CAMPEON WHOLESALE</title>
-<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <script>
 /* 주소창에서 파일명 숨김: 로드 즉시 주소를 루트(/)로 교체 (서버 호스팅에서만 동작) */
 (function(){
@@ -56,32 +55,31 @@
   html { height: 100%; overscroll-behavior: none; }
   body { min-height: 100%; overscroll-behavior: none; }
   body {
-    font-family: 'Pretendard', 'Malgun Gothic', '맑은 고딕', system-ui, sans-serif;
-    background: #EDEAE3; color: #1E1B16; font-size: 13px;
+    font-family: "Segoe UI", "Malgun Gothic", Helvetica, Arial, sans-serif;
+    background: #eef1f5; color: #1f2937; font-size: 13px;
     -webkit-font-smoothing: antialiased;
   }
   .app { width: 100%; max-width: 1904px; margin: 0 auto; padding: 0 12px; }
 
   /* ── Header ─────────────────────────────── */
   header {
-    height: 54px; background: #FFFDFA; color: #1E1B16;
+    height: 54px; background: #101827; color: #fff;
     display: flex; align-items: center; padding: 0 24px; gap: 32px;
-    border-bottom: 1px solid #E4DFD4;
-    box-shadow: 0 1px 2px rgba(30,27,22,.05);
+    box-shadow: 0 1px 4px rgba(0,0,0,.25);
     position: sticky; top: 0; z-index: 40;   /* 스크롤을 내려도 상단 탭 항상 고정 */
   }
-  header .logo { font-size: 16px; font-weight: 800; letter-spacing: .12em; white-space: nowrap; }
-  header .logo span { color: #7FA893; }
+  header .logo { font-size: 17px; font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+  header .logo span { color: #60a5fa; }
   nav { display: flex; gap: 6px; height: 100%; }
   nav button {
-    background: none; border: none; color: #8C8578; font-size: 13.5px; font-weight: 600;
+    background: none; border: none; color: #9ca3af; font-size: 13.5px; font-weight: 600;
     padding: 0 22px; cursor: pointer; height: 100%; border-bottom: 3px solid transparent;
     letter-spacing: .8px; white-space: nowrap;
   }
-  nav button:hover { color: #1E1B16; }
-  nav button.active { color: #1E1B16; border-bottom-color: #2F5D46; }
-  header .today { margin-left: auto; color: #4C463C; font-weight: 600; white-space: nowrap; }
-  header .today b { color: #1E1B16; margin-left: 6px; }
+  nav button:hover { color: #e5e7eb; }
+  nav button.active { color: #fff; border-bottom-color: #3b82f6; }
+  header .today { margin-left: auto; color: #cbd5e1; font-weight: 600; white-space: nowrap; }
+  header .today b { color: #fff; margin-left: 6px; }
 
   main { padding: 14px 0 16px; }
   .view { display: none; }
@@ -89,30 +87,30 @@
 
   /* ── Cards / tables ─────────────────────── */
   .card {
-    background: #fff; border: 1px solid #E4DFD4; border-radius: 10px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
     box-shadow: 0 1px 3px rgba(15,23,42,.06); overflow: hidden;
   }
   .card h2 {
-    font-size: 13.5px; font-weight: 700; color: #1E1B16; letter-spacing: .3px;
-    padding: 11px 16px; border-bottom: 1px solid #E4DFD4; background: #F7F4ED;
+    font-size: 13.5px; font-weight: 700; color: #0f172a; letter-spacing: .3px;
+    padding: 11px 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;
     display: flex; align-items: center; gap: 10px; white-space: nowrap;
   }
-  .card h2 .sub { font-weight: 500; color: #8C8578; font-size: 12px; }
+  .card h2 .sub { font-weight: 500; color: #64748b; font-size: 12px; }
   table { border-collapse: collapse; width: 100%; }
   th, td {
-    border: 1px solid #E4DFD4; padding: 5px 10px; text-align: right;
+    border: 1px solid #e5e9f0; padding: 5px 10px; text-align: right;
     white-space: nowrap; font-variant-numeric: tabular-nums; height: 28px;
   }
-  th { background: #F2EEE5; color: #4C463C; font-size: 12px; font-weight: 700; text-align: center; }
-  td.lbl, th.lbl { text-align: left; font-weight: 600; color: #4C463C; background: #FAF7F0; }
-  tr.total td { font-weight: 700; background: #F7F4ED; border-top: 2px solid #D6CFC0; }
+  th { background: #f1f5f9; color: #334155; font-size: 12px; font-weight: 700; text-align: center; }
+  td.lbl, th.lbl { text-align: left; font-weight: 600; color: #334155; background: #fafbfd; }
+  tr.total td { font-weight: 700; background: #f8fafc; border-top: 2px solid #cbd5e1; }
   /* 주간비교: Diff 계산에 쓰이는 최근 2주 + Diff 2줄 강조 (아주 옅은 노란색) */
-  #tblWeekly tr.wk-hl td { background: #FBF6E7; }
-  #tblWeekly tr.wk-hl td.lbl { background: #F4ECD4; }
-  td.neg { color: #9C3327; }
-  td.pos { color: #1F7A44; }
-  .grp-last  { background: #EFEBE2 !important; color: #4C463C !important; }
-  .grp-cur   { background: #F5EAE7 !important; color: #7E2A20 !important; }
+  #tblWeekly tr.wk-hl td { background: #fffbeb; }
+  #tblWeekly tr.wk-hl td.lbl { background: #fdf6dc; }
+  td.neg { color: #dc2626; }
+  td.pos { color: #047857; }
+  .grp-last  { background: #eef2f7 !important; color: #475569 !important; }
+  .grp-cur   { background: #fee2e2 !important; color: #b91c1c !important; }
 
   /* ── Dashboard layout ───────────────────── */
   .dash-top { display: flex; gap: 14px; margin-bottom: 14px; align-items: stretch; }
@@ -141,33 +139,33 @@
     cursor: pointer; letter-spacing: .6px; white-space: nowrap; transition: filter .12s;
   }
   .btn:hover { filter: brightness(1.08); }
-  .btn-sales    { background: #2F5D46; color: #fff; }
-  .btn-purchase { background: #A98A55; color: #fff; }
-  .btn-stock    { background: #3E6B58; color: #fff; }
-  .btn-export   { background: #1E1B16; color: #fff; }
-  .btn-pdf      { background: #9C3327; color: #fff; }
-  .btn-backup   { background: #2F6D4F; color: #fff; }   /* 백업: 초록 */
-  .btn-restore  { background: #A98A55; color: #fff; }   /* 복원: 보라 */
+  .btn-sales    { background: #2563eb; color: #fff; }
+  .btn-purchase { background: #7c3aed; color: #fff; }
+  .btn-stock    { background: #0d9488; color: #fff; }
+  .btn-export   { background: #0f172a; color: #fff; }
+  .btn-pdf      { background: #dc2626; color: #fff; }
+  .btn-backup   { background: #059669; color: #fff; }   /* 백업: 초록 */
+  .btn-restore  { background: #7c3aed; color: #fff; }   /* 복원: 보라 */
   .btn-sm       { padding: 6px 16px; font-size: 12px; border-radius: 6px; }
   .card h2 .push { margin-left: auto; }
-  .vdiv { width: 1px; height: 26px; background: #D6CFC0; }
+  .vdiv { width: 1px; height: 26px; background: #cbd5e1; }
   .entry-data th, .entry-data td { min-width: 128px; }
   .entry-data thead th { text-align: center; }
-  .entry-data td.dt { text-align: center; font-weight: 600; color: #4C463C; background: #FAF7F0; }
-  .btn-edit { background: #8F7442; color: #fff; }
-  .btn-edit.on { background: #2F6D4F; }
+  .entry-data td.dt { text-align: center; font-weight: 600; color: #334155; background: #fafbfd; }
+  .btn-edit { background: #d97706; color: #fff; }
+  .btn-edit.on { background: #16a34a; }
   .entry-data td.ed { padding: 2px 4px; }
   .edit-in, .edit-sel {
-    width: 100%; min-width: 110px; border: 1px solid #D6CFC0; border-radius: 5px;
-    padding: 5px 8px; font: inherit; font-size: 13px; text-align: right; background: #FFFDFA; color: #1E1B16;
+    width: 100%; min-width: 110px; border: 1px solid #cbd5e1; border-radius: 5px;
+    padding: 5px 8px; font: inherit; font-size: 13px; text-align: right; background: #fffdf6; color: #111827;
   }
-  .edit-in:focus, .edit-sel:focus { outline: 2px solid #A8C3B4; border-color: #2F5D46; }
+  .edit-in:focus, .edit-sel:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
   .edit-in.txt { text-align: left; text-transform: uppercase; }
   .edit-date {
-    width: 100%; min-width: 130px; border: 1px solid #D6CFC0; border-radius: 5px;
-    padding: 4px 6px; font: inherit; font-size: 12.5px; background: #FFFDFA; color: #1E1B16;
+    width: 100%; min-width: 130px; border: 1px solid #cbd5e1; border-radius: 5px;
+    padding: 4px 6px; font: inherit; font-size: 12.5px; background: #fffdf6; color: #111827;
   }
-  .edit-date:focus { outline: 2px solid #A8C3B4; border-color: #2F5D46; }
+  .edit-date:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
   .entry-left {
     width: 420px; flex: 0 0 auto; display: flex; flex-direction: column; gap: 14px;
     /* 오른쪽 목록이 페이지 스크롤될 때도 입력/검색 박스는 제자리 고정 */
@@ -178,37 +176,37 @@
   .entry-left .entry-form { width: 100%; }
   .month-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .flt-btn {
-    border: 1px solid #D6CFC0; background: #fff; color: #4C463C; border-radius: 6px;
+    border: 1px solid #cbd5e1; background: #fff; color: #334155; border-radius: 6px;
     padding: 7px 14px; font-size: 12.5px; font-weight: 700; cursor: pointer; transition: all .12s;
   }
-  .flt-btn:hover { border-color: #2F5D46; color: #24462F; }
-  .flt-btn.on { background: #24462F; border-color: #24462F; color: #fff; }
+  .flt-btn:hover { border-color: #3b82f6; color: #1d4ed8; }
+  .flt-btn.on { background: #1e40af; border-color: #1e40af; color: #fff; }
   .frow input[type="date"] { text-align: left; }
   .delh, .entry-data td.delc { min-width: 64px !important; width: 64px; text-align: center; }
   .row-del {
-    border: 1px solid #D8A79C; background: #fff; color: #9C3327; border-radius: 5px;
+    border: 1px solid #fca5a5; background: #fff; color: #dc2626; border-radius: 5px;
     padding: 4px 11px; font-size: 11px; font-weight: 800; cursor: pointer; white-space: nowrap; transition: all .12s;
   }
-  .row-del:hover { background: #9C3327; border-color: #9C3327; color: #fff; }
-  .mtot { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #E4DFD4; background: #FAF7F0; }
+  .row-del:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
+  .mtot { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; background: #fbfcfe; }
   .mtot-chip {
-    border: 1px solid #DCD5C6; background: #fff; border-radius: 8px; padding: 6px 14px;
-    font-size: 12.5px; font-weight: 700; color: #4C463C; white-space: nowrap;
+    border: 1px solid #dbe3ee; background: #fff; border-radius: 8px; padding: 6px 14px;
+    font-size: 12.5px; font-weight: 700; color: #475569; white-space: nowrap;
   }
-  .mtot-chip b { color: #1E1B16; margin-left: 8px; }
-  .mtot-chip.empty { color: #8C8578; }
+  .mtot-chip b { color: #0f172a; margin-left: 8px; }
+  .mtot-chip.empty { color: #94a3b8; }
   .entry-left .frow label { width: 158px; font-size: 11.5px; }
   .entry-left .frow input[type="date"] { min-width: 0; width: 100%; padding: 7px 8px; font-size: 12.5px; }
   .flt-btn { white-space: nowrap; }
   .entry-left .btn-row .btn { font-size: 13px; white-space: nowrap; padding: 10px 4px; }
-  .sync { font-size: 11.5px; font-weight: 700; color: #8C8578; margin-right: 14px; white-space: nowrap; }
-  .sync.on { color: #5FA97C; }
+  .sync { font-size: 11.5px; font-weight: 700; color: #94a3b8; margin-right: 14px; white-space: nowrap; }
+  .sync.on { color: #4ade80; }
   .sync::before { content: '● '; }
   .edit-sel { text-align: left; }
-  .btn-save  { background: #2F6D4F; color: #fff; padding: 10px 0; width: 100%; font-size: 14px; }
-  .btn-clear { background: #E4DFD4; color: #4C463C; padding: 10px 0; width: 100%; font-size: 14px; }
-  .month-chip { font-weight: 700; color: #4C463C; background:#E4DFD4; border-radius: 6px; padding: 6px 14px; white-space: nowrap; }
-  .month-chip.cur { background: #F5EAE7; color: #7E2A20; }
+  .btn-save  { background: #16a34a; color: #fff; padding: 10px 0; width: 100%; font-size: 14px; }
+  .btn-clear { background: #e2e8f0; color: #334155; padding: 10px 0; width: 100%; font-size: 14px; }
+  .month-chip { font-weight: 700; color: #475569; background:#e2e8f0; border-radius: 6px; padding: 6px 14px; white-space: nowrap; }
+  .month-chip.cur { background: #fee2e2; color: #b91c1c; }
 
   /* ── Entry layout (sales/purchase/stock) ── */
   .entry-wrap { display: flex; gap: 14px; align-items: flex-start; }
@@ -219,28 +217,28 @@
      가로는 넓은 표(태블릿)에서 필요하므로 표 안에서만 스크롤 유지. */
   .data-scroll { overflow-x: auto; overflow-y: visible; }
   .frow { display: flex; align-items: center; margin-bottom: 9px; gap: 10px; }
-  .frow label { width: 158px; flex: 0 0 auto; font-weight: 600; font-size: 11.5px; color: #4C463C; white-space: nowrap; overflow: hidden; }
+  .frow label { width: 158px; flex: 0 0 auto; font-weight: 600; font-size: 11.5px; color: #475569; white-space: nowrap; overflow: hidden; }
   .frow input, .frow select {
-    flex: 1; border: 1px solid #D6CFC0; border-radius: 6px; padding: 7px 10px;
+    flex: 1; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 10px;
     font-size: 13px; font-family: inherit; text-align: right; min-width: 0;
-    background: #fff; color: #1E1B16;
+    background: #fff; color: #111827;
   }
   .frow select { text-align: left; }
-  .frow input:focus, .frow select:focus { outline: 2px solid #A8C3B4; border-color: #2F5D46; }
-  .frow input[readonly] { background: #E4DFD4; font-weight: 700; }
+  .frow input:focus, .frow select:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+  .frow input[readonly] { background: #e5e7eb; font-weight: 700; }
   .frow input.text { text-align: left; }
   .date-trio { display: flex; gap: 6px; flex: 1; }
   .date-trio input { width: 33%; text-align: center; }
   .btn-row { display: flex; gap: 10px; margin-top: 14px; }
-  .form-divider { border: none; border-top: 1px dashed #D6CFC0; margin: 12px 0; }
-  .hint { color: #8C8578; font-size: 11.5px; margin-top: 10px; white-space: nowrap; }
+  .form-divider { border: none; border-top: 1px dashed #d7dde6; margin: 12px 0; }
+  .hint { color: #94a3b8; font-size: 11.5px; margin-top: 10px; white-space: nowrap; }
 
   .itm-input {
     width: 100%; border: 1px solid transparent; background: transparent; font: inherit;
-    text-align: left; padding: 2px 4px; border-radius: 4px; color: #1E1B16; font-weight: 600;
+    text-align: left; padding: 2px 4px; border-radius: 4px; color: #111827; font-weight: 600;
   }
-  .itm-input:hover { border-color: #D6CFC0; background: #fff; }
-  .itm-input:focus { outline: 2px solid #A8C3B4; background: #fff; border-color: #2F5D46; }
+  .itm-input:hover { border-color: #cbd5e1; background: #fff; }
+  .itm-input:focus { outline: 2px solid #93c5fd; background: #fff; border-color: #3b82f6; }
 
   /* ── Toast ──────────────────────────────── */
   #toast {
@@ -250,8 +248,8 @@
     transition: all .22s; pointer-events: none; white-space: nowrap; z-index: 5000;
   }
   #toast.show { opacity: 1; transform: translateY(0); }
-  #toast.ok  { background: #2F6D4F; }
-  #toast.err { background: #9C3327; }
+  #toast.ok  { background: #16a34a; }
+  #toast.err { background: #dc2626; }
   /* ── DEL 열: EDIT 모드에서만 노출 ── */
   .delh, .entry-data td.delc { display: none; }
   table.editing .delh, table.editing td.delc { display: table-cell; }
@@ -260,17 +258,17 @@
   .date-range { display: flex; gap: 12px; margin-bottom: 10px; }
   .date-range .dr-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
   .date-range .dr-col label {
-    width: auto; font-size: 11px; font-weight: 700; color: #8C8578;
+    width: auto; font-size: 11px; font-weight: 700; color: #64748b;
     letter-spacing: .3px; white-space: nowrap;
   }
   .date-range .dr-col input[type="date"] {
-    width: 100%; border: 1px solid #D6CFC0; border-radius: 6px;
+    width: 100%; border: 1px solid #cbd5e1; border-radius: 6px;
     padding: 8px 10px; font-size: 12.5px; font-family: inherit;
-    background: #fff; color: #1E1B16; text-align: left;
+    background: #fff; color: #111827; text-align: left;
   }
-  .date-range .dr-col input[type="date"]:focus { outline: 2px solid #A8C3B4; border-color: #2F5D46; }
+  .date-range .dr-col input[type="date"]:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
   /* ── PRINT 버튼 ── */
-  .btn-print { background: #4C463C; color: #fff; }
+  .btn-print { background: #475569; color: #fff; }
   /* ── 인터넷 끊김 경고 배너 ── */
   #netWarn{
     position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
@@ -280,8 +278,8 @@
     border-bottom: 2px solid rgba(0,0,0,.25);
   }
   #netWarn.show{ display: flex; }
-  #netWarn.off{ background: #9C3327; animation: netPulse 1.4s ease-in-out infinite; }
-  #netWarn.ok { background: #2F6D4F; }
+  #netWarn.off{ background: #dc2626; animation: netPulse 1.4s ease-in-out infinite; }
+  #netWarn.ok { background: #16a34a; }
   #netWarn .dot{
     width: 11px; height: 11px; border-radius: 50%; background: #fff;
     box-shadow: 0 0 0 0 rgba(255,255,255,.7); flex: 0 0 auto;
@@ -290,7 +288,7 @@
   @keyframes netPulse{ 0%,100%{ filter: brightness(1); } 50%{ filter: brightness(1.18); } }
   @keyframes netDot{ 0%{ box-shadow: 0 0 0 0 rgba(255,255,255,.7); } 70%{ box-shadow: 0 0 0 9px rgba(255,255,255,0); } 100%{ box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
   /* 배너가 뜰 때 헤더가 가리지 않도록 본문을 살짝 내림 */
-  body.netdown header{ box-shadow: inset 0 3px 0 #9C3327; }
+  body.netdown header{ box-shadow: inset 0 3px 0 #dc2626; }
 
   /* ══════════ RESPONSIVE · 태블릿 대응 ══════════ */
   /* 넓은 표를 감싸 가로 스크롤 처리 (레이아웃이 깨지지 않고 표 안에서만 스크롤) */
@@ -352,127 +350,29 @@
   /* 브라우저 Fullscreen API로 화면 전체(주소창·탭·메뉴 숨김)로 전환한다.
      전체 페이지(입력폼·검색·리스트·헤더)를 그대로 두고 브라우저 UI만 숨김 —
      특정 카드만 확대하지 않는다. 페이지 스크롤/헤더 고정도 그대로 유지. */
-  .btn-full { background: #3E6B58; color: #fff; }
+  .btn-full { background: #4f46e5; color: #fff; }
 
   /* 네이티브 전체화면 시 배경(브라우저 기본 검정 방지) */
-  :fullscreen { background: #EDEAE3; }
-  :-webkit-full-screen { background: #EDEAE3; }
+  :fullscreen { background: #eef1f5; }
+  :-webkit-full-screen { background: #eef1f5; }
 
   /* 태블릿에서 목록 스크롤 관성(momentum) 활성화 */
   .data-scroll, .stock-scroll { -webkit-overflow-scrolling: touch; }
-  /* === 진입 게이트 === */
-  html.cw-gate-lock body > *:not(#cwGateOv){ visibility: hidden !important; }
-  #cwGateOv{ position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center;
-    background: #EDEAE3; visibility: visible !important; }
-  #cwGateOv .cwg-card{ width: 340px; background: #FFFDFA; border: 1.5px solid #E4DFD4;
-    border-radius: 18px; padding: 30px 30px 26px; box-shadow: 0 14px 30px -20px rgba(30,27,22,.42); }
-  #cwGateOv .cwg-title{ margin: 0 0 18px; font-size: 21px; font-weight: 800; letter-spacing: .14em; text-align: center; color: #1E1B16; line-height:1.3; }
-  #cwGateOv .cwg-field{ margin-bottom: 12px; }
-  #cwGateOv .cwg-field label{ display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; color: #8C8578; margin-bottom: 5px; }
-  #cwGateOv .cwg-field input{ width: 100%; box-sizing: border-box; border: 1.5px solid #E4DFD4; border-radius: 10px;
-    padding: 12px 14px; font: inherit; font-size: 15px; font-weight: 700; color: #1E1B16; background: #FFFDFA; }
-  #cwGateOv #cwgId{ text-transform: uppercase; }
-  #cwGateOv .cwg-field input:focus{ outline: none; border-color: #2F5D46; }
-  #cwGateOv .cwg-err{ min-height: 18px; font-size: 12px; font-weight: 800; color: #9C3327; letter-spacing: .04em; margin: 2px 0 10px; text-align: center; }
-  #cwGateOv .cwg-btns{ display: flex; gap: 10px; }
-  #cwGateOv .cwg-btn{ flex: 1.4; border: none; border-radius: 10px; padding: 13px 0; font: inherit; font-size: 14px; font-weight: 800;
-    letter-spacing: .08em; cursor: pointer; background: #2F5D46; color: #fff; }
-  #cwGateOv .cwg-btn.cwg-cancel{ flex: 1; background: #FFFDFA; color: #1E1B16; border: 1.5px solid #D6CFC0; }
-  #cwGateOv .cwg-card.cwg-wide{ width: 620px; max-width: 94vw; }
-  #cwGateOv .cwg-cols{ display:flex; gap:26px; }
-  #cwGateOv .cwg-col{ flex:1; min-width:0; }
-  #cwGateOv .cwg-col2{ border-left:1px dashed #D6CFC0; padding-left:26px; }
-  #cwGateOv .cwg-sec{ text-align:center; font-size:11px; font-weight:900; letter-spacing:.16em; color:#2F5D46; margin:2px 0 12px; }
-  #cwGateOv .cwg-col .cwg-btn{ width:100%; }
-  #cwGateOv #cwgPinId{ background:#F2EEE5; color:#4C463C; letter-spacing:.1em; font-weight:800; cursor:default; }
-  #cwGateOv .cwg-foot{ display:flex; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #E4DFD4; }
-  #cwGateOv .cwg-foot .cwg-cancel{ flex:0 0 auto; padding:11px 22px; }
-  @media (max-width:640px){ #cwGateOv .cwg-cols{ flex-direction:column; gap:16px; } #cwGateOv .cwg-col2{ border-left:none; padding-left:0; border-top:1px dashed #D6CFC0; padding-top:16px; } }
 </style>
 </head>
 <body>
 <div id="netWarn" role="alert" aria-live="assertive"><span class="dot"></span><span id="netWarnMsg"></span></div>
 <script>
-  /* === 진입 게이트(인페이지) === 매장 PIN 전용 (아이디 CAMPEON 고정).
-     PIN: plu-store-pins/CAMPEON — HOMEPAGE MANAGER 매장 관리에서 설정 · 자동 로그인 없음 */
+  /* === 진입 가드 === campeon-wholsale.html 아이디/패스워드 로그인을 거치지 않으면 되돌림 */
   (function(){
-    'use strict';
-    var REQUIRED_SCOPE='WHOLSALE';
-    function fbReady(cb){ if(window.fbSM && window.fbSM.db) cb(); else window.addEventListener('fbsm-ready', cb, {once:true}); }
-    function getDocData(col,id){
-      return new Promise(function(res,rej){
-        fbReady(function(){
-          var F=window.fbSM;
-          F.getDoc(F.doc(F.db,col,id))
-            .then(function(snap){ res((snap&&snap.exists&&snap.exists())?(snap.data()||{}):null); })
-            .catch(rej);
-        });
-      });
-    }
-    /* CAMPEON PIN (plu-store-pins/CAMPEON — HOMEPAGE MANAGER 매장 관리에서 설정) */
-    function verifyPin(pin){
-      return getDocData('plu-store-pins','CAMPEON').then(function(d){
-        if(!d || d.pin==null) return 'PIN NOT SET · ASK MANAGER';
-        if(String(d.pin)!==String(pin)) return 'WRONG PIN';
-        return null;
-      }).catch(function(){ return 'CONNECTION ERROR — TRY AGAIN'; });
-    }
-    function unlock(){
-      var ov=document.getElementById('cwGateOv'); if(ov) ov.remove();
-      document.documentElement.classList.remove('cw-gate-lock');
-    }
-    function passPin(){
-      try{ sessionStorage.setItem('campeonGate','1'); }catch(e){}
-      try{ sessionStorage.setItem('campeonAuth', JSON.stringify({mode:'pin'})); }catch(e){}
-      unlock();
-    }
-    function show(msg){
-      document.documentElement.classList.add('cw-gate-lock');
-      var ov=document.getElementById('cwGateOv');
-      if(!ov){
-        ov=document.createElement('div'); ov.id='cwGateOv';
-        ov.innerHTML='<div class="cwg-card">'
-          +'<h1 class="cwg-title">CAMPEON<br>WHOLESALE</h1>'
-          +'<div class="cwg-field"><label>ID</label><input type="text" id="cwgPinId" value="CAMPEON" readonly tabindex="-1"></div>'
-          +'<div class="cwg-field"><label>PIN</label><input type="password" id="cwgPin" inputmode="numeric" placeholder="••••" autocomplete="off"></div>'
-          +'<div class="cwg-err" id="cwgPinErr"></div>'
-          +'<div class="cwg-btns"><button class="cwg-btn" id="cwgPinEnter" type="button">ENTER</button>'
-          +'<button class="cwg-btn cwg-cancel" id="cwgCancel" type="button">CANCEL</button></div>'
-        +'</div>';
-        (document.body||document.documentElement).appendChild(ov);
-        document.getElementById('cwgPinEnter').onclick=submitPin;
-        document.getElementById('cwgCancel').onclick=function(){ location.replace('../index.html'); };
-        document.getElementById('cwgPin').addEventListener('keydown',function(e){ if(e.key==='Enter') submitPin(); });
-        setTimeout(function(){ document.getElementById('cwgPin').focus(); },80);
-      }
-      var er=document.getElementById('cwgPinErr'); if(er) er.textContent=msg||'';
-    }
-    function submitPin(){
-      if(busy) return;
-      var pwIn=document.getElementById('cwgPin'), er=document.getElementById('cwgPinErr');
-      var pin=(pwIn&&pwIn.value||'').trim();
-      if(er) er.textContent='';
-      if(!pin){ if(er) er.textContent='ENTER PIN'; pwIn.focus(); return; }
-      busy=true; if(er) er.textContent='CHECKING…';
-      verifyPin(pin).then(function(bad){
-        busy=false;
-        if(bad){ if(er) er.textContent=bad; pwIn.value=''; pwIn.focus(); return; }
-        passPin();
-      });
-    }
-    var busy=false;
-    document.documentElement.classList.add('cw-gate-lock');
-    document.addEventListener('DOMContentLoaded', function(){
-      try{ localStorage.removeItem('campeonAutoLogin'); }catch(e){}
-      var ok=false;
-      try{ ok = sessionStorage.getItem('campeonGate')==='1'; }catch(e){}
-      if(ok){ unlock(); return; }   // 같은 탭 새로고침 = 로그인 유지
-      show('');
-    });
+    try{
+      var ok = sessionStorage.getItem('campeonGate')==='1' || localStorage.getItem('campeonAutoLogin')==='1';
+      if(!ok){ location.replace('campeon-wholsale.html'); }
+    }catch(e){}
   })();
 </script>
 <header>
-  <div class="logo">SALES MANAGEMENT <span>v1.0</span>&nbsp;<span style="color:#8C8578;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
+  <div class="logo">SALES MANAGEMENT <span>v1.0</span>&nbsp;<span style="color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:.4px;">CAMPEON WHOLESALE</span></div>
   <nav>
     <button id="tab-dashboard" class="active" onclick="showTab('dashboard')">DASHBOARD</button>
     <button id="tab-sales" onclick="showTab('sales')">SALES</button>
@@ -480,7 +380,7 @@
     <button id="tab-stock" onclick="showTab('stock')">STOCK</button>
   </nav>
   <div class="today"><span class="sync" id="syncState">OFFLINE</span>Today: <b id="todayLabel"></b></div>
-  <button onclick="location.href='../index.html'" style="background:#FFFDFA;border:1.5px solid #D6CFC0;color:#1E1B16;border-radius:9px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;margin-left:14px;letter-spacing:.04em;">← 뒤로가기 <span style="color:#8C8578;font-size:10px;font-weight:800;">BACK</span></button>
+  <button onclick="location.href='campeon-wholsale.html'" style="background:none;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:14px;">← CAMPEON</button>
 </header>
 
 <div class="app">
@@ -531,12 +431,12 @@
               <tr>
                 <th class="lbl" rowspan="2">Item#</th>
                 <th colspan="5">On hand stock</th>
-                <th colspan="2" style="background:#E9EFEA;color:#2F5D46">Inventory for 4 Weeks</th>
+                <th colspan="2" style="background:#e0e7ff;color:#3730a3">Inventory for 4 Weeks</th>
               </tr>
               <tr>
                 <th>Box</th><th>Lbs</th><th>Latest Cost</th><th>Amount</th><th>Latest Date</th>
-                <th style="background:#E9EFEA;color:#2F5D46">AVG COST(4W)</th>
-                <th style="background:#E9EFEA;color:#2F5D46">AMOUNT(4W)</th>
+                <th style="background:#e0e7ff;color:#3730a3">AVG COST(4W)</th>
+                <th style="background:#e0e7ff;color:#3730a3">AMOUNT(4W)</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -554,16 +454,16 @@
             <th class="lbl" rowspan="2" style="width:120px">Week</th>
             <th colspan="2">Mon</th><th colspan="2">Tue</th><th colspan="2">Wed</th>
             <th colspan="2">Thu</th><th colspan="2">Fri</th><th colspan="2">Sat</th>
-            <th colspan="4" style="background:#E9EFEA;color:#2F5D46">Total</th>
+            <th colspan="4" style="background:#e0e7ff;color:#3730a3">Total</th>
           </tr>
           <tr>
             <th>Sales</th><th>Purchase</th><th>Sales</th><th>Purchase</th>
             <th>Sales</th><th>Purchase</th><th>Sales</th><th>Purchase</th>
             <th>Sales</th><th>Purchase</th><th>Sales</th><th>Purchase</th>
-            <th style="background:#E9EFEA;color:#2F5D46">Sales</th>
-            <th style="background:#E9EFEA;color:#2F5D46">Purchase</th>
-            <th style="background:#E9EFEA;color:#2F5D46">GP($)</th>
-            <th style="background:#E9EFEA;color:#2F5D46">GP(%)</th>
+            <th style="background:#e0e7ff;color:#3730a3">Sales</th>
+            <th style="background:#e0e7ff;color:#3730a3">Purchase</th>
+            <th style="background:#e0e7ff;color:#3730a3">GP($)</th>
+            <th style="background:#e0e7ff;color:#3730a3">GP(%)</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -1403,12 +1303,14 @@ function renderStockData(){
   renderMonthTotals('stock');
 }
 
-/* ═════════════════════════ DASHBOARD — 수식 그대로 ═════════════════════════ */
-/* dashboard 수식의 열 참조를 그대로 유지:
-   Grocery←sales!B, Produce←C, Meat←D, Seafood←E, Houseware←F, Deli←G, Bakery←H            */
+/* ═════════════════════════ DASHBOARD ═════════════════════════ */
+/* 부서 집계는 열 '위치'가 아니라 부서 '이름' 기준으로 매핑한다.
+   (원본 엑셀 dashboard는 Seafood 행이 sales!E(=houseware 열)를 읽는 위치 기반 수식이라
+    Seafood↔Houseware 값이 서로 바뀌어 표시되는 버그가 있었음 — 여기서 이름 기준으로 교정)
+   sales 필드: g=Grocery, p=Produce, m=Meat, h=Houseware, s=Seafood, d=Deli, b=Bakery      */
 const DEPT_ROWS = [
   ['Grocery','g'], ['Produce','p'], ['Meat','m'],
-  ['Seafood','h'], ['Houseware','s'], ['Deli','d'], ['Bakery','b']
+  ['Seafood','s'], ['Houseware','h'], ['Deli','d'], ['Bakery','b']
 ];
 function sumSalesCol(col, from, to){           // SUMIFS(sales!col, date range)
   let s=0; for (const r of DB.sales){ if (r.date>=from && r.date<=to && typeof r[col]==='number') s+=r[col]; }
@@ -1851,9 +1753,9 @@ function printTab(tab){
     'h1{ font-size:18px; margin:0 0 12px; letter-spacing:.5px; text-align:center; }'+  /* 제목 가운데 */
     'table{ border-collapse:collapse; width:100%; table-layout:auto; font-size:10px; }'+
     'th,td{ border:1px solid #555; padding:4px 7px; white-space:nowrap; }'+   /* 라인(테두리) 표시 */
-    'th{ background:#E4DFD4; color:#111; font-weight:700; text-align:center; }'+ /* 필드=옅은 그레이 */
+    'th{ background:#e5e7eb; color:#111; font-weight:700; text-align:center; }'+ /* 필드=옅은 그레이 */
     'td.left{ text-align:left; } td.right{ text-align:right; } td.center{ text-align:center; }'+
-    'td.neg{ color:#9C3327; }'+
+    'td.neg{ color:#dc2626; }'+
     'thead{ display:table-header-group; }'+   /* 페이지마다 헤더 반복 */
     'tr{ page-break-inside:avoid; }'+
     '</style></head><body>'+
@@ -2003,7 +1905,7 @@ async function exportDashboardPDF(){
   if (!(await ensureLib('html2canvas'))) return;
   if (!(await ensureLib('jspdf'))) return;
   const el = document.getElementById('view-dashboard');
-  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#EDEAE3', logging:false});
+  const canvas = await html2canvas(el, {scale:2, backgroundColor:'#eef1f5', logging:false});
   const img = canvas.toDataURL('image/jpeg', 0.92);
   const pdf = new jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
   const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight();
